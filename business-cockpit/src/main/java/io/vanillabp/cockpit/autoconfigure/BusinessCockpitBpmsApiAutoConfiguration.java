@@ -16,20 +16,15 @@ import org.springframework.context.annotation.Import;
 @AutoConfiguration
 @ConditionalOnWebApplication(type = Type.SERVLET)
 @Import({
-    io.vanillabp.cockpit.bpms.api.v1.BpmsApiController.class,
-    io.vanillabp.cockpit.bpms.api.v1.UserTaskMapperV1Impl.class,
-    io.vanillabp.cockpit.bpms.api.v1.WorkflowMapperV1Impl.class,
-    io.vanillabp.cockpit.bpms.api.v1_1.BpmsApiController.class,
-    io.vanillabp.cockpit.bpms.api.v1_1.UserTaskMapperV1_1Impl.class,
-    io.vanillabp.cockpit.bpms.api.v1_1.WorkflowMapperV1_1Impl.class
+    io.vanillabp.cockpit.bpms.api.v1.BpmsApiController.class, io.vanillabp.cockpit.bpms.api.v1.UserTaskMapperV1Impl.class, io.vanillabp.cockpit.bpms.api.v1.WorkflowMapperV1Impl.class, io.vanillabp.cockpit.bpms.api.v1_1.BpmsApiController.class, io.vanillabp.cockpit.bpms.api.v1_1.UserTaskMapperV1_1Impl.class, io.vanillabp.cockpit.bpms.api.v1_1.WorkflowMapperV1_1Impl.class
 })
 public class BusinessCockpitBpmsApiAutoConfiguration {
 
-    /**
-     * Called by Spring Boot. Everything this configuration adds comes from its annotations.
-     */
-    public BusinessCockpitBpmsApiAutoConfiguration() {
+  /**
+   * Called by Spring Boot. Everything this configuration adds comes from its annotations.
+   */
+  public BusinessCockpitBpmsApiAutoConfiguration() {
 
-    }
+  }
 
 }

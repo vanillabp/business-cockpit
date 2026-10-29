@@ -2,15 +2,17 @@ package io.vanillabp.cockpit.itest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * Exercises the GUI API the way the single-page app uses it. A login by basic auth produces a JWT
@@ -21,306 +23,346 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @SuppressOutputExtension.SuppressBackgroundOutput
 class GuiApiTest extends ItestBase {
 
-    private String moduleId;
-    private String token;
-    private String cookie;
+  private String moduleId;
+  private String token;
+  private String cookie;
 
-    @BeforeEach
-    void registerModuleAndLogin() {
-        moduleId = unique("ride-module");
-        token = unique("token");
-        registerWorkflowModule(moduleId, "http://localhost:65000");
-        cookie = loginToGui(USER_MARTIN);
-    }
+  @BeforeEach
+  void registerModuleAndLogin() {
+    moduleId = unique("ride-module");
+    token = unique("token");
+    registerWorkflowModule(moduleId, "http://localhost:65000");
+    cookie = loginToGui(USER_MARTIN);
+  }
 
-    private String createTask(
-            final String dueDate) {
+  private String createTask(
+      final String dueDate) {
 
-        final var userTaskId = unique("task");
-        final var response = bpmsV1_1("/usertask/created", """
-                {
-                  "id": "%s",
-                  "userTaskId": "%s",
-                  "timestamp": "%s",
-                  "workflowModuleId": "%s",
-                  "bpmnProcessId": "taxi-ride",
-                  "title": { "en": "Do ride" },
-                  "taskDefinition": "do-ride",
-                  "uiUriPath": "/remoteEntry.js",
-                  "uiUriType": "WEBPACK_MF_REACT",
-                  "assignee": "martin",
-                  "dueDate": "%s",
-                  "detailsFulltextSearch": "%s"
-                }
-                """.formatted(unique("event"), userTaskId, isoNow(), moduleId, dueDate, token));
-        assertThat(response.statusCode()).isEqualTo(200);
-        return userTaskId;
+    final var userTaskId = unique("task");
+    final var response = bpmsV1_1("/usertask/created", """
+        {
+          "id": "%s",
+          "userTaskId": "%s",
+          "timestamp": "%s",
+          "workflowModuleId": "%s",
+          "bpmnProcessId": "taxi-ride",
+          "title": { "en": "Do ride" },
+          "taskDefinition": "do-ride",
+          "uiUriPath": "/remoteEntry.js",
+          "uiUriType": "WEBPACK_MF_REACT",
+          "assignee": "martin",
+          "dueDate": "%s",
+          "detailsFulltextSearch": "%s"
+        }
+        """.formatted(unique("event"), userTaskId, isoNow(), moduleId, dueDate, token));
+    assertThat(response.statusCode()).isEqualTo(200);
+    return userTaskId;
 
-    }
+  }
 
-    @Test
-    void appInfoIsServedWithoutAuthentication() {
+  @Test
+  void appInfoIsServedWithoutAuthentication() {
 
-        final var response = send(HttpRequest
-                .newBuilder(URI.create(url("/gui/api/v1/app/info")))
-                .GET()
-                .build());
-        assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(json(response).read("$.titleShort", String.class)).isEqualTo("VanillaBP-BC");
+    final var response = send(HttpRequest
+        .newBuilder(URI.create(url("/gui/api/v1/app/info")))
+        .GET()
+        .build());
+    assertThat(response.statusCode()).isEqualTo(200);
+    assertThat(json(response).read("$.titleShort", String.class)).isEqualTo("VanillaBP-BC");
 
-    }
+  }
 
-    @Test
-    void protectedEndpointsRejectUnauthenticatedRequests() {
+  @Test
+  void protectedEndpointsRejectUnauthenticatedRequests() {
 
-        final var response = send(HttpRequest
-                .newBuilder(URI.create(url("/gui/api/v1/usertask")))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString("{ \"pageNumber\": 0, \"pageSize\": 10 }"))
-                .build());
-        assertThat(response.statusCode()).isEqualTo(401);
+    final var response = send(HttpRequest
+        .newBuilder(URI.create(url("/gui/api/v1/usertask")))
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString("{ \"pageNumber\": 0, \"pageSize\": 10 }"))
+        .build());
+    assertThat(response.statusCode()).isEqualTo(401);
 
-    }
+  }
 
-    @Test
-    void loginRejectsWrongPassword() {
+  @Test
+  void loginRejectsWrongPassword() {
 
-        final var response = send(HttpRequest
-                .newBuilder(URI.create(url("/gui/api/v1/app/current-user")))
-                .header("Authorization", basicAuth(USER_MARTIN, "wrong-password"))
-                .GET()
-                .build());
-        assertThat(response.statusCode()).isEqualTo(401);
+    final var response = send(HttpRequest
+        .newBuilder(URI.create(url("/gui/api/v1/app/current-user")))
+        .header("Authorization", basicAuth(USER_MARTIN, "wrong-password"))
+        .GET()
+        .build());
+    assertThat(response.statusCode()).isEqualTo(401);
 
-    }
+  }
 
-    @Test
-    void loginIssuesJwtCookieAndCurrentUserAnswersWithUserDetails() {
+  @Test
+  void loginIssuesJwtCookieAndCurrentUserAnswersWithUserDetails() {
 
-        assertThat(cookie).startsWith("bc=");
+    assertThat(cookie).startsWith("bc=");
 
-        final var response = guiGet(cookie, "/app/current-user");
-        assertThat(response.statusCode()).isEqualTo(200);
-        final var user = json(response);
-        assertThat(user.read("$.id", String.class)).isEqualTo(USER_MARTIN);
-        assertThat(user.read("$.email", String.class)).isEqualTo("martin@example.com");
-        assertThat(user.read("$.groups[*].id", List.class))
-                .contains(GROUP_OF_MARTIN, "bc-users");
+    final var response = guiGet(cookie, "/app/current-user");
+    assertThat(response.statusCode()).isEqualTo(200);
+    final var user = json(response);
+    assertThat(user.read("$.id", String.class)).isEqualTo(USER_MARTIN);
+    assertThat(user.read("$.email", String.class)).isEqualTo("martin@example.com");
+    assertThat(user.read("$.groups[*].id", List.class))
+        .contains(GROUP_OF_MARTIN, "bc-users");
 
-    }
+  }
 
-    @Test
-    void taskListSupportsPagingAndSorting() {
+  @Test
+  void taskListSupportsPagingAndSorting() {
 
-        final var baseDueDate = OffsetDateTime.now().plusDays(1).truncatedTo(ChronoUnit.SECONDS);
-        final var firstTask = createTask(baseDueDate.toString());
-        final var secondTask = createTask(baseDueDate.plusHours(1).toString());
-        final var thirdTask = createTask(baseDueDate.plusHours(2).toString());
+    final var baseDueDate = OffsetDateTime.now().plusDays(1).truncatedTo(ChronoUnit.SECONDS);
+    final var firstTask = createTask(baseDueDate.toString());
+    final var secondTask = createTask(baseDueDate.plusHours(1).toString());
+    final var thirdTask = createTask(baseDueDate.plusHours(2).toString());
 
-        final var firstPage = json(guiPost(cookie, "/usertask", """
-                {
-                  "pageNumber": 0,
-                  "pageSize": 2,
-                  "searchQueries": [ { "query": "%s" } ],
-                  "sortAscending": true,
-                  "mode": "OpenTasks"
-                }
-                """.formatted(token)));
-        assertThat(firstPage.read("$.page.totalElements", Integer.class)).isEqualTo(3);
-        assertThat(firstPage.read("$.page.totalPages", Integer.class)).isEqualTo(2);
-        assertThat(firstPage.read("$.page.number", Integer.class)).isEqualTo(0);
-        assertThat(firstPage.read("$.userTasks[*].id", List.class))
-                .containsExactly(firstTask, secondTask);
+    final var firstPage = json(guiPost(cookie, "/usertask", """
+        {
+          "pageNumber": 0,
+          "pageSize": 2,
+          "searchQueries": [ { "query": "%s" } ],
+          "sortAscending": true,
+          "mode": "OpenTasks"
+        }
+        """.formatted(token)));
+    assertThat(firstPage.read("$.page.totalElements", Integer.class)).isEqualTo(3);
+    assertThat(firstPage.read("$.page.totalPages", Integer.class)).isEqualTo(2);
+    assertThat(firstPage.read("$.page.number", Integer.class)).isEqualTo(0);
+    assertThat(firstPage.read("$.userTasks[*].id", List.class))
+        .containsExactly(firstTask, secondTask);
 
-        final var secondPage = json(guiPost(cookie, "/usertask", """
-                {
-                  "pageNumber": 1,
-                  "pageSize": 2,
-                  "searchQueries": [ { "query": "%s" } ],
-                  "sortAscending": true,
-                  "mode": "OpenTasks"
-                }
-                """.formatted(token)));
-        assertThat(secondPage.read("$.userTasks[*].id", List.class))
-                .containsExactly(thirdTask);
+    final var secondPage = json(guiPost(cookie, "/usertask", """
+        {
+          "pageNumber": 1,
+          "pageSize": 2,
+          "searchQueries": [ { "query": "%s" } ],
+          "sortAscending": true,
+          "mode": "OpenTasks"
+        }
+        """.formatted(token)));
+    assertThat(secondPage.read("$.userTasks[*].id", List.class))
+        .containsExactly(thirdTask);
 
-        final var descending = json(guiPost(cookie, "/usertask", """
-                {
-                  "pageNumber": 0,
-                  "pageSize": 3,
-                  "searchQueries": [ { "query": "%s" } ],
-                  "sortAscending": false,
-                  "mode": "OpenTasks"
-                }
-                """.formatted(token)));
-        assertThat(descending.read("$.userTasks[*].id", List.class))
-                .containsExactly(thirdTask, secondTask, firstTask);
+    final var descending = json(guiPost(cookie, "/usertask", """
+        {
+          "pageNumber": 0,
+          "pageSize": 3,
+          "searchQueries": [ { "query": "%s" } ],
+          "sortAscending": false,
+          "mode": "OpenTasks"
+        }
+        """.formatted(token)));
+    assertThat(descending.read("$.userTasks[*].id", List.class))
+        .containsExactly(thirdTask, secondTask, firstTask);
 
-    }
+  }
 
-    @Test
-    void markAsReadIsReflectedInTaskDetailsAndCanBeUndone() {
+  @Test
+  void markAsReadIsReflectedInTaskDetailsAndCanBeUndone() {
 
-        final var userTaskId = createTask(OffsetDateTime.now().plusDays(1).toString());
+    final var userTaskId = createTask(OffsetDateTime.now().plusDays(1).toString());
 
-        assertThat(json(guiGet(cookie, "/usertask/" + userTaskId))
-                .read("$.read", String.class)).isNull();
+    assertThat(json(guiGet(cookie, "/usertask/"
+        + userTaskId))
+        .read("$.read", String.class)).isNull();
 
-        assertThat(guiPatch(cookie, "/usertask/" + userTaskId + "/mark-as-read", null)
-                .statusCode()).isEqualTo(200);
-        assertThat(json(guiGet(cookie, "/usertask/" + userTaskId))
-                .read("$.read", String.class)).isNotNull();
+    assertThat(guiPatch(cookie, "/usertask/"
+        + userTaskId
+        + "/mark-as-read", null)
+        .statusCode()).isEqualTo(200);
+    assertThat(json(guiGet(cookie, "/usertask/"
+        + userTaskId))
+        .read("$.read", String.class)).isNotNull();
 
-        assertThat(guiPatch(cookie, "/usertask/" + userTaskId + "/mark-as-read?unread=true", null)
-                .statusCode()).isEqualTo(200);
-        assertThat(json(guiGet(cookie, "/usertask/" + userTaskId))
-                .read("$.read", String.class)).isNull();
+    assertThat(guiPatch(cookie, "/usertask/"
+        + userTaskId
+        + "/mark-as-read?unread=true", null)
+        .statusCode()).isEqualTo(200);
+    assertThat(json(guiGet(cookie, "/usertask/"
+        + userTaskId))
+        .read("$.read", String.class)).isNull();
 
-    }
+  }
 
-    @Test
-    void claimTakesOverTheTaskAndUnclaimReleasesIt() {
+  @Test
+  void claimTakesOverTheTaskAndUnclaimReleasesIt() {
 
-        // reported with another user's assignment, so claiming means taking the task over
-        final var userTaskId = unique("task");
-        final var created = bpmsV1_1("/usertask/created", """
-                {
-                  "id": "%s",
-                  "userTaskId": "%s",
-                  "timestamp": "%s",
-                  "workflowModuleId": "%s",
-                  "bpmnProcessId": "taxi-ride",
-                  "title": { "en": "Do ride" },
-                  "taskDefinition": "do-ride",
-                  "uiUriPath": "/remoteEntry.js",
-                  "uiUriType": "WEBPACK_MF_REACT",
-                  "assignee": "petra",
-                  "candidateGroups": [ "%s" ],
-                  "detailsFulltextSearch": "%s"
-                }
-                """.formatted(unique("event"), userTaskId, isoNow(), moduleId, GROUP_OF_MARTIN, token));
-        assertThat(created.statusCode()).isEqualTo(200);
+    // reported with another user's assignment, so claiming means taking the task over
+    final var userTaskId = unique("task");
+    final var created = bpmsV1_1("/usertask/created", """
+        {
+          "id": "%s",
+          "userTaskId": "%s",
+          "timestamp": "%s",
+          "workflowModuleId": "%s",
+          "bpmnProcessId": "taxi-ride",
+          "title": { "en": "Do ride" },
+          "taskDefinition": "do-ride",
+          "uiUriPath": "/remoteEntry.js",
+          "uiUriType": "WEBPACK_MF_REACT",
+          "assignee": "petra",
+          "candidateGroups": [ "%s" ],
+          "detailsFulltextSearch": "%s"
+        }
+        """.formatted(unique("event"), userTaskId, isoNow(), moduleId, GROUP_OF_MARTIN, token));
+    assertThat(created.statusCode()).isEqualTo(200);
 
-        assertThat(guiPatch(cookie, "/usertask/" + userTaskId + "/claim", null)
-                .statusCode()).isEqualTo(200);
-        assertThat(json(guiGet(cookie, "/usertask/" + userTaskId))
-                .read("$.assignee.id", String.class)).isEqualTo(USER_MARTIN);
+    assertThat(guiPatch(cookie, "/usertask/"
+        + userTaskId
+        + "/claim", null)
+        .statusCode()).isEqualTo(200);
+    assertThat(json(guiGet(cookie, "/usertask/"
+        + userTaskId))
+        .read("$.assignee.id", String.class)).isEqualTo(USER_MARTIN);
 
-        assertThat(guiPatch(cookie, "/usertask/" + userTaskId + "/claim?unclaim=true", null)
-                .statusCode()).isEqualTo(200);
-        assertThat(json(guiGet(cookie, "/usertask/" + userTaskId))
-                .read("$.assignee", Object.class)).isNull();
+    assertThat(guiPatch(cookie, "/usertask/"
+        + userTaskId
+        + "/claim?unclaim=true", null)
+        .statusCode()).isEqualTo(200);
+    assertThat(json(guiGet(cookie, "/usertask/"
+        + userTaskId))
+        .read("$.assignee", Object.class)).isNull();
 
-    }
+  }
 
-    /**
-     * A task reported without an assignee stays unassigned, so the first user claiming it becomes
-     * the assignee. Until the ingress mappers learned that an absent user id means no person, such
-     * a task carried an assignee whose id was null. The GUI hid that assignee, but the claim
-     * compared the null id to the claiming user and answered HTTP 500.
-     */
-    @Test
-    void claimingATaskReportedWithoutAssigneeAssignsTheClaimer() {
+  /**
+   * A task reported without an assignee stays unassigned, so the first user claiming it becomes
+   * the assignee. Until the ingress mappers learned that an absent user id means no person, such
+   * a task carried an assignee whose id was null. The GUI hid that assignee, but the claim
+   * compared the null id to the claiming user and answered HTTP 500.
+   */
+  @Test
+  void claimingATaskReportedWithoutAssigneeAssignsTheClaimer() {
 
-        final var userTaskId = unique("task");
-        final var created = bpmsV1_1("/usertask/created", """
-                {
-                  "id": "%s",
-                  "userTaskId": "%s",
-                  "timestamp": "%s",
-                  "workflowModuleId": "%s",
-                  "bpmnProcessId": "taxi-ride",
-                  "title": { "en": "Do ride" },
-                  "taskDefinition": "do-ride",
-                  "uiUriPath": "/remoteEntry.js",
-                  "uiUriType": "WEBPACK_MF_REACT",
-                  "candidateGroups": [ "%s" ],
-                  "detailsFulltextSearch": "%s"
-                }
-                """.formatted(unique("event"), userTaskId, isoNow(), moduleId, GROUP_OF_MARTIN, token));
-        assertThat(created.statusCode()).isEqualTo(200);
-        assertThat(json(guiGet(cookie, "/usertask/" + userTaskId))
-                .read("$.assignee", Object.class)).isNull();
+    final var userTaskId = unique("task");
+    final var created = bpmsV1_1("/usertask/created", """
+        {
+          "id": "%s",
+          "userTaskId": "%s",
+          "timestamp": "%s",
+          "workflowModuleId": "%s",
+          "bpmnProcessId": "taxi-ride",
+          "title": { "en": "Do ride" },
+          "taskDefinition": "do-ride",
+          "uiUriPath": "/remoteEntry.js",
+          "uiUriType": "WEBPACK_MF_REACT",
+          "candidateGroups": [ "%s" ],
+          "detailsFulltextSearch": "%s"
+        }
+        """.formatted(unique("event"), userTaskId, isoNow(), moduleId, GROUP_OF_MARTIN, token));
+    assertThat(created.statusCode()).isEqualTo(200);
+    assertThat(json(guiGet(cookie, "/usertask/"
+        + userTaskId))
+        .read("$.assignee", Object.class)).isNull();
 
-        assertThat(guiPatch(cookie, "/usertask/" + userTaskId + "/claim", null)
-                .statusCode()).isEqualTo(200);
-        assertThat(json(guiGet(cookie, "/usertask/" + userTaskId))
-                .read("$.assignee.id", String.class)).isEqualTo(USER_MARTIN);
+    assertThat(guiPatch(cookie, "/usertask/"
+        + userTaskId
+        + "/claim", null)
+        .statusCode()).isEqualTo(200);
+    assertThat(json(guiGet(cookie, "/usertask/"
+        + userTaskId))
+        .read("$.assignee.id", String.class)).isEqualTo(USER_MARTIN);
 
-    }
+  }
 
-    @Test
-    void assignAddsACandidateUserAndUnassignRemovesIt() {
+  @Test
+  void assignAddsACandidateUserAndUnassignRemovesIt() {
 
-        final var userTaskId = createTask(OffsetDateTime.now().plusDays(1).toString());
+    final var userTaskId = createTask(OffsetDateTime.now().plusDays(1).toString());
 
-        assertThat(guiPatch(cookie,
-                "/usertask/" + userTaskId + "/assign?userId=" + USER_PETRA, null)
-                .statusCode()).isEqualTo(200);
-        assertThat(json(guiGet(cookie, "/usertask/" + userTaskId))
-                .read("$.candidateUsers[*].id", List.class)).contains(USER_PETRA);
+    assertThat(guiPatch(cookie,
+        "/usertask/"
+            + userTaskId
+            + "/assign?userId="
+            + USER_PETRA,
+        null)
+        .statusCode()).isEqualTo(200);
+    assertThat(json(guiGet(cookie, "/usertask/"
+        + userTaskId))
+        .read("$.candidateUsers[*].id", List.class)).contains(USER_PETRA);
 
-        assertThat(guiPatch(cookie,
-                "/usertask/" + userTaskId + "/assign?userId=" + USER_PETRA + "&unassign=true", null)
-                .statusCode()).isEqualTo(200);
-        assertThat(json(guiGet(cookie, "/usertask/" + userTaskId))
-                .read("$.candidateUsers[*].id", List.class)).doesNotContain(USER_PETRA);
+    assertThat(guiPatch(cookie,
+        "/usertask/"
+            + userTaskId
+            + "/assign?userId="
+            + USER_PETRA
+            + "&unassign=true",
+        null)
+        .statusCode()).isEqualTo(200);
+    assertThat(json(guiGet(cookie, "/usertask/"
+        + userTaskId))
+        .read("$.candidateUsers[*].id", List.class)).doesNotContain(USER_PETRA);
 
-    }
+  }
 
-    @Test
-    void followUpDateCanBeSetAndCleared() {
+  @Test
+  void followUpDateCanBeSetAndCleared() {
 
-        final var userTaskId = createTask(OffsetDateTime.now().plusDays(1).toString());
-        // the service normalizes follow-up dates to whole minutes
-        final var followUpDate = OffsetDateTime.now().plusDays(3).truncatedTo(ChronoUnit.MINUTES);
+    final var userTaskId = createTask(OffsetDateTime.now().plusDays(1).toString());
+    // the service normalizes follow-up dates to whole minutes
+    final var followUpDate = OffsetDateTime.now().plusDays(3).truncatedTo(ChronoUnit.MINUTES);
 
-        final var setResponse = guiPatch(cookie,
-                "/usertask/" + userTaskId + "/follow-up-date",
-                "{ \"timestamp\": \"" + followUpDate + "\" }");
-        assertThat(setResponse.statusCode()).isEqualTo(200);
-        assertThat(OffsetDateTime.parse(json(guiGet(cookie, "/usertask/" + userTaskId))
-                .read("$.followUpDate", String.class)).toInstant())
-                .isEqualTo(followUpDate.toInstant());
+    final var setResponse = guiPatch(cookie,
+        "/usertask/"
+            + userTaskId
+            + "/follow-up-date",
+        "{ \"timestamp\": \""
+            + followUpDate
+            + "\" }");
+    assertThat(setResponse.statusCode()).isEqualTo(200);
+    assertThat(OffsetDateTime.parse(json(guiGet(cookie, "/usertask/"
+        + userTaskId))
+        .read("$.followUpDate", String.class)).toInstant())
+        .isEqualTo(followUpDate.toInstant());
 
-        final var clearResponse = guiPatch(cookie,
-                "/usertask/" + userTaskId + "/follow-up-date", "{ }");
-        assertThat(clearResponse.statusCode()).isEqualTo(200);
-        assertThat(json(guiGet(cookie, "/usertask/" + userTaskId))
-                .read("$.followUpDate", String.class)).isNull();
+    final var clearResponse = guiPatch(cookie,
+        "/usertask/"
+            + userTaskId
+            + "/follow-up-date",
+        "{ }");
+    assertThat(clearResponse.statusCode()).isEqualTo(200);
+    assertThat(json(guiGet(cookie, "/usertask/"
+        + userTaskId))
+        .read("$.followUpDate", String.class)).isNull();
 
-    }
+  }
 
-    @Test
-    void unknownUserTaskDetailAnswers404() {
+  @Test
+  void unknownUserTaskDetailAnswers404() {
 
-        assertThat(guiGet(cookie, "/usertask/" + unique("missing")).statusCode()).isEqualTo(404);
+    assertThat(guiGet(cookie, "/usertask/"
+        + unique("missing")).statusCode()).isEqualTo(404);
 
-    }
+  }
 
-    @Test
-    void workflowModulesListContainsRegisteredModuleWithProxiedUri() {
+  @Test
+  void workflowModulesListContainsRegisteredModuleWithProxiedUri() {
 
-        final var listResponse = guiGet(cookie, "/workflow-module");
-        assertThat(listResponse.statusCode()).isEqualTo(200);
-        final var moduleIds = json(listResponse).read("$.modules[*].id", List.class);
-        assertThat(moduleIds).contains(moduleId);
+    final var listResponse = guiGet(cookie, "/workflow-module");
+    assertThat(listResponse.statusCode()).isEqualTo(200);
+    final var moduleIds = json(listResponse).read("$.modules[*].id", List.class);
+    assertThat(moduleIds).contains(moduleId);
 
-        final var detailResponse = guiGet(cookie, "/workflow-module/" + moduleId);
-        assertThat(detailResponse.statusCode()).isEqualTo(200);
-        assertThat(json(detailResponse).read("$.uri", String.class))
-                .isEqualTo("/wm/" + moduleId);
+    final var detailResponse = guiGet(cookie, "/workflow-module/"
+        + moduleId);
+    assertThat(detailResponse.statusCode()).isEqualTo(200);
+    assertThat(json(detailResponse).read("$.uri", String.class))
+        .isEqualTo("/wm/"
+            + moduleId);
 
-    }
+  }
 
-    @Test
-    void findUsersReturnsTheUsersKnownToTheCockpit() {
+  @Test
+  void findUsersReturnsTheUsersKnownToTheCockpit() {
 
-        final var response = guiPost(cookie, "/user?limit=10", "");
-        assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(json(response).read("$.users[*].id", List.class))
-                .containsExactlyInAnyOrder(USER_MARTIN, USER_PETRA);
+    final var response = guiPost(cookie, "/user?limit=10", "");
+    assertThat(response.statusCode()).isEqualTo(200);
+    assertThat(json(response).read("$.users[*].id", List.class))
+        .containsExactlyInAnyOrder(USER_MARTIN, USER_PETRA);
 
-    }
+  }
 
 }

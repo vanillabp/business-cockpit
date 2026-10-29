@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.GrantedAuthority;
@@ -19,84 +20,84 @@ import org.springframework.security.oauth2.jwt.JwtClaimsSet;
  */
 public class JwtAuthenticationTokenMapper extends JwtMapper<JwtAuthenticationToken> {
 
-    private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationTokenMapper.class);
+  private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationTokenMapper.class);
 
-    private final Function<Collection<String>, Collection<String>> groupResolverFunction;
+  private final Function<Collection<String>, Collection<String>> groupResolverFunction;
 
-    /**
-     * Creates a mapper which takes the groups of a token as they are.
-     *
-     * @param properties The token settings
-     */
-    public JwtAuthenticationTokenMapper(
-            final JwtProperties properties) {
+  /**
+   * Creates a mapper which takes the groups of a token as they are.
+   *
+   * @param properties The token settings
+   */
+  public JwtAuthenticationTokenMapper(
+      final JwtProperties properties) {
 
-        super(properties);
-        this.groupResolverFunction = Function.identity();
+    super(properties);
+    this.groupResolverFunction = Function.identity();
 
+  }
+
+  /**
+   * Creates a mapper which adds groups to the ones a token names, for example the groups a group
+   * hierarchy says a user has as well.
+   *
+   * @param properties            The token settings
+   * @param groupResolverFunction Turns the groups of the token into all groups of the user
+   */
+  public JwtAuthenticationTokenMapper(
+      final JwtProperties properties,
+      final Function<Collection<String>, Collection<String>> groupResolverFunction) {
+
+    super(properties);
+    this.groupResolverFunction = groupResolverFunction;
+
+  }
+
+  @Override
+  protected Logger getLogger() {
+    return logger;
+  }
+
+  @Override
+  protected JwtAuthenticationToken buildAuthenticationToken(
+      final Jwt jwt,
+      final Collection<GrantedAuthority> bcAuthorities) {
+
+    var authorities = jwt.getClaimAsStringList(AUTHORITIES_CLAIM);
+    if (authorities != null) {
+      groupResolverFunction
+          .apply(authorities)
+          .stream()
+          .map(SimpleGrantedAuthority::new)
+          .forEach(bcAuthorities::add);
     }
 
-    /**
-     * Creates a mapper which adds groups to the ones a token names, for example the groups a group
-     * hierarchy says a user has as well.
-     *
-     * @param properties            The token settings
-     * @param groupResolverFunction Turns the groups of the token into all groups of the user
-     */
-    public JwtAuthenticationTokenMapper(
-            final JwtProperties properties,
-            final Function<Collection<String>, Collection<String>> groupResolverFunction) {
+    return new JwtAuthenticationToken(jwt, bcAuthorities);
 
-        super(properties);
-        this.groupResolverFunction = groupResolverFunction;
+  }
 
-    }
+  @Override
+  protected void applyJwtClaimsSet(
+      final JwtClaimsSet.Builder claimsSetBuilder,
+      final SecurityContext context) {
 
-    @Override
-    protected Logger getLogger() {
-        return logger;
-    }
+    final var user = (User) context.getAuthentication().getPrincipal();
 
-    @Override
-    protected JwtAuthenticationToken buildAuthenticationToken(
-            final Jwt jwt,
-            final Collection<GrantedAuthority> bcAuthorities) {
+    claimsSetBuilder
+        .issuer("bc")
+        .subject(user.getUsername())
+        .audience(List.of("bc"));
 
-        var authorities = jwt.getClaimAsStringList(AUTHORITIES_CLAIM);
-        if (authorities != null) {
-            groupResolverFunction
-                    .apply(authorities)
-                    .stream()
-                    .map(SimpleGrantedAuthority::new)
-                    .forEach(bcAuthorities::add);
-        }
+    final var authorities = Optional
+        .ofNullable(context
+            .getAuthentication()
+            .getAuthorities())
+        .orElse(List.of())
+        .stream()
+        .map(GrantedAuthority::getAuthority)
+        .toList();
+    claimsSetBuilder.claim(AUTHORITIES_CLAIM, authorities);
 
-        return new JwtAuthenticationToken(jwt, bcAuthorities);
-
-    }
-
-    @Override
-    protected void applyJwtClaimsSet(
-            final JwtClaimsSet.Builder claimsSetBuilder,
-            final SecurityContext context) {
-
-        final var user = (User) context.getAuthentication().getPrincipal();
-
-        claimsSetBuilder
-                .issuer("bc")
-                .subject(user.getUsername())
-                .audience(List.of("bc"));
-
-        final var authorities = Optional
-                .ofNullable(context
-                        .getAuthentication()
-                        .getAuthorities())
-                .orElse(List.of())
-                .stream()
-                .map(GrantedAuthority::getAuthority)
-                .toList();
-        claimsSetBuilder.claim(AUTHORITIES_CLAIM, authorities);
-
-    }
+  }
 
 }

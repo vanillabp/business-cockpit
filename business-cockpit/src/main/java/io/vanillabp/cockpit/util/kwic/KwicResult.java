@@ -9,4 +9,5 @@ import org.springframework.data.annotation.Id;
  * @param item The word found
  * @param count How many times it was found
  */
-public record KwicResult(@Id String item, int count) {}
+public record KwicResult(@Id String item, int count) {
+}

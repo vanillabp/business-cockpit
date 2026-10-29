@@ -12,75 +12,75 @@ import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
  * with group ids only.
  */
 public class LocalPersonAndGroupApiMapperImpl implements PersonAndGroupApiMapper {
-    private final UserDetailsProvider userDetailsProvider;
+  private final UserDetailsProvider userDetailsProvider;
 
-    /**
-     * Creates the mapper on top of the demo users.
-     *
-     * @param userDetailsProvider The directory of the demo users, which is asked for the name of
-     *          a person by its id
-     */
-    public LocalPersonAndGroupApiMapperImpl(
-            final UserDetailsProvider userDetailsProvider) {
+  /**
+   * Creates the mapper on top of the demo users.
+   *
+   * @param userDetailsProvider The directory of the demo users, which is asked for the name of
+   *          a person by its id
+   */
+  public LocalPersonAndGroupApiMapperImpl(
+      final UserDetailsProvider userDetailsProvider) {
 
-        this.userDetailsProvider = userDetailsProvider;
+    this.userDetailsProvider = userDetailsProvider;
 
+  }
+
+  @Override
+  public io.vanillabp.cockpit.gui.api.v1.Person personToApiPerson(
+      final Person person) {
+
+    if (person == null) {
+      return null;
     }
+    return toApiPerson(person.getId());
 
-    @Override
-    public io.vanillabp.cockpit.gui.api.v1.Person personToApiPerson(
-            final Person person) {
+  }
 
-        if (person == null) {
-            return null;
-        }
-        return toApiPerson(person.getId());
+  @Override
+  public io.vanillabp.cockpit.gui.api.v1.Person userToApiPerson(
+      final UserDetails user) {
 
+    if (user == null) {
+      return null;
     }
+    return new io.vanillabp.cockpit.gui.api.v1.Person()
+        .id(user.getId())
+        .email(user.getEmail())
+        .display(user.getDisplay())
+        .displayShort(user.getDisplayShort());
 
-    @Override
-    public io.vanillabp.cockpit.gui.api.v1.Person userToApiPerson(
-            final UserDetails user) {
+  }
 
-        if (user == null) {
-            return null;
-        }
-        return new io.vanillabp.cockpit.gui.api.v1.Person()
-                .id(user.getId())
-                .email(user.getEmail())
-                .display(user.getDisplay())
-                .displayShort(user.getDisplayShort());
+  @Override
+  public io.vanillabp.cockpit.gui.api.v1.Person toApiPerson(
+      final String personId) {
 
-    }
+    final var userFound = userDetailsProvider
+        .getUser(personId);
+    return userFound
+        .map(this::userToApiPerson)
+        .orElse(null);
 
-    @Override
-    public io.vanillabp.cockpit.gui.api.v1.Person toApiPerson(
-            final String personId) {
+  }
 
-        final var userFound = userDetailsProvider
-                .getUser(personId);
-        return userFound
-                .map(this::userToApiPerson)
-                .orElse(null);
+  @Override
+  public Group groupToApiGroup(
+      final io.vanillabp.cockpit.users.model.Group group) {
 
-    }
+    return authorityToApiGroup(group.getId());
 
-    @Override
-    public Group groupToApiGroup(
-            final io.vanillabp.cockpit.users.model.Group group) {
+  }
 
-        return authorityToApiGroup(group.getId());
+  @Override
+  public Group authorityToApiGroup(
+      final String authority) {
 
-    }
+    return new Group()
+        .id(authority)
+        .display(authority);
 
-    @Override
-    public Group authorityToApiGroup(
-            final String authority) {
-
-        return new Group()
-                .id(authority)
-                .display(authority);
-
-    }
+  }
 
 }

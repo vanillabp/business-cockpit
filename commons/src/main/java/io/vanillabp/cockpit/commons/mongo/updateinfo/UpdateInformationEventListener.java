@@ -1,9 +1,7 @@
 package io.vanillabp.cockpit.commons.mongo.updateinfo;
 
-import com.mongodb.client.MongoClient;
-import io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException;
-import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
 import java.time.OffsetDateTime;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.core.Ordered;
@@ -12,57 +10,64 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.mapping.event.BeforeConvertCallback;
 import org.springframework.stereotype.Component;
 
+import com.mongodb.client.MongoClient;
+
+import io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException;
+import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
+
 /**
  * Sets who changed a document and when, right before Spring Data writes it. Only documents which
  * implement {@link UpdateInformationAware} are touched.
  */
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @Component
-@ConditionalOnClass({ MongoClient.class, MongoTemplate.class })
+@ConditionalOnClass({
+    MongoClient.class, MongoTemplate.class
+})
 public class UpdateInformationEventListener implements BeforeConvertCallback<Object> {
 
-    @Autowired
-    private UserContext currentUser;
+  @Autowired
+  private UserContext currentUser;
 
-    /**
-     * Creates the listener. Spring injects the user context afterwards.
-     */
-    public UpdateInformationEventListener() {
-    }
+  /**
+   * Creates the listener. Spring injects the user context afterwards.
+   */
+  public UpdateInformationEventListener() {
+  }
 
-    @Override
-    public Object onBeforeConvert(
-            final Object entityObj,
-            final String collection) {
+  @Override
+  public Object onBeforeConvert(
+      final Object entityObj,
+      final String collection) {
 
-        if (entityObj instanceof UpdateInformationAware entity) {
+    if (entityObj instanceof UpdateInformationAware entity) {
 
-            entity.setUpdatedAt(OffsetDateTime.now());
-            entity.setUpdatedBy(userLoggedInOrSystem());
-
-        }
-
-        return entityObj;
+      entity.setUpdatedAt(OffsetDateTime.now());
+      entity.setUpdatedBy(userLoggedInOrSystem());
 
     }
 
-    /**
-     * Some writes happen outside a request: a reaction to a change stream, a scheduler, a Kafka
-     * consumer. They have no authenticated user, and neither has an anonymous request. Both are
-     * recorded as the system user instead of as no user at all.
-     */
-    private String userLoggedInOrSystem() {
+    return entityObj;
 
-        final String userLoggedIn;
-        try {
-            userLoggedIn = currentUser.getUserLoggedIn();
-        } catch (BcUnauthorizedException e) {
-            return UpdateInformationAware.SYSTEM_USER;
-        }
-        return userLoggedIn == null
-                ? UpdateInformationAware.SYSTEM_USER
-                : userLoggedIn;
+  }
 
+  /**
+   * Some writes happen outside a request: a reaction to a change stream, a scheduler, a Kafka
+   * consumer. They have no authenticated user, and neither has an anonymous request. Both are
+   * recorded as the system user instead of as no user at all.
+   */
+  private String userLoggedInOrSystem() {
+
+    final String userLoggedIn;
+    try {
+      userLoggedIn = currentUser.getUserLoggedIn();
+    } catch (BcUnauthorizedException e) {
+      return UpdateInformationAware.SYSTEM_USER;
     }
+    return userLoggedIn == null
+        ? UpdateInformationAware.SYSTEM_USER
+        : userLoggedIn;
+
+  }
 
 }

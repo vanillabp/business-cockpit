@@ -5,210 +5,220 @@ package io.vanillabp.cockpit.simulator.usertask.testdata;
  */
 public class UserTaskTestDataParameters {
 
-    private int noOfEvents;
+  private int noOfEvents;
 
-    private int noOfUsers;
-    
-    private int noOfGroups;
-    
-    private int percentageUserCandidates;
+  private int noOfUsers;
 
-    private int percentageGroupCandidates;
+  private int noOfGroups;
 
-    private int percentageUserAssignments;
+  private int percentageUserCandidates;
 
-    private int percentageUpdates;
+  private int percentageGroupCandidates;
 
-    private int noOfConcurrentRequest;
-    
-    private String languages;
+  private int percentageUserAssignments;
 
-    private int throttling;
+  private int percentageUpdates;
 
-    /**
-     * Creates empty parameters. Spring fills them from the form.
-     */
-    public UserTaskTestDataParameters() {
-    }
-    
-    /**
-     * The number of events to send, new tasks and updates together.
-     *
-     * @return The number
-     */
-    public int getNoOfEvents() {
-        return noOfEvents;
-    }
-    
-    /**
-     * Sets the number of events to send.
-     *
-     * @param noOfEvents The number
-     */
-    public void setNoOfEvents(int noOfEvents) {
-        this.noOfEvents = noOfEvents;
-    }
-    
-    /**
-     * The number of random users to assign tasks to.
-     *
-     * @return The number
-     */
-    public int getNoOfUsers() {
-        return noOfUsers;
-    }
+  private int noOfConcurrentRequest;
 
-    /**
-     * Sets the number of random users.
-     *
-     * @param noOfUsers The number
-     */
-    public void setNoOfUsers(int noOfUsers) {
-        this.noOfUsers = noOfUsers;
-    }
+  private String languages;
 
-    /**
-     * The number of random groups to offer tasks to.
-     *
-     * @return The number
-     */
-    public int getNoOfGroups() {
-        return noOfGroups;
-    }
+  private int throttling;
 
-    /**
-     * Sets the number of random groups.
-     *
-     * @param noOfGroups The number
-     */
-    public void setNoOfGroups(int noOfGroups) {
-        this.noOfGroups = noOfGroups;
-    }
+  /**
+   * Creates empty parameters. Spring fills them from the form.
+   */
+  public UserTaskTestDataParameters() {
+  }
 
-    /**
-     * How many of the assigned tasks also name the assignee as a candidate user, in percent.
-     *
-     * @return The percentage
-     */
-    public int getPercentageUserCandidates() {
-        return percentageUserCandidates;
-    }
+  /**
+   * The number of events to send, new tasks and updates together.
+   *
+   * @return The number
+   */
+  public int getNoOfEvents() {
+    return noOfEvents;
+  }
 
-    /**
-     * Sets how many assigned tasks also name the assignee as a candidate user.
-     *
-     * @param percentageUserCandidates The percentage
-     */
-    public void setPercentageUserCandidates(int percentageUserCandidates) {
-        this.percentageUserCandidates = percentageUserCandidates;
-    }
+  /**
+   * Sets the number of events to send.
+   *
+   * @param noOfEvents The number
+   */
+  public void setNoOfEvents(
+      int noOfEvents) {
+    this.noOfEvents = noOfEvents;
+  }
 
-    /**
-     * How many tasks are offered to one or two candidate groups, in percent.
-     *
-     * @return The percentage
-     */
-    public int getPercentageGroupCandidates() {
-        return percentageGroupCandidates;
-    }
+  /**
+   * The number of random users to assign tasks to.
+   *
+   * @return The number
+   */
+  public int getNoOfUsers() {
+    return noOfUsers;
+  }
 
-    /**
-     * Sets how many tasks are offered to candidate groups.
-     *
-     * @param percentageGroupCandidates The percentage
-     */
-    public void setPercentageGroupCandidates(int percentageGroupCandidates) {
-        this.percentageGroupCandidates = percentageGroupCandidates;
-    }
+  /**
+   * Sets the number of random users.
+   *
+   * @param noOfUsers The number
+   */
+  public void setNoOfUsers(
+      int noOfUsers) {
+    this.noOfUsers = noOfUsers;
+  }
 
-    /**
-     * How many tasks are assigned to a user, in percent.
-     *
-     * @return The percentage
-     */
-    public int getPercentageUserAssignments() {
-        return percentageUserAssignments;
-    }
+  /**
+   * The number of random groups to offer tasks to.
+   *
+   * @return The number
+   */
+  public int getNoOfGroups() {
+    return noOfGroups;
+  }
 
-    /**
-     * Sets how many tasks are assigned to a user.
-     *
-     * @param percentageUserAssignments The percentage
-     */
-    public void setPercentageUserAssignments(int percentageUserAssignments) {
-        this.percentageUserAssignments = percentageUserAssignments;
-    }
+  /**
+   * Sets the number of random groups.
+   *
+   * @param noOfGroups The number
+   */
+  public void setNoOfGroups(
+      int noOfGroups) {
+    this.noOfGroups = noOfGroups;
+  }
 
-    /**
-     * How many of the events are updates of tasks created before, in percent.
-     *
-     * @return The percentage
-     */
-    public int getPercentageUpdates() {
-        return percentageUpdates;
-    }
+  /**
+   * How many of the assigned tasks also name the assignee as a candidate user, in percent.
+   *
+   * @return The percentage
+   */
+  public int getPercentageUserCandidates() {
+    return percentageUserCandidates;
+  }
 
-    /**
-     * Sets how many of the events are updates.
-     *
-     * @param percentageUpdates The percentage
-     */
-    public void setPercentageUpdates(int percentageUpdates) {
-        this.percentageUpdates = percentageUpdates;
-    }
+  /**
+   * Sets how many assigned tasks also name the assignee as a candidate user.
+   *
+   * @param percentageUserCandidates The percentage
+   */
+  public void setPercentageUserCandidates(
+      int percentageUserCandidates) {
+    this.percentageUserCandidates = percentageUserCandidates;
+  }
 
-    /**
-     * The number of threads which send events at the same time.
-     *
-     * @return The number
-     */
-    public int getNoOfConcurrentRequest() {
-        return noOfConcurrentRequest;
-    }
+  /**
+   * How many tasks are offered to one or two candidate groups, in percent.
+   *
+   * @return The percentage
+   */
+  public int getPercentageGroupCandidates() {
+    return percentageGroupCandidates;
+  }
 
-    /**
-     * Sets the number of threads which send events.
-     *
-     * @param noOfConcurrentRequest The number
-     */
-    public void setNoOfConcurrentRequest(int noOfConcurrentRequest) {
-        this.noOfConcurrentRequest = noOfConcurrentRequest;
-    }
+  /**
+   * Sets how many tasks are offered to candidate groups.
+   *
+   * @param percentageGroupCandidates The percentage
+   */
+  public void setPercentageGroupCandidates(
+      int percentageGroupCandidates) {
+    this.percentageGroupCandidates = percentageGroupCandidates;
+  }
 
-    /**
-     * The languages of the task titles, separated by commas, e.g. {@code en,de}.
-     *
-     * @return The languages
-     */
-    public String getLanguages() {
-        return languages;
-    }
-    
-    /**
-     * Sets the languages of the task titles.
-     *
-     * @param languages The languages
-     */
-    public void setLanguages(String languages) {
-        this.languages = languages;
-    }
-    
-    /**
-     * The pause after each event, in milliseconds.
-     *
-     * @return The pause
-     */
-    public int getThrottling() {
-        return throttling;
-    }
-    
-    /**
-     * Sets the pause after each event.
-     *
-     * @param throttling The pause
-     */
-    public void setThrottling(int throttling) {
-        this.throttling = throttling;
-    }
-    
+  /**
+   * How many tasks are assigned to a user, in percent.
+   *
+   * @return The percentage
+   */
+  public int getPercentageUserAssignments() {
+    return percentageUserAssignments;
+  }
+
+  /**
+   * Sets how many tasks are assigned to a user.
+   *
+   * @param percentageUserAssignments The percentage
+   */
+  public void setPercentageUserAssignments(
+      int percentageUserAssignments) {
+    this.percentageUserAssignments = percentageUserAssignments;
+  }
+
+  /**
+   * How many of the events are updates of tasks created before, in percent.
+   *
+   * @return The percentage
+   */
+  public int getPercentageUpdates() {
+    return percentageUpdates;
+  }
+
+  /**
+   * Sets how many of the events are updates.
+   *
+   * @param percentageUpdates The percentage
+   */
+  public void setPercentageUpdates(
+      int percentageUpdates) {
+    this.percentageUpdates = percentageUpdates;
+  }
+
+  /**
+   * The number of threads which send events at the same time.
+   *
+   * @return The number
+   */
+  public int getNoOfConcurrentRequest() {
+    return noOfConcurrentRequest;
+  }
+
+  /**
+   * Sets the number of threads which send events.
+   *
+   * @param noOfConcurrentRequest The number
+   */
+  public void setNoOfConcurrentRequest(
+      int noOfConcurrentRequest) {
+    this.noOfConcurrentRequest = noOfConcurrentRequest;
+  }
+
+  /**
+   * The languages of the task titles, separated by commas, e.g. {@code en,de}.
+   *
+   * @return The languages
+   */
+  public String getLanguages() {
+    return languages;
+  }
+
+  /**
+   * Sets the languages of the task titles.
+   *
+   * @param languages The languages
+   */
+  public void setLanguages(
+      String languages) {
+    this.languages = languages;
+  }
+
+  /**
+   * The pause after each event, in milliseconds.
+   *
+   * @return The pause
+   */
+  public int getThrottling() {
+    return throttling;
+  }
+
+  /**
+   * Sets the pause after each event.
+   *
+   * @param throttling The pause
+   */
+  public void setThrottling(
+      int throttling) {
+    this.throttling = throttling;
+  }
+
 }

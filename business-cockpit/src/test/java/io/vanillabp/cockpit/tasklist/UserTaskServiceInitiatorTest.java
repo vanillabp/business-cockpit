@@ -7,21 +7,23 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
-import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
-import io.vanillabp.cockpit.tasklist.model.UserTask;
-import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
-import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import io.vanillabp.cockpit.users.model.Person;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
+
+import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
+import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
+import io.vanillabp.cockpit.tasklist.model.UserTask;
+import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
+import io.vanillabp.cockpit.users.model.Person;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * A cockpit-side change has to record who caused it in {@code initiator}. That is the only field
@@ -32,105 +34,108 @@ import org.springframework.data.mongodb.core.query.Query;
 @ExtendWith(SuppressOutputExtension.class)
 class UserTaskServiceInitiatorTest {
 
-    /**
-     * Every change goes through a visibility now. Which tasks it lets through is tested by the
-     * permission tests, not here.
-     */
-    private static final UserTaskVisibility EVERY_USER_TASK = UserTaskVisibility.everyUserTask();
+  /**
+   * Every change goes through a visibility now. Which tasks it lets through is tested by the
+   * permission tests, not here.
+   */
+  private static final UserTaskVisibility EVERY_USER_TASK = UserTaskVisibility.everyUserTask();
 
-    private UserTaskService service;
-    private UserTaskRepository userTasks;
-    private UserContext currentUserContext;
-    private MongoTemplate mongoTemplate;
+  private UserTaskService service;
+  private UserTaskRepository userTasks;
+  private UserContext currentUserContext;
+  private MongoTemplate mongoTemplate;
 
-    @BeforeEach
-    void setUp() throws Exception {
-        service = new UserTaskService();
-        userTasks = mock(UserTaskRepository.class);
-        currentUserContext = mock(UserContext.class);
-        mongoTemplate = mock(MongoTemplate.class);
-        inject("userTasks", userTasks);
-        inject("currentUserContext", currentUserContext);
-        inject("mongoTemplate", mongoTemplate);
+  @BeforeEach
+  void setUp() throws Exception {
+    service = new UserTaskService();
+    userTasks = mock(UserTaskRepository.class);
+    currentUserContext = mock(UserContext.class);
+    mongoTemplate = mock(MongoTemplate.class);
+    inject("userTasks", userTasks);
+    inject("currentUserContext", currentUserContext);
+    inject("mongoTemplate", mongoTemplate);
 
-        final var task = new UserTask();
-        task.setId("task-1");
-        when(userTasks.findById("task-1")).thenReturn(Optional.of(task));
-        when(mongoTemplate.findOne(any(Query.class), eq(UserTask.class))).thenReturn(task);
-        when(userTasks.save(any(UserTask.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-    }
+    final var task = new UserTask();
+    task.setId("task-1");
+    when(userTasks.findById("task-1")).thenReturn(Optional.of(task));
+    when(mongoTemplate.findOne(any(Query.class), eq(UserTask.class))).thenReturn(task);
+    when(userTasks.save(any(UserTask.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+  }
 
-    private void inject(final String field, final Object value) throws Exception {
-        final var declaredField = UserTaskService.class.getDeclaredField(field);
-        declaredField.setAccessible(true);
-        declaredField.set(service, value);
-    }
+  private void inject(
+      final String field,
+      final Object value) throws Exception {
+    final var declaredField = UserTaskService.class.getDeclaredField(field);
+    declaredField.setAccessible(true);
+    declaredField.set(service, value);
+  }
 
-    private static Person person(final String id) {
-        final var person = new Person();
-        person.setId(id);
-        return person;
-    }
+  private static Person person(
+      final String id) {
+    final var person = new Person();
+    person.setId(id);
+    return person;
+  }
 
-    @Test
-    void assignTask_recordsTheActingUserAsInitiator() {
-        when(currentUserContext.getUserLoggedIn()).thenReturn("actingUser");
+  @Test
+  void assignTask_recordsTheActingUserAsInitiator() {
+    when(currentUserContext.getUserLoggedIn()).thenReturn("actingUser");
 
-        final var result = service.assignTask(EVERY_USER_TASK, "task-1", person("targetUser"));
+    final var result = service.assignTask(EVERY_USER_TASK, "task-1", person("targetUser"));
 
-        assertEquals("actingUser", result.getInitiator());
-    }
+    assertEquals("actingUser", result.getInitiator());
+  }
 
-    @Test
-    void claimTask_recordsTheActingUserAsInitiator() {
-        when(currentUserContext.getUserLoggedIn()).thenReturn("actingUser");
+  @Test
+  void claimTask_recordsTheActingUserAsInitiator() {
+    when(currentUserContext.getUserLoggedIn()).thenReturn("actingUser");
 
-        final var result = service.claimTask(EVERY_USER_TASK, "task-1", person("actingUser"));
+    final var result = service.claimTask(EVERY_USER_TASK, "task-1", person("actingUser"));
 
-        assertEquals("actingUser", result.getInitiator());
-    }
+    assertEquals("actingUser", result.getInitiator());
+  }
 
-    @Test
-    void withoutLoggedInUser_theCockpitItselfIsTheInitiator() {
-        when(currentUserContext.getUserLoggedIn()).thenReturn(null);
+  @Test
+  void withoutLoggedInUser_theCockpitItselfIsTheInitiator() {
+    when(currentUserContext.getUserLoggedIn()).thenReturn(null);
 
-        final var result = service.assignTask(EVERY_USER_TASK, "task-1", person("targetUser"));
+    final var result = service.assignTask(EVERY_USER_TASK, "task-1", person("targetUser"));
 
-        assertEquals(UpdateInformationAware.COCKPIT_USER, result.getInitiator());
-    }
+    assertEquals(UpdateInformationAware.COCKPIT_USER, result.getInitiator());
+  }
 
-    @Test
-    void unauthorizedContext_doesNotFailTheAction() {
-        when(currentUserContext.getUserLoggedIn())
-                .thenThrow(new io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException("no context"));
+  @Test
+  void unauthorizedContext_doesNotFailTheAction() {
+    when(currentUserContext.getUserLoggedIn())
+        .thenThrow(new io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException("no context"));
 
-        final var result = service.setFollowUpDate(EVERY_USER_TASK, "task-1", null);
+    final var result = service.setFollowUpDate(EVERY_USER_TASK, "task-1", null);
 
-        assertEquals(UpdateInformationAware.COCKPIT_USER, result.getInitiator());
-    }
+    assertEquals(UpdateInformationAware.COCKPIT_USER, result.getInitiator());
+  }
 
-    @Test
-    void reportCreatedUserTask_stampsTheCockpitsOwnReportingTime() {
-        final var task = new UserTask();
-        task.setId("task-2");
+  @Test
+  void reportCreatedUserTask_stampsTheCockpitsOwnReportingTime() {
+    final var task = new UserTask();
+    task.setId("task-2");
 
-        service.reportCreatedUserTask("task-2", OffsetDateTime.now(), () -> task);
+    service.reportCreatedUserTask("task-2", OffsetDateTime.now(), () -> task);
 
-        // 'createdAt' stays the reporting system's timestamp, 'reportedAt' is the cockpit's own
-        assertNotNull(task.getReportedAt());
-    }
+    // 'createdAt' stays the reporting system's timestamp, 'reportedAt' is the cockpit's own
+    assertNotNull(task.getReportedAt());
+  }
 
-    @Test
-    void reportCreatedUserTask_recordsSinceWhenTheReportedCandidatesAreCandidates() {
-        final var task = new UserTask();
-        task.setId("task-2");
-        task.setCandidateUsers(new ArrayList<>(List.of(person("u1"), person("u2"))));
+  @Test
+  void reportCreatedUserTask_recordsSinceWhenTheReportedCandidatesAreCandidates() {
+    final var task = new UserTask();
+    task.setId("task-2");
+    task.setCandidateUsers(new ArrayList<>(List.of(person("u1"), person("u2"))));
 
-        service.reportCreatedUserTask("task-2", OffsetDateTime.now(), () -> task);
+    service.reportCreatedUserTask("task-2", OffsetDateTime.now(), () -> task);
 
-        assertEquals(task.getReportedAt(), task.getCandidateSince("u1"));
-        assertEquals(task.getReportedAt(), task.getCandidateSince("u2"));
-    }
+    assertEquals(task.getReportedAt(), task.getCandidateSince("u1"));
+    assertEquals(task.getReportedAt(), task.getCandidateSince("u2"));
+  }
 
 }

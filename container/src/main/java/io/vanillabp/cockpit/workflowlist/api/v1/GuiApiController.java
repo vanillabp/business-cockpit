@@ -1,9 +1,10 @@
 package io.vanillabp.cockpit.workflowlist.api.v1;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
-import io.vanillabp.cockpit.workflowlist.WorkflowVisibility;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.workflowlist.WorkflowVisibility;
 
 /**
  * The workflow list of the delivered application. It holds the workflows which name the user in
@@ -18,18 +19,18 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(path = "/gui/api/v1")
 public class GuiApiController extends AbstractWorkflowListGuiApiController {
 
-    /**
-     * Called by Spring, which finds this controller by its component scan and creates it.
-     */
-    public GuiApiController() {
-    }
+  /**
+   * Called by Spring, which finds this controller by its component scan and creates it.
+   */
+  public GuiApiController() {
+  }
 
-    @Override
-    protected WorkflowVisibility workflowsVisibleTo(
-            final UserDetails currentUser) {
+  @Override
+  protected WorkflowVisibility workflowsVisibleTo(
+      final UserDetails currentUser) {
 
-        return WorkflowVisibility.workflowsAddressedTo(currentUser);
+    return WorkflowVisibility.workflowsAddressedTo(currentUser);
 
-    }
+  }
 
 }

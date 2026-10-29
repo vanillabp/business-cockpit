@@ -96,6 +96,8 @@ becomes
 
 > A pull request is checked by two jobs which run beside each other.
 
+A second pair:
+
 > The BPMS' own event id is deliberately not part of the key, and no clock reading is - version 1
 > built an event id from `System.nanoTime()`, which made every repetition a new event.
 
@@ -104,6 +106,8 @@ becomes
 > The BPMS' own event id is deliberately left out of the key, and so is any clock reading.
 > Version 1 built an event id from `System.nanoTime()`, which turned every repetition into a new
 > event.
+
+And a third:
 
 > A result type `UserTaskDetails` is expected. The effected task-id can be passed by defining a
 > parameter annotated by `@TaskId`.
@@ -187,10 +191,19 @@ point in time themselves.
 
 ## Formatting
 
-Spotless runs under `extensions-commons` only. The rest of the repository has no formatter and
-stays that way, because reformatting it would bury every later diff. Inside that subtree
-`mvn spotless:apply` runs before every commit; it formats the POMs and the Markdown as well as the
-Java, and the build fails on a violation.
+Spotless formats the whole repository the way every other VanillaBP repository is formatted: the
+same plugin version, the same Eclipse settings in `formatting_conventions.xml` and the same rules.
+It formats the Java sources, the POMs, the Markdown and the YAML files. Run `mvn spotless:apply` at
+the root before every commit. The `check` goal runs in the phase `process-sources` of every module,
+so a violation fails the build. An unused import counts as one. Do not add `-N`. The Java formatter
+reads only the source folders of the module it runs in, and the root module has none. The YAML
+formatter drops comments and turns some quoted strings into numbers. So the workflows below
+`.github`, the OpenAPI specs, the Spring configuration below `config` and the Docker Compose file
+are left out.
+
+The commit which formatted the whole repository is listed in `.git-blame-ignore-revs`. Run
+`git config blame.ignoreRevsFile .git-blame-ignore-revs` once, and `git blame` skips it. GitHub
+skips it on its own.
 
 ## Tests keep quiet until one fails
 

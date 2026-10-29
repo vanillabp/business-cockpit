@@ -1,14 +1,7 @@
 package io.vanillabp.cockpit.config;
 
-import com.mongodb.connection.SslSettings;
-import com.mongodb.management.JMXConnectionPoolListener;
-import io.vanillabp.cockpit.commons.mongo.MongoDbProperties;
-import io.vanillabp.cockpit.commons.mongo.converters.BigDecimalReadConverter;
-import io.vanillabp.cockpit.commons.mongo.converters.BigDecimalWriteConverter;
-import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeReadConverter;
-import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeWriteConverter;
-import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
-import io.vanillabp.cockpit.config.startup.WriteConcernCheck;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.mongodb.autoconfigure.MongoClientSettingsBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
@@ -20,7 +13,16 @@ import org.springframework.data.mongodb.core.WriteResultChecking;
 import org.springframework.data.mongodb.core.convert.MongoConverter;
 import org.springframework.data.mongodb.core.convert.MongoCustomConversions;
 
-import java.util.List;
+import com.mongodb.connection.SslSettings;
+import com.mongodb.management.JMXConnectionPoolListener;
+
+import io.vanillabp.cockpit.commons.mongo.MongoDbProperties;
+import io.vanillabp.cockpit.commons.mongo.converters.BigDecimalReadConverter;
+import io.vanillabp.cockpit.commons.mongo.converters.BigDecimalWriteConverter;
+import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeReadConverter;
+import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeWriteConverter;
+import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
+import io.vanillabp.cockpit.config.startup.WriteConcernCheck;
 
 /**
  * Sets up the connection to MongoDB and the template all of the cockpit writes through.
@@ -28,86 +30,86 @@ import java.util.List;
 @Configuration
 public class MongoDbConfiguration {
 
-    /**
-     * Creates the configuration. Spring creates it because of {@code @Configuration}.
-     */
-    public MongoDbConfiguration() {
-    }
+  /**
+   * Creates the configuration. Spring creates it because of {@code @Configuration}.
+   */
+  public MongoDbConfiguration() {
+  }
 
-    @Autowired
-    private MongoDbProperties properties;
+  @Autowired
+  private MongoDbProperties properties;
 
-    @Autowired
-    private Environment environment;
-    
-    /**
-     * Switches TLS on if the properties ask for it, which an integration environment needs. It
-     * also shows the connection pool in JMX (Java Management Extensions).
-     *
-     * @return The customizer of the client settings
-     */
-    @Bean
-    public MongoClientSettingsBuilderCustomizer settings() {
-        
-        return clientSettingsBuilder -> clientSettingsBuilder
-                .applyToSslSettings(builder -> builder.applySettings(
-                        SslSettings.builder()
-                        .enabled(properties.isUseTls())
-                        .build()))
-                .applyToConnectionPoolSettings(builder -> builder.addConnectionPoolListener(
-                        new JMXConnectionPoolListener()));
-        
-    }
-    
-    /**
-     * Reads and writes an OffsetDateTime the way MongoDB stores a date, and a BigDecimal the way
-     * MongoDB stores a decimal number.
-     *
-     * @return The conversions
-     */
-    @Bean
-    public MongoCustomConversions customConversions() {
-        
-        final var converters = List.of(
-                new OffsetDateTimeReadConverter(),
-                new OffsetDateTimeWriteConverter(),
-                new BigDecimalReadConverter(),
-                new BigDecimalWriteConverter());
-        
-        return new MongoCustomConversions(converters);
-        
-    }
+  @Autowired
+  private Environment environment;
 
-    /**
-     * The template everything of the cockpit writes through, and the earliest moment at which the
-     * write concern of those writes exists. So this is where it is checked: before the database
-     * migration runs, before the first repository is built and before anything has been written.
-     * <p>
-     * The converter gets the replacement of a dot in a key of the business data here, for the same
-     * reason: the template is what every record of the cockpit is written and read through.
-     *
-     * @param mongoDbFactory The factory of the database connection
-     * @param converter The converter between documents and Java objects
-     * @return The template
-     */
-    @Bean
-    public MongoTemplate mongoTemplate(
-            final MongoDatabaseFactory mongoDbFactory,
-            final MongoConverter converter) {
-        
-        MapKeyDotReplacement.applyTo(environment, converter);
-        final var template = new CockpitMongoTemplate(mongoDbFactory, converter);
-        // throw an exception when a write concern is not met. Optimistic locking needs it too
-        template.setWriteResultChecking(WriteResultChecking.EXCEPTION);
-        final var configured = WriteConcernCheck.writeConcernConfigured(properties);
-        configured.ifPresent(template::setWriteConcern);
-        WriteConcernCheck.reportWhatTheCockpitWritesWith(
-                configured.orElse(null),
-                template.writeConcernApplied(),
-                template.writeConcernOfTheConnection(),
-                properties.getMode());
-        return template;
-        
-    }
-    
+  /**
+   * Switches TLS on if the properties ask for it, which an integration environment needs. It
+   * also shows the connection pool in JMX (Java Management Extensions).
+   *
+   * @return The customizer of the client settings
+   */
+  @Bean
+  public MongoClientSettingsBuilderCustomizer settings() {
+
+    return clientSettingsBuilder -> clientSettingsBuilder
+        .applyToSslSettings(builder -> builder.applySettings(
+            SslSettings.builder()
+                .enabled(properties.isUseTls())
+                .build()))
+        .applyToConnectionPoolSettings(builder -> builder.addConnectionPoolListener(
+            new JMXConnectionPoolListener()));
+
+  }
+
+  /**
+   * Reads and writes an OffsetDateTime the way MongoDB stores a date, and a BigDecimal the way
+   * MongoDB stores a decimal number.
+   *
+   * @return The conversions
+   */
+  @Bean
+  public MongoCustomConversions customConversions() {
+
+    final var converters = List.of(
+        new OffsetDateTimeReadConverter(),
+        new OffsetDateTimeWriteConverter(),
+        new BigDecimalReadConverter(),
+        new BigDecimalWriteConverter());
+
+    return new MongoCustomConversions(converters);
+
+  }
+
+  /**
+   * The template everything of the cockpit writes through, and the earliest moment at which the
+   * write concern of those writes exists. So this is where it is checked: before the database
+   * migration runs, before the first repository is built and before anything has been written.
+   * <p>
+   * The converter gets the replacement of a dot in a key of the business data here, for the same
+   * reason: the template is what every record of the cockpit is written and read through.
+   *
+   * @param mongoDbFactory The factory of the database connection
+   * @param converter The converter between documents and Java objects
+   * @return The template
+   */
+  @Bean
+  public MongoTemplate mongoTemplate(
+      final MongoDatabaseFactory mongoDbFactory,
+      final MongoConverter converter) {
+
+    MapKeyDotReplacement.applyTo(environment, converter);
+    final var template = new CockpitMongoTemplate(mongoDbFactory, converter);
+    // throw an exception when a write concern is not met. Optimistic locking needs it too
+    template.setWriteResultChecking(WriteResultChecking.EXCEPTION);
+    final var configured = WriteConcernCheck.writeConcernConfigured(properties);
+    configured.ifPresent(template::setWriteConcern);
+    WriteConcernCheck.reportWhatTheCockpitWritesWith(
+        configured.orElse(null),
+        template.writeConcernApplied(),
+        template.writeConcernOfTheConnection(),
+        properties.getMode());
+    return template;
+
+  }
+
 }

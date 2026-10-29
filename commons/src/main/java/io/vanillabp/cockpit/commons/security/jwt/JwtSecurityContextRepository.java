@@ -1,12 +1,10 @@
 package io.vanillabp.cockpit.commons.security.jwt;
 
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -15,6 +13,10 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpRequestResponseHolder;
 import org.springframework.security.web.context.SecurityContextRepository;
+
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * Turns a successful authentication into the JWT cookie the single-page application sends on
@@ -36,203 +38,203 @@ import org.springframework.security.web.context.SecurityContextRepository;
  */
 public class JwtSecurityContextRepository implements SecurityContextRepository {
 
-    private static final Logger logger = LoggerFactory.getLogger(JwtSecurityContextRepository.class);
+  private static final Logger logger = LoggerFactory.getLogger(JwtSecurityContextRepository.class);
 
-    private final JwtProperties properties;
+  private final JwtProperties properties;
 
-    private final JwtMapper<? extends AbstractAuthenticationToken> jwtMapper;
+  private final JwtMapper<? extends AbstractAuthenticationToken> jwtMapper;
 
-    /**
-     * Creates the repository.
-     *
-     * @param properties The token settings, the cookie settings among them
-     * @param jwtMapper  Turns the token into an authentication and back
-     */
-    public JwtSecurityContextRepository(
-            final JwtProperties properties,
-            final JwtMapper<? extends AbstractAuthenticationToken> jwtMapper) {
+  /**
+   * Creates the repository.
+   *
+   * @param properties The token settings, the cookie settings among them
+   * @param jwtMapper  Turns the token into an authentication and back
+   */
+  public JwtSecurityContextRepository(
+      final JwtProperties properties,
+      final JwtMapper<? extends AbstractAuthenticationToken> jwtMapper) {
 
-        this.properties = properties;
-        this.jwtMapper = jwtMapper;
+    this.properties = properties;
+    this.jwtMapper = jwtMapper;
+
+  }
+
+  @Override
+  public DeferredSecurityContext loadDeferredContext(
+      final HttpServletRequest request) {
+
+    return new DeferredCookieContext(request);
+
+  }
+
+  /**
+   * The interface still declares this method, so a caller written against the old model keeps
+   * working. It delegates the way Spring Security's own repositories delegate, and it is marked
+   * deprecated so that nobody takes it for the place to change.
+   *
+   * @deprecated use {@link #loadDeferredContext(HttpServletRequest)}
+   */
+  @Deprecated
+  @Override
+  public SecurityContext loadContext(
+      final HttpRequestResponseHolder requestResponseHolder) {
+
+    return loadDeferredContext(requestResponseHolder.getRequest()).get();
+
+  }
+
+  @Override
+  public void saveContext(
+      final SecurityContext context,
+      final HttpServletRequest request,
+      final HttpServletResponse response) {
+
+    jwtMapper
+        .toToken(context)
+        .ifPresent(token -> addCookie(properties, response, token.getKey(), token.getValue()));
+
+  }
+
+  @Override
+  public boolean containsContext(
+      final HttpServletRequest request) {
+
+    return readToken(request).isPresent();
+
+  }
+
+  /**
+   * Overwrites the JWT cookie with an already expired one, which makes the browser drop it. Used
+   * on logout and whenever a token turns out to be unusable.
+   *
+   * @param properties The token settings, the cookie settings among them
+   * @param response   The response which drops the cookie
+   */
+  public static void clearCookie(
+      final JwtProperties properties,
+      final HttpServletResponse response) {
+
+    // the same attributes as the cookie it replaces. A browser drops a cookie only for a match of
+    // name, path and domain, and a cookie without SameSite next to one with it is what a strict
+    // browser may refuse to take
+    response.addCookie(buildCookie(properties, "", Duration.ZERO));
+
+  }
+
+  /**
+   * Writes the JWT cookie, which lives as long as the token in it. Used on login and whenever a
+   * token is renewed, see {@link JwtRenewalFilter}.
+   *
+   * @param properties The token settings, the cookie settings among them
+   * @param response   The response which carries the cookie
+   * @param token      The token
+   * @param expiresAt  When the token expires, and so the cookie
+   */
+  public static void addCookie(
+      final JwtProperties properties,
+      final HttpServletResponse response,
+      final String token,
+      final Instant expiresAt) {
+
+    response.addCookie(buildCookie(properties, token, Duration.between(Instant.now(), expiresAt)));
+
+  }
+
+  private static Cookie buildCookie(
+      final JwtProperties properties,
+      final String token,
+      final Duration maxAge) {
+
+    final var cookie = new Cookie(properties.getCookie().getName(), token);
+    cookie.setMaxAge((int) maxAge.toSeconds());
+    cookie.setPath(properties.getCookie().getPath());
+    if (properties.getCookie().getDomain() != null) {
+      cookie.setDomain(properties.getCookie().getDomain());
+    }
+    cookie.setSecure(properties.getCookie().isSecure());
+    cookie.setHttpOnly(true);
+    final var sameSite = properties.getCookie().getSameSite();
+    if (sameSite != null) {
+      cookie.setAttribute("SameSite", sameSite.attributeValue());
+    }
+    return cookie;
+
+  }
+
+  private Optional<String> readToken(
+      final HttpServletRequest request) {
+
+    final var cookies = request.getCookies();
+    if (cookies == null) {
+      return Optional.empty();
+    }
+
+    final var matching = Arrays
+        .stream(cookies)
+        .filter(cookie -> cookie.getName().equals(properties.getCookie().getName()))
+        .toList();
+    if (matching.isEmpty()) {
+      return Optional.empty();
+    }
+    if (matching.size() > 1) {
+      logger.warn("Got more than one cookie named '{}'. Will use the first!",
+          properties.getCookie().getName());
+    }
+    return Optional.of(matching.get(0).getValue());
+
+  }
+
+  /**
+   * Decodes the cookie when the context is first asked for and keeps the answer. A request
+   * without the cookie gets an empty context and not null, as the interface requires.
+   * {@link #isGenerated()} says which of the two a caller got. If the token is expired, or
+   * signed with another key, the mapper's exception is thrown where the context is asked for.
+   * The deprecated read path threw it in the same place.
+   * {@link PassiveJwtSecurityFilter} is what turns such a token into a request without a user.
+   * See {@code JwtSecurityContextRepositoryTest}.
+   */
+  private final class DeferredCookieContext implements DeferredSecurityContext {
+
+    private final HttpServletRequest request;
+
+    private SecurityContext context;
+
+    private boolean generated;
+
+    private DeferredCookieContext(
+        final HttpServletRequest request) {
+
+      this.request = request;
 
     }
 
     @Override
-    public DeferredSecurityContext loadDeferredContext(
-            final HttpServletRequest request) {
+    public SecurityContext get() {
 
-        return new DeferredCookieContext(request);
-
-    }
-
-    /**
-     * The interface still declares this method, so a caller written against the old model keeps
-     * working. It delegates the way Spring Security's own repositories delegate, and it is marked
-     * deprecated so that nobody takes it for the place to change.
-     *
-     * @deprecated use {@link #loadDeferredContext(HttpServletRequest)}
-     */
-    @Deprecated
-    @Override
-    public SecurityContext loadContext(
-            final HttpRequestResponseHolder requestResponseHolder) {
-
-        return loadDeferredContext(requestResponseHolder.getRequest()).get();
+      if (context == null) {
+        context = readToken(request)
+            .map(jwtMapper::toSecurityContext)
+            .orElseGet(this::emptyContext);
+      }
+      return context;
 
     }
 
     @Override
-    public void saveContext(
-            final SecurityContext context,
-            final HttpServletRequest request,
-            final HttpServletResponse response) {
+    public boolean isGenerated() {
 
-        jwtMapper
-                .toToken(context)
-                .ifPresent(token -> addCookie(properties, response, token.getKey(), token.getValue()));
+      get();
+      return generated;
 
     }
 
-    @Override
-    public boolean containsContext(
-            final HttpServletRequest request) {
+    private SecurityContext emptyContext() {
 
-        return readToken(request).isPresent();
-
-    }
-
-    /**
-     * Overwrites the JWT cookie with an already expired one, which makes the browser drop it. Used
-     * on logout and whenever a token turns out to be unusable.
-     *
-     * @param properties The token settings, the cookie settings among them
-     * @param response   The response which drops the cookie
-     */
-    public static void clearCookie(
-            final JwtProperties properties,
-            final HttpServletResponse response) {
-
-        // the same attributes as the cookie it replaces. A browser drops a cookie only for a match of
-        // name, path and domain, and a cookie without SameSite next to one with it is what a strict
-        // browser may refuse to take
-        response.addCookie(buildCookie(properties, "", Duration.ZERO));
+      generated = true;
+      return SecurityContextHolder.getContextHolderStrategy().createEmptyContext();
 
     }
 
-    /**
-     * Writes the JWT cookie, which lives as long as the token in it. Used on login and whenever a
-     * token is renewed, see {@link JwtRenewalFilter}.
-     *
-     * @param properties The token settings, the cookie settings among them
-     * @param response   The response which carries the cookie
-     * @param token      The token
-     * @param expiresAt  When the token expires, and so the cookie
-     */
-    public static void addCookie(
-            final JwtProperties properties,
-            final HttpServletResponse response,
-            final String token,
-            final Instant expiresAt) {
-
-        response.addCookie(buildCookie(properties, token, Duration.between(Instant.now(), expiresAt)));
-
-    }
-
-    private static Cookie buildCookie(
-            final JwtProperties properties,
-            final String token,
-            final Duration maxAge) {
-
-        final var cookie = new Cookie(properties.getCookie().getName(), token);
-        cookie.setMaxAge((int) maxAge.toSeconds());
-        cookie.setPath(properties.getCookie().getPath());
-        if (properties.getCookie().getDomain() != null) {
-            cookie.setDomain(properties.getCookie().getDomain());
-        }
-        cookie.setSecure(properties.getCookie().isSecure());
-        cookie.setHttpOnly(true);
-        final var sameSite = properties.getCookie().getSameSite();
-        if (sameSite != null) {
-            cookie.setAttribute("SameSite", sameSite.attributeValue());
-        }
-        return cookie;
-
-    }
-
-    private Optional<String> readToken(
-            final HttpServletRequest request) {
-
-        final var cookies = request.getCookies();
-        if (cookies == null) {
-            return Optional.empty();
-        }
-
-        final var matching = Arrays
-                .stream(cookies)
-                .filter(cookie -> cookie.getName().equals(properties.getCookie().getName()))
-                .toList();
-        if (matching.isEmpty()) {
-            return Optional.empty();
-        }
-        if (matching.size() > 1) {
-            logger.warn("Got more than one cookie named '{}'. Will use the first!",
-                    properties.getCookie().getName());
-        }
-        return Optional.of(matching.get(0).getValue());
-
-    }
-
-    /**
-     * Decodes the cookie when the context is first asked for and keeps the answer. A request
-     * without the cookie gets an empty context and not null, as the interface requires.
-     * {@link #isGenerated()} says which of the two a caller got. If the token is expired, or
-     * signed with another key, the mapper's exception is thrown where the context is asked for.
-     * The deprecated read path threw it in the same place.
-     * {@link PassiveJwtSecurityFilter} is what turns such a token into a request without a user.
-     * See {@code JwtSecurityContextRepositoryTest}.
-     */
-    private final class DeferredCookieContext implements DeferredSecurityContext {
-
-        private final HttpServletRequest request;
-
-        private SecurityContext context;
-
-        private boolean generated;
-
-        private DeferredCookieContext(
-                final HttpServletRequest request) {
-
-            this.request = request;
-
-        }
-
-        @Override
-        public SecurityContext get() {
-
-            if (context == null) {
-                context = readToken(request)
-                        .map(jwtMapper::toSecurityContext)
-                        .orElseGet(this::emptyContext);
-            }
-            return context;
-
-        }
-
-        @Override
-        public boolean isGenerated() {
-
-            get();
-            return generated;
-
-        }
-
-        private SecurityContext emptyContext() {
-
-            generated = true;
-            return SecurityContextHolder.getContextHolderStrategy().createEmptyContext();
-
-        }
-
-    }
+  }
 
 }

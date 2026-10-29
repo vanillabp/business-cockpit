@@ -1,13 +1,14 @@
 package io.vanillabp.cockpit.commons.mongo;
 
-import com.mongodb.client.MongoClient;
-import com.phactum.mongodb.changesets.ChangesetAutoConfiguration;
-import com.phactum.mongodb.changesets.ChangesetProperties;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.mongodb.core.MongoTemplate;
+
+import com.mongodb.client.MongoClient;
+import com.phactum.mongodb.changesets.ChangesetAutoConfiguration;
+import com.phactum.mongodb.changesets.ChangesetProperties;
 
 /**
  * Hands the MongoDB mode of the cockpit to the changeset library.
@@ -35,32 +36,34 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 // @AutoConfigureBefore and @AutoConfigureAfter read
 @AutoConfiguration
 @AutoConfigureBefore(ChangesetAutoConfiguration.class)
-@ConditionalOnClass({ MongoClient.class, MongoTemplate.class })
+@ConditionalOnClass({
+    MongoClient.class, MongoTemplate.class
+})
 public class ChangesetPropertiesAutoConfiguration {
 
-    /**
-     * Creates the configuration. Spring Boot calls this constructor.
-     */
-    public ChangesetPropertiesAutoConfiguration() {
-    }
+  /**
+   * Creates the configuration. Spring Boot calls this constructor.
+   */
+  public ChangesetPropertiesAutoConfiguration() {
+  }
 
-    /**
-     * The two enums name the same two kinds of database, so the value is carried over by name. A
-     * name which the library does not know ends the start, which is where a new mode of the cockpit
-     * would be noticed.
-     *
-     * @param properties The MongoDB settings of the cockpit
-     * @return The settings for the changeset library
-     */
-    @Bean
-    public ChangesetProperties mongoDbChangesetProperties(
-            final MongoDbProperties properties) {
+  /**
+   * The two enums name the same two kinds of database, so the value is carried over by name. A
+   * name which the library does not know ends the start, which is where a new mode of the cockpit
+   * would be noticed.
+   *
+   * @param properties The MongoDB settings of the cockpit
+   * @return The settings for the changeset library
+   */
+  @Bean
+  public ChangesetProperties mongoDbChangesetProperties(
+      final MongoDbProperties properties) {
 
-        final var changesetProperties = new ChangesetProperties();
-        changesetProperties.setMode(
-                ChangesetProperties.MongoDbMode.valueOf(properties.getMode().name()));
-        return changesetProperties;
+    final var changesetProperties = new ChangesetProperties();
+    changesetProperties.setMode(
+        ChangesetProperties.MongoDbMode.valueOf(properties.getMode().name()));
+    return changesetProperties;
 
-    }
+  }
 
 }

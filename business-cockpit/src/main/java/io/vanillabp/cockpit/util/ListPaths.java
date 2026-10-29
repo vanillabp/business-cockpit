@@ -1,11 +1,13 @@
 package io.vanillabp.cockpit.util;
 
-import io.vanillabp.cockpit.commons.exceptions.BcInvalidRequestException;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
+
 import org.springframework.util.StringUtils;
+
+import io.vanillabp.cockpit.commons.exceptions.BcInvalidRequestException;
 
 /**
  * The paths a client may name in a list request: to sort by, to filter by, or to get suggestions
@@ -25,95 +27,95 @@ import org.springframework.util.StringUtils;
  */
 public class ListPaths {
 
-    /** Where the business data of a user task or a workflow is stored. */
-    public static final String BUSINESS_DATA = "details";
+  /** Where the business data of a user task or a workflow is stored. */
+  public static final String BUSINESS_DATA = "details";
 
-    /** Where a filter without a path looks: the full text the workflow module reported. */
-    public static final String FULLTEXT = "detailsFulltextSearch";
+  /** Where a filter without a path looks: the full text the workflow module reported. */
+  public static final String FULLTEXT = "detailsFulltextSearch";
 
-    /** One part of a path: letters and digits of any language, and the underscore. */
-    private static final Pattern PATH = Pattern.compile("[\\p{L}\\p{N}_]+(\\.[\\p{L}\\p{N}_]+)*");
+  /** One part of a path: letters and digits of any language, and the underscore. */
+  private static final Pattern PATH = Pattern.compile("[\\p{L}\\p{N}_]+(\\.[\\p{L}\\p{N}_]+)*");
 
-    private final Set<String> fieldsOfTheList;
+  private final Set<String> fieldsOfTheList;
 
-    private final Optional<String> mapKeyDotReplacement;
+  private final Optional<String> mapKeyDotReplacement;
 
-    /**
-     * Creates the rule for one list.
-     *
-     * @param fieldsOfTheList The top-level fields a path may start with, besides {@value #BUSINESS_DATA}
-     * @param mapKeyDotReplacement What the cockpit stores instead of a dot in a key of the business
-     *        data, if anything. A path names such a key in its stored form, so the replacement is
-     *        allowed in a path below {@value #BUSINESS_DATA}
-     */
-    public ListPaths(
-            final Set<String> fieldsOfTheList,
-            final Optional<String> mapKeyDotReplacement) {
+  /**
+   * Creates the rule for one list.
+   *
+   * @param fieldsOfTheList The top-level fields a path may start with, besides {@value #BUSINESS_DATA}
+   * @param mapKeyDotReplacement What the cockpit stores instead of a dot in a key of the business
+   *        data, if anything. A path names such a key in its stored form, so the replacement is
+   *        allowed in a path below {@value #BUSINESS_DATA}
+   */
+  public ListPaths(
+      final Set<String> fieldsOfTheList,
+      final Optional<String> mapKeyDotReplacement) {
 
-        this.fieldsOfTheList = Set.copyOf(fieldsOfTheList);
-        this.mapKeyDotReplacement = mapKeyDotReplacement;
+    this.fieldsOfTheList = Set.copyOf(fieldsOfTheList);
+    this.mapKeyDotReplacement = mapKeyDotReplacement;
 
+  }
+
+  /**
+   * Checks one path of a list request.
+   *
+   * @param parameter The part of the request which named the path, for the message
+   * @param path The path to check
+   * @throws BcInvalidRequestException if the path breaks the rule
+   */
+  public void check(
+      final String parameter,
+      final String path) {
+
+    if (isAllowed(path)) {
+      return;
     }
+    throw new BcInvalidRequestException(
+        "'%s' may only name fields of the list or keys below '%s.'. A part of a path holds letters, digits and '_', and below '%s.' also '-'"
+            .formatted(parameter, BUSINESS_DATA, BUSINESS_DATA));
 
-    /**
-     * Checks one path of a list request.
-     *
-     * @param parameter The part of the request which named the path, for the message
-     * @param path The path to check
-     * @throws BcInvalidRequestException if the path breaks the rule
-     */
-    public void check(
-            final String parameter,
-            final String path) {
+  }
 
-        if (isAllowed(path)) {
-            return;
-        }
-        throw new BcInvalidRequestException(
-                "'%s' may only name fields of the list or keys below '%s.'. A part of a path holds letters, digits and '_', and below '%s.' also '-'"
-                        .formatted(parameter, BUSINESS_DATA, BUSINESS_DATA));
+  /**
+   * Checks the path of every filter. A filter without a path searches the full text, which is
+   * always allowed.
+   *
+   * @param searchQueries The filters of the request, or {@code null}
+   * @throws BcInvalidRequestException if one path breaks the rule
+   */
+  public void checkFilters(
+      final Collection<SearchQuery> searchQueries) {
 
+    if (searchQueries == null) {
+      return;
     }
+    searchQueries
+        .stream()
+        .map(SearchQuery::path)
+        .filter(StringUtils::hasText)
+        .forEach(path -> check("searchQueries.path", path));
 
-    /**
-     * Checks the path of every filter. A filter without a path searches the full text, which is
-     * always allowed.
-     *
-     * @param searchQueries The filters of the request, or {@code null}
-     * @throws BcInvalidRequestException if one path breaks the rule
-     */
-    public void checkFilters(
-            final Collection<SearchQuery> searchQueries) {
+  }
 
-        if (searchQueries == null) {
-            return;
-        }
-        searchQueries
-                .stream()
-                .map(SearchQuery::path)
-                .filter(StringUtils::hasText)
-                .forEach(path -> check("searchQueries.path", path));
+  private boolean isAllowed(
+      final String path) {
 
+    if (path == null) {
+      return false;
     }
-
-    private boolean isAllowed(
-            final String path) {
-
-        if (path == null) {
-            return false;
-        }
-        final var firstDot = path.indexOf('.');
-        final var field = firstDot == -1 ? path : path.substring(0, firstDot);
-        if (field.equals(BUSINESS_DATA)) {
-            // the replacement of a dot and a dash are allowed in a key, so both count as '_' here
-            final var storedForm = mapKeyDotReplacement
-                    .map(replacement -> path.replace(replacement, "_"))
-                    .orElse(path)
-                    .replace('-', '_');
-            return (firstDot != -1) && PATH.matcher(storedForm).matches();
-        }
-        return fieldsOfTheList.contains(field) && PATH.matcher(path).matches();
-
+    final var firstDot = path.indexOf('.');
+    final var field = firstDot == -1 ? path : path.substring(0, firstDot);
+    if (field.equals(BUSINESS_DATA)) {
+      // the replacement of a dot and a dash are allowed in a key, so both count as '_' here
+      final var storedForm = mapKeyDotReplacement
+          .map(replacement -> path.replace(replacement, "_"))
+          .orElse(path)
+          .replace('-', '_');
+      return (firstDot != -1) && PATH.matcher(storedForm).matches();
     }
+    return fieldsOfTheList.contains(field) && PATH.matcher(path).matches();
+
+  }
 
 }

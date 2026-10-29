@@ -9,28 +9,28 @@
   </parent>
 
   <artifactId>bpms-api</artifactId>
-  <name>API for reporting BPMS events regarding workflows or user tasks</name>
   <packaging>pom</packaging>
-  
-   <modules>
+  <name>API for reporting BPMS events regarding workflows or user tasks</name>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>VanillaBP</id>
+      <organization>Phactum Softwareentwicklung GmbH</organization>
+      <organizationUrl>https://www.phactum.at</organizationUrl>
+    </developer>
+  </developers>
+
+  <modules>
     <module>client</module>
     <module>server</module>
     <module>protobuf</module>
   </modules>
-
-    <licenses>
-        <license>
-            <name>Apache License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
-
-    <developers>
-        <developer>
-            <id>VanillaBP</id>
-            <organization>Phactum Softwareentwicklung GmbH</organization>
-            <organizationUrl>https://www.phactum.at</organizationUrl>
-        </developer>
-    </developers>
 </project>

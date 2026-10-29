@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.config.web;
 
 import java.util.concurrent.TimeUnit;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
@@ -31,39 +32,41 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class SpaNoHandlerFoundExceptionHandler {
 
-    @Value("${application.spa-default-file:classpath:/static/index.html}")
-    private String defaultFile;
+  @Value("${application.spa-default-file:classpath:/static/index.html}")
+  private String defaultFile;
 
-    @Autowired
-    private ResourceLoader resourceLoader;
+  @Autowired
+  private ResourceLoader resourceLoader;
 
-    /**
-     * Creates the handler. Spring creates it because of {@code @ControllerAdvice}.
-     */
-    public SpaNoHandlerFoundExceptionHandler() {
+  /**
+   * Creates the handler. Spring creates it because of {@code @ControllerAdvice}.
+   */
+  public SpaNoHandlerFoundExceptionHandler() {
+  }
+
+  /**
+   * Answers a path nobody else answers with the application shell.
+   *
+   * @return The application shell, or HTTP 404 if the application has no shell
+   */
+  @ExceptionHandler({
+      NoResourceFoundException.class, NoHandlerFoundException.class
+  })
+  public ResponseEntity<Resource> handleNotFound() {
+
+    final var shell = resourceLoader.getResource(defaultFile);
+    if (!shell.exists()) {
+      return ResponseEntity.notFound().build();
     }
 
-    /**
-     * Answers a path nobody else answers with the application shell.
-     *
-     * @return The application shell, or HTTP 404 if the application has no shell
-     */
-    @ExceptionHandler({ NoResourceFoundException.class, NoHandlerFoundException.class })
-    public ResponseEntity<Resource> handleNotFound() {
+    // the shell itself is the answer and not an error. It must not be cached, because it
+    // carries the hashed names of the assets of the deployed build
+    return ResponseEntity
+        .ok()
+        .contentType(MediaType.TEXT_HTML)
+        .cacheControl(CacheControl.maxAge(0, TimeUnit.SECONDS))
+        .body(shell);
 
-        final var shell = resourceLoader.getResource(defaultFile);
-        if (!shell.exists()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        // the shell itself is the answer and not an error. It must not be cached, because it
-        // carries the hashed names of the assets of the deployed build
-        return ResponseEntity
-                .ok()
-                .contentType(MediaType.TEXT_HTML)
-                .cacheControl(CacheControl.maxAge(0, TimeUnit.SECONDS))
-                .body(shell);
-
-    }
+  }
 
 }

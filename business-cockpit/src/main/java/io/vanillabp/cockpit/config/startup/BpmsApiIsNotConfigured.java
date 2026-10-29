@@ -11,19 +11,19 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
  */
 public class BpmsApiIsNotConfigured implements Condition {
 
-    /**
-     * Creates the condition. Spring creates it when it reads the {@code @Conditional} annotation.
-     */
-    public BpmsApiIsNotConfigured() {
-    }
+  /**
+   * Creates the condition. Spring creates it when it reads the {@code @Conditional} annotation.
+   */
+  public BpmsApiIsNotConfigured() {
+  }
 
-    @Override
-    public boolean matches(
-            final ConditionContext context,
-            final AnnotatedTypeMetadata metadata) {
+  @Override
+  public boolean matches(
+      final ConditionContext context,
+      final AnnotatedTypeMetadata metadata) {
 
-        return !CockpitConfiguration.isBpmsApiConfigured(context.getEnvironment());
+    return !CockpitConfiguration.isBpmsApiConfigured(context.getEnvironment());
 
-    }
+  }
 
 }

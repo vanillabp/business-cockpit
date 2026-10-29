@@ -17,10 +17,10 @@ This file is about the module.
 **Contents:**
 
 1. [What is here](#what-is-here)
-1. [Why the library and the application are two modules](#why-the-library-and-the-application-are-two-modules)
-1. [Why its own tests cannot prove the wiring](#why-its-own-tests-cannot-prove-the-wiring)
-1. [Running it from a build](#running-it-from-a-build)
-1. [Why it is not reactive](#why-it-is-not-reactive)
+2. [Why the library and the application are two modules](#why-the-library-and-the-application-are-two-modules)
+3. [Why its own tests cannot prove the wiring](#why-its-own-tests-cannot-prove-the-wiring)
+4. [Running it from a build](#running-it-from-a-build)
+5. [Why it is not reactive](#why-it-is-not-reactive)
 
 ## What is here
 

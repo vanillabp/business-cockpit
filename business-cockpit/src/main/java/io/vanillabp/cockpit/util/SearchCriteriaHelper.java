@@ -13,36 +13,35 @@ import org.springframework.util.StringUtils;
  */
 public class SearchCriteriaHelper {
 
-    /**
-     * Only static methods, so nobody needs an instance.
-     */
-    private SearchCriteriaHelper() {
+  /**
+   * Only static methods, so nobody needs an instance.
+   */
+  private SearchCriteriaHelper() {
 
+  }
+
+  /**
+   * Creates one criterion per filter. The query of a filter is a regular expression. A filter
+   * without a path searches the full text.
+   *
+   * @param searchQueries The filters, or {@code null}
+   * @return The criteria, an empty list if there are no filters
+   */
+  public static List<? extends CriteriaDefinition> buildSearchCriteria(
+      final Collection<SearchQuery> searchQueries) {
+
+    if ((searchQueries == null) || searchQueries.isEmpty()) {
+      return List.of();
     }
 
-    /**
-     * Creates one criterion per filter. The query of a filter is a regular expression. A filter
-     * without a path searches the full text.
-     *
-     * @param searchQueries The filters, or {@code null}
-     * @return The criteria, an empty list if there are no filters
-     */
-    public static List<? extends CriteriaDefinition> buildSearchCriteria(
-            final Collection<SearchQuery> searchQueries) {
+    final List<CriteriaDefinition> list = new ArrayList<>(searchQueries
+        .stream()
+        .map(query -> Criteria
+            .where(StringUtils.hasText(query.path()) ? query.path() : "detailsFulltextSearch")
+            .regex(query.query(), query.caseInsensitive() ? "i" : ""))
+        .toList());
 
-        if ((searchQueries == null)
-                || searchQueries.isEmpty()) {
-            return List.of();
-        }
+    return list;
 
-        final List<CriteriaDefinition> list = new ArrayList<>(searchQueries
-                .stream()
-                .map(query -> Criteria
-                        .where(StringUtils.hasText(query.path()) ? query.path() : "detailsFulltextSearch")
-                        .regex(query.query(), query.caseInsensitive() ? "i" : ""))
-                .toList());
-
-        return list;
-
-    }
+  }
 }

@@ -13,30 +13,30 @@ import org.apache.oltu.oauth2.common.exception.OAuthSystemException;
  */
 public class OAuthClient extends org.apache.oltu.oauth2.client.OAuthClient {
 
-    /**
-     * Creates the client.
-     *
-     * @param oauthClient The HTTP client which sends the token requests
-     */
-    public OAuthClient(
-            final HttpClient oauthClient) {
-        
-        super(oauthClient);
-        
+  /**
+   * Creates the client.
+   *
+   * @param oauthClient The HTTP client which sends the token requests
+   */
+  public OAuthClient(
+      final HttpClient oauthClient) {
+
+    super(oauthClient);
+
+  }
+
+  @Override
+  public <T extends OAuthAccessTokenResponse> T accessToken(
+      final OAuthClientRequest request,
+      final String requestMethod,
+      final Class<T> responseClass) throws OAuthSystemException, OAuthProblemException {
+
+    var contentType = request.getHeader(OAuth.HeaderType.CONTENT_TYPE);
+    if (contentType == null) {
+      request.addHeader(OAuth.HeaderType.CONTENT_TYPE, OAuth.ContentType.URL_ENCODED);
     }
 
-    @Override
-    public <T extends OAuthAccessTokenResponse> T accessToken(
-            final OAuthClientRequest request,
-            final String requestMethod,
-            final Class<T> responseClass) throws OAuthSystemException, OAuthProblemException {
-
-        var contentType = request.getHeader(OAuth.HeaderType.CONTENT_TYPE);
-        if (contentType == null) {
-            request.addHeader(OAuth.HeaderType.CONTENT_TYPE, OAuth.ContentType.URL_ENCODED);
-        }
-
-        return httpClient.execute(request, request.getHeaders(), requestMethod, responseClass);
-    }
+    return httpClient.execute(request, request.getHeaders(), requestMethod, responseClass);
+  }
 
 }

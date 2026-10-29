@@ -3,19 +3,22 @@ package io.vanillabp.cockpit.itest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import com.sun.net.httpserver.HttpServer;
-import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import com.sun.net.httpserver.HttpServer;
+
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * The registration endpoint of the BPMS API is an upsert. A workflow module calls it on every
@@ -30,298 +33,314 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @SuppressOutputExtension.SuppressBackgroundOutput
 class BpmsApiWorkflowModuleRegistrationTest extends ItestBase {
 
-    private static HttpServer serverA;
-    private static HttpServer serverB;
-    private static final AtomicReference<String> pathReceivedByA = new AtomicReference<>();
-    private static final AtomicReference<String> pathReceivedByB = new AtomicReference<>();
+  private static HttpServer serverA;
+  private static HttpServer serverB;
+  private static final AtomicReference<String> pathReceivedByA = new AtomicReference<>();
+  private static final AtomicReference<String> pathReceivedByB = new AtomicReference<>();
 
-    private String cookie;
+  private String cookie;
 
-    @BeforeAll
-    static void startModuleStubs() throws IOException {
+  @BeforeAll
+  static void startModuleStubs() throws IOException {
 
-        serverA = startStub("A", pathReceivedByA);
-        serverB = startStub("B", pathReceivedByB);
+    serverA = startStub("A", pathReceivedByA);
+    serverB = startStub("B", pathReceivedByB);
 
-    }
+  }
 
-    @AfterAll
-    static void stopModuleStubs() {
+  @AfterAll
+  static void stopModuleStubs() {
 
-        serverA.stop(0);
-        serverB.stop(0);
+    serverA.stop(0);
+    serverB.stop(0);
 
-    }
+  }
 
-    private static HttpServer startStub(
-            final String name,
-            final AtomicReference<String> pathReceived) throws IOException {
+  private static HttpServer startStub(
+      final String name,
+      final AtomicReference<String> pathReceived) throws IOException {
 
-        final var server = HttpServer.create(new InetSocketAddress(0), 0);
-        server.createContext("/", exchange -> {
-            pathReceived.set(exchange.getRequestURI().getPath());
-            final var body = ("{ \"servedBy\": \"" + name + "\" }").getBytes(StandardCharsets.UTF_8);
-            exchange.getResponseHeaders().add("Content-Type", "application/json");
-            exchange.sendResponseHeaders(200, body.length);
-            try (var out = exchange.getResponseBody()) {
-                out.write(body);
+    final var server = HttpServer.create(new InetSocketAddress(0), 0);
+    server.createContext("/", exchange -> {
+      pathReceived.set(exchange.getRequestURI().getPath());
+      final var body = ("{ \"servedBy\": \""
+          + name
+          + "\" }").getBytes(StandardCharsets.UTF_8);
+      exchange.getResponseHeaders().add("Content-Type", "application/json");
+      exchange.sendResponseHeaders(200, body.length);
+      try (var out = exchange.getResponseBody()) {
+        out.write(body);
+      }
+    });
+    server.start();
+    return server;
+
+  }
+
+  private static String uriOf(
+      final HttpServer server) {
+    return "http://localhost:"
+        + server.getAddress().getPort();
+  }
+
+  @BeforeEach
+  void loginAsMartin() {
+
+    cookie = loginToGui(USER_MARTIN);
+
+  }
+
+  /**
+   * Sends the registration event the way a workflow module does on startup. Unlike
+   * {@link ItestBase#registerWorkflowModule(String, String)} the provider paths are part of the
+   * signature, because changing them is what one of the tests below is about.
+   */
+  private void register(
+      final String workflowModuleId,
+      final String uri,
+      final String taskProviderApiUriPath,
+      final String workflowProviderApiUriPath) {
+
+    register(workflowModuleId, uri, taskProviderApiUriPath, workflowProviderApiUriPath, "");
+
+  }
+
+  private void register(
+      final String workflowModuleId,
+      final String uri,
+      final String taskProviderApiUriPath,
+      final String workflowProviderApiUriPath,
+      final String furtherMembers) {
+
+    final var response = bpmsV1_1(
+        "/workflow-module/"
+            + workflowModuleId,
+        """
+            {
+              "id": "%s",
+              "uri": "%s",
+              "taskProviderApiUriPath": "%s",
+              "workflowProviderApiUriPath": "%s"%s
             }
-        });
-        server.start();
-        return server;
+            """.formatted(
+            workflowModuleId, uri, taskProviderApiUriPath, workflowProviderApiUriPath,
+            furtherMembers));
+    assertThat(response.statusCode()).isEqualTo(200);
 
-    }
+  }
 
-    private static String uriOf(
-            final HttpServer server) {
-        return "http://localhost:" + server.getAddress().getPort();
-    }
+  /**
+   * Builds the {@code groupHierarchy} member of a registration. It has two entries and one of
+   * them has two targets, so neither the number of entries nor the shape of a single one is
+   * trivial.
+   *
+   * <p>Callers pass groups nobody else uses, because the cockpit merges the hierarchies of all
+   * registered modules into one and a test must not widen the group resolution of another.
+   */
+  private static String groupHierarchyOf(
+      final String group,
+      final String intermediateGroup,
+      final String targetGroup) {
 
-    @BeforeEach
-    void loginAsMartin() {
+    return """
+        ,
+          "groupHierarchy": [
+            { "group": "%s", "targets": [ "%s", "%s" ] },
+            { "group": "%s", "targets": [ "%s" ] }
+          ]""".formatted(
+        group, intermediateGroup, targetGroup, intermediateGroup, targetGroup);
 
-        cookie = loginToGui(USER_MARTIN);
+  }
 
-    }
+  private int proxyCall(
+      final String workflowModuleId) {
 
-    /**
-     * Sends the registration event the way a workflow module does on startup. Unlike
-     * {@link ItestBase#registerWorkflowModule(String, String)} the provider paths are part of the
-     * signature, because changing them is what one of the tests below is about.
-     */
-    private void register(
-            final String workflowModuleId,
-            final String uri,
-            final String taskProviderApiUriPath,
-            final String workflowProviderApiUriPath) {
+    final var response = send(HttpRequest
+        .newBuilder(URI.create(url("/wm/"
+            + workflowModuleId
+            + "/some/path")))
+        .GET()
+        .build());
+    return response.statusCode();
 
-        register(workflowModuleId, uri, taskProviderApiUriPath, workflowProviderApiUriPath, "");
+  }
 
-    }
+  private String serverAnsweringTheProxy(
+      final String workflowModuleId) {
 
-    private void register(
-            final String workflowModuleId,
-            final String uri,
-            final String taskProviderApiUriPath,
-            final String workflowProviderApiUriPath,
-            final String furtherMembers) {
+    final var response = send(HttpRequest
+        .newBuilder(URI.create(url("/wm/"
+            + workflowModuleId
+            + "/some/path")))
+        .GET()
+        .build());
+    assertThat(response.statusCode()).isEqualTo(200);
+    return json(response).read("$.servedBy", String.class);
 
-        final var response = bpmsV1_1(
-                "/workflow-module/" + workflowModuleId,
-                """
-                {
-                  "id": "%s",
-                  "uri": "%s",
-                  "taskProviderApiUriPath": "%s",
-                  "workflowProviderApiUriPath": "%s"%s
-                }
-                """.formatted(
-                        workflowModuleId, uri, taskProviderApiUriPath, workflowProviderApiUriPath,
-                        furtherMembers));
-        assertThat(response.statusCode()).isEqualTo(200);
+  }
 
-    }
+  private long storedVersionOf(
+      final String workflowModuleId) {
 
-    /**
-     * Builds the {@code groupHierarchy} member of a registration. It has two entries and one of
-     * them has two targets, so neither the number of entries nor the shape of a single one is
-     * trivial.
-     *
-     * <p>Callers pass groups nobody else uses, because the cockpit merges the hierarchies of all
-     * registered modules into one and a test must not widen the group resolution of another.
-     */
-    private static String groupHierarchyOf(
-            final String group,
-            final String intermediateGroup,
-            final String targetGroup) {
+    final var response = guiGet(cookie, "/workflow-module/"
+        + workflowModuleId);
+    assertThat(response.statusCode()).isEqualTo(200);
+    return json(response).read("$.version", Long.class);
 
-        return """
-                ,
-                  "groupHierarchy": [
-                    { "group": "%s", "targets": [ "%s", "%s" ] },
-                    { "group": "%s", "targets": [ "%s" ] }
-                  ]""".formatted(
-                          group, intermediateGroup, targetGroup, intermediateGroup, targetGroup);
+  }
 
-    }
+  @Test
+  void aRegisteredModuleIsReachableThroughItsProxyPath() {
 
-    private int proxyCall(
-            final String workflowModuleId) {
+    final var moduleId = unique("registered-module");
+    register(moduleId, uriOf(serverA), "/task-provider/v1", "/workflow-provider/v1");
 
-        final var response = send(HttpRequest
-                .newBuilder(URI.create(url("/wm/" + workflowModuleId + "/some/path")))
-                .GET()
-                .build());
-        return response.statusCode();
+    // the route becomes effective on the refresh event the registration publishes
+    await().untilAsserted(() -> assertThat(serverAnsweringTheProxy(moduleId)).isEqualTo("A"));
+    assertThat(pathReceivedByA.get()).isEqualTo("/some/path");
 
-    }
+  }
 
-    private String serverAnsweringTheProxy(
-            final String workflowModuleId) {
+  /**
+   * A module that moved to another host announces the move by registering again. The gateway has
+   * to follow without a restart of the cockpit, otherwise every request to the module would run
+   * into the abandoned address until someone notices.
+   */
+  @Test
+  void reRegistrationWithAChangedUriMovesTheProxyToTheNewServer() {
 
-        final var response = send(HttpRequest
-                .newBuilder(URI.create(url("/wm/" + workflowModuleId + "/some/path")))
-                .GET()
-                .build());
-        assertThat(response.statusCode()).isEqualTo(200);
-        return json(response).read("$.servedBy", String.class);
+    final var moduleId = unique("moving-module");
+    register(moduleId, uriOf(serverA), "/task-provider/v1", "/workflow-provider/v1");
+    await().untilAsserted(() -> assertThat(serverAnsweringTheProxy(moduleId)).isEqualTo("A"));
 
-    }
+    final var versionBeforeTheMove = storedVersionOf(moduleId);
+    register(moduleId, uriOf(serverB)
+        + "/moved", "/task-provider/v1", "/workflow-provider/v1");
+    assertThat(storedVersionOf(moduleId)).isGreaterThan(versionBeforeTheMove);
 
-    private long storedVersionOf(
-            final String workflowModuleId) {
+    await().untilAsserted(() -> assertThat(serverAnsweringTheProxy(moduleId)).isEqualTo("B"));
+    assertThat(pathReceivedByB.get()).isEqualTo("/moved/some/path");
 
-        final var response = guiGet(cookie, "/workflow-module/" + workflowModuleId);
-        assertThat(response.statusCode()).isEqualTo(200);
-        return json(response).read("$.version", Long.class);
+  }
 
-    }
+  /**
+   * The same move, but the module stayed on its server and only changed the base path it
+   * publishes itself under. The target of the route stays the same, and only the path rewrite
+   * differs. That is the part of a route which is easiest to leave stale.
+   */
+  @Test
+  void reRegistrationWithAChangedBasePathMovesTheProxyToTheNewPath() {
 
-    @Test
-    void aRegisteredModuleIsReachableThroughItsProxyPath() {
+    final var moduleId = unique("re-based-module");
+    register(moduleId, uriOf(serverA)
+        + "/v1", "/task-provider/v1", "/workflow-provider/v1");
+    await().untilAsserted(() -> {
+      assertThat(serverAnsweringTheProxy(moduleId)).isEqualTo("A");
+      assertThat(pathReceivedByA.get()).isEqualTo("/v1/some/path");
+    });
 
-        final var moduleId = unique("registered-module");
-        register(moduleId, uriOf(serverA), "/task-provider/v1", "/workflow-provider/v1");
+    register(moduleId, uriOf(serverA)
+        + "/v2", "/task-provider/v1", "/workflow-provider/v1");
 
-        // the route becomes effective on the refresh event the registration publishes
-        await().untilAsserted(() -> assertThat(serverAnsweringTheProxy(moduleId)).isEqualTo("A"));
-        assertThat(pathReceivedByA.get()).isEqualTo("/some/path");
+    await().untilAsserted(() -> {
+      assertThat(serverAnsweringTheProxy(moduleId)).isEqualTo("A");
+      assertThat(pathReceivedByA.get()).isEqualTo("/v2/some/path");
+    });
 
-    }
+  }
 
-    /**
-     * A module that moved to another host announces the move by registering again. The gateway has
-     * to follow without a restart of the cockpit, otherwise every request to the module would run
-     * into the abandoned address until someone notices.
-     */
-    @Test
-    void reRegistrationWithAChangedUriMovesTheProxyToTheNewServer() {
+  /**
+   * The provider paths are stored on the module document but never handed to the GUI, whose
+   * model only carries the proxied URI {@code /wm/{id}}. So the change is watched through the
+   * version counter of the document, which the repository raises on every real write.
+   */
+  @Test
+  void reRegistrationWithChangedProviderPathsIsStored() {
 
-        final var moduleId = unique("moving-module");
-        register(moduleId, uriOf(serverA), "/task-provider/v1", "/workflow-provider/v1");
-        await().untilAsserted(() -> assertThat(serverAnsweringTheProxy(moduleId)).isEqualTo("A"));
+    final var moduleId = unique("re-pathed-module");
+    register(moduleId, uriOf(serverA), "/task-provider/v1", "/workflow-provider/v1");
+    final var versionAfterFirstRegistration = storedVersionOf(moduleId);
 
-        final var versionBeforeTheMove = storedVersionOf(moduleId);
-        register(moduleId, uriOf(serverB) + "/moved", "/task-provider/v1", "/workflow-provider/v1");
-        assertThat(storedVersionOf(moduleId)).isGreaterThan(versionBeforeTheMove);
+    register(moduleId, uriOf(serverA), "/tasks/v2", "/workflows/v2");
+    final var versionAfterChangedPaths = storedVersionOf(moduleId);
+    assertThat(versionAfterChangedPaths).isGreaterThan(versionAfterFirstRegistration);
 
-        await().untilAsserted(() -> assertThat(serverAnsweringTheProxy(moduleId)).isEqualTo("B"));
-        assertThat(pathReceivedByB.get()).isEqualTo("/moved/some/path");
+    // an unchanged registration, which is what a restarted module sends, must not write
+    // anything
+    register(moduleId, uriOf(serverA), "/tasks/v2", "/workflows/v2");
+    assertThat(storedVersionOf(moduleId)).isEqualTo(versionAfterChangedPaths);
 
-    }
+  }
 
-    /**
-     * The same move, but the module stayed on its server and only changed the base path it
-     * publishes itself under. The target of the route stays the same, and only the path rewrite
-     * differs. That is the part of a route which is easiest to leave stale.
-     */
-    @Test
-    void reRegistrationWithAChangedBasePathMovesTheProxyToTheNewPath() {
+  /**
+   * A registration hands the group hierarchy over as a map of groups, the document keeps it as a
+   * list of entries. Comparing those two shapes directly always reports a difference, so every
+   * restart of a module having a hierarchy used to rewrite the document for nothing.
+   */
+  @Test
+  void reRegistrationOfAnUnchangedGroupHierarchyIsNotStoredAgain() {
 
-        final var moduleId = unique("re-based-module");
-        register(moduleId, uriOf(serverA) + "/v1", "/task-provider/v1", "/workflow-provider/v1");
-        await().untilAsserted(() -> {
-            assertThat(serverAnsweringTheProxy(moduleId)).isEqualTo("A");
-            assertThat(pathReceivedByA.get()).isEqualTo("/v1/some/path");
-        });
+    final var moduleId = unique("hierarchy-keeping-module");
+    final var hierarchy = groupHierarchyOf(
+        unique("accounting"), unique("dispatchers"), unique("night-shift"));
+    register(moduleId, uriOf(serverA), "/task-provider/v1", "/workflow-provider/v1", hierarchy);
+    final var versionAfterFirstRegistration = storedVersionOf(moduleId);
 
-        register(moduleId, uriOf(serverA) + "/v2", "/task-provider/v1", "/workflow-provider/v1");
+    register(moduleId, uriOf(serverA), "/task-provider/v1", "/workflow-provider/v1", hierarchy);
 
-        await().untilAsserted(() -> {
-            assertThat(serverAnsweringTheProxy(moduleId)).isEqualTo("A");
-            assertThat(pathReceivedByA.get()).isEqualTo("/v2/some/path");
-        });
+    assertThat(storedVersionOf(moduleId)).isEqualTo(versionAfterFirstRegistration);
 
-    }
+  }
 
-    /**
-     * The provider paths are stored on the module document but never handed to the GUI, whose
-     * model only carries the proxied URI {@code /wm/{id}}. So the change is watched through the
-     * version counter of the document, which the repository raises on every real write.
-     */
-    @Test
-    void reRegistrationWithChangedProviderPathsIsStored() {
+  /**
+   * The other half of the same rule. A module which really changed its hierarchy has to be
+   * written, because the cockpit resolves groups against the stored hierarchy after a restart.
+   */
+  @Test
+  void reRegistrationWithAChangedGroupHierarchyIsStored() {
 
-        final var moduleId = unique("re-pathed-module");
-        register(moduleId, uriOf(serverA), "/task-provider/v1", "/workflow-provider/v1");
-        final var versionAfterFirstRegistration = storedVersionOf(moduleId);
+    final var moduleId = unique("hierarchy-changing-module");
+    final var group = unique("accounting");
+    final var dispatchers = unique("dispatchers");
+    register(moduleId, uriOf(serverA), "/task-provider/v1", "/workflow-provider/v1",
+        groupHierarchyOf(group, dispatchers, unique("night-shift")));
+    final var versionAfterFirstRegistration = storedVersionOf(moduleId);
 
-        register(moduleId, uriOf(serverA), "/tasks/v2", "/workflows/v2");
-        final var versionAfterChangedPaths = storedVersionOf(moduleId);
-        assertThat(versionAfterChangedPaths).isGreaterThan(versionAfterFirstRegistration);
+    register(moduleId, uriOf(serverA), "/task-provider/v1", "/workflow-provider/v1",
+        groupHierarchyOf(group, dispatchers, unique("early-shift")));
 
-        // an unchanged registration, which is what a restarted module sends, must not write
-        // anything
-        register(moduleId, uriOf(serverA), "/tasks/v2", "/workflows/v2");
-        assertThat(storedVersionOf(moduleId)).isEqualTo(versionAfterChangedPaths);
+    assertThat(storedVersionOf(moduleId)).isGreaterThan(versionAfterFirstRegistration);
 
-    }
+  }
 
-    /**
-     * A registration hands the group hierarchy over as a map of groups, the document keeps it as a
-     * list of entries. Comparing those two shapes directly always reports a difference, so every
-     * restart of a module having a hierarchy used to rewrite the document for nothing.
-     */
-    @Test
-    void reRegistrationOfAnUnchangedGroupHierarchyIsNotStoredAgain() {
+  @Test
+  void reRegistrationKeepsTheProxiedUriTheGuiWorksWith() {
 
-        final var moduleId = unique("hierarchy-keeping-module");
-        final var hierarchy = groupHierarchyOf(
-                unique("accounting"), unique("dispatchers"), unique("night-shift"));
-        register(moduleId, uriOf(serverA), "/task-provider/v1", "/workflow-provider/v1", hierarchy);
-        final var versionAfterFirstRegistration = storedVersionOf(moduleId);
+    final var moduleId = unique("stable-uri-module");
+    register(moduleId, uriOf(serverA), "/task-provider/v1", "/workflow-provider/v1");
+    register(moduleId, uriOf(serverB), "/task-provider/v1", "/workflow-provider/v1");
 
-        register(moduleId, uriOf(serverA), "/task-provider/v1", "/workflow-provider/v1", hierarchy);
+    final var detail = json(guiGet(cookie, "/workflow-module/"
+        + moduleId));
+    assertThat(detail.read("$.id", String.class)).isEqualTo(moduleId);
+    assertThat(detail.read("$.uri", String.class)).isEqualTo("/wm/"
+        + moduleId);
 
-        assertThat(storedVersionOf(moduleId)).isEqualTo(versionAfterFirstRegistration);
+  }
 
-    }
+  @Test
+  void registeringAnUnknownModuleIdCreatesIt() {
 
-    /**
-     * The other half of the same rule. A module which really changed its hierarchy has to be
-     * written, because the cockpit resolves groups against the stored hierarchy after a restart.
-     */
-    @Test
-    void reRegistrationWithAChangedGroupHierarchyIsStored() {
+    final var moduleId = unique("brand-new-module");
+    assertThat(guiGet(cookie, "/workflow-module/"
+        + moduleId).statusCode()).isEqualTo(404);
 
-        final var moduleId = unique("hierarchy-changing-module");
-        final var group = unique("accounting");
-        final var dispatchers = unique("dispatchers");
-        register(moduleId, uriOf(serverA), "/task-provider/v1", "/workflow-provider/v1",
-                groupHierarchyOf(group, dispatchers, unique("night-shift")));
-        final var versionAfterFirstRegistration = storedVersionOf(moduleId);
+    register(moduleId, uriOf(serverA), "/task-provider/v1", "/workflow-provider/v1");
 
-        register(moduleId, uriOf(serverA), "/task-provider/v1", "/workflow-provider/v1",
-                groupHierarchyOf(group, dispatchers, unique("early-shift")));
+    assertThat(proxyCall(moduleId)).isNotEqualTo(404);
+    assertThat(guiGet(cookie, "/workflow-module/"
+        + moduleId).statusCode()).isEqualTo(200);
 
-        assertThat(storedVersionOf(moduleId)).isGreaterThan(versionAfterFirstRegistration);
-
-    }
-
-    @Test
-    void reRegistrationKeepsTheProxiedUriTheGuiWorksWith() {
-
-        final var moduleId = unique("stable-uri-module");
-        register(moduleId, uriOf(serverA), "/task-provider/v1", "/workflow-provider/v1");
-        register(moduleId, uriOf(serverB), "/task-provider/v1", "/workflow-provider/v1");
-
-        final var detail = json(guiGet(cookie, "/workflow-module/" + moduleId));
-        assertThat(detail.read("$.id", String.class)).isEqualTo(moduleId);
-        assertThat(detail.read("$.uri", String.class)).isEqualTo("/wm/" + moduleId);
-
-    }
-
-    @Test
-    void registeringAnUnknownModuleIdCreatesIt() {
-
-        final var moduleId = unique("brand-new-module");
-        assertThat(guiGet(cookie, "/workflow-module/" + moduleId).statusCode()).isEqualTo(404);
-
-        register(moduleId, uriOf(serverA), "/task-provider/v1", "/workflow-provider/v1");
-
-        assertThat(proxyCall(moduleId)).isNotEqualTo(404);
-        assertThat(guiGet(cookie, "/workflow-module/" + moduleId).statusCode()).isEqualTo(200);
-
-    }
+  }
 
 }

@@ -12,46 +12,51 @@ package io.vanillabp.cockpit.config.startup;
  */
 public class MapKeyDotReplacementIsNotUsableException extends RuntimeException {
 
-    private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 1L;
 
-    private static final String WHAT_TO_DO =
-            "Change the value, or leave the property out:\n\n" + MapKeyDotReplacement.whatToSet();
+  private static final String WHAT_TO_DO = "Change the value, or leave the property out:\n\n"
+      + MapKeyDotReplacement.whatToSet();
 
-    /**
-     * Which value cannot be used and why, for the description of the failure report.
-     */
-    private final String whatIsWrong;
+  /**
+   * Which value cannot be used and why, for the description of the failure report.
+   */
+  private final String whatIsWrong;
 
-    /**
-     * What the developer has to do, for the action of the failure report.
-     */
-    private final String whatToDo;
+  /**
+   * What the developer has to do, for the action of the failure report.
+   */
+  private final String whatToDo;
 
-    MapKeyDotReplacementIsNotUsableException(
-            final String replacement,
-            final String reason) {
+  MapKeyDotReplacementIsNotUsableException(
+      final String replacement,
+      final String reason) {
 
-        super(whatIsWrong(replacement, reason) + "\n\n" + WHAT_TO_DO);
-        this.whatIsWrong = whatIsWrong(replacement, reason);
-        this.whatToDo = WHAT_TO_DO;
+    super(whatIsWrong(replacement, reason)
+        + "\n\n"
+        + WHAT_TO_DO);
+    this.whatIsWrong = whatIsWrong(replacement, reason);
+    this.whatToDo = WHAT_TO_DO;
 
-    }
+  }
 
-    private static String whatIsWrong(
-            final String replacement,
-            final String reason) {
+  private static String whatIsWrong(
+      final String replacement,
+      final String reason) {
 
-        return "The Business Cockpit cannot use '" + replacement + "' as the replacement of a dot in a key of "
-                + "the business data. " + reason;
+    return "The Business Cockpit cannot use '"
+        + replacement
+        + "' as the replacement of a dot in a key of "
+        + "the business data. "
+        + reason;
 
-    }
+  }
 
-    String describeWhatIsWrong() {
-        return whatIsWrong;
-    }
+  String describeWhatIsWrong() {
+    return whatIsWrong;
+  }
 
-    String describeWhatToDo() {
-        return whatToDo;
-    }
+  String describeWhatToDo() {
+    return whatToDo;
+  }
 
 }

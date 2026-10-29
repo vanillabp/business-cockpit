@@ -1,11 +1,12 @@
 package io.vanillabp.cockpit.config;
 
-import com.mongodb.WriteConcern;
 import org.springframework.data.mongodb.MongoDatabaseFactory;
 import org.springframework.data.mongodb.core.MongoAction;
 import org.springframework.data.mongodb.core.MongoActionOperation;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.convert.MongoConverter;
+
+import com.mongodb.WriteConcern;
 
 /**
  * The cockpit's {@link MongoTemplate}. The one thing it adds is an answer to the question which
@@ -25,73 +26,68 @@ import org.springframework.data.mongodb.core.convert.MongoConverter;
  */
 public class CockpitMongoTemplate extends MongoTemplate {
 
-    /**
-     * Any collection name does, because the resolver of the template decides per write and the
-     * default one does not look at the collection. It is only here because {@link MongoAction}
-     * insists on a name.
-     */
-    private static final String ANY_COLLECTION = "write-concern-probe";
+  /**
+   * Any collection name does, because the resolver of the template decides per write and the
+   * default one does not look at the collection. It is only here because {@link MongoAction}
+   * insists on a name.
+   */
+  private static final String ANY_COLLECTION = "write-concern-probe";
 
-    private WriteConcern writeConcernOfThisTemplate;
+  private WriteConcern writeConcernOfThisTemplate;
 
-    /**
-     * Creates the template on the given database.
-     *
-     * @param mongoDbFactory The factory of the database connection
-     * @param converter The converter between documents and Java objects
-     */
-    public CockpitMongoTemplate(
-            final MongoDatabaseFactory mongoDbFactory,
-            final MongoConverter converter) {
+  /**
+   * Creates the template on the given database.
+   *
+   * @param mongoDbFactory The factory of the database connection
+   * @param converter The converter between documents and Java objects
+   */
+  public CockpitMongoTemplate(
+      final MongoDatabaseFactory mongoDbFactory,
+      final MongoConverter converter) {
 
-        super(mongoDbFactory, converter);
+    super(mongoDbFactory, converter);
 
-    }
+  }
 
-    /**
-     * Remembers what was set, because {@link MongoTemplate} keeps it to itself and offers no
-     * getter. Remembering is not the same as reading it once while the template is built: the
-     * MongoDB changeset library sets a stricter concern for the time of a migration and puts the
-     * old one back afterwards, so the value changes while the application runs.
-     */
-    @Override
-    public void setWriteConcern(
-            final WriteConcern writeConcern) {
+  /**
+   * Remembers what was set, because {@link MongoTemplate} keeps it to itself and offers no
+   * getter. Remembering is not the same as reading it once while the template is built: the
+   * MongoDB changeset library sets a stricter concern for the time of a migration and puts the
+   * old one back afterwards, so the value changes while the application runs.
+   */
+  @Override
+  public void setWriteConcern(
+      final WriteConcern writeConcern) {
 
-        super.setWriteConcern(writeConcern);
-        this.writeConcernOfThisTemplate = writeConcern;
+    super.setWriteConcern(writeConcern);
+    this.writeConcernOfThisTemplate = writeConcern;
 
-    }
+  }
 
-    /**
-     * What a write of this template promises right now. Where the template leaves the answer to
-     * the connection, that is the concern the connection carries.
-     *
-     * @return The write concern a write of this template uses
-     */
-    public WriteConcern writeConcernApplied() {
+  /**
+   * What a write of this template promises right now. Where the template leaves the answer to
+   * the connection, that is the concern the connection carries.
+   *
+   * @return The write concern a write of this template uses
+   */
+  public WriteConcern writeConcernApplied() {
 
-        final var applied = prepareWriteConcern(new MongoAction(
-                writeConcernOfThisTemplate,
-                MongoActionOperation.SAVE,
-                ANY_COLLECTION,
-                null,
-                null,
-                null));
-        return applied != null ? applied : writeConcernOfTheConnection();
+    final var applied = prepareWriteConcern(new MongoAction(
+        writeConcernOfThisTemplate, MongoActionOperation.SAVE, ANY_COLLECTION, null, null, null));
+    return applied != null ? applied : writeConcernOfTheConnection();
 
-    }
+  }
 
-    /**
-     * What the connection string or the {@code MongoClient} asks for. A write only gets this where
-     * {@link #writeConcernApplied()} has nothing of its own to say.
-     *
-     * @return The write concern of the connection
-     */
-    public WriteConcern writeConcernOfTheConnection() {
+  /**
+   * What the connection string or the {@code MongoClient} asks for. A write only gets this where
+   * {@link #writeConcernApplied()} has nothing of its own to say.
+   *
+   * @return The write concern of the connection
+   */
+  public WriteConcern writeConcernOfTheConnection() {
 
-        return getDb().getWriteConcern();
+    return getDb().getWriteConcern();
 
-    }
+  }
 
 }

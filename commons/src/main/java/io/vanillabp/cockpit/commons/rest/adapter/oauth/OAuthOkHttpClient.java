@@ -21,73 +21,73 @@ import okhttp3.RequestBody;
  */
 public class OAuthOkHttpClient extends OkHttpClient implements HttpClient {
 
-    private OkHttpClient client;
+  private OkHttpClient client;
 
-    /**
-     * Creates a client with a plain OkHttp client, without proxy, TLS or logging settings.
-     */
-    public OAuthOkHttpClient() {
-        
-        this.client = new OkHttpClient();
-        
-    }
+  /**
+   * Creates a client with a plain OkHttp client, without proxy, TLS or logging settings.
+   */
+  public OAuthOkHttpClient() {
 
-    /**
-     * Creates a client which sends the requests with the given OkHttp client.
-     *
-     * @param client The OkHttp client, already configured
-     */
-    public OAuthOkHttpClient(
-            final OkHttpClient client) {
-        
-        this.client = client;
-        
-    }
+    this.client = new OkHttpClient();
 
-    @Override
-    public <T extends OAuthClientResponse> T execute(
-            final OAuthClientRequest request,
-            final Map<String, String> headers,
-            final String requestMethod,
-            final Class<T> responseClass) throws OAuthSystemException, OAuthProblemException {
-        
-        var mediaType = MediaType.parse("application/json");
-        var requestBuilder = new Request.Builder().url(request.getLocationUri());
-        if (headers != null) {
-            for (var entry : headers.entrySet()) {
-                if (entry.getKey().equalsIgnoreCase("Content-Type")) {
-                    mediaType = MediaType.parse(entry.getValue());
-                } else {
-                    requestBuilder.addHeader(entry.getKey(), entry.getValue());
-                }
-            }
+  }
+
+  /**
+   * Creates a client which sends the requests with the given OkHttp client.
+   *
+   * @param client The OkHttp client, already configured
+   */
+  public OAuthOkHttpClient(
+      final OkHttpClient client) {
+
+    this.client = client;
+
+  }
+
+  @Override
+  public <T extends OAuthClientResponse> T execute(
+      final OAuthClientRequest request,
+      final Map<String, String> headers,
+      final String requestMethod,
+      final Class<T> responseClass) throws OAuthSystemException, OAuthProblemException {
+
+    var mediaType = MediaType.parse("application/json");
+    var requestBuilder = new Request.Builder().url(request.getLocationUri());
+    if (headers != null) {
+      for (var entry : headers.entrySet()) {
+        if (entry.getKey().equalsIgnoreCase("Content-Type")) {
+          mediaType = MediaType.parse(entry.getValue());
+        } else {
+          requestBuilder.addHeader(entry.getKey(), entry.getValue());
         }
-
-        var body = request.getBody() != null ? RequestBody.create(request.getBody(), mediaType) : null;
-        requestBuilder.method(requestMethod, body);
-
-        try {
-            var response = client.newCall(requestBuilder.build()).execute();
-            final var responseBody = response.body();
-            return OAuthClientResponseFactory
-                    .createCustomResponse(responseBody != null ? responseBody.string() : null,
-                            responseBody != null && responseBody.contentType() != null
-                                    ? responseBody.contentType().toString()
-                                    : null,
-                            response.code(),
-                            // 1.0.2 of the client asks for the response headers as well, and okhttp
-                            // hands them over in exactly the shape the factory wants
-                            response.headers().toMultimap(),
-                            responseClass);
-        } catch (IOException e) {
-            throw new OAuthSystemException(e);
-        }
-        
+      }
     }
 
-    @Override
-    public void shutdown() {
-        /* do nothing */
+    var body = request.getBody() != null ? RequestBody.create(request.getBody(), mediaType) : null;
+    requestBuilder.method(requestMethod, body);
+
+    try {
+      var response = client.newCall(requestBuilder.build()).execute();
+      final var responseBody = response.body();
+      return OAuthClientResponseFactory
+          .createCustomResponse(responseBody != null ? responseBody.string() : null,
+              responseBody != null && responseBody.contentType() != null
+                  ? responseBody.contentType().toString()
+                  : null,
+              response.code(),
+              // 1.0.2 of the client asks for the response headers as well, and okhttp
+              // hands them over in exactly the shape the factory wants
+              response.headers().toMultimap(),
+              responseClass);
+    } catch (IOException e) {
+      throw new OAuthSystemException(e);
     }
+
+  }
+
+  @Override
+  public void shutdown() {
+    /* do nothing */
+  }
 
 }

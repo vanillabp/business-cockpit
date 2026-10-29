@@ -1,35 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>io.vanillabp.businesscockpit</groupId>
-        <artifactId>apis</artifactId>
-        <version>0.9.0-SNAPSHOT</version>
-    </parent>
+  <parent>
+    <groupId>io.vanillabp.businesscockpit</groupId>
+    <artifactId>apis</artifactId>
+    <version>0.9.0-SNAPSHOT</version>
+  </parent>
 
-    <artifactId>official-gui-api</artifactId>
-    <name>Official API of business cockpit to be implemented by custom services</name>
-    <packaging>pom</packaging>
+  <artifactId>official-gui-api</artifactId>
+  <packaging>pom</packaging>
+  <name>Official API of business cockpit to be implemented by custom services</name>
 
-    <modules>
-        <module>server</module>
-    </modules>
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
 
-    <licenses>
-        <license>
-            <name>Apache License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
+  <developers>
+    <developer>
+      <id>VanillaBP</id>
+      <organization>Phactum Softwareentwicklung GmbH</organization>
+      <organizationUrl>https://www.phactum.at</organizationUrl>
+    </developer>
+  </developers>
 
-    <developers>
-        <developer>
-            <id>VanillaBP</id>
-            <organization>Phactum Softwareentwicklung GmbH</organization>
-            <organizationUrl>https://www.phactum.at</organizationUrl>
-        </developer>
-    </developers>
+  <modules>
+    <module>server</module>
+  </modules>
 </project>

@@ -1,5 +1,17 @@
 package io.vanillabp.cockpit.notification.email;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.util.StringUtils;
+
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
 import io.vanillabp.cockpit.notification.AbstractTemplatingNotificationService;
@@ -10,16 +22,6 @@ import io.vanillabp.cockpit.notification.RecipientConfiguration;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.users.model.User;
 import io.vanillabp.cockpit.users.model.UserRepository;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.util.StringUtils;
 
 /**
  * The reference {@link io.vanillabp.cockpit.notification.NotificationService}, which sends e-mails
@@ -29,282 +31,277 @@ import org.springframework.util.StringUtils;
  */
 public class EmailNotificationService extends AbstractTemplatingNotificationService {
 
-    private static final Logger logger = LoggerFactory.getLogger(EmailNotificationService.class);
+  private static final Logger logger = LoggerFactory.getLogger(EmailNotificationService.class);
 
-    /** The technical type of the e-mail medium, see {@link #getType()}. */
-    public static final String TYPE = "email";
+  /** The technical type of the e-mail medium, see {@link #getType()}. */
+  public static final String TYPE = "email";
 
-    /** {@link RecipientConfiguration#type()} of the e-mail address value. */
-    public static final String FIELD_EMAIL_ADDRESS = "emailAddress";
+  /** {@link RecipientConfiguration#type()} of the e-mail address value. */
+  public static final String FIELD_EMAIL_ADDRESS = "emailAddress";
 
-    private static final String TEMPLATE_HEADER = "email-header";
-    private static final String TEMPLATE_BODY = "email-body";
+  private static final String TEMPLATE_HEADER = "email-header";
+  private static final String TEMPLATE_BODY = "email-body";
 
-    private final UserRepository userRepository;
+  private final UserRepository userRepository;
 
-    private final JavaMailSender mailSender;
+  private final JavaMailSender mailSender;
 
-    private final ApplicationProperties applicationProperties;
+  private final ApplicationProperties applicationProperties;
 
-    /**
-     * Creates the e-mail medium. {@link EmailNotificationConfiguration} calls it.
-     *
-     * @param notificationProperties the notification settings, with the sender address
-     * @param userRepository         the users, which hold the e-mail address of each recipient
-     * @param mailSender             the Spring Boot mail sender the e-mails go through
-     * @param applicationProperties  the settings of the cockpit, with its default locale and its URL
-     */
-    public EmailNotificationService(
-            final NotificationProperties notificationProperties,
-            final UserRepository userRepository,
-            final JavaMailSender mailSender,
-            final ApplicationProperties applicationProperties) {
+  /**
+   * Creates the e-mail medium. {@link EmailNotificationConfiguration} calls it.
+   *
+   * @param notificationProperties the notification settings, with the sender address
+   * @param userRepository         the users, which hold the e-mail address of each recipient
+   * @param mailSender             the Spring Boot mail sender the e-mails go through
+   * @param applicationProperties  the settings of the cockpit, with its default locale and its URL
+   */
+  public EmailNotificationService(
+      final NotificationProperties notificationProperties,
+      final UserRepository userRepository,
+      final JavaMailSender mailSender,
+      final ApplicationProperties applicationProperties) {
 
-        super(notificationProperties);
-        this.userRepository = userRepository;
-        this.mailSender = mailSender;
-        this.applicationProperties = applicationProperties;
+    super(notificationProperties);
+    this.userRepository = userRepository;
+    this.mailSender = mailSender;
+    this.applicationProperties = applicationProperties;
 
+  }
+
+  @Override
+  public String getType() {
+
+    return TYPE;
+
+  }
+
+  @Override
+  public Map<String, String> getName() {
+
+    return Map.of("de", "E-Mail", "en", "Email");
+
+  }
+
+  @Override
+  public List<RecipientConfiguration> getRecipientConfiguration(
+      final String userId) {
+
+    final var user = userRepository.findById(userId).orElse(null);
+
+    String value = null;
+    if (user != null && user.getRecipientConfigurations() != null && user.getRecipientConfigurations()
+        .get(TYPE) != null) {
+      value = user.getRecipientConfigurations().get(TYPE).get(FIELD_EMAIL_ADDRESS);
+    }
+    if (!StringUtils.hasText(value) && user != null) {
+      // suggest the address login knew. The user may edit it, and it holds for every task
+      value = user.getEmail();
     }
 
-    @Override
-    public String getType() {
+    return List.of(new RecipientConfiguration(
+        FIELD_EMAIL_ADDRESS, Map.of("de", "E-Mail-Adresse", "en", "E-mail address"), Map.of(
+            "de", "Adresse für die Benachrichtigung aller Aufgaben",
+            "en", "Address used for notifications of all tasks"), value));
 
-        return TYPE;
+  }
 
+  @Override
+  public void saveRecipientConfiguration(
+      final String userId,
+      final Map<String, String> configurationValues) {
+
+    final var user = userRepository
+        .findById(userId)
+        .orElseGet(() -> {
+          final var created = new User();
+          created.setId(userId);
+          return created;
+        });
+
+    var recipientConfigurations = user.getRecipientConfigurations();
+    if (recipientConfigurations == null) {
+      recipientConfigurations = new HashMap<>();
+      user.setRecipientConfigurations(recipientConfigurations);
+    }
+    recipientConfigurations.put(
+        TYPE,
+        configurationValues == null ? new HashMap<>() : new HashMap<>(configurationValues));
+
+    userRepository.save(user);
+
+  }
+
+  @Override
+  public void sendNotification(
+      final List<String> userIds,
+      final UserTask userTask) {
+
+    final var notificationType = userTask.getNotificationType();
+    final var forced = userTask.isForced();
+    final var context = buildContext(userTask, notificationType);
+
+    final var failures = new ArrayList<String>();
+    Exception lastFailure = null;
+    for (final var userId : userIds) {
+      try {
+        sendToRecipient(userId, userTask, notificationType, forced, context);
+      } catch (Exception e) {
+        logger.error("Could not send notification e-mail to user '{}'", userId, e);
+        failures.add(userId);
+        lastFailure = e;
+      }
     }
 
-    @Override
-    public Map<String, String> getName() {
-
-        return Map.of("de", "E-Mail", "en", "Email");
-
+    if (!failures.isEmpty()) {
+      // name the failed recipients so the poller retries only those and does not send the
+      // e-mail again to the recipients already reached
+      throw new NotificationDeliveryException(failures, lastFailure);
     }
 
-    @Override
-    public List<RecipientConfiguration> getRecipientConfiguration(
-            final String userId) {
+  }
 
-        final var user = userRepository.findById(userId).orElse(null);
+  private void sendToRecipient(
+      final String userId,
+      final UserTask userTask,
+      final NotificationType notificationType,
+      final boolean forced,
+      final Map<String, Object> context) throws Exception {
 
-        String value = null;
-        if (user != null
-                && user.getRecipientConfigurations() != null
-                && user.getRecipientConfigurations().get(TYPE) != null) {
-            value = user.getRecipientConfigurations().get(TYPE).get(FIELD_EMAIL_ADDRESS);
-        }
-        if (!StringUtils.hasText(value) && user != null) {
-            // suggest the address login knew. The user may edit it, and it holds for every task
-            value = user.getEmail();
-        }
-
-        return List.of(new RecipientConfiguration(
-                FIELD_EMAIL_ADDRESS,
-                Map.of("de", "E-Mail-Adresse", "en", "E-mail address"),
-                Map.of(
-                        "de", "Adresse für die Benachrichtigung aller Aufgaben",
-                        "en", "Address used for notifications of all tasks"),
-                value));
-
+    final var user = userRepository.findById(userId).orElse(null);
+    final var address = resolveAddress(user);
+    if (!StringUtils.hasText(address)) {
+      logger.info("Skipping notification e-mail: user '{}' has no e-mail address configured", userId);
+      return;
     }
 
-    @Override
-    public void saveRecipientConfiguration(
-            final String userId,
-            final Map<String, String> configurationValues) {
-
-        final var user = userRepository
-                .findById(userId)
-                .orElseGet(() -> {
-                    final var created = new User();
-                    created.setId(userId);
-                    return created;
-                });
-
-        var recipientConfigurations = user.getRecipientConfigurations();
-        if (recipientConfigurations == null) {
-            recipientConfigurations = new HashMap<>();
-            user.setRecipientConfigurations(recipientConfigurations);
-        }
-        recipientConfigurations.put(
-                TYPE,
-                configurationValues == null ? new HashMap<>() : new HashMap<>(configurationValues));
-
-        userRepository.save(user);
-
+    final var userDetails = toUserDetails(user);
+    final var locale = resolveLocale(user);
+    // subject is always plain text; the body may be HTML when an .ftlh template is used
+    final var subject = render(TEMPLATE_HEADER, context, userDetails, notificationType, forced, locale);
+    final var body = renderContent(TEMPLATE_BODY, context, userDetails, notificationType, forced, locale);
+    if (subject == null || body == null) {
+      throw new IllegalStateException("Missing e-mail template (header and/or body)");
     }
 
-    @Override
-    public void sendNotification(
-            final List<String> userIds,
-            final UserTask userTask) {
-
-        final var notificationType = userTask.getNotificationType();
-        final var forced = userTask.isForced();
-        final var context = buildContext(userTask, notificationType);
-
-        final var failures = new ArrayList<String>();
-        Exception lastFailure = null;
-        for (final var userId : userIds) {
-            try {
-                sendToRecipient(userId, userTask, notificationType, forced, context);
-            } catch (Exception e) {
-                logger.error("Could not send notification e-mail to user '{}'", userId, e);
-                failures.add(userId);
-                lastFailure = e;
-            }
-        }
-
-        if (!failures.isEmpty()) {
-            // name the failed recipients so the poller retries only those and does not send the
-            // e-mail again to the recipients already reached
-            throw new NotificationDeliveryException(failures, lastFailure);
-        }
-
+    final var message = mailSender.createMimeMessage();
+    final var helper = new MimeMessageHelper(message, "UTF-8");
+    final var from = notificationProperties.getSmtp().getFrom();
+    if (StringUtils.hasText(from)) {
+      helper.setFrom(from);
     }
+    helper.setTo(address);
+    helper.setSubject(subject.strip());
+    helper.setText(body.content(), body.html());
+    mailSender.send(message);
 
-    private void sendToRecipient(
-            final String userId,
-            final UserTask userTask,
-            final NotificationType notificationType,
-            final boolean forced,
-            final Map<String, Object> context) throws Exception {
+  }
 
-        final var user = userRepository.findById(userId).orElse(null);
-        final var address = resolveAddress(user);
-        if (!StringUtils.hasText(address)) {
-            logger.info("Skipping notification e-mail: user '{}' has no e-mail address configured", userId);
-            return;
-        }
+  /**
+   * The locale a notification is rendered in for a recipient. It is the locale the user
+   * prefers, and where the user has none, the application's default locale
+   * ({@code business-cockpit.default-locale}).
+   */
+  Locale resolveLocale(
+      final User user) {
 
-        final var userDetails = toUserDetails(user);
-        final var locale = resolveLocale(user);
-        // subject is always plain text; the body may be HTML when an .ftlh template is used
-        final var subject = render(TEMPLATE_HEADER, context, userDetails, notificationType, forced, locale);
-        final var body = renderContent(TEMPLATE_BODY, context, userDetails, notificationType, forced, locale);
-        if (subject == null || body == null) {
-            throw new IllegalStateException("Missing e-mail template (header and/or body)");
-        }
-
-        final var message = mailSender.createMimeMessage();
-        final var helper = new MimeMessageHelper(message, "UTF-8");
-        final var from = notificationProperties.getSmtp().getFrom();
-        if (StringUtils.hasText(from)) {
-            helper.setFrom(from);
-        }
-        helper.setTo(address);
-        helper.setSubject(subject.strip());
-        helper.setText(body.content(), body.html());
-        mailSender.send(message);
-
+    if (user != null && user.getLocale() != null) {
+      return user.getLocale();
     }
+    return applicationProperties.getDefaultLocale();
 
-    /**
-     * The locale a notification is rendered in for a recipient. It is the locale the user
-     * prefers, and where the user has none, the application's default locale
-     * ({@code business-cockpit.default-locale}).
-     */
-    Locale resolveLocale(
-            final User user) {
+  }
 
-        if (user != null && user.getLocale() != null) {
-            return user.getLocale();
-        }
-        return applicationProperties.getDefaultLocale();
+  private String resolveAddress(
+      final User user) {
 
+    if (user == null) {
+      return null;
     }
-
-    private String resolveAddress(
-            final User user) {
-
-        if (user == null) {
-            return null;
-        }
-        if (user.getRecipientConfigurations() != null
-                && user.getRecipientConfigurations().get(TYPE) != null) {
-            final var configured = user.getRecipientConfigurations().get(TYPE).get(FIELD_EMAIL_ADDRESS);
-            if (StringUtils.hasText(configured)) {
-                return configured;
-            }
-        }
-        return user.getEmail();
-
+    if (user.getRecipientConfigurations() != null && user.getRecipientConfigurations().get(TYPE) != null) {
+      final var configured = user.getRecipientConfigurations().get(TYPE).get(FIELD_EMAIL_ADDRESS);
+      if (StringUtils.hasText(configured)) {
+        return configured;
+      }
     }
+    return user.getEmail();
 
-    private Map<String, Object> buildContext(
-            final UserTask userTask,
-            final NotificationType notificationType) {
+  }
 
-        final var context = new HashMap<String, Object>();
-        context.put("userTask", userTask);
-        context.put("taskTitle", pickLanguage(userTask.getTitle()));
-        context.put("workflowTitle", pickLanguage(userTask.getWorkflowTitle()));
-        context.put("taskDefinitionTitle", pickLanguage(userTask.getTaskDefinitionTitle()));
-        context.put("businessId", userTask.getBusinessId());
-        context.put("notificationTypeName", notificationType == null ? null : notificationType.name());
-        // only the application base URI is passed; the (localized) template builds the deep-link
-        // and task-list URLs itself, because the segments of a path differ per language
-        context.put("baseUri", baseUri());
-        return context;
+  private Map<String, Object> buildContext(
+      final UserTask userTask,
+      final NotificationType notificationType) {
 
+    final var context = new HashMap<String, Object>();
+    context.put("userTask", userTask);
+    context.put("taskTitle", pickLanguage(userTask.getTitle()));
+    context.put("workflowTitle", pickLanguage(userTask.getWorkflowTitle()));
+    context.put("taskDefinitionTitle", pickLanguage(userTask.getTaskDefinitionTitle()));
+    context.put("businessId", userTask.getBusinessId());
+    context.put("notificationTypeName", notificationType == null ? null : notificationType.name());
+    // only the application base URI is passed; the (localized) template builds the deep-link
+    // and task-list URLs itself, because the segments of a path differ per language
+    context.put("baseUri", baseUri());
+    return context;
+
+  }
+
+  private String baseUri() {
+
+    final var uri = applicationProperties.getApplicationUri();
+    if (uri == null) {
+      return "";
     }
+    return uri.endsWith("/") ? uri.substring(0, uri.length() - 1) : uri;
 
-    private String baseUri() {
+  }
 
-        final var uri = applicationProperties.getApplicationUri();
-        if (uri == null) {
-            return "";
-        }
-        return uri.endsWith("/") ? uri.substring(0, uri.length() - 1) : uri;
+  private static String pickLanguage(
+      final Map<String, String> translatable) {
 
+    if (translatable == null || translatable.isEmpty()) {
+      return null;
     }
-
-    private static String pickLanguage(
-            final Map<String, String> translatable) {
-
-        if (translatable == null || translatable.isEmpty()) {
-            return null;
-        }
-        final var english = translatable.get("en");
-        if (english != null) {
-            return english;
-        }
-        return translatable.values().iterator().next();
-
+    final var english = translatable.get("en");
+    if (english != null) {
+      return english;
     }
+    return translatable.values().iterator().next();
 
-    private static UserDetails toUserDetails(
-            final User user) {
+  }
 
-        final var id = user == null ? null : user.getId();
-        final var email = user == null ? null : user.getEmail();
-        return new UserDetails() {
-            @Override
-            public String getId() {
-                return id;
-            }
+  private static UserDetails toUserDetails(
+      final User user) {
 
-            @Override
-            public String getEmail() {
-                return email;
-            }
+    final var id = user == null ? null : user.getId();
+    final var email = user == null ? null : user.getEmail();
+    return new UserDetails() {
+      @Override
+      public String getId() {
+        return id;
+      }
 
-            @Override
-            public String getDisplay() {
-                return id;
-            }
+      @Override
+      public String getEmail() {
+        return email;
+      }
 
-            @Override
-            public String getDisplayShort() {
-                return id;
-            }
+      @Override
+      public String getDisplay() {
+        return id;
+      }
 
-            @Override
-            public List<String> getAuthorities() {
-                return List.of();
-            }
-        };
+      @Override
+      public String getDisplayShort() {
+        return id;
+      }
 
-    }
+      @Override
+      public List<String> getAuthorities() {
+        return List.of();
+      }
+    };
+
+  }
 
 }

@@ -7,37 +7,44 @@ package io.vanillabp.cockpit.commons.exceptions;
  */
 public class BcForbiddenException extends RuntimeException {
 
-    private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 1L;
 
-    /**
-     * Creates the exception and says how its stack trace and suppressed exceptions are handled.
-     *
-     * @param message            What went wrong
-     * @param cause              The exception which led to this one
-     * @param enableSuppression  Whether suppressed exceptions are recorded
-     * @param writableStackTrace Whether the stack trace is recorded
-     */
-    public BcForbiddenException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
-    }
+  /**
+   * Creates the exception and says how its stack trace and suppressed exceptions are handled.
+   *
+   * @param message            What went wrong
+   * @param cause              The exception which led to this one
+   * @param enableSuppression  Whether suppressed exceptions are recorded
+   * @param writableStackTrace Whether the stack trace is recorded
+   */
+  public BcForbiddenException(
+      String message,
+      Throwable cause,
+      boolean enableSuppression,
+      boolean writableStackTrace) {
+    super(message, cause, enableSuppression, writableStackTrace);
+  }
 
-    /**
-     * Creates the exception with the exception which led to it.
-     *
-     * @param message What went wrong
-     * @param cause   The exception which led to this one
-     */
-    public BcForbiddenException(String message, Throwable cause) {
-        super(message, cause);
-    }
+  /**
+   * Creates the exception with the exception which led to it.
+   *
+   * @param message What went wrong
+   * @param cause   The exception which led to this one
+   */
+  public BcForbiddenException(
+      String message,
+      Throwable cause) {
+    super(message, cause);
+  }
 
-    /**
-     * Creates the exception.
-     *
-     * @param message What went wrong
-     */
-    public BcForbiddenException(String message) {
-        super(message);
-    }
+  /**
+   * Creates the exception.
+   *
+   * @param message What went wrong
+   */
+  public BcForbiddenException(
+      String message) {
+    super(message);
+  }
 
 }

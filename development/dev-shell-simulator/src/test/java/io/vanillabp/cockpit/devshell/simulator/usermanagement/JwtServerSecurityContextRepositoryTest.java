@@ -2,13 +2,11 @@ package io.vanillabp.cockpit.devshell.simulator.usermanagement;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationTokenMapper;
-import io.vanillabp.cockpit.commons.security.jwt.JwtProperties;
-import io.vanillabp.integration.test.utils.SuppressOutputExtension;
-import jakarta.servlet.http.Cookie;
 import java.util.Base64;
 import java.util.List;
+
 import javax.crypto.KeyGenerator;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,6 +20,11 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.TransientSecurityContext;
 import org.springframework.security.core.userdetails.User;
 
+import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationTokenMapper;
+import io.vanillabp.cockpit.commons.security.jwt.JwtProperties;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
+import jakarta.servlet.http.Cookie;
+
 /**
  * The token path of the dev shell. Switching the user writes a JWT cookie, and every request after
  * it has to come back as that user. The moment that stops holding, the dev shell shows the wrong
@@ -30,156 +33,155 @@ import org.springframework.security.core.userdetails.User;
 @ExtendWith(SuppressOutputExtension.class)
 class JwtServerSecurityContextRepositoryTest {
 
-    private JwtProperties properties;
+  private JwtProperties properties;
 
-    private JwtServerSecurityContextRepository repository;
+  private JwtServerSecurityContextRepository repository;
 
-    @BeforeEach
-    void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
 
-        properties = new JwtProperties();
-        properties.setHmacSHA256Base64(generatedHmacKey());
-        properties.getCookie().setName("dev-shell");
-        properties.getCookie().setPath("/dev-shell");
-        properties.getCookie().setExpiresDuration("PT2H");
-        properties.getCookie().setSameSite(SameSite.STRICT);
+    properties = new JwtProperties();
+    properties.setHmacSHA256Base64(generatedHmacKey());
+    properties.getCookie().setName("dev-shell");
+    properties.getCookie().setPath("/dev-shell");
+    properties.getCookie().setExpiresDuration("PT2H");
+    properties.getCookie().setSameSite(SameSite.STRICT);
 
-        repository =
-                new JwtServerSecurityContextRepository(
-                        properties, new JwtAuthenticationTokenMapper(properties));
+    repository = new JwtServerSecurityContextRepository(
+        properties, new JwtAuthenticationTokenMapper(properties));
 
-    }
+  }
 
-    @Test
-    void theUserSwitchedToIsReadBackFromTheCookie() {
+  @Test
+  void theUserSwitchedToIsReadBackFromTheCookie() {
 
-        final var request = new MockHttpServletRequest();
-        request.setCookies(cookieWrittenFor("john", "ADMIN"));
+    final var request = new MockHttpServletRequest();
+    request.setCookies(cookieWrittenFor("john", "ADMIN"));
 
-        final var deferred = repository.loadDeferredContext(request);
+    final var deferred = repository.loadDeferredContext(request);
 
-        assertThat(deferred.isGenerated())
-                .as("a context read from a token was not made up by the repository")
-                .isFalse();
-        final var authentication = deferred.get().getAuthentication();
-        assertThat(authentication.getName()).isEqualTo("john");
-        assertThat(authentication.getAuthorities())
-                .extracting(GrantedAuthority::getAuthority)
-                .contains("ADMIN");
+    assertThat(deferred.isGenerated())
+        .as("a context read from a token was not made up by the repository")
+        .isFalse();
+    final var authentication = deferred.get().getAuthentication();
+    assertThat(authentication.getName()).isEqualTo("john");
+    assertThat(authentication.getAuthorities())
+        .extracting(GrantedAuthority::getAuthority)
+        .contains("ADMIN");
 
-    }
+  }
 
-    @Test
-    void theCookieCarriesWhatTheConfigurationSays() {
+  @Test
+  void theCookieCarriesWhatTheConfigurationSays() {
 
-        final var cookie = cookieWrittenFor("john", "ADMIN");
+    final var cookie = cookieWrittenFor("john", "ADMIN");
 
-        assertThat(cookie.getName()).isEqualTo("dev-shell");
-        assertThat(cookie.getPath()).isEqualTo("/dev-shell");
-        assertThat(cookie.getMaxAge()).isEqualTo(2 * 60 * 60);
-        assertThat(cookie.isHttpOnly()).isTrue();
-        assertThat(cookie.getAttribute("SameSite")).isEqualTo("Strict");
+    assertThat(cookie.getName()).isEqualTo("dev-shell");
+    assertThat(cookie.getPath()).isEqualTo("/dev-shell");
+    assertThat(cookie.getMaxAge()).isEqualTo(2 * 60 * 60);
+    assertThat(cookie.isHttpOnly()).isTrue();
+    assertThat(cookie.getAttribute("SameSite")).isEqualTo("Strict");
 
-    }
+  }
 
-    @Test
-    void aRequestWithoutTheCookieGetsAnEmptyContext() {
+  @Test
+  void aRequestWithoutTheCookieGetsAnEmptyContext() {
 
-        final var deferred = repository.loadDeferredContext(new MockHttpServletRequest());
+    final var deferred = repository.loadDeferredContext(new MockHttpServletRequest());
 
-        assertThat(deferred.get())
-                .as("the interface asks for a context, never for null")
-                .isNotNull();
-        assertThat(deferred.get().getAuthentication()).isNull();
-        assertThat(deferred.isGenerated())
-                .as("an empty context the repository made up says so")
-                .isTrue();
+    assertThat(deferred.get())
+        .as("the interface asks for a context, never for null")
+        .isNotNull();
+    assertThat(deferred.get().getAuthentication()).isNull();
+    assertThat(deferred.isGenerated())
+        .as("an empty context the repository made up says so")
+        .isTrue();
 
-    }
+  }
 
-    @Test
-    void theCookieIsReadWhenTheContextIsAskedForAndOnlyOnce() {
+  @Test
+  void theCookieIsReadWhenTheContextIsAskedForAndOnlyOnce() {
 
-        final var request = new CookieReadCountingRequest();
-        request.setCookies(cookieWrittenFor("john", "ADMIN"));
+    final var request = new CookieReadCountingRequest();
+    request.setCookies(cookieWrittenFor("john", "ADMIN"));
 
-        final var deferred = repository.loadDeferredContext(request);
+    final var deferred = repository.loadDeferredContext(request);
 
-        assertThat(request.reads)
-                .as("handing out a deferred context must not decode a token yet")
-                .isZero();
+    assertThat(request.reads)
+        .as("handing out a deferred context must not decode a token yet")
+        .isZero();
 
-        deferred.get();
-        deferred.get();
+    deferred.get();
+    deferred.get();
 
-        assertThat(request.reads)
-                .as("the first answer is kept rather than the token being decoded again")
-                .isOne();
+    assertThat(request.reads)
+        .as("the first answer is kept rather than the token being decoded again")
+        .isOne();
 
-    }
+  }
 
-    @Test
-    void containsContextSaysWhetherTheCookieIsThere() {
+  @Test
+  void containsContextSaysWhetherTheCookieIsThere() {
 
-        final var withCookie = new MockHttpServletRequest();
-        withCookie.setCookies(cookieWrittenFor("john", "ADMIN"));
+    final var withCookie = new MockHttpServletRequest();
+    withCookie.setCookies(cookieWrittenFor("john", "ADMIN"));
 
-        assertThat(repository.containsContext(withCookie)).isTrue();
-        assertThat(repository.containsContext(new MockHttpServletRequest())).isFalse();
+    assertThat(repository.containsContext(withCookie)).isTrue();
+    assertThat(repository.containsContext(new MockHttpServletRequest())).isFalse();
 
-    }
+  }
 
-    private Cookie cookieWrittenFor(
-            final String userId,
-            final String group) {
+  private Cookie cookieWrittenFor(
+      final String userId,
+      final String group) {
 
-        final var response = new MockHttpServletResponse();
-        repository.saveContext(contextOf(userId, group), new MockHttpServletRequest(), response);
+    final var response = new MockHttpServletResponse();
+    repository.saveContext(contextOf(userId, group), new MockHttpServletRequest(), response);
 
-        final var cookie = response.getCookie(properties.getCookie().getName());
-        assertThat(cookie).as("switching the user has to write the cookie").isNotNull();
-        return cookie;
+    final var cookie = response.getCookie(properties.getCookie().getName());
+    assertThat(cookie).as("switching the user has to write the cookie").isNotNull();
+    return cookie;
 
-    }
+  }
 
-    /**
-     * What the dev shell hands over when somebody picks a user from its dropdown.
-     */
-    private SecurityContext contextOf(
-            final String userId,
-            final String group) {
+  /**
+   * What the dev shell hands over when somebody picks a user from its dropdown.
+   */
+  private SecurityContext contextOf(
+      final String userId,
+      final String group) {
 
-        final var authorities = List.of(new SimpleGrantedAuthority(group));
-        final var user = new User(userId, "", authorities);
-        return new TransientSecurityContext(
-                new UsernamePasswordAuthenticationToken(user, "", authorities));
+    final var authorities = List.of(new SimpleGrantedAuthority(group));
+    final var user = new User(userId, "", authorities);
+    return new TransientSecurityContext(
+        new UsernamePasswordAuthenticationToken(user, "", authorities));
 
-    }
+  }
 
-    private String generatedHmacKey() throws Exception {
+  private String generatedHmacKey() throws Exception {
 
-        return Base64
-                .getEncoder()
-                .encodeToString(KeyGenerator.getInstance("HmacSha256").generateKey().getEncoded());
+    return Base64
+        .getEncoder()
+        .encodeToString(KeyGenerator.getInstance("HmacSha256").generateKey().getEncoded());
 
-    }
+  }
 
-    /**
-     * Counts how often the cookies of a request are read. Seen from outside, that is all
-     * "deferred" means.
-     */
-    private static final class CookieReadCountingRequest extends MockHttpServletRequest {
+  /**
+   * Counts how often the cookies of a request are read. Seen from outside, that is all
+   * "deferred" means.
+   */
+  private static final class CookieReadCountingRequest extends MockHttpServletRequest {
 
-        private int reads;
+    private int reads;
 
-        @Override
-        public Cookie[] getCookies() {
+    @Override
+    public Cookie[] getCookies() {
 
-            reads++;
-            return super.getCookies();
-
-        }
+      reads++;
+      return super.getCookies();
 
     }
+
+  }
 
 }

@@ -1,5 +1,9 @@
 package io.vanillabp.cockpit.autoconfigure;
 
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Import;
+
 import io.vanillabp.cockpit.bpms.BpmsApiProperties;
 import io.vanillabp.cockpit.commons.utils.LoggerFactory;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
@@ -11,9 +15,6 @@ import io.vanillabp.cockpit.util.kwic.KwicService;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowmodules.GroupHierarchyService;
 import io.vanillabp.cockpit.workflowmodules.WorkflowModuleService;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Import;
 
 /**
  * What every cockpit application has, whatever else it switches on: the three property classes, the
@@ -27,29 +28,18 @@ import org.springframework.context.annotation.Import;
  */
 @AutoConfiguration
 @EnableConfigurationProperties({
-    ApplicationProperties.class,
-    BpmsApiProperties.class,
-    NotificationProperties.class
+    ApplicationProperties.class, BpmsApiProperties.class, NotificationProperties.class
 })
 @Import({
-    LoggerFactory.class,
-    StartupConfigurationCheck.class,
-    KwicService.class,
-    GroupHierarchyService.class,
-    WorkflowModuleService.class,
-    UserTaskService.class,
-    WorkflowlistService.class,
-    FollowUpScheduler.class,
-    io.vanillabp.cockpit.tasklist.api.GuiNotificationService.class,
-    io.vanillabp.cockpit.workflowlist.api.GuiNotificationService.class
+    LoggerFactory.class, StartupConfigurationCheck.class, KwicService.class, GroupHierarchyService.class, WorkflowModuleService.class, UserTaskService.class, WorkflowlistService.class, FollowUpScheduler.class, io.vanillabp.cockpit.tasklist.api.GuiNotificationService.class, io.vanillabp.cockpit.workflowlist.api.GuiNotificationService.class
 })
 public class BusinessCockpitAutoConfiguration {
 
-    /**
-     * Called by Spring Boot. Everything this configuration adds comes from its annotations.
-     */
-    public BusinessCockpitAutoConfiguration() {
+  /**
+   * Called by Spring Boot. Everything this configuration adds comes from its annotations.
+   */
+  public BusinessCockpitAutoConfiguration() {
 
-    }
+  }
 
 }

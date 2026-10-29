@@ -1,5 +1,22 @@
 package io.vanillabp.cockpit.notification.poller;
 
+import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.scheduling.annotation.Scheduled;
+
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.notification.CaseProcess;
 import io.vanillabp.cockpit.notification.NotificationDeliveryException;
@@ -12,22 +29,6 @@ import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.model.User;
 import io.vanillabp.cockpit.users.model.UserRepository;
-import java.time.Duration;
-import java.time.OffsetDateTime;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.data.mongodb.core.FindAndModifyOptions;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.core.query.Update;
-import org.springframework.scheduling.annotation.Scheduled;
 
 /**
  * Works out once per interval which notifications are due, and sends them.
@@ -42,417 +43,427 @@ import org.springframework.scheduling.annotation.Scheduled;
  */
 public class NotificationPoller {
 
-    private static final Logger logger = LoggerFactory.getLogger(NotificationPoller.class);
+  private static final Logger logger = LoggerFactory.getLogger(NotificationPoller.class);
 
-    private static final Duration LEASE_TTL = Duration.ofMinutes(5);
+  private static final Duration LEASE_TTL = Duration.ofMinutes(5);
 
-    private final MongoTemplate mongoTemplate;
-    private final UserRepository userRepository;
-    private final UserTaskRepository userTaskRepository;
-    private final NotificationOutboxRepository outboxRepository;
-    private final List<NotificationService> notificationServices;
-    private final io.vanillabp.cockpit.users.UserDetailsProvider userDirectory;
-    private final int maxDeliveryAttempts;
-    private final Duration cleanupSentOlderThan;
-    private final NotificationScanner scanner = new NotificationScanner();
+  private final MongoTemplate mongoTemplate;
+  private final UserRepository userRepository;
+  private final UserTaskRepository userTaskRepository;
+  private final NotificationOutboxRepository outboxRepository;
+  private final List<NotificationService> notificationServices;
+  private final io.vanillabp.cockpit.users.UserDetailsProvider userDirectory;
+  private final int maxDeliveryAttempts;
+  private final Duration cleanupSentOlderThan;
+  private final NotificationScanner scanner = new NotificationScanner();
 
-    private final String nodeId = UUID.randomUUID().toString();
+  private final String nodeId = UUID.randomUUID().toString();
 
-    /**
-     * Creates the poller. {@link NotificationPollerConfiguration} calls it.
-     *
-     * @param mongoTemplate        the template the poller takes its lease and cursor with
-     * @param userRepository       the users, with their notification configuration
-     * @param userTaskRepository   the user tasks, to find the ones which changed
-     * @param outboxRepository     the outbox the notifications wait in until they are sent
-     * @param notificationServices every medium the cockpit offers; none means the poller stays idle
-     * @param userDirectory        the user directory, to find the authorities of a user
-     * @param maxDeliveryAttempts  how often the delivery of one bulk is attempted
-     * @param cleanupSentOlderThan how old a sent outbox entry has to be before it is deleted
-     */
-    public NotificationPoller(
-            final MongoTemplate mongoTemplate,
-            final UserRepository userRepository,
-            final UserTaskRepository userTaskRepository,
-            final NotificationOutboxRepository outboxRepository,
-            final List<NotificationService> notificationServices,
-            final io.vanillabp.cockpit.users.UserDetailsProvider userDirectory,
-            final int maxDeliveryAttempts,
-            final Duration cleanupSentOlderThan) {
+  /**
+   * Creates the poller. {@link NotificationPollerConfiguration} calls it.
+   *
+   * @param mongoTemplate        the template the poller takes its lease and cursor with
+   * @param userRepository       the users, with their notification configuration
+   * @param userTaskRepository   the user tasks, to find the ones which changed
+   * @param outboxRepository     the outbox the notifications wait in until they are sent
+   * @param notificationServices every medium the cockpit offers; none means the poller stays idle
+   * @param userDirectory        the user directory, to find the authorities of a user
+   * @param maxDeliveryAttempts  how often the delivery of one bulk is attempted
+   * @param cleanupSentOlderThan how old a sent outbox entry has to be before it is deleted
+   */
+  public NotificationPoller(
+      final MongoTemplate mongoTemplate,
+      final UserRepository userRepository,
+      final UserTaskRepository userTaskRepository,
+      final NotificationOutboxRepository outboxRepository,
+      final List<NotificationService> notificationServices,
+      final io.vanillabp.cockpit.users.UserDetailsProvider userDirectory,
+      final int maxDeliveryAttempts,
+      final Duration cleanupSentOlderThan) {
 
-        this.mongoTemplate = mongoTemplate;
-        this.userRepository = userRepository;
-        this.userTaskRepository = userTaskRepository;
-        this.outboxRepository = outboxRepository;
-        this.notificationServices = notificationServices;
-        this.userDirectory = userDirectory;
-        this.maxDeliveryAttempts = maxDeliveryAttempts;
-        this.cleanupSentOlderThan = cleanupSentOlderThan;
+    this.mongoTemplate = mongoTemplate;
+    this.userRepository = userRepository;
+    this.userTaskRepository = userTaskRepository;
+    this.outboxRepository = outboxRepository;
+    this.notificationServices = notificationServices;
+    this.userDirectory = userDirectory;
+    this.maxDeliveryAttempts = maxDeliveryAttempts;
+    this.cleanupSentOlderThan = cleanupSentOlderThan;
 
+  }
+
+  /**
+   * Runs one cycle once a minute, or as often as configured: it scans the changed user tasks
+   * and sends what waits in the outbox. It does nothing while no medium exists. A failed cycle
+   * is logged, and the next one tries again.
+   */
+  @Scheduled(
+      fixedRateString = "${business-cockpit.notification.interval:PT1M}",
+      initialDelayString = "${business-cockpit.notification.interval:PT1M}")
+  public void poll() {
+
+    if (notificationServices.isEmpty()) {
+      return; // nothing is configured to notify with, so there is nothing to scan for
     }
 
-    /**
-     * Runs one cycle once a minute, or as often as configured: it scans the changed user tasks
-     * and sends what waits in the outbox. It does nothing while no medium exists. A failed cycle
-     * is logged, and the next one tries again.
-     */
-    @Scheduled(
-            fixedRateString = "${business-cockpit.notification.interval:PT1M}",
-            initialDelayString = "${business-cockpit.notification.interval:PT1M}")
-    public void poll() {
-
-        if (notificationServices.isEmpty()) {
-            return; // nothing is configured to notify with, so there is nothing to scan for
-        }
-
-        try {
-            runCycle();
-        } catch (Exception e) {
-            logger.warn("Notification poll cycle failed", e);
-        }
-
+    try {
+      runCycle();
+    } catch (Exception e) {
+      logger.warn("Notification poll cycle failed", e);
     }
 
-    /**
-     * Cleans up once an hour, or as often as configured. It deletes the outbox entries which were
-     * sent and are older than the configured retention. The delete is idempotent, so no lease is
-     * needed. Several nodes running it simply remove the same rows, which are gone already.
-     */
-    @Scheduled(
-            fixedRateString = "${business-cockpit.notification.cleanup-interval:PT1H}",
-            initialDelayString = "${business-cockpit.notification.cleanup-interval:PT1H}")
-    public void cleanupOutbox() {
+  }
 
-        if (notificationServices.isEmpty()) {
-            return;
-        }
+  /**
+   * Cleans up once an hour, or as often as configured. It deletes the outbox entries which were
+   * sent and are older than the configured retention. The delete is idempotent, so no lease is
+   * needed. Several nodes running it simply remove the same rows, which are gone already.
+   */
+  @Scheduled(
+      fixedRateString = "${business-cockpit.notification.cleanup-interval:PT1H}",
+      initialDelayString = "${business-cockpit.notification.cleanup-interval:PT1H}")
+  public void cleanupOutbox() {
 
-        try {
-            runCleanup();
-        } catch (Exception e) {
-            logger.warn("Notification outbox cleanup failed", e);
-        }
-
+    if (notificationServices.isEmpty()) {
+      return;
     }
 
-    void runCleanup() {
-
-        final var threshold = OffsetDateTime.now().minus(cleanupSentOlderThan);
-        // sentAt is only set on successful delivery; a date comparison never matches pending (null)
-        // entries, so this removes exactly the sent entries older than the retention threshold
-        final var query = Query.query(Criteria.where("sentAt").lt(threshold));
-        final var deleted = mongoTemplate.remove(query, NotificationOutboxEntry.class);
-        if (deleted.getDeletedCount() > 0) {
-            logger.info("Cleaned up {} sent notification outbox entries older than {}",
-                    deleted.getDeletedCount(), cleanupSentOlderThan);
-        }
-
+    try {
+      runCleanup();
+    } catch (Exception e) {
+      logger.warn("Notification outbox cleanup failed", e);
     }
 
-    void runCycle() {
+  }
 
-        final var now = OffsetDateTime.now();
+  void runCleanup() {
 
-        ensureStateExists(now);
-        final var state = acquireLease(now);
-        if (state == null) {
-            return; // lease held by another node
-        }
-
-        try {
-            final var cursor = state.getCursor();
-            if (cursor != null) {
-                enqueueNotifications(cursor, now);
-            }
-            advanceCursorAndRelease(now);
-            drainOutbox(now);
-        } catch (Exception e) {
-            logger.warn("Notification poll cycle aborted", e);
-            releaseLease(now);
-        }
-
+    final var threshold = OffsetDateTime.now().minus(cleanupSentOlderThan);
+    // sentAt is only set on successful delivery; a date comparison never matches pending (null)
+    // entries, so this removes exactly the sent entries older than the retention threshold
+    final var query = Query.query(Criteria.where("sentAt").lt(threshold));
+    final var deleted = mongoTemplate.remove(query, NotificationOutboxEntry.class);
+    if (deleted.getDeletedCount() > 0) {
+      logger.info("Cleaned up {} sent notification outbox entries older than {}",
+          deleted.getDeletedCount(), cleanupSentOlderThan);
     }
 
-    private void enqueueNotifications(
-            final OffsetDateTime cursor,
-            final OffsetDateTime now) {
+  }
 
-        final var changed = mongoTemplate
-                .find(Query.query(new Criteria().andOperator(
-                        Criteria.where("updatedAt").gt(cursor),
-                        Criteria.where("updatedAt").lte(now))), UserTask.class);
-        if (changed.isEmpty()) {
-            return;
-        }
+  void runCycle() {
 
-        final var directory = buildDirectory();
-        // a setting is chosen by the process of the case, which for a task of a called process
-        // is not the process of the task. One query reads the cases of the whole cycle
-        final var caseProcesses = CaseProcess.of(mongoTemplate, changed);
-        for (final var task : changed) {
-            for (final var planned : scanner.scan(task, caseProcesses.apply(task), cursor, directory)) {
-                insertOutbox(planned, now);
-            }
-        }
+    final var now = OffsetDateTime.now();
 
+    ensureStateExists(now);
+    final var state = acquireLease(now);
+    if (state == null) {
+      return; // lease held by another node
     }
 
-    private RecipientDirectory buildDirectory() {
-
-        final var usersById = userRepository
-                .findAll()
-                .stream()
-                .collect(Collectors.toMap(User::getId, u -> u, (a, b) -> a));
-        final var mediaTypes = notificationServices.stream()
-                .map(NotificationService::getType)
-                .toList();
-
-        return new RecipientDirectory() {
-            @Override
-            public Collection<String> mediaTypes() {
-                return mediaTypes;
-            }
-
-            @Override
-            public boolean isLoggedIn(String userId) {
-                return usersById.containsKey(userId);
-            }
-
-            @Override
-            public Collection<String> loggedInUserIds() {
-                return usersById.keySet();
-            }
-
-            @Override
-            public List<String> authoritiesOf(String userId) {
-                // the user directory caches the authorities, because they are resolved on
-                // every request of a browser. So a lookup per user is cheap and no cache of our
-                // own is needed
-                return userDirectory.getUser(userId).map(UserDetails::getAuthorities).orElse(null);
-            }
-
-            @Override
-            public NotificationConfiguration configOf(String userId) {
-                final var user = usersById.get(userId);
-                return user == null ? null : user.getNotificationConfiguration();
-            }
-        };
-
+    try {
+      final var cursor = state.getCursor();
+      if (cursor != null) {
+        enqueueNotifications(cursor, now);
+      }
+      advanceCursorAndRelease(now);
+      drainOutbox(now);
+    } catch (Exception e) {
+      logger.warn("Notification poll cycle aborted", e);
+      releaseLease(now);
     }
 
-    private void insertOutbox(
-            final PlannedNotification planned,
-            final OffsetDateTime now) {
+  }
 
-        final var entry = new NotificationOutboxEntry();
-        entry.setUserTaskId(planned.userTaskId());
-        entry.setNotificationType(planned.notificationType());
-        entry.setMedium(planned.medium());
-        entry.setRecipientUserId(planned.recipientUserId());
-        entry.setForced(planned.forced());
-        entry.setCreatedAt(now);
+  private void enqueueNotifications(
+      final OffsetDateTime cursor,
+      final OffsetDateTime now) {
 
-        // the unique index makes this idempotent: a duplicate simply means the notification was
-        // already planned in an earlier (overlapping) scan
-        try {
-            outboxRepository.insert(entry);
-        } catch (org.springframework.dao.DuplicateKeyException e) {
-            // already planned in an earlier (overlapping) scan
-        }
-
+    final var changed = mongoTemplate
+        .find(Query.query(new Criteria().andOperator(
+            Criteria.where("updatedAt").gt(cursor),
+            Criteria.where("updatedAt").lte(now))), UserTask.class);
+    if (changed.isEmpty()) {
+      return;
     }
 
-    /** Package-private for testability, like {@link #runCycle()} and {@link #runCleanup()}. */
-    void drainOutbox(
-            final OffsetDateTime now) {
-
-        final var pending = outboxRepository
-                .findBySentAtIsNullAndAttemptsLessThanOrderByCreatedAtAsc(maxDeliveryAttempts);
-        if (pending.isEmpty()) {
-            return;
-        }
-
-        final var serviceByType = notificationServices.stream()
-                .collect(Collectors.toMap(NotificationService::getType, s -> s, (a, b) -> a));
-
-        final Map<BulkKey, List<NotificationOutboxEntry>> bulks = pending.stream()
-                .collect(Collectors.groupingBy(e -> new BulkKey(
-                        e.getMedium(), e.getUserTaskId(), e.getNotificationType(), e.isForced())));
-
-        for (final var bulk : bulks.entrySet()) {
-            sendBulk(bulk.getKey(), bulk.getValue(), serviceByType, now);
-        }
-
+    final var directory = buildDirectory();
+    // a setting is chosen by the process of the case, which for a task of a called process
+    // is not the process of the task. One query reads the cases of the whole cycle
+    final var caseProcesses = CaseProcess.of(mongoTemplate, changed);
+    for (final var task : changed) {
+      for (final var planned : scanner.scan(task, caseProcesses.apply(task), cursor, directory)) {
+        insertOutbox(planned, now);
+      }
     }
 
-    private void sendBulk(
-            final BulkKey key,
-            final List<NotificationOutboxEntry> entries,
-            final Map<String, NotificationService> serviceByType,
-            final OffsetDateTime now) {
+  }
 
-        final var service = serviceByType.get(key.medium());
-        if (service == null) {
-            recordFailure(entries, key, "no NotificationService for medium '" + key.medium() + "'", null);
-            return;
-        }
+  private RecipientDirectory buildDirectory() {
 
-        final var task = userTaskRepository.findById(key.userTaskId()).orElse(null);
-        if (task == null) {
-            // the task is gone, so these entries are dropped and not retried forever
-            markSent(entries, now);
-            return;
-        }
+    final var usersById = userRepository
+        .findAll()
+        .stream()
+        .collect(Collectors.toMap(User::getId, u -> u, (
+            a,
+            b) -> a));
+    final var mediaTypes = notificationServices.stream()
+        .map(NotificationService::getType)
+        .toList();
 
-        task.setNotificationType(key.notificationType());
-        task.setForced(key.forced());
-        final var recipientIds = entries.stream()
-                .map(NotificationOutboxEntry::getRecipientUserId)
-                .distinct()
-                .toList();
+    return new RecipientDirectory() {
+      @Override
+      public Collection<String> mediaTypes() {
+        return mediaTypes;
+      }
 
-        try {
-            service.sendNotification(recipientIds, task);
-            markSent(entries, now);
-        } catch (NotificationDeliveryException e) {
-            // the medium told us which recipients it could not reach: keep exactly those pending,
-            // so the ones already reached are not notified again on the next attempt
-            final var failed = e.getFailedRecipientUserIds();
-            if (failed.isEmpty()) {
-                recordFailure(entries, key, "delivery failed", e);
-                return;
-            }
-            final var pending = entries.stream()
-                    .filter(entry -> failed.contains(entry.getRecipientUserId()))
-                    .toList();
-            final var delivered = entries.stream()
-                    .filter(entry -> !failed.contains(entry.getRecipientUserId()))
-                    .toList();
-            if (!delivered.isEmpty()) {
-                markSent(delivered, now);
-            }
-            recordFailure(pending, key, "delivery failed for " + failed, e);
-        } catch (Exception e) {
-            // no per-recipient information: the whole bulk stays pending
-            recordFailure(entries, key, "delivery failed", e);
-        }
+      @Override
+      public boolean isLoggedIn(
+          String userId) {
+        return usersById.containsKey(userId);
+      }
 
+      @Override
+      public Collection<String> loggedInUserIds() {
+        return usersById.keySet();
+      }
+
+      @Override
+      public List<String> authoritiesOf(
+          String userId) {
+        // the user directory caches the authorities, because they are resolved on
+        // every request of a browser. So a lookup per user is cheap and no cache of our
+        // own is needed
+        return userDirectory.getUser(userId).map(UserDetails::getAuthorities).orElse(null);
+      }
+
+      @Override
+      public NotificationConfiguration configOf(
+          String userId) {
+        final var user = usersById.get(userId);
+        return user == null ? null : user.getNotificationConfiguration();
+      }
+    };
+
+  }
+
+  private void insertOutbox(
+      final PlannedNotification planned,
+      final OffsetDateTime now) {
+
+    final var entry = new NotificationOutboxEntry();
+    entry.setUserTaskId(planned.userTaskId());
+    entry.setNotificationType(planned.notificationType());
+    entry.setMedium(planned.medium());
+    entry.setRecipientUserId(planned.recipientUserId());
+    entry.setForced(planned.forced());
+    entry.setCreatedAt(now);
+
+    // the unique index makes this idempotent: a duplicate simply means the notification was
+    // already planned in an earlier (overlapping) scan
+    try {
+      outboxRepository.insert(entry);
+    } catch (org.springframework.dao.DuplicateKeyException e) {
+      // already planned in an earlier (overlapping) scan
     }
 
-    private void recordFailure(
-            final List<NotificationOutboxEntry> entries,
-            final BulkKey key,
-            final String reason,
-            final Exception cause) {
+  }
 
-        if (entries.isEmpty()) {
-            return;
-        }
+  /** Package-private for testability, like {@link #runCycle()} and {@link #runCleanup()}. */
+  void drainOutbox(
+      final OffsetDateTime now) {
 
-        // count this delivery attempt for the entries which stay pending. Once attempts reaches
-        // the maximum, an entry becomes stale and no later scan reads it, until somebody resets
-        // its counter in MongoDB
-        entries.forEach(e -> e.setAttempts(e.getAttempts() + 1));
-        final var attemptNo = entries.stream()
-                .mapToInt(NotificationOutboxEntry::getAttempts)
-                .max()
-                .orElse(1);
-
-        // persist the incremented attempt counter; these entries stay pending and are retried next
-        // cycle (at-least-once per recipient) until they either succeed or turn stale
-        outboxRepository.saveAll(entries);
-
-        if (attemptNo >= maxDeliveryAttempts) {
-            logger.error("Notification bulk {} is now stale after {} attempt(s) ({}); it will not be "
-                    + "retried until its 'attempts' counter is reset in MongoDB", key, attemptNo, reason, cause);
-        } else if (attemptNo >= 3) {
-            // from the third attempt on, escalate WARN to ERROR
-            logger.error("Could not send notification bulk {} (attempt {}: {})", key, attemptNo, reason, cause);
-        } else {
-            logger.warn("Could not send notification bulk {} (attempt {}: {})", key, attemptNo, reason, cause);
-        }
-
+    final var pending = outboxRepository
+        .findBySentAtIsNullAndAttemptsLessThanOrderByCreatedAtAsc(maxDeliveryAttempts);
+    if (pending.isEmpty()) {
+      return;
     }
 
-    private void markSent(
-            final List<NotificationOutboxEntry> entries,
-            final OffsetDateTime now) {
+    final var serviceByType = notificationServices.stream()
+        .collect(Collectors.toMap(NotificationService::getType, s -> s, (
+            a,
+            b) -> a));
 
-        entries.forEach(e -> e.setSentAt(now));
-        outboxRepository.saveAll(entries);
+    final Map<BulkKey, List<NotificationOutboxEntry>> bulks = pending.stream()
+        .collect(Collectors.groupingBy(e -> new BulkKey(
+            e.getMedium(), e.getUserTaskId(), e.getNotificationType(), e.isForced())));
 
+    for (final var bulk : bulks.entrySet()) {
+      sendBulk(bulk.getKey(), bulk.getValue(), serviceByType, now);
     }
 
-    private void ensureStateExists(
-            final OffsetDateTime now) {
+  }
 
-        final var exists = mongoTemplate
-                .exists(Query.query(Criteria.where("_id").is(NotificationPollState.SINGLETON_ID)),
-                        NotificationPollState.class);
-        if (exists) {
-            return;
-        }
+  private void sendBulk(
+      final BulkKey key,
+      final List<NotificationOutboxEntry> entries,
+      final Map<String, NotificationService> serviceByType,
+      final OffsetDateTime now) {
 
-        final var initial = new NotificationPollState();
-        initial.setId(NotificationPollState.SINGLETON_ID);
-        // no cursor yet: the first cycle sets it to "now" and skips any backlog
-        try {
-            mongoTemplate.insert(initial);
-        } catch (Exception e) {
-            // another node created it in the meantime
-        }
-
+    final var service = serviceByType.get(key.medium());
+    if (service == null) {
+      recordFailure(entries, key, "no NotificationService for medium '"
+          + key.medium()
+          + "'", null);
+      return;
     }
 
-    private NotificationPollState acquireLease(
-            final OffsetDateTime now) {
-
-        final var query = Query.query(new Criteria().andOperator(
-                Criteria.where("_id").is(NotificationPollState.SINGLETON_ID),
-                new Criteria().orOperator(
-                        Criteria.where("lockedUntil").is(null),
-                        Criteria.where("lockedUntil").lt(now))));
-        final var update = new Update()
-                .set("lockedUntil", now.plus(LEASE_TTL))
-                .set("owner", nodeId);
-        return mongoTemplate
-                .findAndModify(query, update,
-                        FindAndModifyOptions.options().returnNew(true), NotificationPollState.class);
-
+    final var task = userTaskRepository.findById(key.userTaskId()).orElse(null);
+    if (task == null) {
+      // the task is gone, so these entries are dropped and not retried forever
+      markSent(entries, now);
+      return;
     }
 
-    private void advanceCursorAndRelease(
-            final OffsetDateTime now) {
+    task.setNotificationType(key.notificationType());
+    task.setForced(key.forced());
+    final var recipientIds = entries.stream()
+        .map(NotificationOutboxEntry::getRecipientUserId)
+        .distinct()
+        .toList();
 
-        mongoTemplate
-                .updateFirst(
-                        Query.query(Criteria.where("_id").is(NotificationPollState.SINGLETON_ID)),
-                        new Update().set("cursor", now).set("lockedUntil", now),
-                        NotificationPollState.class);
-
+    try {
+      service.sendNotification(recipientIds, task);
+      markSent(entries, now);
+    } catch (NotificationDeliveryException e) {
+      // the medium told us which recipients it could not reach: keep exactly those pending,
+      // so the ones already reached are not notified again on the next attempt
+      final var failed = e.getFailedRecipientUserIds();
+      if (failed.isEmpty()) {
+        recordFailure(entries, key, "delivery failed", e);
+        return;
+      }
+      final var pending = entries.stream()
+          .filter(entry -> failed.contains(entry.getRecipientUserId()))
+          .toList();
+      final var delivered = entries.stream()
+          .filter(entry -> !failed.contains(entry.getRecipientUserId()))
+          .toList();
+      if (!delivered.isEmpty()) {
+        markSent(delivered, now);
+      }
+      recordFailure(pending, key, "delivery failed for "
+          + failed, e);
+    } catch (Exception e) {
+      // no per-recipient information: the whole bulk stays pending
+      recordFailure(entries, key, "delivery failed", e);
     }
 
-    private void releaseLease(
-            final OffsetDateTime now) {
+  }
 
-        try {
-            mongoTemplate
-                    .updateFirst(
-                            Query.query(Criteria.where("_id").is(NotificationPollState.SINGLETON_ID)),
-                            new Update().set("lockedUntil", now),
-                            NotificationPollState.class);
-        } catch (Exception e) {
-            logger.debug("Could not release the notification poll lease", e);
-        }
+  private void recordFailure(
+      final List<NotificationOutboxEntry> entries,
+      final BulkKey key,
+      final String reason,
+      final Exception cause) {
 
+    if (entries.isEmpty()) {
+      return;
     }
 
-    private record BulkKey(
-            String medium,
-            String userTaskId,
-            io.vanillabp.cockpit.notification.NotificationType notificationType,
-            boolean forced) {
-        // grouping key for one sendNotification bulk
+    // count this delivery attempt for the entries which stay pending. Once attempts reaches
+    // the maximum, an entry becomes stale and no later scan reads it, until somebody resets
+    // its counter in MongoDB
+    entries.forEach(e -> e.setAttempts(e.getAttempts() + 1));
+    final var attemptNo = entries.stream()
+        .mapToInt(NotificationOutboxEntry::getAttempts)
+        .max()
+        .orElse(1);
+
+    // persist the incremented attempt counter; these entries stay pending and are retried next
+    // cycle (at-least-once per recipient) until they either succeed or turn stale
+    outboxRepository.saveAll(entries);
+
+    if (attemptNo >= maxDeliveryAttempts) {
+      logger.error("Notification bulk {} is now stale after {} attempt(s) ({}); it will not be "
+          + "retried until its 'attempts' counter is reset in MongoDB", key, attemptNo, reason, cause);
+    } else if (attemptNo >= 3) {
+      // from the third attempt on, escalate WARN to ERROR
+      logger.error("Could not send notification bulk {} (attempt {}: {})", key, attemptNo, reason, cause);
+    } else {
+      logger.warn("Could not send notification bulk {} (attempt {}: {})", key, attemptNo, reason, cause);
     }
+
+  }
+
+  private void markSent(
+      final List<NotificationOutboxEntry> entries,
+      final OffsetDateTime now) {
+
+    entries.forEach(e -> e.setSentAt(now));
+    outboxRepository.saveAll(entries);
+
+  }
+
+  private void ensureStateExists(
+      final OffsetDateTime now) {
+
+    final var exists = mongoTemplate
+        .exists(Query.query(Criteria.where("_id").is(NotificationPollState.SINGLETON_ID)),
+            NotificationPollState.class);
+    if (exists) {
+      return;
+    }
+
+    final var initial = new NotificationPollState();
+    initial.setId(NotificationPollState.SINGLETON_ID);
+    // no cursor yet: the first cycle sets it to "now" and skips any backlog
+    try {
+      mongoTemplate.insert(initial);
+    } catch (Exception e) {
+      // another node created it in the meantime
+    }
+
+  }
+
+  private NotificationPollState acquireLease(
+      final OffsetDateTime now) {
+
+    final var query = Query.query(new Criteria().andOperator(
+        Criteria.where("_id").is(NotificationPollState.SINGLETON_ID),
+        new Criteria().orOperator(
+            Criteria.where("lockedUntil").is(null),
+            Criteria.where("lockedUntil").lt(now))));
+    final var update = new Update()
+        .set("lockedUntil", now.plus(LEASE_TTL))
+        .set("owner", nodeId);
+    return mongoTemplate
+        .findAndModify(query, update,
+            FindAndModifyOptions.options().returnNew(true), NotificationPollState.class);
+
+  }
+
+  private void advanceCursorAndRelease(
+      final OffsetDateTime now) {
+
+    mongoTemplate
+        .updateFirst(
+            Query.query(Criteria.where("_id").is(NotificationPollState.SINGLETON_ID)),
+            new Update().set("cursor", now).set("lockedUntil", now),
+            NotificationPollState.class);
+
+  }
+
+  private void releaseLease(
+      final OffsetDateTime now) {
+
+    try {
+      mongoTemplate
+          .updateFirst(
+              Query.query(Criteria.where("_id").is(NotificationPollState.SINGLETON_ID)),
+              new Update().set("lockedUntil", now),
+              NotificationPollState.class);
+    } catch (Exception e) {
+      logger.debug("Could not release the notification poll lease", e);
+    }
+
+  }
+
+  private record BulkKey(
+                         String medium,
+                         String userTaskId,
+                         io.vanillabp.cockpit.notification.NotificationType notificationType,
+                         boolean forced) {
+    // grouping key for one sendNotification bulk
+  }
 
 }

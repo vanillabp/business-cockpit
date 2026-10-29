@@ -20,12 +20,12 @@ package io.vanillabp.spi.cockpit;
  */
 public final class Initiator {
 
-    /**
-     * The initiator of an action no user caused.
-     */
-    public static final String SYSTEM = "system";
+  /**
+   * The initiator of an action no user caused.
+   */
+  public static final String SYSTEM = "system";
 
-    private Initiator() {
-    }
+  private Initiator() {
+  }
 
 }

@@ -1,6 +1,12 @@
 package io.vanillabp.cockpit.bpms.kafka;
 
+import static io.vanillabp.cockpit.bpms.kafka.KafkaConfiguration.KAFKA_CONSUMER_PREFIX;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.kafka.annotation.KafkaListener;
+
 import com.google.protobuf.InvalidProtocolBufferException;
+
 import io.vanillabp.cockpit.bpms.BpmsApiProperties;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCancelledEvent;
@@ -8,10 +14,6 @@ import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.util.protobuf.ProtobufHelper;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.springframework.kafka.annotation.KafkaListener;
-
-import static io.vanillabp.cockpit.bpms.kafka.KafkaConfiguration.KAFKA_CONSUMER_PREFIX;
 
 /**
  * Takes the reports about workflows from the Kafka topic {@code workflow} which the properties name,
@@ -20,157 +22,175 @@ import static io.vanillabp.cockpit.bpms.kafka.KafkaConfiguration.KAFKA_CONSUMER_
  */
 public class KafkaWorkflowController {
 
-    private final ProtobufWorkflowMapper workflowMapper;
+  private final ProtobufWorkflowMapper workflowMapper;
 
-    private final WorkflowlistService workflowlistService;
+  private final WorkflowlistService workflowlistService;
 
-    private static final String CLIENT_ID = "workflow-client";
+  private static final String CLIENT_ID = "workflow-client";
 
-    /**
-     * Creates the listener.
-     *
-     * @param workflowlistService Stores the reports
-     * @param workflowMapper Maps the reports onto workflows
-     */
-    public KafkaWorkflowController(WorkflowlistService workflowlistService,
-                                   ProtobufWorkflowMapper workflowMapper) {
-        this.workflowlistService = workflowlistService;
-        this.workflowMapper = workflowMapper;
-    }
+  /**
+   * Creates the listener.
+   *
+   * @param workflowlistService Stores the reports
+   * @param workflowMapper Maps the reports onto workflows
+   */
+  public KafkaWorkflowController(
+      WorkflowlistService workflowlistService,
+      ProtobufWorkflowMapper workflowMapper) {
+    this.workflowlistService = workflowlistService;
+    this.workflowMapper = workflowMapper;
+  }
 
-    /**
-     * Parses one record as a protobuf event and stores the report it carries.
-     *
-     * @param record The record, with the id of the workflow as key and the event as value
-     */
-    @KafkaListener(containerFactory = KafkaConfiguration.LISTENER_CONTAINER_FACTORY,
-            topics = "${" + BpmsApiProperties.PREFIX + ".kafka.topics.workflow}",
-            clientIdPrefix = KAFKA_CONSUMER_PREFIX + "-" + CLIENT_ID + "-${workerId:local}",
-            groupId = KAFKA_CONSUMER_PREFIX + "-${" + BpmsApiProperties.PREFIX + ".kafka.group-id-suffix}")
-    public void consumeWorkflowEvent(ConsumerRecord<String, byte[]> record) {
-        try {
-            final var event = BcEvent.parseFrom(record.value());
+  /**
+   * Parses one record as a protobuf event and stores the report it carries.
+   *
+   * @param record The record, with the id of the workflow as key and the event as value
+   */
+  @KafkaListener(containerFactory = KafkaConfiguration.LISTENER_CONTAINER_FACTORY,
+      topics = "${"
+          + BpmsApiProperties.PREFIX
+          + ".kafka.topics.workflow}",
+      clientIdPrefix = KAFKA_CONSUMER_PREFIX
+          + "-"
+          + CLIENT_ID
+          + "-${workerId:local}",
+      groupId = KAFKA_CONSUMER_PREFIX
+          + "-${"
+          + BpmsApiProperties.PREFIX
+          + ".kafka.group-id-suffix}")
+  public void consumeWorkflowEvent(
+      ConsumerRecord<String, byte[]> record) {
+    try {
+      final var event = BcEvent.parseFrom(record.value());
 
-            if (event.hasWorkflowCreatedOrUpdated()) {
+      if (event.hasWorkflowCreatedOrUpdated()) {
 
-                WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent =
-                        event.getWorkflowCreatedOrUpdated();
+        WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent = event.getWorkflowCreatedOrUpdated();
 
-                if (workflowCreatedOrUpdatedEvent.getUpdated()) {
-                    this.handleWorkflowUpdatedEventV1(workflowCreatedOrUpdatedEvent);
-                } else {
-                    this.handleWorkflowCreatedEventV1(workflowCreatedOrUpdatedEvent);
-                }
-
-            } else if (event.hasWorkflowCompleted()) {
-
-                this.handleWorkflowCompletedEventV1(
-                        event.getWorkflowCompleted());
-
-            } else if (event.hasWorkflowCancelled()) {
-
-                this.handleWorkflowCancelledEventV1(
-                        event.getWorkflowCancelled());
-
-            } else if (event.hasWorkflowCreatedV11()) {
-
-                this.handleWorkflowCreatedEventV1_1(event.getWorkflowCreatedV11());
-
-            } else if (event.hasWorkflowUpdatedV11()) {
-
-                this.handleWorkflowUpdatedEventV1_1(event.getWorkflowUpdatedV11());
-
-            } else if (event.hasWorkflowCompletedV11()) {
-
-                this.handleWorkflowCompletedEventV1_1(event.getWorkflowCompletedV11());
-
-            } else if (event.hasWorkflowCancelledV11()) {
-
-                this.handleWorkflowCancelledEventV1_1(event.getWorkflowCancelledV11());
-
-            } else {
-                throw new RuntimeException(
-                        "Unsupported event type '"
-                                + record.key()
-                                + "'!");
-            }
-
-        } catch (InvalidProtocolBufferException e) {
-            throw new RuntimeException(e);
+        if (workflowCreatedOrUpdatedEvent.getUpdated()) {
+          this.handleWorkflowUpdatedEventV1(workflowCreatedOrUpdatedEvent);
+        } else {
+          this.handleWorkflowCreatedEventV1(workflowCreatedOrUpdatedEvent);
         }
+
+      } else if (event.hasWorkflowCompleted()) {
+
+        this.handleWorkflowCompletedEventV1(
+            event.getWorkflowCompleted());
+
+      } else if (event.hasWorkflowCancelled()) {
+
+        this.handleWorkflowCancelledEventV1(
+            event.getWorkflowCancelled());
+
+      } else if (event.hasWorkflowCreatedV11()) {
+
+        this.handleWorkflowCreatedEventV1_1(event.getWorkflowCreatedV11());
+
+      } else if (event.hasWorkflowUpdatedV11()) {
+
+        this.handleWorkflowUpdatedEventV1_1(event.getWorkflowUpdatedV11());
+
+      } else if (event.hasWorkflowCompletedV11()) {
+
+        this.handleWorkflowCompletedEventV1_1(event.getWorkflowCompletedV11());
+
+      } else if (event.hasWorkflowCancelledV11()) {
+
+        this.handleWorkflowCancelledEventV1_1(event.getWorkflowCancelledV11());
+
+      } else {
+        throw new RuntimeException(
+            "Unsupported event type '"
+                + record.key()
+                + "'!");
+      }
+
+    } catch (InvalidProtocolBufferException e) {
+      throw new RuntimeException(e);
     }
+  }
 
-    private void handleWorkflowCreatedEventV1(WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
-        final var outcome = workflowlistService.reportCreatedWorkflow(
-                workflowCreatedOrUpdatedEvent.getWorkflowId(),
-                ProtobufHelper.map(workflowCreatedOrUpdatedEvent.getTimestamp()),
-                () -> workflowMapper.toNewWorkflow(workflowCreatedOrUpdatedEvent));
-        RepeatUntilStored.storedOrThrow(outcome);
-    }
+  private void handleWorkflowCreatedEventV1(
+      WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
+    final var outcome = workflowlistService.reportCreatedWorkflow(
+        workflowCreatedOrUpdatedEvent.getWorkflowId(),
+        ProtobufHelper.map(workflowCreatedOrUpdatedEvent.getTimestamp()),
+        () -> workflowMapper.toNewWorkflow(workflowCreatedOrUpdatedEvent));
+    RepeatUntilStored.storedOrThrow(outcome);
+  }
 
-    private void handleWorkflowCreatedEventV1_1(WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
-        handleWorkflowCreatedEventV1(workflowCreatedOrUpdatedEvent);
-    }
+  private void handleWorkflowCreatedEventV1_1(
+      WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
+    handleWorkflowCreatedEventV1(workflowCreatedOrUpdatedEvent);
+  }
 
-    private void handleWorkflowUpdatedEventV1(WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
-        final var outcome = workflowlistService.reportChangedWorkflow(
-                workflowCreatedOrUpdatedEvent.getWorkflowId(),
-                ProtobufHelper.map(workflowCreatedOrUpdatedEvent.getTimestamp()),
-                // an update for a workflow the cockpit never saw creates it, mirroring the REST API
-                () -> workflowMapper.toNewWorkflow(workflowCreatedOrUpdatedEvent),
-                workflow -> workflowMapper.toUpdatedWorkflow(workflowCreatedOrUpdatedEvent, workflow));
-        RepeatUntilStored.storedOrThrow(outcome);
-    }
+  private void handleWorkflowUpdatedEventV1(
+      WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
+    final var outcome = workflowlistService.reportChangedWorkflow(
+        workflowCreatedOrUpdatedEvent.getWorkflowId(),
+        ProtobufHelper.map(workflowCreatedOrUpdatedEvent.getTimestamp()),
+        // an update for a workflow the cockpit never saw creates it, mirroring the REST API
+        () -> workflowMapper.toNewWorkflow(workflowCreatedOrUpdatedEvent),
+        workflow -> workflowMapper.toUpdatedWorkflow(workflowCreatedOrUpdatedEvent, workflow));
+    RepeatUntilStored.storedOrThrow(outcome);
+  }
 
-    private void handleWorkflowUpdatedEventV1_1(WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
-        handleWorkflowUpdatedEventV1(workflowCreatedOrUpdatedEvent);
-    }
+  private void handleWorkflowUpdatedEventV1_1(
+      WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
+    handleWorkflowUpdatedEventV1(workflowCreatedOrUpdatedEvent);
+  }
 
-    /**
-     * Version 1 of the API reports an end without the fields a change carries. A case the cockpit
-     * hears of by its end alone is therefore stored with the end and nothing else. The creation is
-     * still on its way and fills the rest in when it arrives.
-     */
-    private void handleWorkflowCompletedEventV1(WorkflowCompletedEvent workflowCompletedEvent) {
-        final var outcome = workflowlistService.reportEndedWorkflow(
-                workflowCompletedEvent.getWorkflowId(),
-                ProtobufHelper.map(workflowCompletedEvent.getTimestamp()),
-                workflowCompletedEvent.hasCreatedAt() ? ProtobufHelper.map(workflowCompletedEvent.getCreatedAt()) : null,
-                // version 1 reports nothing about a completed case but that it completed
-                workflow -> { });
-        RepeatUntilStored.storedOrThrow(outcome);
-    }
+  /**
+   * Version 1 of the API reports an end without the fields a change carries. A case the cockpit
+   * hears of by its end alone is therefore stored with the end and nothing else. The creation is
+   * still on its way and fills the rest in when it arrives.
+   */
+  private void handleWorkflowCompletedEventV1(
+      WorkflowCompletedEvent workflowCompletedEvent) {
+    final var outcome = workflowlistService.reportEndedWorkflow(
+        workflowCompletedEvent.getWorkflowId(),
+        ProtobufHelper.map(workflowCompletedEvent.getTimestamp()),
+        workflowCompletedEvent.hasCreatedAt() ? ProtobufHelper.map(workflowCompletedEvent.getCreatedAt()) : null,
+        // version 1 reports nothing about a completed case but that it completed
+        workflow -> {
+        });
+    RepeatUntilStored.storedOrThrow(outcome);
+  }
 
-    private void handleWorkflowCompletedEventV1_1(WorkflowCreatedOrUpdatedEvent workflowCompletedEvent) {
+  private void handleWorkflowCompletedEventV1_1(
+      WorkflowCreatedOrUpdatedEvent workflowCompletedEvent) {
 
-        final var outcome = workflowlistService.reportEndedWorkflow(
-                workflowCompletedEvent.getWorkflowId(),
-                ProtobufHelper.map(workflowCompletedEvent.getTimestamp()),
-                workflowCompletedEvent.hasCreatedAt() ? ProtobufHelper.map(workflowCompletedEvent.getCreatedAt()) : null,
-                workflow -> workflowMapper.toEndedWorkflow(workflowCompletedEvent, workflow));
-        RepeatUntilStored.storedOrThrow(outcome);
+    final var outcome = workflowlistService.reportEndedWorkflow(
+        workflowCompletedEvent.getWorkflowId(),
+        ProtobufHelper.map(workflowCompletedEvent.getTimestamp()),
+        workflowCompletedEvent.hasCreatedAt() ? ProtobufHelper.map(workflowCompletedEvent.getCreatedAt()) : null,
+        workflow -> workflowMapper.toEndedWorkflow(workflowCompletedEvent, workflow));
+    RepeatUntilStored.storedOrThrow(outcome);
 
-    }
+  }
 
-    /** @see #handleWorkflowCompletedEventV1(WorkflowCompletedEvent) */
-    private void handleWorkflowCancelledEventV1(WorkflowCancelledEvent workflowCancelledEvent) {
-        final var outcome = workflowlistService.reportEndedWorkflow(
-                workflowCancelledEvent.getWorkflowId(),
-                ProtobufHelper.map(workflowCancelledEvent.getTimestamp()),
-                workflowCancelledEvent.hasCreatedAt() ? ProtobufHelper.map(workflowCancelledEvent.getCreatedAt()) : null,
-                workflow -> workflow.setComment(workflowCancelledEvent.getComment()));
-        RepeatUntilStored.storedOrThrow(outcome);
-    }
+  /** @see #handleWorkflowCompletedEventV1(WorkflowCompletedEvent) */
+  private void handleWorkflowCancelledEventV1(
+      WorkflowCancelledEvent workflowCancelledEvent) {
+    final var outcome = workflowlistService.reportEndedWorkflow(
+        workflowCancelledEvent.getWorkflowId(),
+        ProtobufHelper.map(workflowCancelledEvent.getTimestamp()),
+        workflowCancelledEvent.hasCreatedAt() ? ProtobufHelper.map(workflowCancelledEvent.getCreatedAt()) : null,
+        workflow -> workflow.setComment(workflowCancelledEvent.getComment()));
+    RepeatUntilStored.storedOrThrow(outcome);
+  }
 
-    private void handleWorkflowCancelledEventV1_1(WorkflowCreatedOrUpdatedEvent workflowCancelledEvent) {
+  private void handleWorkflowCancelledEventV1_1(
+      WorkflowCreatedOrUpdatedEvent workflowCancelledEvent) {
 
-        final var outcome = workflowlistService.reportEndedWorkflow(
-                workflowCancelledEvent.getWorkflowId(),
-                ProtobufHelper.map(workflowCancelledEvent.getTimestamp()),
-                workflowCancelledEvent.hasCreatedAt() ? ProtobufHelper.map(workflowCancelledEvent.getCreatedAt()) : null,
-                workflow -> workflowMapper.toEndedWorkflow(workflowCancelledEvent, workflow));
-        RepeatUntilStored.storedOrThrow(outcome);
+    final var outcome = workflowlistService.reportEndedWorkflow(
+        workflowCancelledEvent.getWorkflowId(),
+        ProtobufHelper.map(workflowCancelledEvent.getTimestamp()),
+        workflowCancelledEvent.hasCreatedAt() ? ProtobufHelper.map(workflowCancelledEvent.getCreatedAt()) : null,
+        workflow -> workflowMapper.toEndedWorkflow(workflowCancelledEvent, workflow));
+    RepeatUntilStored.storedOrThrow(outcome);
 
-    }
+  }
 
 }

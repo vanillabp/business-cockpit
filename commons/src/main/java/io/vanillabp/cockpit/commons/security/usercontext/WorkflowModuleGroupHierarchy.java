@@ -8,11 +8,11 @@ import java.util.Map;
  */
 public interface WorkflowModuleGroupHierarchy {
 
-    /**
-     * The group hierarchy: each group mapped to the groups it includes.
-     *
-     * @return The hierarchy
-     */
-    Map<String, Collection<String>> getGroupHierarchy();
+  /**
+   * The group hierarchy: each group mapped to the groups it includes.
+   *
+   * @return The hierarchy
+   */
+  Map<String, Collection<String>> getGroupHierarchy();
 
 }

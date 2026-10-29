@@ -1,9 +1,10 @@
 package io.vanillabp.cockpit.devshell.simulator;
 
-import io.vanillabp.cockpit.devshell.simulator.config.Properties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+
+import io.vanillabp.cockpit.devshell.simulator.config.Properties;
 
 /**
  * The Spring Boot application of the dev shell simulator. It plays the Business Cockpit for the
@@ -14,18 +15,19 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 @EnableConfigurationProperties(Properties.class)
 public class DevShellSimulator {
 
-    /**
-     * Creates the application. Spring Boot calls it, nobody else does.
-     */
-    public DevShellSimulator() {
-    }
+  /**
+   * Creates the application. Spring Boot calls it, nobody else does.
+   */
+  public DevShellSimulator() {
+  }
 
-    /**
-     * Starts the simulator.
-     *
-     * @param args The command line arguments, passed on to Spring Boot
-     */
-    public static void main(String[] args) {
-        SpringApplication.run(DevShellSimulator.class, args);
-    }
+  /**
+   * Starts the simulator.
+   *
+   * @param args The command line arguments, passed on to Spring Boot
+   */
+  public static void main(
+      String[] args) {
+    SpringApplication.run(DevShellSimulator.class, args);
+  }
 }

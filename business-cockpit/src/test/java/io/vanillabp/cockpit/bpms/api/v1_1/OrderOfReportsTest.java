@@ -13,6 +13,19 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.OffsetDateTime;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Consumer;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.slf4j.Logger;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.http.HttpStatus;
+
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskEndReason;
@@ -25,17 +38,6 @@ import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import io.vanillabp.cockpit.workflowlist.model.WorkflowRepository;
 import io.vanillabp.cockpit.workflowmodules.WorkflowModuleService;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
-import java.time.OffsetDateTime;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Consumer;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.slf4j.Logger;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.http.HttpStatus;
 
 /**
  * What the cockpit stores when the reports of one user task or one case do not arrive in the order
@@ -50,593 +52,595 @@ import org.springframework.http.HttpStatus;
 @ExtendWith(SuppressOutputExtension.class)
 class OrderOfReportsTest {
 
-    private static final OffsetDateTime CREATED_AT = OffsetDateTime.parse("2026-09-11T08:00:00Z");
-    private static final OffsetDateTime CHANGED_AT = OffsetDateTime.parse("2026-09-11T09:00:00Z");
-    private static final OffsetDateTime ENDED_AT = OffsetDateTime.parse("2026-09-11T10:00:00Z");
-    private static final OffsetDateTime CHANGED_AFTER_THE_END = OffsetDateTime.parse("2026-09-11T11:00:00Z");
-    private static final OffsetDateTime DUE_AT = OffsetDateTime.parse("2026-09-12T08:00:00Z");
+  private static final OffsetDateTime CREATED_AT = OffsetDateTime.parse("2026-09-11T08:00:00Z");
+  private static final OffsetDateTime CHANGED_AT = OffsetDateTime.parse("2026-09-11T09:00:00Z");
+  private static final OffsetDateTime ENDED_AT = OffsetDateTime.parse("2026-09-11T10:00:00Z");
+  private static final OffsetDateTime CHANGED_AFTER_THE_END = OffsetDateTime.parse("2026-09-11T11:00:00Z");
+  private static final OffsetDateTime DUE_AT = OffsetDateTime.parse("2026-09-12T08:00:00Z");
 
-    /**
-     * One cockpit server, with the two lists it keeps held in memory instead of in MongoDB. The
-     * mappers are the generated ones and the services are the real ones, so a test says what an
-     * application reporting over REST would get.
-     */
-    private static final class Cockpit {
+  /**
+   * One cockpit server, with the two lists it keeps held in memory instead of in MongoDB. The
+   * mappers are the generated ones and the services are the real ones, so a test says what an
+   * application reporting over REST would get.
+   */
+  private static final class Cockpit {
 
-        private final Map<String, UserTask> userTasks = new HashMap<>();
+    private final Map<String, UserTask> userTasks = new HashMap<>();
 
-        private final Map<String, Workflow> workflows = new HashMap<>();
+    private final Map<String, Workflow> workflows = new HashMap<>();
 
-        private final Logger logger = mock(Logger.class);
+    private final Logger logger = mock(Logger.class);
 
-        private final BpmsApiController bpmsApi;
+    private final BpmsApiController bpmsApi;
 
-        private Cockpit() {
-            try {
-                final var personAndGroupMapper = mock(PersonAndGroupMapper.class);
-                when(personAndGroupMapper.toModelPerson(anyString())).thenAnswer(invocation -> {
-                    final var person = new Person();
-                    person.setId(invocation.getArgument(0));
-                    return person;
-                });
-                when(personAndGroupMapper.toModelGroup(anyString())).thenAnswer(invocation -> {
-                    final var group = new Group();
-                    group.setId(invocation.getArgument(0));
-                    return group;
-                });
-
-                final var userTaskMapper = new UserTaskMapperV1_1Impl();
-                set(UserTaskMapper.class, userTaskMapper, "personAndGroupMapper", personAndGroupMapper);
-                final var workflowMapper = new WorkflowMapperV1_1Impl();
-                set(WorkflowMapper.class, workflowMapper, "personAndGroupMapper", personAndGroupMapper);
-
-                final var userTaskService = new UserTaskService();
-                set(UserTaskService.class, userTaskService, "userTasks", userTaskRepository());
-                set(UserTaskService.class, userTaskService, "logger", logger);
-                set(UserTaskService.class, userTaskService, "mongoTemplate", mock(MongoTemplate.class));
-
-                final var workflowlistService = new WorkflowlistService();
-                set(WorkflowlistService.class, workflowlistService, "workflowRepository", workflowRepository());
-                set(WorkflowlistService.class, workflowlistService, "logger", logger);
-                set(WorkflowlistService.class, workflowlistService, "mongoTemplate", mock(MongoTemplate.class));
-
-                bpmsApi = new BpmsApiController();
-                set(BpmsApiController.class, bpmsApi, "userTaskMapper", userTaskMapper);
-                set(BpmsApiController.class, bpmsApi, "workflowMapper", workflowMapper);
-                set(BpmsApiController.class, bpmsApi, "userTaskService", userTaskService);
-                set(BpmsApiController.class, bpmsApi, "workflowlistService", workflowlistService);
-                set(BpmsApiController.class, bpmsApi, "workflowModuleService", mock(WorkflowModuleService.class));
-            } catch (Exception e) {
-                throw new IllegalStateException("Could not build the cockpit under test", e);
-            }
-        }
-
-        private UserTaskRepository userTaskRepository() {
-            final var repository = mock(UserTaskRepository.class);
-            when(repository.findById(anyString()))
-                    .thenAnswer(invocation -> Optional.ofNullable(userTasks.get(invocation.getArgument(0))));
-            when(repository.save(any(UserTask.class))).thenAnswer(invocation -> {
-                final UserTask task = invocation.getArgument(0);
-                userTasks.put(task.getId(), task);
-                return task;
-            });
-            return repository;
-        }
-
-        private WorkflowRepository workflowRepository() {
-            final var repository = mock(WorkflowRepository.class);
-            when(repository.findById(anyString()))
-                    .thenAnswer(invocation -> Optional.ofNullable(workflows.get(invocation.getArgument(0))));
-            when(repository.save(any(Workflow.class))).thenAnswer(invocation -> {
-                final Workflow workflow = invocation.getArgument(0);
-                workflows.put(workflow.getId(), workflow);
-                return workflow;
-            });
-            return repository;
-        }
-
-        private static void set(
-                final Class<?> declaringClass,
-                final Object target,
-                final String field,
-                final Object value) throws Exception {
-            final var declaredField = declaringClass.getDeclaredField(field);
-            declaredField.setAccessible(true);
-            declaredField.set(target, value);
-        }
-
-        private UserTask storedTask() {
-            return userTasks.get("task-1");
-        }
-
-        private Workflow storedWorkflow() {
-            return workflows.get("workflow-1");
-        }
-
-    }
-
-    private static Cockpit cockpitWhichWasSent(
-            final Consumer<BpmsApiController> reports) {
-
-        final var cockpit = new Cockpit();
-        reports.accept(cockpit.bpmsApi);
-        return cockpit;
-
-    }
-
-    // --- what a report looks like -------------------------------------------------------------
-
-    private static UserTaskCreatedEvent taskCreated() {
-
-        return new UserTaskCreatedEvent()
-                .id("event-created")
-                .userTaskId("task-1")
-                .timestamp(CREATED_AT)
-                .workflowModuleId("taxi-ride")
-                .bpmnProcessId("ride")
-                .workflowId("workflow-1")
-                .taskDefinition("assign-driver")
-                .title(Map.of("en", "Assign a driver"))
-                .uiUriPath("/ui")
-                .uiUriType("WEBPACK_MF_REACT")
-                .dueDate(DUE_AT)
-                .details(new LinkedHashMap<>(Map.of("customer", "Anna")))
-                .detailsFulltextSearch("Anna");
-
-    }
-
-    private static UserTaskUpdatedEvent taskChanged(
-            final OffsetDateTime timestamp,
-            final String customer) {
-
-        return new UserTaskUpdatedEvent()
-                .id("event-changed-" + customer)
-                .userTaskId("task-1")
-                .timestamp(timestamp)
-                .workflowModuleId("taxi-ride")
-                .bpmnProcessId("ride")
-                .workflowId("workflow-1")
-                .taskDefinition("assign-driver")
-                .title(Map.of("en", "Assign a driver"))
-                .uiUriPath("/ui")
-                .uiUriType("WEBPACK_MF_REACT")
-                .details(new LinkedHashMap<>(Map.of("customer", customer)))
-                .detailsFulltextSearch(customer);
-
-    }
-
-    /**
-     * An end of the current API version carries the same fields as a change, and a BPMS which still
-     * knows the task fills them, so this is what the cockpit is sent for a task which was completed.
-     */
-    private static UserTaskCompletedEvent taskCompleted() {
-
-        return new UserTaskCompletedEvent()
-                .id("event-completed")
-                .userTaskId("task-1")
-                .timestamp(ENDED_AT)
-                .initiator("anna")
-                .dueDate(DUE_AT)
-                .workflowModuleId("taxi-ride")
-                .bpmnProcessId("ride")
-                .workflowId("workflow-1")
-                .taskDefinition("assign-driver")
-                .title(Map.of("en", "Assign a driver"))
-                .uiUriPath("/ui")
-                .uiUriType("WEBPACK_MF_REACT")
-                .details(new LinkedHashMap<>(Map.of("customer", "Anna")))
-                .detailsFulltextSearch("Anna");
-
-    }
-
-    private static WorkflowCreatedEvent workflowCreated() {
-
-        return new WorkflowCreatedEvent()
-                .id("event-created")
-                .workflowId("workflow-1")
-                .timestamp(CREATED_AT)
-                .workflowModuleId("taxi-ride")
-                .bpmnProcessId("ride")
-                .title(Map.of("en", "A ride"))
-                .uiUriPath("/ui")
-                .uiUriType("WEBPACK_MF_REACT")
-                .details(new LinkedHashMap<>(Map.of("customer", "Anna")))
-                .detailsFulltextSearch("Anna");
-
-    }
-
-    private static WorkflowUpdatedEvent workflowChanged(
-            final OffsetDateTime timestamp,
-            final String customer) {
-
-        return new WorkflowUpdatedEvent()
-                .id("event-changed-" + customer)
-                .workflowId("workflow-1")
-                .timestamp(timestamp)
-                .workflowModuleId("taxi-ride")
-                .bpmnProcessId("ride")
-                .title(Map.of("en", "A ride"))
-                .uiUriPath("/ui")
-                .uiUriType("WEBPACK_MF_REACT")
-                .details(new LinkedHashMap<>(Map.of("customer", customer)))
-                .detailsFulltextSearch(customer);
-
-    }
-
-    private static WorkflowCompletedEvent workflowCompleted() {
-
-        return new WorkflowCompletedEvent()
-                .id("event-completed")
-                .workflowId("workflow-1")
-                .timestamp(ENDED_AT)
-                .workflowModuleId("taxi-ride")
-                .bpmnProcessId("ride")
-                .title(Map.of("en", "A ride"))
-                .uiUriPath("/ui")
-                .uiUriType("WEBPACK_MF_REACT")
-                .details(new LinkedHashMap<>(Map.of("customer", "Anna")))
-                .detailsFulltextSearch("Anna");
-
-    }
-
-    /**
-     * What a stored user task is compared by. Left out is what the cockpit measures by its own clock
-     * ({@code reportedAt}) and what a save recomputes ({@code version}, {@code updatedAt}). Those
-     * say when the two runs happened, not what they stored.
-     */
-    private static Map<String, Object> comparable(
-            final UserTask task) {
-
-        final var described = new LinkedHashMap<String, Object>();
-        described.put("id", task.getId());
-        described.put("createdAt", task.getCreatedAt());
-        described.put("latestEventAt", task.getLatestEventAt());
-        described.put("endedAt", task.getEndedAt());
-        described.put("endReason", task.getEndReason());
-        described.put("initiator", task.getInitiator());
-        described.put("workflowModuleId", task.getWorkflowModuleId());
-        described.put("bpmnProcessId", task.getBpmnProcessId());
-        described.put("taskDefinition", task.getTaskDefinition());
-        described.put("title", task.getTitle());
-        described.put("dueDate", task.getDueDate());
-        described.put("details", task.getDetails());
-        described.put("detailsFulltextSearch", task.getDetailsFulltextSearch());
-        return described;
-
-    }
-
-    /** @see #comparable(UserTask) */
-    private static Map<String, Object> comparable(
-            final Workflow workflow) {
-
-        final var described = new LinkedHashMap<String, Object>();
-        described.put("id", workflow.getId());
-        described.put("createdAt", workflow.getCreatedAt());
-        described.put("latestEventAt", workflow.getLatestEventAt());
-        described.put("endedAt", workflow.getEndedAt());
-        described.put("workflowModuleId", workflow.getWorkflowModuleId());
-        described.put("bpmnProcessId", workflow.getBpmnProcessId());
-        described.put("title", workflow.getTitle());
-        described.put("details", workflow.getDetails());
-        described.put("detailsFulltextSearch", workflow.getDetailsFulltextSearch());
-        return described;
-
-    }
-
-    // --- a completion arriving before the creation it completes -------------------------------
-
-    @Test
-    void aCompletedTaskTheCockpitNeverSawIsStoredAsEnded() {
-
-        final var cockpit = cockpitWhichWasSent(
-                api -> api.userTaskCompletedEvent("task-1", taskCompleted()));
-
-        final var stored = cockpit.storedTask();
-        assertNotNull(stored, "the completion of an unknown task has to create it");
-        assertEquals(ENDED_AT, stored.getEndedAt());
-        assertEquals(UserTaskEndReason.COMPLETED, stored.getEndReason());
-        // this end does not say when the task began, so the task starts at its end. The task
-        // still waits for the creation, which will say when it began
-        assertEquals(ENDED_AT, stored.getCreatedAt());
-        assertTrue(stored.isKnownFromItsEndAlone());
-
-    }
-
-    @Test
-    void aCreationArrivingAfterTheCompletionDoesNotReopenTheTask() {
-
-        final var cockpit = cockpitWhichWasSent(api -> {
-            api.userTaskCompletedEvent("task-1", taskCompleted());
-            api.userTaskCreatedEvent(taskCreated());
+    private Cockpit() {
+      try {
+        final var personAndGroupMapper = mock(PersonAndGroupMapper.class);
+        when(personAndGroupMapper.toModelPerson(anyString())).thenAnswer(invocation -> {
+          final var person = new Person();
+          person.setId(invocation.getArgument(0));
+          return person;
+        });
+        when(personAndGroupMapper.toModelGroup(anyString())).thenAnswer(invocation -> {
+          final var group = new Group();
+          group.setId(invocation.getArgument(0));
+          return group;
         });
 
-        final var stored = cockpit.storedTask();
-        assertEquals(ENDED_AT, stored.getEndedAt());
-        assertEquals(UserTaskEndReason.COMPLETED, stored.getEndReason());
-        // and it did fill in what the end could not report
-        assertEquals(CREATED_AT, stored.getCreatedAt());
+        final var userTaskMapper = new UserTaskMapperV1_1Impl();
+        set(UserTaskMapper.class, userTaskMapper, "personAndGroupMapper", personAndGroupMapper);
+        final var workflowMapper = new WorkflowMapperV1_1Impl();
+        set(WorkflowMapper.class, workflowMapper, "personAndGroupMapper", personAndGroupMapper);
 
+        final var userTaskService = new UserTaskService();
+        set(UserTaskService.class, userTaskService, "userTasks", userTaskRepository());
+        set(UserTaskService.class, userTaskService, "logger", logger);
+        set(UserTaskService.class, userTaskService, "mongoTemplate", mock(MongoTemplate.class));
+
+        final var workflowlistService = new WorkflowlistService();
+        set(WorkflowlistService.class, workflowlistService, "workflowRepository", workflowRepository());
+        set(WorkflowlistService.class, workflowlistService, "logger", logger);
+        set(WorkflowlistService.class, workflowlistService, "mongoTemplate", mock(MongoTemplate.class));
+
+        bpmsApi = new BpmsApiController();
+        set(BpmsApiController.class, bpmsApi, "userTaskMapper", userTaskMapper);
+        set(BpmsApiController.class, bpmsApi, "workflowMapper", workflowMapper);
+        set(BpmsApiController.class, bpmsApi, "userTaskService", userTaskService);
+        set(BpmsApiController.class, bpmsApi, "workflowlistService", workflowlistService);
+        set(BpmsApiController.class, bpmsApi, "workflowModuleService", mock(WorkflowModuleService.class));
+      } catch (Exception e) {
+        throw new IllegalStateException("Could not build the cockpit under test", e);
+      }
     }
 
-    @Test
-    void bothOrdersOfACreationAndACompletionStoreTheSameTask() {
-
-        final var inOrder = cockpitWhichWasSent(api -> {
-            api.userTaskCreatedEvent(taskCreated());
-            api.userTaskCompletedEvent("task-1", taskCompleted());
-        });
-        final var swapped = cockpitWhichWasSent(api -> {
-            api.userTaskCompletedEvent("task-1", taskCompleted());
-            api.userTaskCreatedEvent(taskCreated());
-        });
-
-        assertEquals(comparable(inOrder.storedTask()), comparable(swapped.storedTask()));
-
+    private UserTaskRepository userTaskRepository() {
+      final var repository = mock(UserTaskRepository.class);
+      when(repository.findById(anyString()))
+          .thenAnswer(invocation -> Optional.ofNullable(userTasks.get(invocation.getArgument(0))));
+      when(repository.save(any(UserTask.class))).thenAnswer(invocation -> {
+        final UserTask task = invocation.getArgument(0);
+        userTasks.put(task.getId(), task);
+        return task;
+      });
+      return repository;
     }
 
-    @Test
-    void aCompletedCaseTheCockpitNeverSawIsStoredAsEnded() {
-
-        final var cockpit = cockpitWhichWasSent(
-                api -> api.workflowCompletedEvent("workflow-1", workflowCompleted()));
-
-        final var stored = cockpit.storedWorkflow();
-        assertNotNull(stored, "the completion of an unknown case has to create it");
-        assertEquals(ENDED_AT, stored.getEndedAt());
-        assertEquals(ENDED_AT, stored.getCreatedAt());
-        assertTrue(stored.isKnownFromItsEndAlone());
-
+    private WorkflowRepository workflowRepository() {
+      final var repository = mock(WorkflowRepository.class);
+      when(repository.findById(anyString()))
+          .thenAnswer(invocation -> Optional.ofNullable(workflows.get(invocation.getArgument(0))));
+      when(repository.save(any(Workflow.class))).thenAnswer(invocation -> {
+        final Workflow workflow = invocation.getArgument(0);
+        workflows.put(workflow.getId(), workflow);
+        return workflow;
+      });
+      return repository;
     }
 
-    @Test
-    void bothOrdersOfACreationAndACompletionStoreTheSameCase() {
-
-        final var inOrder = cockpitWhichWasSent(api -> {
-            api.workflowCreatedEvent(workflowCreated());
-            api.workflowCompletedEvent("workflow-1", workflowCompleted());
-        });
-        final var swapped = cockpitWhichWasSent(api -> {
-            api.workflowCompletedEvent("workflow-1", workflowCompleted());
-            api.workflowCreatedEvent(workflowCreated());
-        });
-
-        assertEquals(comparable(inOrder.storedWorkflow()), comparable(swapped.storedWorkflow()));
-
+    private static void set(
+        final Class<?> declaringClass,
+        final Object target,
+        final String field,
+        final Object value) throws Exception {
+      final var declaredField = declaringClass.getDeclaredField(field);
+      declaredField.setAccessible(true);
+      declaredField.set(target, value);
     }
 
-    // --- a change arriving after the change which followed it ---------------------------------
-
-    @Test
-    void anOlderChangeDoesNotOverwriteAYoungerOneOfATask() {
-
-        final var cockpit = cockpitWhichWasSent(api -> {
-            api.userTaskCreatedEvent(taskCreated());
-            api.userTaskUpdatedEvent("task-1", taskChanged(ENDED_AT, "Berta"));
-            api.userTaskUpdatedEvent("task-1", taskChanged(CHANGED_AT, "Anna"));
-        });
-
-        final var stored = cockpit.storedTask();
-        assertEquals(Map.of("customer", "Berta"), stored.getDetails());
-        assertEquals(ENDED_AT, stored.getLatestEventAt());
-
+    private UserTask storedTask() {
+      return userTasks.get("task-1");
     }
 
-    @Test
-    void anOlderChangeDoesNotOverwriteAYoungerOneOfACase() {
-
-        final var cockpit = cockpitWhichWasSent(api -> {
-            api.workflowCreatedEvent(workflowCreated());
-            api.workflowUpdatedEvent("workflow-1", workflowChanged(ENDED_AT, "Berta"));
-            api.workflowUpdatedEvent("workflow-1", workflowChanged(CHANGED_AT, "Anna"));
-        });
-
-        final var stored = cockpit.storedWorkflow();
-        assertEquals(Map.of("customer", "Berta"), stored.getDetails());
-        assertEquals(ENDED_AT, stored.getLatestEventAt());
-
+    private Workflow storedWorkflow() {
+      return workflows.get("workflow-1");
     }
 
-    @Test
-    void bothOrdersOfTwoChangesStoreTheSameTask() {
+  }
 
-        final var inOrder = cockpitWhichWasSent(api -> {
-            api.userTaskCreatedEvent(taskCreated());
-            api.userTaskUpdatedEvent("task-1", taskChanged(CHANGED_AT, "Anna"));
-            api.userTaskUpdatedEvent("task-1", taskChanged(ENDED_AT, "Berta"));
-        });
-        final var swapped = cockpitWhichWasSent(api -> {
-            api.userTaskCreatedEvent(taskCreated());
-            api.userTaskUpdatedEvent("task-1", taskChanged(ENDED_AT, "Berta"));
-            api.userTaskUpdatedEvent("task-1", taskChanged(CHANGED_AT, "Anna"));
-        });
+  private static Cockpit cockpitWhichWasSent(
+      final Consumer<BpmsApiController> reports) {
 
-        assertEquals(comparable(inOrder.storedTask()), comparable(swapped.storedTask()));
+    final var cockpit = new Cockpit();
+    reports.accept(cockpit.bpmsApi);
+    return cockpit;
 
-    }
+  }
 
-    // --- a change arriving after the end ------------------------------------------------------
+  // --- what a report looks like -------------------------------------------------------------
 
-    @Test
-    void aChangeYoungerThanTheEndIsStoredWithoutReopeningTheTask() {
+  private static UserTaskCreatedEvent taskCreated() {
 
-        final var cockpit = cockpitWhichWasSent(api -> {
-            api.userTaskCreatedEvent(taskCreated());
-            api.userTaskCompletedEvent("task-1", taskCompleted());
-            api.userTaskUpdatedEvent("task-1", taskChanged(CHANGED_AFTER_THE_END, "Berta"));
-        });
+    return new UserTaskCreatedEvent()
+        .id("event-created")
+        .userTaskId("task-1")
+        .timestamp(CREATED_AT)
+        .workflowModuleId("taxi-ride")
+        .bpmnProcessId("ride")
+        .workflowId("workflow-1")
+        .taskDefinition("assign-driver")
+        .title(Map.of("en", "Assign a driver"))
+        .uiUriPath("/ui")
+        .uiUriType("WEBPACK_MF_REACT")
+        .dueDate(DUE_AT)
+        .details(new LinkedHashMap<>(Map.of("customer", "Anna")))
+        .detailsFulltextSearch("Anna");
 
-        final var stored = cockpit.storedTask();
-        assertEquals(ENDED_AT, stored.getEndedAt());
-        assertEquals(UserTaskEndReason.COMPLETED, stored.getEndReason());
-        // the change is the younger report and says what the case is about now
-        assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+  }
 
-    }
+  private static UserTaskUpdatedEvent taskChanged(
+      final OffsetDateTime timestamp,
+      final String customer) {
 
-    @Test
-    void aChangeYoungerThanTheEndIsStoredWithoutReopeningTheCase() {
+    return new UserTaskUpdatedEvent()
+        .id("event-changed-"
+            + customer)
+        .userTaskId("task-1")
+        .timestamp(timestamp)
+        .workflowModuleId("taxi-ride")
+        .bpmnProcessId("ride")
+        .workflowId("workflow-1")
+        .taskDefinition("assign-driver")
+        .title(Map.of("en", "Assign a driver"))
+        .uiUriPath("/ui")
+        .uiUriType("WEBPACK_MF_REACT")
+        .details(new LinkedHashMap<>(Map.of("customer", customer)))
+        .detailsFulltextSearch(customer);
 
-        final var cockpit = cockpitWhichWasSent(api -> {
-            api.workflowCreatedEvent(workflowCreated());
-            api.workflowCompletedEvent("workflow-1", workflowCompleted());
-            api.workflowUpdatedEvent("workflow-1", workflowChanged(CHANGED_AFTER_THE_END, "Berta"));
-        });
+  }
 
-        final var stored = cockpit.storedWorkflow();
-        assertEquals(ENDED_AT, stored.getEndedAt());
-        assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+  /**
+   * An end of the current API version carries the same fields as a change, and a BPMS which still
+   * knows the task fills them, so this is what the cockpit is sent for a task which was completed.
+   */
+  private static UserTaskCompletedEvent taskCompleted() {
 
-    }
+    return new UserTaskCompletedEvent()
+        .id("event-completed")
+        .userTaskId("task-1")
+        .timestamp(ENDED_AT)
+        .initiator("anna")
+        .dueDate(DUE_AT)
+        .workflowModuleId("taxi-ride")
+        .bpmnProcessId("ride")
+        .workflowId("workflow-1")
+        .taskDefinition("assign-driver")
+        .title(Map.of("en", "Assign a driver"))
+        .uiUriPath("/ui")
+        .uiUriType("WEBPACK_MF_REACT")
+        .details(new LinkedHashMap<>(Map.of("customer", "Anna")))
+        .detailsFulltextSearch("Anna");
 
-    @Test
-    void aSecondEndOfATaskChangesNothing() {
+  }
 
-        final var cockpit = cockpitWhichWasSent(api -> {
-            api.userTaskCreatedEvent(taskCreated());
-            api.userTaskCompletedEvent("task-1", taskCompleted());
-            api.userTaskCancelledEvent("task-1", new UserTaskCancelledEvent()
-                    .id("event-cancelled")
-                    .userTaskId("task-1")
-                    .timestamp(CHANGED_AFTER_THE_END)
-                    .comment("the ride was called off")
-                    .workflowModuleId("taxi-ride")
-                    .bpmnProcessId("ride")
-                    .taskDefinition("assign-driver")
-                    .title(Map.of("en", "Assign a driver"))
-                    .uiUriPath("/ui")
-                    .uiUriType("WEBPACK_MF_REACT"));
-        });
+  private static WorkflowCreatedEvent workflowCreated() {
 
-        final var stored = cockpit.storedTask();
-        assertEquals(ENDED_AT, stored.getEndedAt());
-        assertEquals(UserTaskEndReason.COMPLETED, stored.getEndReason());
+    return new WorkflowCreatedEvent()
+        .id("event-created")
+        .workflowId("workflow-1")
+        .timestamp(CREATED_AT)
+        .workflowModuleId("taxi-ride")
+        .bpmnProcessId("ride")
+        .title(Map.of("en", "A ride"))
+        .uiUriPath("/ui")
+        .uiUriType("WEBPACK_MF_REACT")
+        .details(new LinkedHashMap<>(Map.of("customer", "Anna")))
+        .detailsFulltextSearch("Anna");
 
-    }
+  }
 
-    // --- a change of a case the cockpit was never told was created ------------------------------
+  private static WorkflowUpdatedEvent workflowChanged(
+      final OffsetDateTime timestamp,
+      final String customer) {
 
-    /**
-     * A workflow module does not always report the start of a case. Some report a case first
-     * when it changes, for example a case which never had a user task. The cockpit stores such
-     * a change as a new case, and the time of the change stands in for the start.
-     */
-    @Test
-    void aChangeOfACaseTheCockpitNeverSawCreatesIt() {
+    return new WorkflowUpdatedEvent()
+        .id("event-changed-"
+            + customer)
+        .workflowId("workflow-1")
+        .timestamp(timestamp)
+        .workflowModuleId("taxi-ride")
+        .bpmnProcessId("ride")
+        .title(Map.of("en", "A ride"))
+        .uiUriPath("/ui")
+        .uiUriType("WEBPACK_MF_REACT")
+        .details(new LinkedHashMap<>(Map.of("customer", customer)))
+        .detailsFulltextSearch(customer);
 
-        final var cockpit = new Cockpit();
-        final var answer = cockpit.bpmsApi.workflowUpdatedEvent("workflow-1", workflowChanged(CHANGED_AT, "Berta"));
+  }
 
-        assertEquals(HttpStatus.OK, answer.getStatusCode());
-        final var stored = cockpit.storedWorkflow();
-        assertNotNull(stored, "the change of an unknown case has to create it");
-        assertEquals(CHANGED_AT, stored.getCreatedAt());
-        assertEquals(CHANGED_AT, stored.getLatestEventAt());
-        assertNull(stored.getEndedAt());
-        assertEquals("taxi-ride", stored.getWorkflowModuleId());
-        assertEquals("ride", stored.getBpmnProcessId());
-        assertEquals(Map.of("en", "A ride"), stored.getTitle());
-        assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+  private static WorkflowCompletedEvent workflowCompleted() {
 
-    }
+    return new WorkflowCompletedEvent()
+        .id("event-completed")
+        .workflowId("workflow-1")
+        .timestamp(ENDED_AT)
+        .workflowModuleId("taxi-ride")
+        .bpmnProcessId("ride")
+        .title(Map.of("en", "A ride"))
+        .uiUriPath("/ui")
+        .uiUriType("WEBPACK_MF_REACT")
+        .details(new LinkedHashMap<>(Map.of("customer", "Anna")))
+        .detailsFulltextSearch("Anna");
 
-    /**
-     * A change which created the case gave it the time of the change as its start. The creation
-     * may only have been late, and it knows when the case began. So it corrects the start, and
-     * leaves the rest of the case as the younger change stored it.
-     */
-    @Test
-    void aCreationArrivingAfterTheChangeWhichCreatedTheCaseCorrectsItsStart() {
+  }
 
-        final var cockpit = cockpitWhichWasSent(api -> {
-            api.workflowUpdatedEvent("workflow-1", workflowChanged(CHANGED_AT, "Berta"));
-            api.workflowCreatedEvent(workflowCreated());
-        });
+  /**
+   * What a stored user task is compared by. Left out is what the cockpit measures by its own clock
+   * ({@code reportedAt}) and what a save recomputes ({@code version}, {@code updatedAt}). Those
+   * say when the two runs happened, not what they stored.
+   */
+  private static Map<String, Object> comparable(
+      final UserTask task) {
 
-        final var stored = cockpit.storedWorkflow();
-        assertEquals(CREATED_AT, stored.getCreatedAt());
-        assertEquals(CHANGED_AT, stored.getLatestEventAt());
-        assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+    final var described = new LinkedHashMap<String, Object>();
+    described.put("id", task.getId());
+    described.put("createdAt", task.getCreatedAt());
+    described.put("latestEventAt", task.getLatestEventAt());
+    described.put("endedAt", task.getEndedAt());
+    described.put("endReason", task.getEndReason());
+    described.put("initiator", task.getInitiator());
+    described.put("workflowModuleId", task.getWorkflowModuleId());
+    described.put("bpmnProcessId", task.getBpmnProcessId());
+    described.put("taskDefinition", task.getTaskDefinition());
+    described.put("title", task.getTitle());
+    described.put("dueDate", task.getDueDate());
+    described.put("details", task.getDetails());
+    described.put("detailsFulltextSearch", task.getDetailsFulltextSearch());
+    return described;
 
-    }
+  }
 
-    /** A start later than the stored one corrects nothing, because the earlier start is known. */
-    @Test
-    void aCreationLaterThanTheStoredStartOfACaseChangesNothing() {
+  /** @see #comparable(UserTask) */
+  private static Map<String, Object> comparable(
+      final Workflow workflow) {
 
-        final var cockpit = cockpitWhichWasSent(api -> {
-            api.workflowUpdatedEvent("workflow-1", workflowChanged(CHANGED_AT, "Berta"));
-            api.workflowCreatedEvent(workflowCreated().timestamp(CHANGED_AFTER_THE_END));
-        });
+    final var described = new LinkedHashMap<String, Object>();
+    described.put("id", workflow.getId());
+    described.put("createdAt", workflow.getCreatedAt());
+    described.put("latestEventAt", workflow.getLatestEventAt());
+    described.put("endedAt", workflow.getEndedAt());
+    described.put("workflowModuleId", workflow.getWorkflowModuleId());
+    described.put("bpmnProcessId", workflow.getBpmnProcessId());
+    described.put("title", workflow.getTitle());
+    described.put("details", workflow.getDetails());
+    described.put("detailsFulltextSearch", workflow.getDetailsFulltextSearch());
+    return described;
 
-        final var stored = cockpit.storedWorkflow();
-        assertEquals(CHANGED_AT, stored.getCreatedAt());
-        assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+  }
 
-    }
+  // --- a completion arriving before the creation it completes -------------------------------
 
-    @Test
-    void aCreationArrivingAfterTheChangeWhichCreatedTheTaskCorrectsItsStart() {
+  @Test
+  void aCompletedTaskTheCockpitNeverSawIsStoredAsEnded() {
 
-        final var cockpit = cockpitWhichWasSent(api -> {
-            api.userTaskUpdatedEvent("task-1", taskChanged(CHANGED_AT, "Berta"));
-            api.userTaskCreatedEvent(taskCreated());
-        });
+    final var cockpit = cockpitWhichWasSent(
+        api -> api.userTaskCompletedEvent("task-1", taskCompleted()));
 
-        final var stored = cockpit.storedTask();
-        assertEquals(CREATED_AT, stored.getCreatedAt());
-        assertEquals(CHANGED_AT, stored.getLatestEventAt());
-        assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+    final var stored = cockpit.storedTask();
+    assertNotNull(stored, "the completion of an unknown task has to create it");
+    assertEquals(ENDED_AT, stored.getEndedAt());
+    assertEquals(UserTaskEndReason.COMPLETED, stored.getEndReason());
+    // this end does not say when the task began, so the task starts at its end. The task
+    // still waits for the creation, which will say when it began
+    assertEquals(ENDED_AT, stored.getCreatedAt());
+    assertTrue(stored.isKnownFromItsEndAlone());
 
-    }
+  }
 
-    @Test
-    void aCreationLaterThanTheStoredStartOfATaskChangesNothing() {
+  @Test
+  void aCreationArrivingAfterTheCompletionDoesNotReopenTheTask() {
 
-        final var cockpit = cockpitWhichWasSent(api -> {
-            api.userTaskUpdatedEvent("task-1", taskChanged(CHANGED_AT, "Berta"));
-            api.userTaskCreatedEvent(taskCreated().timestamp(CHANGED_AFTER_THE_END));
-        });
+    final var cockpit = cockpitWhichWasSent(api -> {
+      api.userTaskCompletedEvent("task-1", taskCompleted());
+      api.userTaskCreatedEvent(taskCreated());
+    });
 
-        final var stored = cockpit.storedTask();
-        assertEquals(CHANGED_AT, stored.getCreatedAt());
-        assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+    final var stored = cockpit.storedTask();
+    assertEquals(ENDED_AT, stored.getEndedAt());
+    assertEquals(UserTaskEndReason.COMPLETED, stored.getEndReason());
+    // and it did fill in what the end could not report
+    assertEquals(CREATED_AT, stored.getCreatedAt());
 
-    }
+  }
 
-    @Test
-    void aCaseCreatedByAChangeCanBeCompleted() {
+  @Test
+  void bothOrdersOfACreationAndACompletionStoreTheSameTask() {
 
-        final var cockpit = cockpitWhichWasSent(api -> {
-            api.workflowUpdatedEvent("workflow-1", workflowChanged(CHANGED_AT, "Berta"));
-            api.workflowCompletedEvent("workflow-1", workflowCompleted());
-        });
+    final var inOrder = cockpitWhichWasSent(api -> {
+      api.userTaskCreatedEvent(taskCreated());
+      api.userTaskCompletedEvent("task-1", taskCompleted());
+    });
+    final var swapped = cockpitWhichWasSent(api -> {
+      api.userTaskCompletedEvent("task-1", taskCompleted());
+      api.userTaskCreatedEvent(taskCreated());
+    });
 
-        final var stored = cockpit.storedWorkflow();
-        assertEquals(CHANGED_AT, stored.getCreatedAt());
-        assertEquals(ENDED_AT, stored.getEndedAt());
+    assertEquals(comparable(inOrder.storedTask()), comparable(swapped.storedTask()));
 
-    }
+  }
 
-    // --- what the log says about a report which changed nothing -------------------------------
+  @Test
+  void aCompletedCaseTheCockpitNeverSawIsStoredAsEnded() {
 
-    @Test
-    void aReportWhichChangedNothingIsSaidOutLoud() {
+    final var cockpit = cockpitWhichWasSent(
+        api -> api.workflowCompletedEvent("workflow-1", workflowCompleted()));
 
-        final var cockpit = cockpitWhichWasSent(api -> {
-            api.userTaskCreatedEvent(taskCreated());
-            api.userTaskUpdatedEvent("task-1", taskChanged(ENDED_AT, "Berta"));
-            api.userTaskUpdatedEvent("task-1", taskChanged(CHANGED_AT, "Anna"));
-        });
+    final var stored = cockpit.storedWorkflow();
+    assertNotNull(stored, "the completion of an unknown case has to create it");
+    assertEquals(ENDED_AT, stored.getEndedAt());
+    assertEquals(ENDED_AT, stored.getCreatedAt());
+    assertTrue(stored.isKnownFromItsEndAlone());
 
-        // a change a workflow module sent and nobody finds in the cockpit has to be findable in the
-        // log, with the task and both timestamps in it
-        verify(cockpit.logger, atLeastOnce()).info(
-                contains("Keeping user task"),
-                eq("task-1"),
-                eq("change"),
-                eq(CHANGED_AT),
-                eq(ENDED_AT));
+  }
 
-    }
+  @Test
+  void bothOrdersOfACreationAndACompletionStoreTheSameCase() {
+
+    final var inOrder = cockpitWhichWasSent(api -> {
+      api.workflowCreatedEvent(workflowCreated());
+      api.workflowCompletedEvent("workflow-1", workflowCompleted());
+    });
+    final var swapped = cockpitWhichWasSent(api -> {
+      api.workflowCompletedEvent("workflow-1", workflowCompleted());
+      api.workflowCreatedEvent(workflowCreated());
+    });
+
+    assertEquals(comparable(inOrder.storedWorkflow()), comparable(swapped.storedWorkflow()));
+
+  }
+
+  // --- a change arriving after the change which followed it ---------------------------------
+
+  @Test
+  void anOlderChangeDoesNotOverwriteAYoungerOneOfATask() {
+
+    final var cockpit = cockpitWhichWasSent(api -> {
+      api.userTaskCreatedEvent(taskCreated());
+      api.userTaskUpdatedEvent("task-1", taskChanged(ENDED_AT, "Berta"));
+      api.userTaskUpdatedEvent("task-1", taskChanged(CHANGED_AT, "Anna"));
+    });
+
+    final var stored = cockpit.storedTask();
+    assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+    assertEquals(ENDED_AT, stored.getLatestEventAt());
+
+  }
+
+  @Test
+  void anOlderChangeDoesNotOverwriteAYoungerOneOfACase() {
+
+    final var cockpit = cockpitWhichWasSent(api -> {
+      api.workflowCreatedEvent(workflowCreated());
+      api.workflowUpdatedEvent("workflow-1", workflowChanged(ENDED_AT, "Berta"));
+      api.workflowUpdatedEvent("workflow-1", workflowChanged(CHANGED_AT, "Anna"));
+    });
+
+    final var stored = cockpit.storedWorkflow();
+    assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+    assertEquals(ENDED_AT, stored.getLatestEventAt());
+
+  }
+
+  @Test
+  void bothOrdersOfTwoChangesStoreTheSameTask() {
+
+    final var inOrder = cockpitWhichWasSent(api -> {
+      api.userTaskCreatedEvent(taskCreated());
+      api.userTaskUpdatedEvent("task-1", taskChanged(CHANGED_AT, "Anna"));
+      api.userTaskUpdatedEvent("task-1", taskChanged(ENDED_AT, "Berta"));
+    });
+    final var swapped = cockpitWhichWasSent(api -> {
+      api.userTaskCreatedEvent(taskCreated());
+      api.userTaskUpdatedEvent("task-1", taskChanged(ENDED_AT, "Berta"));
+      api.userTaskUpdatedEvent("task-1", taskChanged(CHANGED_AT, "Anna"));
+    });
+
+    assertEquals(comparable(inOrder.storedTask()), comparable(swapped.storedTask()));
+
+  }
+
+  // --- a change arriving after the end ------------------------------------------------------
+
+  @Test
+  void aChangeYoungerThanTheEndIsStoredWithoutReopeningTheTask() {
+
+    final var cockpit = cockpitWhichWasSent(api -> {
+      api.userTaskCreatedEvent(taskCreated());
+      api.userTaskCompletedEvent("task-1", taskCompleted());
+      api.userTaskUpdatedEvent("task-1", taskChanged(CHANGED_AFTER_THE_END, "Berta"));
+    });
+
+    final var stored = cockpit.storedTask();
+    assertEquals(ENDED_AT, stored.getEndedAt());
+    assertEquals(UserTaskEndReason.COMPLETED, stored.getEndReason());
+    // the change is the younger report and says what the case is about now
+    assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+
+  }
+
+  @Test
+  void aChangeYoungerThanTheEndIsStoredWithoutReopeningTheCase() {
+
+    final var cockpit = cockpitWhichWasSent(api -> {
+      api.workflowCreatedEvent(workflowCreated());
+      api.workflowCompletedEvent("workflow-1", workflowCompleted());
+      api.workflowUpdatedEvent("workflow-1", workflowChanged(CHANGED_AFTER_THE_END, "Berta"));
+    });
+
+    final var stored = cockpit.storedWorkflow();
+    assertEquals(ENDED_AT, stored.getEndedAt());
+    assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+
+  }
+
+  @Test
+  void aSecondEndOfATaskChangesNothing() {
+
+    final var cockpit = cockpitWhichWasSent(api -> {
+      api.userTaskCreatedEvent(taskCreated());
+      api.userTaskCompletedEvent("task-1", taskCompleted());
+      api.userTaskCancelledEvent("task-1", new UserTaskCancelledEvent()
+          .id("event-cancelled")
+          .userTaskId("task-1")
+          .timestamp(CHANGED_AFTER_THE_END)
+          .comment("the ride was called off")
+          .workflowModuleId("taxi-ride")
+          .bpmnProcessId("ride")
+          .taskDefinition("assign-driver")
+          .title(Map.of("en", "Assign a driver"))
+          .uiUriPath("/ui")
+          .uiUriType("WEBPACK_MF_REACT"));
+    });
+
+    final var stored = cockpit.storedTask();
+    assertEquals(ENDED_AT, stored.getEndedAt());
+    assertEquals(UserTaskEndReason.COMPLETED, stored.getEndReason());
+
+  }
+
+  // --- a change of a case the cockpit was never told was created ------------------------------
+
+  /**
+   * A workflow module does not always report the start of a case. Some report a case first
+   * when it changes, for example a case which never had a user task. The cockpit stores such
+   * a change as a new case, and the time of the change stands in for the start.
+   */
+  @Test
+  void aChangeOfACaseTheCockpitNeverSawCreatesIt() {
+
+    final var cockpit = new Cockpit();
+    final var answer = cockpit.bpmsApi.workflowUpdatedEvent("workflow-1", workflowChanged(CHANGED_AT, "Berta"));
+
+    assertEquals(HttpStatus.OK, answer.getStatusCode());
+    final var stored = cockpit.storedWorkflow();
+    assertNotNull(stored, "the change of an unknown case has to create it");
+    assertEquals(CHANGED_AT, stored.getCreatedAt());
+    assertEquals(CHANGED_AT, stored.getLatestEventAt());
+    assertNull(stored.getEndedAt());
+    assertEquals("taxi-ride", stored.getWorkflowModuleId());
+    assertEquals("ride", stored.getBpmnProcessId());
+    assertEquals(Map.of("en", "A ride"), stored.getTitle());
+    assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+
+  }
+
+  /**
+   * A change which created the case gave it the time of the change as its start. The creation
+   * may only have been late, and it knows when the case began. So it corrects the start, and
+   * leaves the rest of the case as the younger change stored it.
+   */
+  @Test
+  void aCreationArrivingAfterTheChangeWhichCreatedTheCaseCorrectsItsStart() {
+
+    final var cockpit = cockpitWhichWasSent(api -> {
+      api.workflowUpdatedEvent("workflow-1", workflowChanged(CHANGED_AT, "Berta"));
+      api.workflowCreatedEvent(workflowCreated());
+    });
+
+    final var stored = cockpit.storedWorkflow();
+    assertEquals(CREATED_AT, stored.getCreatedAt());
+    assertEquals(CHANGED_AT, stored.getLatestEventAt());
+    assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+
+  }
+
+  /** A start later than the stored one corrects nothing, because the earlier start is known. */
+  @Test
+  void aCreationLaterThanTheStoredStartOfACaseChangesNothing() {
+
+    final var cockpit = cockpitWhichWasSent(api -> {
+      api.workflowUpdatedEvent("workflow-1", workflowChanged(CHANGED_AT, "Berta"));
+      api.workflowCreatedEvent(workflowCreated().timestamp(CHANGED_AFTER_THE_END));
+    });
+
+    final var stored = cockpit.storedWorkflow();
+    assertEquals(CHANGED_AT, stored.getCreatedAt());
+    assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+
+  }
+
+  @Test
+  void aCreationArrivingAfterTheChangeWhichCreatedTheTaskCorrectsItsStart() {
+
+    final var cockpit = cockpitWhichWasSent(api -> {
+      api.userTaskUpdatedEvent("task-1", taskChanged(CHANGED_AT, "Berta"));
+      api.userTaskCreatedEvent(taskCreated());
+    });
+
+    final var stored = cockpit.storedTask();
+    assertEquals(CREATED_AT, stored.getCreatedAt());
+    assertEquals(CHANGED_AT, stored.getLatestEventAt());
+    assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+
+  }
+
+  @Test
+  void aCreationLaterThanTheStoredStartOfATaskChangesNothing() {
+
+    final var cockpit = cockpitWhichWasSent(api -> {
+      api.userTaskUpdatedEvent("task-1", taskChanged(CHANGED_AT, "Berta"));
+      api.userTaskCreatedEvent(taskCreated().timestamp(CHANGED_AFTER_THE_END));
+    });
+
+    final var stored = cockpit.storedTask();
+    assertEquals(CHANGED_AT, stored.getCreatedAt());
+    assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+
+  }
+
+  @Test
+  void aCaseCreatedByAChangeCanBeCompleted() {
+
+    final var cockpit = cockpitWhichWasSent(api -> {
+      api.workflowUpdatedEvent("workflow-1", workflowChanged(CHANGED_AT, "Berta"));
+      api.workflowCompletedEvent("workflow-1", workflowCompleted());
+    });
+
+    final var stored = cockpit.storedWorkflow();
+    assertEquals(CHANGED_AT, stored.getCreatedAt());
+    assertEquals(ENDED_AT, stored.getEndedAt());
+
+  }
+
+  // --- what the log says about a report which changed nothing -------------------------------
+
+  @Test
+  void aReportWhichChangedNothingIsSaidOutLoud() {
+
+    final var cockpit = cockpitWhichWasSent(api -> {
+      api.userTaskCreatedEvent(taskCreated());
+      api.userTaskUpdatedEvent("task-1", taskChanged(ENDED_AT, "Berta"));
+      api.userTaskUpdatedEvent("task-1", taskChanged(CHANGED_AT, "Anna"));
+    });
+
+    // a change a workflow module sent and nobody finds in the cockpit has to be findable in the
+    // log, with the task and both timestamps in it
+    verify(cockpit.logger, atLeastOnce()).info(
+        contains("Keeping user task"),
+        eq("task-1"),
+        eq("change"),
+        eq(CHANGED_AT),
+        eq(ENDED_AT));
+
+  }
 
 }

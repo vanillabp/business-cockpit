@@ -1,10 +1,12 @@
 package io.vanillabp.cockpit.bpms;
 
-import com.mongodb.MongoServerException;
-import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
 import org.bson.BsonMaximumSizeExceededException;
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.data.mapping.MappingException;
+
+import com.mongodb.MongoServerException;
+
+import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
 
 /**
  * What came of storing a report: the cockpit is up to date about the record, or the save failed.
@@ -39,139 +41,139 @@ import org.springframework.data.mapping.MappingException;
  */
 public final class OutcomeOfStoring {
 
-    /** The error code MongoDB answers a write with which breaks the validation rules of the collection. */
-    static final int DOCUMENT_VALIDATION_FAILURE = 121;
+  /** The error code MongoDB answers a write with which breaks the validation rules of the collection. */
+  static final int DOCUMENT_VALIDATION_FAILURE = 121;
 
-    private static final OutcomeOfStoring UP_TO_DATE = new OutcomeOfStoring(null, null, false);
+  private static final OutcomeOfStoring UP_TO_DATE = new OutcomeOfStoring(null, null, false);
 
-    private final String record;
+  private final String record;
 
-    private final Exception failure;
+  private final Exception failure;
 
-    private final boolean failsEveryTime;
+  private final boolean failsEveryTime;
 
-    private OutcomeOfStoring(
-            final String record,
-            final Exception failure,
-            final boolean failsEveryTime) {
+  private OutcomeOfStoring(
+      final String record,
+      final Exception failure,
+      final boolean failsEveryTime) {
 
-        this.record = record;
-        this.failure = failure;
-        this.failsEveryTime = failsEveryTime;
+    this.record = record;
+    this.failure = failure;
+    this.failsEveryTime = failsEveryTime;
 
+  }
+
+  /**
+   * The outcome of a report which needs nothing more.
+   *
+   * @return The outcome of a report which was stored, or which changed nothing because the
+   *         cockpit knows something younger already
+   */
+  public static OutcomeOfStoring upToDate() {
+
+    return UP_TO_DATE;
+
+  }
+
+  /**
+   * The outcome of a save which threw. It looks at the causes to tell whether the same report
+   * can go through when it comes again.
+   *
+   * @param record The record the report is about, like "user task 'task-1'"
+   * @param failure What the save threw
+   * @return The outcome of a save which failed, sorted into one of the two kinds
+   */
+  public static OutcomeOfStoring saveFailed(
+      final String record,
+      final Exception failure) {
+
+    return new OutcomeOfStoring(record, failure, failsEveryTime(failure));
+
+  }
+
+  private static boolean failsEveryTime(
+      final Throwable failure) {
+
+    for (var cause = failure; cause != null; cause = cause.getCause()) {
+      if ((cause instanceof BsonMaximumSizeExceededException) || (cause instanceof MappingException)) {
+        return true;
+      }
+      if ((cause instanceof MongoServerException server) && (server.getCode() == DOCUMENT_VALIDATION_FAILURE)) {
+        return true;
+      }
     }
+    return false;
 
-    /**
-     * The outcome of a report which needs nothing more.
-     *
-     * @return The outcome of a report which was stored, or which changed nothing because the
-     *         cockpit knows something younger already
-     */
-    public static OutcomeOfStoring upToDate() {
+  }
 
-        return UP_TO_DATE;
+  /**
+   * Tells whether nothing failed.
+   *
+   * @return Whether the cockpit is up to date about the record now
+   */
+  public boolean isUpToDate() {
 
+    return failure == null;
+
+  }
+
+  /**
+   * Tells whether sending the report again is of no use.
+   *
+   * @return Whether the save failed in a way which no repetition of the report can change
+   */
+  public boolean failsEveryTime() {
+
+    return failsEveryTime;
+
+  }
+
+  /**
+   * The exception of a failed save, for the log.
+   *
+   * @return What the save threw, or {@code null} if nothing failed
+   */
+  public Exception failure() {
+
+    return failure;
+
+  }
+
+  /**
+   * The reason of a failed save in words.
+   *
+   * @return One line which says what could not be stored and why, short enough for the body of
+   *         an answer and for a log line. It names the record and the most specific cause, and
+   *         never a value of the report.
+   */
+  public String reason() {
+
+    if (failure == null) {
+      return "Nothing failed";
     }
-
-    /**
-     * The outcome of a save which threw. It looks at the causes to tell whether the same report
-     * can go through when it comes again.
-     *
-     * @param record The record the report is about, like "user task 'task-1'"
-     * @param failure What the save threw
-     * @return The outcome of a save which failed, sorted into one of the two kinds
-     */
-    public static OutcomeOfStoring saveFailed(
-            final String record,
-            final Exception failure) {
-
-        return new OutcomeOfStoring(record, failure, failsEveryTime(failure));
-
+    final var cause = NestedExceptionUtils.getMostSpecificCause(failure);
+    if (cause instanceof BsonMaximumSizeExceededException) {
+      return "The %s cannot be stored: it is larger than the 16 MB MongoDB takes for one document."
+          .formatted(record);
     }
-
-    private static boolean failsEveryTime(
-            final Throwable failure) {
-
-        for (var cause = failure; cause != null; cause = cause.getCause()) {
-            if ((cause instanceof BsonMaximumSizeExceededException)
-                    || (cause instanceof MappingException)) {
-                return true;
-            }
-            if ((cause instanceof MongoServerException server)
-                    && (server.getCode() == DOCUMENT_VALIDATION_FAILURE)) {
-                return true;
-            }
-        }
-        return false;
-
+    if (cause instanceof MappingException) {
+      final var reason = "The %s cannot be stored: it does not fit the form MongoDB stores it in. %s"
+          .formatted(record, cause.getMessage());
+      // a key with a dot can be stored once the cockpit is told what to write instead, and
+      // the sender's log is where somebody looks first, so the answer says how and what it costs
+      return MapKeyDotReplacement
+          .hintFor(cause.getMessage())
+          .map(hint -> reason
+              + " "
+              + hint)
+          .orElse(reason);
     }
-
-    /**
-     * Tells whether nothing failed.
-     *
-     * @return Whether the cockpit is up to date about the record now
-     */
-    public boolean isUpToDate() {
-
-        return failure == null;
-
+    if (failsEveryTime) {
+      return "The %s cannot be stored: MongoDB refuses it, because it breaks the validation rules of the collection."
+          .formatted(record);
     }
+    return "The %s could not be stored for now: %s".formatted(record, cause.getClass().getSimpleName());
 
-    /**
-     * Tells whether sending the report again is of no use.
-     *
-     * @return Whether the save failed in a way which no repetition of the report can change
-     */
-    public boolean failsEveryTime() {
-
-        return failsEveryTime;
-
-    }
-
-    /**
-     * The exception of a failed save, for the log.
-     *
-     * @return What the save threw, or {@code null} if nothing failed
-     */
-    public Exception failure() {
-
-        return failure;
-
-    }
-
-    /**
-     * The reason of a failed save in words.
-     *
-     * @return One line which says what could not be stored and why, short enough for the body of
-     *         an answer and for a log line. It names the record and the most specific cause, and
-     *         never a value of the report.
-     */
-    public String reason() {
-
-        if (failure == null) {
-            return "Nothing failed";
-        }
-        final var cause = NestedExceptionUtils.getMostSpecificCause(failure);
-        if (cause instanceof BsonMaximumSizeExceededException) {
-            return "The %s cannot be stored: it is larger than the 16 MB MongoDB takes for one document."
-                    .formatted(record);
-        }
-        if (cause instanceof MappingException) {
-            final var reason = "The %s cannot be stored: it does not fit the form MongoDB stores it in. %s"
-                    .formatted(record, cause.getMessage());
-            // a key with a dot can be stored once the cockpit is told what to write instead, and
-            // the sender's log is where somebody looks first, so the answer says how and what it costs
-            return MapKeyDotReplacement
-                    .hintFor(cause.getMessage())
-                    .map(hint -> reason + " " + hint)
-                    .orElse(reason);
-        }
-        if (failsEveryTime) {
-            return "The %s cannot be stored: MongoDB refuses it, because it breaks the validation rules of the collection."
-                    .formatted(record);
-        }
-        return "The %s could not be stored for now: %s".formatted(record, cause.getClass().getSimpleName());
-
-    }
+  }
 
 }

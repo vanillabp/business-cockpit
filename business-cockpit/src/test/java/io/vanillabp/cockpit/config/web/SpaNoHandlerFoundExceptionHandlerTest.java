@@ -2,13 +2,14 @@ package io.vanillabp.cockpit.config.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * An unknown path gets the shell of the single-page application if the application has one, and
@@ -18,37 +19,37 @@ import org.springframework.test.util.ReflectionTestUtils;
 @ExtendWith(SuppressOutputExtension.class)
 class SpaNoHandlerFoundExceptionHandlerTest {
 
-    private SpaNoHandlerFoundExceptionHandler handlerWithShellAt(
-            final String defaultFile) {
+  private SpaNoHandlerFoundExceptionHandler handlerWithShellAt(
+      final String defaultFile) {
 
-        final var handler = new SpaNoHandlerFoundExceptionHandler();
-        ReflectionTestUtils.setField(handler, "defaultFile", defaultFile);
-        ReflectionTestUtils.setField(handler, "resourceLoader", new DefaultResourceLoader());
-        return handler;
+    final var handler = new SpaNoHandlerFoundExceptionHandler();
+    ReflectionTestUtils.setField(handler, "defaultFile", defaultFile);
+    ReflectionTestUtils.setField(handler, "resourceLoader", new DefaultResourceLoader());
+    return handler;
 
-    }
+  }
 
-    @Test
-    void anApplicationWithoutAShellAnswersNotFound() {
+  @Test
+  void anApplicationWithoutAShellAnswersNotFound() {
 
-        final var response = handlerWithShellAt("classpath:/static/index.html").handleNotFound();
+    final var response = handlerWithShellAt("classpath:/static/index.html").handleNotFound();
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(response.getBody()).isNull();
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    assertThat(response.getBody()).isNull();
 
-    }
+  }
 
-    @Test
-    void anApplicationWithAShellAnswersWithIt() {
+  @Test
+  void anApplicationWithAShellAnswersWithIt() {
 
-        // any file on the class path stands in for a shell here
-        final var response = handlerWithShellAt("classpath:/api/gui/v1.yaml").handleNotFound();
+    // any file on the class path stands in for a shell here
+    final var response = handlerWithShellAt("classpath:/api/gui/v1.yaml").handleNotFound();
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.TEXT_HTML);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().exists()).isTrue();
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.TEXT_HTML);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().exists()).isTrue();
 
-    }
+  }
 
 }

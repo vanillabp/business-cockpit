@@ -1,11 +1,12 @@
 ---
+
 name: business-cockpit-user-interface
 description: Build a user interface for the VanillaBP Business Cockpit in any web framework, and the dev shell that goes with it. Describes the GUI API with its paging, sorting, filtering over reported business data and server-sent events, the module federation contract with the four parts UserTaskForm, WorkflowPage, UserTaskList and WorkflowList, the types of @vanillabp/bc-types and @vanillabp/bc-shared, the behaviour a user expects, and what a cockpit user interface never does. Use whenever somebody wants their own Business Cockpit front end, whenever the delivered React application is to be replaced or ported to Angular, Vue or anything else, and whenever a user task form or a workflow page has to be loaded into a cockpit.
 license: Apache-2.0
 metadata:
-  author: vanillabp
-  homepage: https://www.vanillabp.io
----
+author: vanillabp
+homepage: https://www.vanillabp.io
+----------------------------------
 
 # Ein Business-Cockpit-UI selbst bauen
 

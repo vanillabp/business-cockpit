@@ -1,7 +1,5 @@
 package io.vanillabp.cockpit.users;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
-import io.vanillabp.cockpit.users.model.User;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -9,12 +7,16 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+
+import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.users.model.User;
 
 /**
  * Upserts the {@code users} document of an authenticated user at login, so the notification
@@ -28,69 +30,69 @@ import org.springframework.data.mongodb.core.query.Update;
  */
 public class UserLoginUpsertService {
 
-    private static final Logger logger = LoggerFactory.getLogger(UserLoginUpsertService.class);
+  private static final Logger logger = LoggerFactory.getLogger(UserLoginUpsertService.class);
 
-    private final MongoTemplate mongoTemplate;
+  private final MongoTemplate mongoTemplate;
 
-    private final Duration throttle;
+  private final Duration throttle;
 
-    private final Clock clock;
+  private final Clock clock;
 
-    private final Map<String, Instant> lastUpsertPerUser = new ConcurrentHashMap<>();
+  private final Map<String, Instant> lastUpsertPerUser = new ConcurrentHashMap<>();
 
-    /**
-     * Creates the service.
-     *
-     * @param mongoTemplate Used to write the user document
-     * @param throttle How long a node waits before it writes the document of the same user again
-     * @param clock Gives the time of the login
-     */
-    public UserLoginUpsertService(
-            final MongoTemplate mongoTemplate,
-            final Duration throttle,
-            final Clock clock) {
+  /**
+   * Creates the service.
+   *
+   * @param mongoTemplate Used to write the user document
+   * @param throttle How long a node waits before it writes the document of the same user again
+   * @param clock Gives the time of the login
+   */
+  public UserLoginUpsertService(
+      final MongoTemplate mongoTemplate,
+      final Duration throttle,
+      final Clock clock) {
 
-        this.mongoTemplate = mongoTemplate;
-        this.throttle = throttle;
-        this.clock = clock;
+    this.mongoTemplate = mongoTemplate;
+    this.throttle = throttle;
+    this.clock = clock;
 
+  }
+
+  /**
+   * Creates or refreshes the {@code users} document of the given authenticated user. It keeps
+   * whatever notification configuration is stored and refreshes {@code lastLoggedIn} and
+   * {@code email} only.
+   *
+   * @param userDetails The user who logged in. Nothing is written if it is {@code null} or has no
+   *        id.
+   */
+  public void upsertOnLogin(
+      final UserDetails userDetails) {
+
+    if (userDetails == null || userDetails.getId() == null) {
+      return;
     }
 
-    /**
-     * Creates or refreshes the {@code users} document of the given authenticated user. It keeps
-     * whatever notification configuration is stored and refreshes {@code lastLoggedIn} and
-     * {@code email} only.
-     *
-     * @param userDetails The user who logged in. Nothing is written if it is {@code null} or has no
-     *        id.
-     */
-    public void upsertOnLogin(
-            final UserDetails userDetails) {
-
-        if (userDetails == null || userDetails.getId() == null) {
-            return;
-        }
-
-        final var userId = userDetails.getId();
-        final var now = clock.instant();
-        final var previous = lastUpsertPerUser.get(userId);
-        if (previous != null && Duration.between(previous, now).compareTo(throttle) < 0) {
-            return;
-        }
-        lastUpsertPerUser.put(userId, now);
-
-        // atomic, lock-free upsert: only set lastLoggedIn/email, preserving any existing config and
-        // not engaging the @Version optimistic lock, so concurrent requests cannot conflict
-        final var query = Query.query(Criteria.where("_id").is(userId));
-        final var update = new Update()
-                .set("lastLoggedIn", OffsetDateTime.ofInstant(now, ZoneOffset.UTC))
-                .set("email", userDetails.getEmail());
-        try {
-            mongoTemplate.upsert(query, update, User.class);
-        } catch (Exception e) {
-            logger.warn("Could not upsert user '{}' on login", userId, e);
-        }
-
+    final var userId = userDetails.getId();
+    final var now = clock.instant();
+    final var previous = lastUpsertPerUser.get(userId);
+    if (previous != null && Duration.between(previous, now).compareTo(throttle) < 0) {
+      return;
     }
+    lastUpsertPerUser.put(userId, now);
+
+    // atomic, lock-free upsert: only set lastLoggedIn/email, preserving any existing config and
+    // not engaging the @Version optimistic lock, so concurrent requests cannot conflict
+    final var query = Query.query(Criteria.where("_id").is(userId));
+    final var update = new Update()
+        .set("lastLoggedIn", OffsetDateTime.ofInstant(now, ZoneOffset.UTC))
+        .set("email", userDetails.getEmail());
+    try {
+      mongoTemplate.upsert(query, update, User.class);
+    } catch (Exception e) {
+      logger.warn("Could not upsert user '{}' on login", userId, e);
+    }
+
+  }
 
 }

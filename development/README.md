@@ -18,10 +18,10 @@ This file is about working on the cockpit itself.
 **Contents:**
 
 1. [MongoDB](#mongodb)
-1. [Notification e-mails (Mailpit)](#notification-e-mails-mailpit)
-1. [Kafka](#kafka)
-1. [Build and Run the Business Cockpit](#build-and-run-the-business-cockpit)
-1. [Simulation Service](#simulation-service)
+2. [Notification e-mails (Mailpit)](#notification-e-mails-mailpit)
+3. [Kafka](#kafka)
+4. [Build and Run the Business Cockpit](#build-and-run-the-business-cockpit)
+5. [Simulation Service](#simulation-service)
 
 The Business Cockpit is a Java Spring Boot application without a user interface. One thing has to
 run before it starts: a [MongoDB cluster](#mongodb). The provided compose configuration also brings
@@ -35,7 +35,6 @@ cd development
 docker-compose up -d
 ```
 
-
 ## MongoDB
 
 The cockpit reads MongoDB's change stream, which MongoDB offers on a replica set only, so the local
@@ -43,12 +42,12 @@ one is a single-node replica set as well. `docker-compose up -d` starts it.
 
 A database tool connects with these:
 
-| | |
-|---|---|
-| Host | `business-cockpit-mongo`, port 27017 |
-| Replica set | `rs-business-cockpit` |
+|                   |                                                                                    |
+|-------------------|------------------------------------------------------------------------------------|
+| Host              | `business-cockpit-mongo`, port 27017                                               |
+| Replica set       | `rs-business-cockpit`                                                              |
 | User and password | `business-cockpit` / `business-cockpit`, authenticating against `business-cockpit` |
-| Database | `business-cockpit` |
+| Database          | `business-cockpit`                                                                 |
 
 The replica set names its member `business-cockpit-mongo`, and a tool follows that name, so it has
 to resolve. Add it to `/etc/hosts`, or to `C:\Windows\System32\drivers\etc\hosts` on Windows:
@@ -84,9 +83,9 @@ Notifications are switched off per user (the default is "none"). So, to receive 
 
 1. Log in to the business cockpit. The user record, including the e-mail address reported by the
    user directory, is stored on login - a user who never logged in is never notified.
-1. Open the notification settings of that user and switch on e-mail, either globally or for the
+2. Open the notification settings of that user and switch on e-mail, either globally or for the
    workflow you are about to test.
-1. Report a user task, e.g. by the [simulation service](#simulation-service).
+3. Report a user task, e.g. by the [simulation service](#simulation-service).
 
 Check the result using the Mailpit REST API:
 

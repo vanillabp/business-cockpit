@@ -5,18 +5,18 @@ package io.vanillabp.cockpit.tasklist.model;
  */
 public interface WorkflowModuleAndUrl {
 
-    /**
-     * The id of the workflow module.
-     *
-     * @return The id
-     */
-    String getId();
-    
-    /**
-     * The URL the workflow module is reached at.
-     *
-     * @return The URL
-     */
-    String getUrl();
-    
+  /**
+   * The id of the workflow module.
+   *
+   * @return The id
+   */
+  String getId();
+
+  /**
+   * The URL the workflow module is reached at.
+   *
+   * @return The URL
+   */
+  String getUrl();
+
 }

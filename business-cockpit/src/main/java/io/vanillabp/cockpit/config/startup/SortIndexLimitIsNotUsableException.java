@@ -11,38 +11,42 @@ package io.vanillabp.cockpit.config.startup;
  */
 public class SortIndexLimitIsNotUsableException extends RuntimeException {
 
-    private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 1L;
 
-    private static final String WHAT_TO_DO =
-            "Change the value, or leave the property out:\n\n" + SortIndexLimit.whatToSet();
+  private static final String WHAT_TO_DO = "Change the value, or leave the property out:\n\n"
+      + SortIndexLimit.whatToSet();
 
-    /**
-     * Which value cannot be used and why, for the description of the failure report.
-     */
-    private final String whatIsWrong;
+  /**
+   * Which value cannot be used and why, for the description of the failure report.
+   */
+  private final String whatIsWrong;
 
-    SortIndexLimitIsNotUsableException(
-            final String reason) {
+  SortIndexLimitIsNotUsableException(
+      final String reason) {
 
-        super(whatIsWrong(reason) + "\n\n" + WHAT_TO_DO);
-        this.whatIsWrong = whatIsWrong(reason);
+    super(whatIsWrong(reason)
+        + "\n\n"
+        + WHAT_TO_DO);
+    this.whatIsWrong = whatIsWrong(reason);
 
-    }
+  }
 
-    private static String whatIsWrong(
-            final String reason) {
+  private static String whatIsWrong(
+      final String reason) {
 
-        return "The Business Cockpit cannot use the limit of indexes for sorting, '"
-                + CockpitConfiguration.MONGODB_SORT_INDEXES_PER_COLLECTION + "'. " + reason;
+    return "The Business Cockpit cannot use the limit of indexes for sorting, '"
+        + CockpitConfiguration.MONGODB_SORT_INDEXES_PER_COLLECTION
+        + "'. "
+        + reason;
 
-    }
+  }
 
-    String describeWhatIsWrong() {
-        return whatIsWrong;
-    }
+  String describeWhatIsWrong() {
+    return whatIsWrong;
+  }
 
-    String describeWhatToDo() {
-        return WHAT_TO_DO;
-    }
+  String describeWhatToDo() {
+    return WHAT_TO_DO;
+  }
 
 }

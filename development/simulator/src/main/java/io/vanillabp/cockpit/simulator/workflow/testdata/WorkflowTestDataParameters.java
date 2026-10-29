@@ -5,109 +5,114 @@ package io.vanillabp.cockpit.simulator.workflow.testdata;
  */
 public class WorkflowTestDataParameters {
 
-    private int noOfEvents;
+  private int noOfEvents;
 
-    private int percentageUpdates;
+  private int percentageUpdates;
 
-    private int noOfConcurrentRequest;
-    
-    private String languages;
+  private int noOfConcurrentRequest;
 
-    private int throttling;
+  private String languages;
 
-    /**
-     * Creates empty parameters. Spring fills them from the form.
-     */
-    public WorkflowTestDataParameters() {
-    }
+  private int throttling;
 
-    /**
-     * The number of events to send, new workflows and updates together.
-     *
-     * @return The number
-     */
-    public int getNoOfEvents() {
-        return noOfEvents;
-    }
+  /**
+   * Creates empty parameters. Spring fills them from the form.
+   */
+  public WorkflowTestDataParameters() {
+  }
 
-    /**
-     * Sets the number of events to send.
-     *
-     * @param noOfEvents The number
-     */
-    public void setNoOfEvents(int noOfEvents) {
-        this.noOfEvents = noOfEvents;
-    }
+  /**
+   * The number of events to send, new workflows and updates together.
+   *
+   * @return The number
+   */
+  public int getNoOfEvents() {
+    return noOfEvents;
+  }
 
-    /**
-     * How many of the events are updates of workflows created before, in percent.
-     *
-     * @return The percentage
-     */
-    public int getPercentageUpdates() {
-        return percentageUpdates;
-    }
+  /**
+   * Sets the number of events to send.
+   *
+   * @param noOfEvents The number
+   */
+  public void setNoOfEvents(
+      int noOfEvents) {
+    this.noOfEvents = noOfEvents;
+  }
 
-    /**
-     * Sets how many of the events are updates.
-     *
-     * @param percentageUpdates The percentage
-     */
-    public void setPercentageUpdates(int percentageUpdates) {
-        this.percentageUpdates = percentageUpdates;
-    }
+  /**
+   * How many of the events are updates of workflows created before, in percent.
+   *
+   * @return The percentage
+   */
+  public int getPercentageUpdates() {
+    return percentageUpdates;
+  }
 
-    /**
-     * The number of threads which send events at the same time.
-     *
-     * @return The number
-     */
-    public int getNoOfConcurrentRequest() {
-        return noOfConcurrentRequest;
-    }
+  /**
+   * Sets how many of the events are updates.
+   *
+   * @param percentageUpdates The percentage
+   */
+  public void setPercentageUpdates(
+      int percentageUpdates) {
+    this.percentageUpdates = percentageUpdates;
+  }
 
-    /**
-     * Sets the number of threads which send events.
-     *
-     * @param noOfConcurrentRequest The number
-     */
-    public void setNoOfConcurrentRequest(int noOfConcurrentRequest) {
-        this.noOfConcurrentRequest = noOfConcurrentRequest;
-    }
+  /**
+   * The number of threads which send events at the same time.
+   *
+   * @return The number
+   */
+  public int getNoOfConcurrentRequest() {
+    return noOfConcurrentRequest;
+  }
 
-    /**
-     * The languages of the workflow titles, separated by commas, e.g. {@code en,de}.
-     *
-     * @return The languages
-     */
-    public String getLanguages() {
-        return languages;
-    }
+  /**
+   * Sets the number of threads which send events.
+   *
+   * @param noOfConcurrentRequest The number
+   */
+  public void setNoOfConcurrentRequest(
+      int noOfConcurrentRequest) {
+    this.noOfConcurrentRequest = noOfConcurrentRequest;
+  }
 
-    /**
-     * Sets the languages of the workflow titles.
-     *
-     * @param languages The languages
-     */
-    public void setLanguages(String languages) {
-        this.languages = languages;
-    }
+  /**
+   * The languages of the workflow titles, separated by commas, e.g. {@code en,de}.
+   *
+   * @return The languages
+   */
+  public String getLanguages() {
+    return languages;
+  }
 
-    /**
-     * The pause after each event, in milliseconds.
-     *
-     * @return The pause
-     */
-    public int getThrottling() {
-        return throttling;
-    }
+  /**
+   * Sets the languages of the workflow titles.
+   *
+   * @param languages The languages
+   */
+  public void setLanguages(
+      String languages) {
+    this.languages = languages;
+  }
 
-    /**
-     * Sets the pause after each event.
-     *
-     * @param throttling The pause
-     */
-    public void setThrottling(int throttling) {
-        this.throttling = throttling;
-    }
+  /**
+   * The pause after each event, in milliseconds.
+   *
+   * @return The pause
+   */
+  public int getThrottling() {
+    return throttling;
+  }
+
+  /**
+   * Sets the pause after each event.
+   *
+   * @param throttling The pause
+   */
+  public void setThrottling(
+      int throttling) {
+    this.throttling = throttling;
+  }
 }

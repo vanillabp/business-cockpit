@@ -2,11 +2,13 @@ package io.vanillabp.cockpit.simulator.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.util.Properties;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * The broker properties the embedded Kafka of the simulator is configured with.
@@ -33,77 +35,79 @@ import org.springframework.test.util.ReflectionTestUtils;
 @ExtendWith(SuppressOutputExtension.class)
 class EmbeddedKafkaConfigurationTest {
 
-    @SuppressWarnings("unchecked")
-    private Properties brokerProperties() throws Exception {
+  @SuppressWarnings("unchecked")
+  private Properties brokerProperties() throws Exception {
 
-        final var configuration = new EmbeddedKafkaConfiguration();
-        ReflectionTestUtils.setField(configuration, "serverAddress", "10.0.0.1");
+    final var configuration = new EmbeddedKafkaConfiguration();
+    ReflectionTestUtils.setField(configuration, "serverAddress", "10.0.0.1");
 
-        final var broker = configuration.broker();
+    final var broker = configuration.broker();
 
-        return (Properties) ReflectionTestUtils.getField(broker, "brokerProperties");
+    return (Properties) ReflectionTestUtils.getField(broker, "brokerProperties");
 
+  }
+
+  @Test
+  void theControllerListenerIsPartOfTheListeners() throws Exception {
+
+    assertThat(brokerProperties().getProperty("listeners"))
+        .as("combined mode needs a controller listener, and its port stays 0 so the testkit's "
+            + "prebound socket and the quorum voter address keep matching")
+        .contains("CONTROLLER://localhost:0");
+
+  }
+
+  @Test
+  void theFixedPortsUseListenerNamesOfTheirOwn() throws Exception {
+
+    final var listeners = brokerProperties().getProperty("listeners");
+
+    assertThat(listeners).contains("LOCAL://localhost:9092", "REMOTE://10.0.0.1:9093");
+    assertThat(listeners)
+        .as("EXTERNAL is the testkit's own listener - given a port here it would be overridden by "
+            + "the prebound socket and 9092 would end up closed")
+        .contains("EXTERNAL://localhost:0");
+
+  }
+
+  @Test
+  void onlyTheReachableListenersAreAdvertised() throws Exception {
+
+    final var advertised = brokerProperties().getProperty("advertised.listeners");
+
+    assertThat(advertised).isEqualTo("LOCAL://localhost:9092,REMOTE://10.0.0.1:9093");
+    assertThat(advertised)
+        .as("a controller listener must not be advertised, and EXTERNAL's port is unknown here")
+        .doesNotContain("CONTROLLER", "EXTERNAL");
+
+  }
+
+  @Test
+  void theInterBrokerListenerIsAdvertised() throws Exception {
+
+    final var properties = brokerProperties();
+
+    assertThat(properties.getProperty("inter.broker.listener.name")).isEqualTo("LOCAL");
+    assertThat(properties.getProperty("advertised.listeners"))
+        .contains(properties.getProperty("inter.broker.listener.name")
+            + "://");
+
+  }
+
+  @Test
+  void everyListenerHasAProtocolMapping() throws Exception {
+
+    final var properties = brokerProperties();
+    final var protocolMap = properties.getProperty("listener.security.protocol.map");
+
+    for (final var listener : properties.getProperty("listeners").split(",")) {
+      final var name = listener.substring(0, listener.indexOf("://"));
+      assertThat(protocolMap)
+          .as("listener %s has no entry in listener.security.protocol.map", name)
+          .contains(name
+              + ":PLAINTEXT");
     }
 
-    @Test
-    void theControllerListenerIsPartOfTheListeners() throws Exception {
-
-        assertThat(brokerProperties().getProperty("listeners"))
-                .as("combined mode needs a controller listener, and its port stays 0 so the testkit's "
-                        + "prebound socket and the quorum voter address keep matching")
-                .contains("CONTROLLER://localhost:0");
-
-    }
-
-    @Test
-    void theFixedPortsUseListenerNamesOfTheirOwn() throws Exception {
-
-        final var listeners = brokerProperties().getProperty("listeners");
-
-        assertThat(listeners).contains("LOCAL://localhost:9092", "REMOTE://10.0.0.1:9093");
-        assertThat(listeners)
-                .as("EXTERNAL is the testkit's own listener - given a port here it would be overridden by "
-                        + "the prebound socket and 9092 would end up closed")
-                .contains("EXTERNAL://localhost:0");
-
-    }
-
-    @Test
-    void onlyTheReachableListenersAreAdvertised() throws Exception {
-
-        final var advertised = brokerProperties().getProperty("advertised.listeners");
-
-        assertThat(advertised).isEqualTo("LOCAL://localhost:9092,REMOTE://10.0.0.1:9093");
-        assertThat(advertised)
-                .as("a controller listener must not be advertised, and EXTERNAL's port is unknown here")
-                .doesNotContain("CONTROLLER", "EXTERNAL");
-
-    }
-
-    @Test
-    void theInterBrokerListenerIsAdvertised() throws Exception {
-
-        final var properties = brokerProperties();
-
-        assertThat(properties.getProperty("inter.broker.listener.name")).isEqualTo("LOCAL");
-        assertThat(properties.getProperty("advertised.listeners"))
-                .contains(properties.getProperty("inter.broker.listener.name") + "://");
-
-    }
-
-    @Test
-    void everyListenerHasAProtocolMapping() throws Exception {
-
-        final var properties = brokerProperties();
-        final var protocolMap = properties.getProperty("listener.security.protocol.map");
-
-        for (final var listener : properties.getProperty("listeners").split(",")) {
-            final var name = listener.substring(0, listener.indexOf("://"));
-            assertThat(protocolMap)
-                    .as("listener %s has no entry in listener.security.protocol.map", name)
-                    .contains(name + ":PLAINTEXT");
-        }
-
-    }
+  }
 
 }

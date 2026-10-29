@@ -12,10 +12,10 @@ import io.vanillabp.cockpit.notification.NotificationType;
  * @param forced          whether the workflow module forced this notification (delivery = FORCE)
  */
 public record PlannedNotification(
-        String userTaskId,
-        NotificationType notificationType,
-        String medium,
-        String recipientUserId,
-        boolean forced) {
+                                  String userTaskId,
+                                  NotificationType notificationType,
+                                  String medium,
+                                  String recipientUserId,
+                                  boolean forced) {
 
 }

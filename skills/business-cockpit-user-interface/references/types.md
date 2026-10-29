@@ -6,12 +6,12 @@ Vier NPM-Pakete liegen zwischen dem Cockpit und einem Workflow-Modul. Wer ein UI
 React baut, nimmt sie wie sie sind. Wer ein UI in einem anderen Framework baut, braucht nur einen
 Teil davon, denn der Rest ist React.
 
-| Paket | Was drin ist |
-|---|---|
-| `@vanillabp/bc-official-gui-client` | der aus der OpenAPI-Beschreibung erzeugte Client der GUI-API |
-| `@vanillabp/bc-types` | die TypeScript-Typen, die Cockpit und Workflow-Modul gemeinsam haben |
-| `@vanillabp/bc-shared` | die Formen der vier Teile, dazu Komponenten und Hilfsmittel für React |
-| `@vanillabp/bc-ui` | die Listen und Seiten des mitgelieferten UIs |
+|                Paket                |                             Was drin ist                              |
+|-------------------------------------|-----------------------------------------------------------------------|
+| `@vanillabp/bc-official-gui-client` | der aus der OpenAPI-Beschreibung erzeugte Client der GUI-API          |
+| `@vanillabp/bc-types`               | die TypeScript-Typen, die Cockpit und Workflow-Modul gemeinsam haben  |
+| `@vanillabp/bc-shared`              | die Formen der vier Teile, dazu Komponenten und Hilfsmittel für React |
+| `@vanillabp/bc-ui`                  | die Listen und Seiten des mitgelieferten UIs                          |
 
 `@vanillabp/bc-ui` ist das mitgelieferte UI selbst. Es ist das Beispiel und kein Vertrag. Ein UI in
 einem anderen Framework kann es nicht benutzen, denn es sind React-Komponenten.
@@ -38,19 +38,19 @@ nachgebaut ist. Welches von beiden du vor dir hast, siehst du am Import und nich
 Diese Typen sind der Vertrag, der nirgends in einer OpenAPI-Beschreibung steht. Ein UI in einem
 anderen Framework muss sie trotzdem einhalten, denn das Modul ist gegen sie gebaut.
 
-| Typ | Paket | Richtung | Was er bedeutet |
-|---|---|---|---|
-| `Column` | `bc-types` | Modul an UI | eine Spalte einer Liste |
-| `ColumnsOfUserTaskFunction`, `ColumnsOfWorkflowFunction` | `bc-types` | Modul an UI | die Form der beiden Spaltenfunktionen |
-| `ListItem<T>`, `ListItemStatus` | `bc-types` | UI an Modul | eine Zeile und ihr Zustand |
-| `Translatable` | `bc-types` | beide | ein Text je Sprache |
-| `BcUserTask` | `bc-types` | UI an Modul | die Aufgabe plus die Funktionen darauf |
-| `BcWorkflow` | `bc-types` | UI an Modul | der Fall plus die Funktionen darauf |
-| `BcUserTasksProvider` | `bc-types` | UI an Modul | die Funktion, mit der eine Fallseite ihre Aufgaben holt |
-| `UserTaskForm`, `WorkflowPage` | `bc-shared` | Modul an UI | die Form der beiden Seitenkomponenten |
-| `UserTaskListCell`, `WorkflowListCell` | `bc-shared` | Modul an UI | die Form der beiden Zellenkomponenten |
-| `DefaultListCellProps`, `DefaultListCellAwareProps` | `bc-shared` | UI an Modul | was eine Zelle bekommt |
-| `WorkflowModuleComponent` | `bc-shared` | Modul an UI | die Form eines eigenen Teils |
+|                           Typ                            |    Paket    |  Richtung   |                     Was er bedeutet                     |
+|----------------------------------------------------------|-------------|-------------|---------------------------------------------------------|
+| `Column`                                                 | `bc-types`  | Modul an UI | eine Spalte einer Liste                                 |
+| `ColumnsOfUserTaskFunction`, `ColumnsOfWorkflowFunction` | `bc-types`  | Modul an UI | die Form der beiden Spaltenfunktionen                   |
+| `ListItem<T>`, `ListItemStatus`                          | `bc-types`  | UI an Modul | eine Zeile und ihr Zustand                              |
+| `Translatable`                                           | `bc-types`  | beide       | ein Text je Sprache                                     |
+| `BcUserTask`                                             | `bc-types`  | UI an Modul | die Aufgabe plus die Funktionen darauf                  |
+| `BcWorkflow`                                             | `bc-types`  | UI an Modul | der Fall plus die Funktionen darauf                     |
+| `BcUserTasksProvider`                                    | `bc-types`  | UI an Modul | die Funktion, mit der eine Fallseite ihre Aufgaben holt |
+| `UserTaskForm`, `WorkflowPage`                           | `bc-shared` | Modul an UI | die Form der beiden Seitenkomponenten                   |
+| `UserTaskListCell`, `WorkflowListCell`                   | `bc-shared` | Modul an UI | die Form der beiden Zellenkomponenten                   |
+| `DefaultListCellProps`, `DefaultListCellAwareProps`      | `bc-shared` | UI an Modul | was eine Zelle bekommt                                  |
+| `WorkflowModuleComponent`                                | `bc-shared` | Modul an UI | die Form eines eigenen Teils                            |
 
 `ColumnsOfUserTaskFunction` und `ColumnsOfWorkflowFunction` stehen zweimal da, in `bc-types` und
 nochmal in `bc-shared`. Die beiden Erklärungen sind heute gleich, aber es sind zwei. Lies die aus

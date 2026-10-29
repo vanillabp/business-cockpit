@@ -3,6 +3,7 @@ package io.vanillabp.cockpit.config.startup;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.MONGODB_SORT_INDEXES_PER_COLLECTION;
 
 import java.util.Optional;
+
 import org.springframework.core.env.Environment;
 
 /**
@@ -16,75 +17,80 @@ import org.springframework.core.env.Environment;
  */
 public final class SortIndexLimit {
 
-    /**
-     * The limit used if none is configured.
-     */
-    public static final int DEFAULT = 30;
+  /**
+   * The limit used if none is configured.
+   */
+  public static final int DEFAULT = 30;
 
-    /**
-     * The highest limit which may be configured. MongoDB takes 64 indexes per collection, and the
-     * cockpit keeps a few of them for itself.
-     */
-    public static final int HIGHEST = 60;
+  /**
+   * The highest limit which may be configured. MongoDB takes 64 indexes per collection, and the
+   * cockpit keeps a few of them for itself.
+   */
+  public static final int HIGHEST = 60;
 
-    private SortIndexLimit() {
+  private SortIndexLimit() {
+  }
+
+  /**
+   * The limit the cockpit works with.
+   *
+   * @param environment The configuration of the application
+   * @return The configured limit, or {@link #DEFAULT} if none is configured. A value
+   *         {@link #whatIsWrongWith(Environment)} refuses stops the start before this is asked.
+   */
+  public static int configuredIn(
+      final Environment environment) {
+
+    return CockpitConfiguration
+        .valueOf(environment, MONGODB_SORT_INDEXES_PER_COLLECTION)
+        .map(value -> Integer.parseInt(value.trim()))
+        .orElse(DEFAULT);
+
+  }
+
+  /**
+   * Checks the configured limit, so a wrong value can stop the start.
+   *
+   * @param environment The configuration of the application
+   * @return Why the configured value cannot be used, or empty if it can or none is configured
+   */
+  public static Optional<String> whatIsWrongWith(
+      final Environment environment) {
+
+    final var configured = CockpitConfiguration.valueOf(environment, MONGODB_SORT_INDEXES_PER_COLLECTION);
+    if (configured.isEmpty()) {
+      return Optional.empty();
     }
-
-    /**
-     * The limit the cockpit works with.
-     *
-     * @param environment The configuration of the application
-     * @return The configured limit, or {@link #DEFAULT} if none is configured. A value
-     *         {@link #whatIsWrongWith(Environment)} refuses stops the start before this is asked.
-     */
-    public static int configuredIn(
-            final Environment environment) {
-
-        return CockpitConfiguration
-                .valueOf(environment, MONGODB_SORT_INDEXES_PER_COLLECTION)
-                .map(value -> Integer.parseInt(value.trim()))
-                .orElse(DEFAULT);
-
+    final int limit;
+    try {
+      limit = Integer.parseInt(configured.get().trim());
+    } catch (NumberFormatException e) {
+      return Optional.of("The value '%s' is no whole number.".formatted(configured.get()));
     }
-
-    /**
-     * Checks the configured limit, so a wrong value can stop the start.
-     *
-     * @param environment The configuration of the application
-     * @return Why the configured value cannot be used, or empty if it can or none is configured
-     */
-    public static Optional<String> whatIsWrongWith(
-            final Environment environment) {
-
-        final var configured = CockpitConfiguration.valueOf(environment, MONGODB_SORT_INDEXES_PER_COLLECTION);
-        if (configured.isEmpty()) {
-            return Optional.empty();
-        }
-        final int limit;
-        try {
-            limit = Integer.parseInt(configured.get().trim());
-        } catch (NumberFormatException e) {
-            return Optional.of("The value '%s' is no whole number.".formatted(configured.get()));
-        }
-        if ((limit < 0) || (limit > HIGHEST)) {
-            return Optional.of(("The value '%s' is not between 0 and %d. MongoDB takes 64 indexes per "
-                    + "collection, and the cockpit needs a few of them for itself.").formatted(limit, HIGHEST));
-        }
-        return Optional.empty();
-
+    if ((limit < 0) || (limit > HIGHEST)) {
+      return Optional.of(("The value '%s' is not between 0 and %d. MongoDB takes 64 indexes per "
+          + "collection, and the cockpit needs a few of them for itself.").formatted(limit, HIGHEST));
     }
+    return Optional.empty();
 
-    /**
-     * The block a message ends with: the property, what it does, and a line to copy.
-     */
-    static String whatToSet() {
+  }
 
-        return new MissingConfiguration(
-                MONGODB_SORT_INDEXES_PER_COLLECTION,
-                "How many indexes for sorting a list the cockpit creates per collection at most, "
-                        + "from 0 to " + HIGHEST + ". Leave it out to use " + DEFAULT + ".",
-                MONGODB_SORT_INDEXES_PER_COLLECTION + ": " + DEFAULT).asMessageBlock();
+  /**
+   * The block a message ends with: the property, what it does, and a line to copy.
+   */
+  static String whatToSet() {
 
-    }
+    return new MissingConfiguration(
+        MONGODB_SORT_INDEXES_PER_COLLECTION, "How many indexes for sorting a list the cockpit creates per collection at most, "
+            + "from 0 to "
+            + HIGHEST
+            + ". Leave it out to use "
+            + DEFAULT
+            + ".", MONGODB_SORT_INDEXES_PER_COLLECTION
+                + ": "
+                + DEFAULT)
+        .asMessageBlock();
+
+  }
 
 }

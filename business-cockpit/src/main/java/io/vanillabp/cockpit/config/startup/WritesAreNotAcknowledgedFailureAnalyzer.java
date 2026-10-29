@@ -12,25 +12,22 @@ import org.springframework.boot.diagnostics.FailureAnalysis;
  * Registered in {@code META-INF/spring.factories}, which is where Spring Boot looks for failure
  * analyzers.
  */
-public class WritesAreNotAcknowledgedFailureAnalyzer
-        extends AbstractFailureAnalyzer<WritesAreNotAcknowledgedException> {
+public class WritesAreNotAcknowledgedFailureAnalyzer extends AbstractFailureAnalyzer<WritesAreNotAcknowledgedException> {
 
-    /**
-     * Creates the analyzer. Spring Boot creates it from {@code META-INF/spring.factories}.
-     */
-    public WritesAreNotAcknowledgedFailureAnalyzer() {
-    }
+  /**
+   * Creates the analyzer. Spring Boot creates it from {@code META-INF/spring.factories}.
+   */
+  public WritesAreNotAcknowledgedFailureAnalyzer() {
+  }
 
-    @Override
-    protected FailureAnalysis analyze(
-            final Throwable rootFailure,
-            final WritesAreNotAcknowledgedException cause) {
+  @Override
+  protected FailureAnalysis analyze(
+      final Throwable rootFailure,
+      final WritesAreNotAcknowledgedException cause) {
 
-        return new FailureAnalysis(
-                cause.describeWhatIsWrong(),
-                cause.describeWhatToDo(),
-                cause);
+    return new FailureAnalysis(
+        cause.describeWhatIsWrong(), cause.describeWhatToDo(), cause);
 
-    }
+  }
 
 }

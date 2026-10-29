@@ -1,8 +1,10 @@
 package io.vanillabp.cockpit.devshell.simulator.businesscockpit.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -13,28 +15,28 @@ import lombok.Setter;
 @Setter
 public class Person {
 
-    /**
-     * Creates an empty person.
-     */
-    public Person() {
-    }
+  /**
+   * Creates an empty person.
+   */
+  public Person() {
+  }
 
-    @JsonProperty("id")
-    private String id;
+  @JsonProperty("id")
+  private String id;
 
-    @JsonProperty("display")
-    private String display;
+  @JsonProperty("display")
+  private String display;
 
-    @JsonProperty("displayShort")
-    private String displayShort;
+  @JsonProperty("displayShort")
+  private String displayShort;
 
-    @JsonProperty("email")
-    private String email;
+  @JsonProperty("email")
+  private String email;
 
-    @JsonProperty("avatar")
-    private Integer avatar;
+  @JsonProperty("avatar")
+  private Integer avatar;
 
-    @JsonProperty("details")
-    private Map<String, Object> details = new HashMap<>();
+  @JsonProperty("details")
+  private Map<String, Object> details = new HashMap<>();
 
 }

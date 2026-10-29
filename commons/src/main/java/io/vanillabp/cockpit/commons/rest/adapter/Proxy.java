@@ -5,90 +5,94 @@ package io.vanillabp.cockpit.commons.rest.adapter;
  */
 public class Proxy {
 
-	private String host = null;
-	
-	private int port;
+  private String host = null;
 
-    private String username;
+  private int port;
 
-    private String password;
+  private String username;
 
-    /**
-     * Creates empty settings. Without a host no proxy is used.
-     */
-    public Proxy() {
-    }
+  private String password;
 
-	/**
-	 * The host name of the proxy.
-	 *
-	 * @return The host, or {@code null} if there is no proxy
-	 */
-	public String getHost() {
-		return host;
-	}
+  /**
+   * Creates empty settings. Without a host no proxy is used.
+   */
+  public Proxy() {
+  }
 
-	/**
-	 * Sets the host name of the proxy.
-	 *
-	 * @param host The host
-	 */
-	public void setHost(String host) {
-		this.host = host;
-	}
+  /**
+   * The host name of the proxy.
+   *
+   * @return The host, or {@code null} if there is no proxy
+   */
+  public String getHost() {
+    return host;
+  }
 
-	/**
-	 * The port of the proxy.
-	 *
-	 * @return The port
-	 */
-	public int getPort() {
-		return port;
-	}
+  /**
+   * Sets the host name of the proxy.
+   *
+   * @param host The host
+   */
+  public void setHost(
+      String host) {
+    this.host = host;
+  }
 
-	/**
-	 * Sets the port of the proxy.
-	 *
-	 * @param port The port
-	 */
-	public void setPort(int port) {
-		this.port = port;
-	}
+  /**
+   * The port of the proxy.
+   *
+   * @return The port
+   */
+  public int getPort() {
+    return port;
+  }
 
-    /**
-     * The user name to log in at the proxy.
-     *
-     * @return The user name, or {@code null} if the proxy needs no login
-     */
-    public String getUsername() {
-        return username;
-    }
+  /**
+   * Sets the port of the proxy.
+   *
+   * @param port The port
+   */
+  public void setPort(
+      int port) {
+    this.port = port;
+  }
 
-    /**
-     * Sets the user name to log in at the proxy.
-     *
-     * @param username The user name
-     */
-    public void setUsername(String username) {
-        this.username = username;
-    }
+  /**
+   * The user name to log in at the proxy.
+   *
+   * @return The user name, or {@code null} if the proxy needs no login
+   */
+  public String getUsername() {
+    return username;
+  }
 
-    /**
-     * The password to log in at the proxy.
-     *
-     * @return The password
-     */
-    public String getPassword() {
-        return password;
-    }
+  /**
+   * Sets the user name to log in at the proxy.
+   *
+   * @param username The user name
+   */
+  public void setUsername(
+      String username) {
+    this.username = username;
+  }
 
-    /**
-     * Sets the password to log in at the proxy.
-     *
-     * @param password The password
-     */
-    public void setPassword(String password) {
-        this.password = password;
-    }
-	
+  /**
+   * The password to log in at the proxy.
+   *
+   * @return The password
+   */
+  public String getPassword() {
+    return password;
+  }
+
+  /**
+   * Sets the password to log in at the proxy.
+   *
+   * @param password The password
+   */
+  public void setPassword(
+      String password) {
+    this.password = password;
+  }
+
 }

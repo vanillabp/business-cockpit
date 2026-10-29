@@ -3,11 +3,13 @@ package io.vanillabp.cockpit.itest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * A user task may name who else sees it. The workflow module writes that list as
@@ -27,359 +29,371 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @SuppressOutputExtension.SuppressBackgroundOutput
 class AdmittedUsersTest extends ItestBase {
 
-    /** Registrations need a URI, but no test here follows the proxy route to it. */
-    private static final String SOME_MODULE_URI = "http://localhost:65004";
-
-    private String moduleId;
-    private String token;
-    private String grantedGroup;
-    private String cookieOfMartin;
-    private String cookieOfPetra;
-
-    @BeforeEach
-    void registerModuleAndLogInBothUsers() {
-
-        moduleId = unique("admitted-module");
-        token = unique("token");
-        grantedGroup = unique("ride-approver");
-        cookieOfMartin = loginToGui(USER_MARTIN);
-        cookieOfPetra = loginToGui(USER_PETRA);
-        grantTheGroupTo(GROUP_OF_MARTIN);
-
-    }
-
-    /**
-     * Registers the module saying that members of the given group are also members of the group the
-     * tasks of these tests address. Registering again with another group is how the role is
-     * withdrawn.
-     */
-    private void grantTheGroupTo(
-            final String group) {
-
-        final var response = bpmsV1_1("/workflow-module/" + moduleId, """
-                {
-                  "id": "%s",
-                  "uri": "%s",
-                  "taskProviderApiUriPath": "/task-provider/v1",
-                  "workflowProviderApiUriPath": "/workflow-provider/v1",
-                  "groupHierarchy": [ { "group": "%s", "targets": [ "%s" ] } ]
-                }
-                """.formatted(moduleId, SOME_MODULE_URI, group, grantedGroup));
-        assertThat(response.statusCode()).isEqualTo(200);
-
-    }
-
-    /** Takes the group away from martin by handing it to somebody else. */
-    private void withdrawTheGroupFromMartin() {
-
-        grantTheGroupTo(GROUP_OF_PETRA);
-
-    }
-
-    /** Lets both users reach the group the tasks of these tests address. */
-    private void grantTheGroupToBoth() {
-
-        final var response = bpmsV1_1("/workflow-module/" + moduleId, """
-                {
-                  "id": "%s",
-                  "uri": "%s",
-                  "taskProviderApiUriPath": "/task-provider/v1",
-                  "workflowProviderApiUriPath": "/workflow-provider/v1",
-                  "groupHierarchy": [
-                    { "group": "%s", "targets": [ "%s" ] },
-                    { "group": "%s", "targets": [ "%s" ] }
-                  ]
-                }
-                """.formatted(
-                        moduleId, SOME_MODULE_URI, GROUP_OF_MARTIN, grantedGroup, GROUP_OF_PETRA,
-                        grantedGroup));
-        assertThat(response.statusCode()).isEqualTo(200);
-
-    }
-
-    /**
-     * Reports a task addressed to the group both users can reach through the hierarchy, with the
-     * given extra properties spliced into the event.
-     */
-    private String createTask(
-            final String extraProperties) {
-
-        final var userTaskId = unique("task");
-        final var response = bpmsV1_1("/usertask/created", """
-                {
-                  "id": "%s",
-                  "userTaskId": "%s",
-                  "timestamp": "%s",
-                  "workflowModuleId": "%s",
-                  "bpmnProcessId": "taxi-ride",
-                  "title": { "en": "Do ride" },
-                  "taskDefinition": "do-ride",
-                  "uiUriPath": "/remoteEntry.js",
-                  "uiUriType": "WEBPACK_MF_REACT",
-                  "detailsFulltextSearch": "%s",
-                  "candidateGroups": [ "%s" ]%s
-                }
-                """.formatted(
-                        unique("event"), userTaskId, isoNow(), moduleId, token, grantedGroup,
-                        extraProperties));
-        assertThat(response.statusCode()).isEqualTo(200);
-        return userTaskId;
-
-    }
-
-    private String createTaskAdmitting(
-            final String... userIds) {
-
-        return createTask(",\n  \"admittedUsers\": [ \"" + String.join("\", \"", userIds) + "\" ]");
-
-    }
-
-    /** Reports the task again, this time naming who else may see it. */
-    private void reportAgainAdmitting(
-            final String userTaskId,
-            final String userId) {
-
-        final var response = bpmsV1_1("/usertask/" + userTaskId + "/updated", """
-                {
-                  "id": "%s",
-                  "userTaskId": "%s",
-                  "timestamp": "%s",
-                  "workflowModuleId": "%s",
-                  "bpmnProcessId": "taxi-ride",
-                  "title": { "en": "Do ride" },
-                  "taskDefinition": "do-ride",
-                  "uiUriPath": "/remoteEntry.js",
-                  "uiUriType": "WEBPACK_MF_REACT",
-                  "detailsFulltextSearch": "%s",
-                  "candidateGroups": [ "%s" ],
-                  "admittedUsers": [ "%s" ]
-                }
-                """.formatted(
-                        unique("event"), userTaskId, isoNow(), moduleId, token, grantedGroup,
-                        userId));
-        assertThat(response.statusCode()).isEqualTo(200);
-
-    }
-
-    private void completeTask(
-            final String userTaskId) {
-
-        final var response = bpmsV1_1("/usertask/" + userTaskId + "/completed", """
-                {
-                  "id": "%s",
-                  "userTaskId": "%s",
-                  "timestamp": "%s",
-                  "initiator": "martin",
-                  "workflowModuleId": "%s",
-                  "bpmnProcessId": "taxi-ride",
-                  "title": { "en": "Do ride" },
-                  "taskDefinition": "do-ride",
-                  "uiUriPath": "/remoteEntry.js",
-                  "uiUriType": "WEBPACK_MF_REACT",
-                  "detailsFulltextSearch": "%s"
-                }
-                """.formatted(unique("event"), userTaskId, isoNow(), moduleId, token));
-        assertThat(response.statusCode()).isEqualTo(200);
-
-    }
-
-    @SuppressWarnings("unchecked")
-    private List<String> tasksListedFor(
-            final String cookie,
-            final String listPath,
-            final String mode) {
-
-        final var response = guiPost(cookie, listPath + "/usertask", """
-                {
-                  "pageNumber": 0,
-                  "pageSize": 50,
-                  "searchQueries": [ { "query": "%s" } ],
-                  "sortAscending": true,
-                  "mode": "%s"
-                }
-                """.formatted(token, mode));
-        assertThat(response.statusCode()).isEqualTo(200);
-        return json(response).read("$.userTasks[*].id", List.class);
-
-    }
-
-    private int detailStatusFor(
-            final String cookie,
-            final String userTaskId) {
-
-        return guiGet(cookie, "/usertask/" + userTaskId).statusCode();
-
-    }
-
-    @Test
-    void anAdmittedUserKeepsTheTaskAfterTheRoleIsWithdrawn() {
-
-        final var userTaskId = createTaskAdmitting(USER_MARTIN);
-        await().untilAsserted(
-                () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks"))
-                        .containsExactly(userTaskId));
-
-        withdrawTheGroupFromMartin();
-
-        await().untilAsserted(
-                () -> assertThat(tasksListedFor(cookieOfPetra, "", "OpenTasks"))
-                        .containsExactly(userTaskId));
-        assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks")).containsExactly(userTaskId);
-        assertThat(detailStatusFor(cookieOfMartin, userTaskId)).isEqualTo(200);
-
-    }
-
-    /**
-     * The main case. The task is done and the role is gone, and the person the module admitted can
-     * still read what they entered.
-     */
-    @Test
-    void anAdmittedUserKeepsACompletedTask() {
-
-        final var userTaskId = createTaskAdmitting(USER_MARTIN);
-        await().untilAsserted(
-                () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks"))
-                        .containsExactly(userTaskId));
-        completeTask(userTaskId);
-
-        withdrawTheGroupFromMartin();
-
-        await().untilAsserted(
-                () -> assertThat(tasksListedFor(cookieOfMartin, "", "ClosedTasksOnly"))
-                        .containsExactly(userTaskId));
-        assertThat(detailStatusFor(cookieOfMartin, userTaskId)).isEqualTo(200);
-
-    }
-
-    /** Being admitted is enough on its own. Petra is in no group this task addresses. */
-    @Test
-    void anAdmittedUserSeesATaskWithoutBeingACandidate() {
-
-        final var userTaskId = createTaskAdmitting(USER_PETRA);
-
-        await().untilAsserted(
-                () -> assertThat(tasksListedFor(cookieOfPetra, "", "OpenTasks"))
-                        .containsExactly(userTaskId));
-        assertThat(detailStatusFor(cookieOfPetra, userTaskId)).isEqualTo(200);
-
-    }
-
-    /** A task which admits nobody is gone with the role, as it always was. */
-    @Test
-    void aTaskAdmittingNobodyIsGoneWithTheRole() {
-
-        final var userTaskId = createTask("");
-        await().untilAsserted(
-                () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks"))
-                        .containsExactly(userTaskId));
-
-        withdrawTheGroupFromMartin();
-
-        await().untilAsserted(
-                () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks")).isEmpty());
-        assertThat(detailStatusFor(cookieOfMartin, userTaskId)).isEqualTo(404);
-
-    }
-
-    /** Admitting one person tells nobody else about the task. */
-    @Test
-    void admittingOneUserLeavesAnothersViewAlone() {
-
-        final var userTaskId = createTaskAdmitting(USER_MARTIN);
-
-        await().untilAsserted(
-                () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks"))
-                        .containsExactly(userTaskId));
-        assertThat(tasksListedFor(cookieOfPetra, "", "OpenTasks")).isEmpty();
-        assertThat(detailStatusFor(cookieOfPetra, userTaskId)).isEqualTo(404);
-
-    }
-
-    /**
-     * An admission wins over an exclusion. That does not weaken the four-eyes rule. The person who
-     * did the first step should never be shown the second task at all. If the task did reach them,
-     * the workflow module's own security keeps the form shut. So a module which admits somebody has
-     * said what it wants, and the cockpit lets them read the task.
-     */
-    @Test
-    void anAdmissionHoldsAgainstAnExclusion() {
-
-        grantTheGroupToBoth();
-        final var userTaskId = createTask("""
-                ,
-                  "admittedUsers": [ "martin" ],
-                  "excludedCandidateUsers": [ "martin" ]""");
-
-        await().untilAsserted(
-                () -> assertThat(tasksListedFor(cookieOfPetra, "", "OpenTasks"))
-                        .containsExactly(userTaskId));
-        assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks")).containsExactly(userTaskId);
-        assertThat(detailStatusFor(cookieOfMartin, userTaskId)).isEqualTo(200);
-
-    }
-
-    /** An exclusion still holds against somebody the task does not admit. */
-    @Test
-    void anExclusionHoldsAgainstACandidate() {
-
-        grantTheGroupToBoth();
-        final var userTaskId = createTask("""
-                ,
-                  "excludedCandidateUsers": [ "martin" ]""");
-
-        await().untilAsserted(
-                () -> assertThat(tasksListedFor(cookieOfPetra, "", "OpenTasks"))
-                        .containsExactly(userTaskId));
-        assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks")).isEmpty();
-        assertThat(detailStatusFor(cookieOfMartin, userTaskId)).isEqualTo(404);
-
-    }
-
-    /**
-     * The list of what a user's groups may take is about work offered to them, and a group they are
-     * no longer in offers nothing. Being admitted does not put a task back into that list. The main
-     * list keeps it, and that is where the person looks for what they had a hand in.
-     */
-    @Test
-    void theListOfWorkUpForGrabsDoesNotOfferAnAdmittedTask() {
-
-        final var userTaskId = createTaskAdmitting(USER_MARTIN);
-        await().untilAsserted(
-                () -> assertThat(tasksListedFor(cookieOfMartin, "/user-roles", "OpenTasks"))
-                        .containsExactly(userTaskId));
-
-        withdrawTheGroupFromMartin();
-
-        await().untilAsserted(
-                () -> assertThat(tasksListedFor(cookieOfMartin, "/user-roles", "OpenTasks"))
-                        .isEmpty());
-        assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks")).containsExactly(userTaskId);
-
-    }
-
-    /**
-     * Nothing fixes up a task which was reported before the module filled the list. Only reporting
-     * the task again carries the admission.
-     */
-    @Test
-    void aLaterReportIsWhatAdmitsSomebody() {
-
-        final var userTaskId = createTask("");
-        await().untilAsserted(
-                () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks"))
-                        .containsExactly(userTaskId));
-
-        withdrawTheGroupFromMartin();
-        await().untilAsserted(
-                () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks")).isEmpty());
-
-        reportAgainAdmitting(userTaskId, USER_MARTIN);
-
-        await().untilAsserted(
-                () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks"))
-                        .containsExactly(userTaskId));
-        assertThat(detailStatusFor(cookieOfMartin, userTaskId)).isEqualTo(200);
-
-    }
+  /** Registrations need a URI, but no test here follows the proxy route to it. */
+  private static final String SOME_MODULE_URI = "http://localhost:65004";
+
+  private String moduleId;
+  private String token;
+  private String grantedGroup;
+  private String cookieOfMartin;
+  private String cookieOfPetra;
+
+  @BeforeEach
+  void registerModuleAndLogInBothUsers() {
+
+    moduleId = unique("admitted-module");
+    token = unique("token");
+    grantedGroup = unique("ride-approver");
+    cookieOfMartin = loginToGui(USER_MARTIN);
+    cookieOfPetra = loginToGui(USER_PETRA);
+    grantTheGroupTo(GROUP_OF_MARTIN);
+
+  }
+
+  /**
+   * Registers the module saying that members of the given group are also members of the group the
+   * tasks of these tests address. Registering again with another group is how the role is
+   * withdrawn.
+   */
+  private void grantTheGroupTo(
+      final String group) {
+
+    final var response = bpmsV1_1("/workflow-module/"
+        + moduleId, """
+            {
+              "id": "%s",
+              "uri": "%s",
+              "taskProviderApiUriPath": "/task-provider/v1",
+              "workflowProviderApiUriPath": "/workflow-provider/v1",
+              "groupHierarchy": [ { "group": "%s", "targets": [ "%s" ] } ]
+            }
+            """.formatted(moduleId, SOME_MODULE_URI, group, grantedGroup));
+    assertThat(response.statusCode()).isEqualTo(200);
+
+  }
+
+  /** Takes the group away from martin by handing it to somebody else. */
+  private void withdrawTheGroupFromMartin() {
+
+    grantTheGroupTo(GROUP_OF_PETRA);
+
+  }
+
+  /** Lets both users reach the group the tasks of these tests address. */
+  private void grantTheGroupToBoth() {
+
+    final var response = bpmsV1_1("/workflow-module/"
+        + moduleId,
+        """
+            {
+              "id": "%s",
+              "uri": "%s",
+              "taskProviderApiUriPath": "/task-provider/v1",
+              "workflowProviderApiUriPath": "/workflow-provider/v1",
+              "groupHierarchy": [
+                { "group": "%s", "targets": [ "%s" ] },
+                { "group": "%s", "targets": [ "%s" ] }
+              ]
+            }
+            """.formatted(
+            moduleId, SOME_MODULE_URI, GROUP_OF_MARTIN, grantedGroup, GROUP_OF_PETRA,
+            grantedGroup));
+    assertThat(response.statusCode()).isEqualTo(200);
+
+  }
+
+  /**
+   * Reports a task addressed to the group both users can reach through the hierarchy, with the
+   * given extra properties spliced into the event.
+   */
+  private String createTask(
+      final String extraProperties) {
+
+    final var userTaskId = unique("task");
+    final var response = bpmsV1_1("/usertask/created", """
+        {
+          "id": "%s",
+          "userTaskId": "%s",
+          "timestamp": "%s",
+          "workflowModuleId": "%s",
+          "bpmnProcessId": "taxi-ride",
+          "title": { "en": "Do ride" },
+          "taskDefinition": "do-ride",
+          "uiUriPath": "/remoteEntry.js",
+          "uiUriType": "WEBPACK_MF_REACT",
+          "detailsFulltextSearch": "%s",
+          "candidateGroups": [ "%s" ]%s
+        }
+        """.formatted(
+        unique("event"), userTaskId, isoNow(), moduleId, token, grantedGroup,
+        extraProperties));
+    assertThat(response.statusCode()).isEqualTo(200);
+    return userTaskId;
+
+  }
+
+  private String createTaskAdmitting(
+      final String... userIds) {
+
+    return createTask(",\n  \"admittedUsers\": [ \""
+        + String.join("\", \"", userIds)
+        + "\" ]");
+
+  }
+
+  /** Reports the task again, this time naming who else may see it. */
+  private void reportAgainAdmitting(
+      final String userTaskId,
+      final String userId) {
+
+    final var response = bpmsV1_1("/usertask/"
+        + userTaskId
+        + "/updated",
+        """
+            {
+              "id": "%s",
+              "userTaskId": "%s",
+              "timestamp": "%s",
+              "workflowModuleId": "%s",
+              "bpmnProcessId": "taxi-ride",
+              "title": { "en": "Do ride" },
+              "taskDefinition": "do-ride",
+              "uiUriPath": "/remoteEntry.js",
+              "uiUriType": "WEBPACK_MF_REACT",
+              "detailsFulltextSearch": "%s",
+              "candidateGroups": [ "%s" ],
+              "admittedUsers": [ "%s" ]
+            }
+            """.formatted(
+            unique("event"), userTaskId, isoNow(), moduleId, token, grantedGroup,
+            userId));
+    assertThat(response.statusCode()).isEqualTo(200);
+
+  }
+
+  private void completeTask(
+      final String userTaskId) {
+
+    final var response = bpmsV1_1("/usertask/"
+        + userTaskId
+        + "/completed", """
+            {
+              "id": "%s",
+              "userTaskId": "%s",
+              "timestamp": "%s",
+              "initiator": "martin",
+              "workflowModuleId": "%s",
+              "bpmnProcessId": "taxi-ride",
+              "title": { "en": "Do ride" },
+              "taskDefinition": "do-ride",
+              "uiUriPath": "/remoteEntry.js",
+              "uiUriType": "WEBPACK_MF_REACT",
+              "detailsFulltextSearch": "%s"
+            }
+            """.formatted(unique("event"), userTaskId, isoNow(), moduleId, token));
+    assertThat(response.statusCode()).isEqualTo(200);
+
+  }
+
+  @SuppressWarnings("unchecked")
+  private List<String> tasksListedFor(
+      final String cookie,
+      final String listPath,
+      final String mode) {
+
+    final var response = guiPost(cookie, listPath
+        + "/usertask", """
+            {
+              "pageNumber": 0,
+              "pageSize": 50,
+              "searchQueries": [ { "query": "%s" } ],
+              "sortAscending": true,
+              "mode": "%s"
+            }
+            """.formatted(token, mode));
+    assertThat(response.statusCode()).isEqualTo(200);
+    return json(response).read("$.userTasks[*].id", List.class);
+
+  }
+
+  private int detailStatusFor(
+      final String cookie,
+      final String userTaskId) {
+
+    return guiGet(cookie, "/usertask/"
+        + userTaskId).statusCode();
+
+  }
+
+  @Test
+  void anAdmittedUserKeepsTheTaskAfterTheRoleIsWithdrawn() {
+
+    final var userTaskId = createTaskAdmitting(USER_MARTIN);
+    await().untilAsserted(
+        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks"))
+            .containsExactly(userTaskId));
+
+    withdrawTheGroupFromMartin();
+
+    await().untilAsserted(
+        () -> assertThat(tasksListedFor(cookieOfPetra, "", "OpenTasks"))
+            .containsExactly(userTaskId));
+    assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks")).containsExactly(userTaskId);
+    assertThat(detailStatusFor(cookieOfMartin, userTaskId)).isEqualTo(200);
+
+  }
+
+  /**
+   * The main case. The task is done and the role is gone, and the person the module admitted can
+   * still read what they entered.
+   */
+  @Test
+  void anAdmittedUserKeepsACompletedTask() {
+
+    final var userTaskId = createTaskAdmitting(USER_MARTIN);
+    await().untilAsserted(
+        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks"))
+            .containsExactly(userTaskId));
+    completeTask(userTaskId);
+
+    withdrawTheGroupFromMartin();
+
+    await().untilAsserted(
+        () -> assertThat(tasksListedFor(cookieOfMartin, "", "ClosedTasksOnly"))
+            .containsExactly(userTaskId));
+    assertThat(detailStatusFor(cookieOfMartin, userTaskId)).isEqualTo(200);
+
+  }
+
+  /** Being admitted is enough on its own. Petra is in no group this task addresses. */
+  @Test
+  void anAdmittedUserSeesATaskWithoutBeingACandidate() {
+
+    final var userTaskId = createTaskAdmitting(USER_PETRA);
+
+    await().untilAsserted(
+        () -> assertThat(tasksListedFor(cookieOfPetra, "", "OpenTasks"))
+            .containsExactly(userTaskId));
+    assertThat(detailStatusFor(cookieOfPetra, userTaskId)).isEqualTo(200);
+
+  }
+
+  /** A task which admits nobody is gone with the role, as it always was. */
+  @Test
+  void aTaskAdmittingNobodyIsGoneWithTheRole() {
+
+    final var userTaskId = createTask("");
+    await().untilAsserted(
+        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks"))
+            .containsExactly(userTaskId));
+
+    withdrawTheGroupFromMartin();
+
+    await().untilAsserted(
+        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks")).isEmpty());
+    assertThat(detailStatusFor(cookieOfMartin, userTaskId)).isEqualTo(404);
+
+  }
+
+  /** Admitting one person tells nobody else about the task. */
+  @Test
+  void admittingOneUserLeavesAnothersViewAlone() {
+
+    final var userTaskId = createTaskAdmitting(USER_MARTIN);
+
+    await().untilAsserted(
+        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks"))
+            .containsExactly(userTaskId));
+    assertThat(tasksListedFor(cookieOfPetra, "", "OpenTasks")).isEmpty();
+    assertThat(detailStatusFor(cookieOfPetra, userTaskId)).isEqualTo(404);
+
+  }
+
+  /**
+   * An admission wins over an exclusion. That does not weaken the four-eyes rule. The person who
+   * did the first step should never be shown the second task at all. If the task did reach them,
+   * the workflow module's own security keeps the form shut. So a module which admits somebody has
+   * said what it wants, and the cockpit lets them read the task.
+   */
+  @Test
+  void anAdmissionHoldsAgainstAnExclusion() {
+
+    grantTheGroupToBoth();
+    final var userTaskId = createTask("""
+        ,
+          "admittedUsers": [ "martin" ],
+          "excludedCandidateUsers": [ "martin" ]""");
+
+    await().untilAsserted(
+        () -> assertThat(tasksListedFor(cookieOfPetra, "", "OpenTasks"))
+            .containsExactly(userTaskId));
+    assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks")).containsExactly(userTaskId);
+    assertThat(detailStatusFor(cookieOfMartin, userTaskId)).isEqualTo(200);
+
+  }
+
+  /** An exclusion still holds against somebody the task does not admit. */
+  @Test
+  void anExclusionHoldsAgainstACandidate() {
+
+    grantTheGroupToBoth();
+    final var userTaskId = createTask("""
+        ,
+          "excludedCandidateUsers": [ "martin" ]""");
+
+    await().untilAsserted(
+        () -> assertThat(tasksListedFor(cookieOfPetra, "", "OpenTasks"))
+            .containsExactly(userTaskId));
+    assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks")).isEmpty();
+    assertThat(detailStatusFor(cookieOfMartin, userTaskId)).isEqualTo(404);
+
+  }
+
+  /**
+   * The list of what a user's groups may take is about work offered to them, and a group they are
+   * no longer in offers nothing. Being admitted does not put a task back into that list. The main
+   * list keeps it, and that is where the person looks for what they had a hand in.
+   */
+  @Test
+  void theListOfWorkUpForGrabsDoesNotOfferAnAdmittedTask() {
+
+    final var userTaskId = createTaskAdmitting(USER_MARTIN);
+    await().untilAsserted(
+        () -> assertThat(tasksListedFor(cookieOfMartin, "/user-roles", "OpenTasks"))
+            .containsExactly(userTaskId));
+
+    withdrawTheGroupFromMartin();
+
+    await().untilAsserted(
+        () -> assertThat(tasksListedFor(cookieOfMartin, "/user-roles", "OpenTasks"))
+            .isEmpty());
+    assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks")).containsExactly(userTaskId);
+
+  }
+
+  /**
+   * Nothing fixes up a task which was reported before the module filled the list. Only reporting
+   * the task again carries the admission.
+   */
+  @Test
+  void aLaterReportIsWhatAdmitsSomebody() {
+
+    final var userTaskId = createTask("");
+    await().untilAsserted(
+        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks"))
+            .containsExactly(userTaskId));
+
+    withdrawTheGroupFromMartin();
+    await().untilAsserted(
+        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks")).isEmpty());
+
+    reportAgainAdmitting(userTaskId, USER_MARTIN);
+
+    await().untilAsserted(
+        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks"))
+            .containsExactly(userTaskId));
+    assertThat(detailStatusFor(cookieOfMartin, userTaskId)).isEqualTo(200);
+
+  }
 
 }

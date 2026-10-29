@@ -8,31 +8,40 @@ import java.util.List;
  * configuration.
  */
 record MissingConfiguration(
-        String propertyName,
-        String purpose,
-        String example) {
+                            String propertyName,
+                            String purpose,
+                            String example) {
 
-    /**
-     * The block every message is built from: the property name on its own line, what it is for and
-     * the line to copy indented underneath it.
-     */
-    String asMessageBlock() {
+  /**
+   * The block every message is built from: the property name on its own line, what it is for and
+   * the line to copy indented underneath it.
+   */
+  String asMessageBlock() {
 
-        return "  " + propertyName + "\n"
-                + "      " + purpose + "\n"
-                + "      Example: " + example;
+    return "  "
+        + propertyName
+        + "\n"
+        + "      "
+        + purpose
+        + "\n"
+        + "      Example: "
+        + example;
 
-    }
+  }
 
-    static String asMessageBlocks(
-            final List<MissingConfiguration> missing) {
+  static String asMessageBlocks(
+      final List<MissingConfiguration> missing) {
 
-        return missing
-                .stream()
-                .map(MissingConfiguration::asMessageBlock)
-                .reduce((left, right) -> left + "\n\n" + right)
-                .orElse("");
+    return missing
+        .stream()
+        .map(MissingConfiguration::asMessageBlock)
+        .reduce((
+            left,
+            right) -> left
+                + "\n\n"
+                + right)
+        .orElse("");
 
-    }
+  }
 
 }

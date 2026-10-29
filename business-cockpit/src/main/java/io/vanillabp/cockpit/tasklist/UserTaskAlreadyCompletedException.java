@@ -6,28 +6,31 @@ package io.vanillabp.cockpit.tasklist;
  */
 public class UserTaskAlreadyCompletedException extends RuntimeException {
 
-    private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 1L;
 
-    /** The id of the user task which has ended. */
-    private final String userTaskId;
+  /** The id of the user task which has ended. */
+  private final String userTaskId;
 
-    /**
-     * Creates the exception.
-     *
-     * @param userTaskId The id of the user task which has ended
-     */
-    public UserTaskAlreadyCompletedException(final String userTaskId) {
-        super("User task '" + userTaskId + "' is already completed");
-        this.userTaskId = userTaskId;
-    }
+  /**
+   * Creates the exception.
+   *
+   * @param userTaskId The id of the user task which has ended
+   */
+  public UserTaskAlreadyCompletedException(
+      final String userTaskId) {
+    super("User task '"
+        + userTaskId
+        + "' is already completed");
+    this.userTaskId = userTaskId;
+  }
 
-    /**
-     * The id of the user task which has ended.
-     *
-     * @return The id
-     */
-    public String getUserTaskId() {
-        return userTaskId;
-    }
+  /**
+   * The id of the user task which has ended.
+   *
+   * @return The id
+   */
+  public String getUserTaskId() {
+    return userTaskId;
+  }
 
 }

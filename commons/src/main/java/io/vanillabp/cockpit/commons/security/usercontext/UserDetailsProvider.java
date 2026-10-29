@@ -8,12 +8,13 @@ import org.springframework.security.core.Authentication;
  */
 public interface UserDetailsProvider {
 
-    /**
-     * Finds the details of the user of an authentication.
-     *
-     * @param authentication The authentication
-     * @return The details, or {@code null} if this provider does not know the kind of authentication
-     */
-    UserDetails getUserDetails(Authentication authentication);
+  /**
+   * Finds the details of the user of an authentication.
+   *
+   * @param authentication The authentication
+   * @return The details, or {@code null} if this provider does not know the kind of authentication
+   */
+  UserDetails getUserDetails(
+      Authentication authentication);
 
 }

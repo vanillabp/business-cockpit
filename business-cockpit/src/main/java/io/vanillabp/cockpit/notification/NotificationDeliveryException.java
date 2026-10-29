@@ -16,37 +16,38 @@ import java.util.Set;
  */
 public class NotificationDeliveryException extends RuntimeException {
 
-    /** The version of the serialized form of this exception. */
-    private static final long serialVersionUID = 1L;
+  /** The version of the serialized form of this exception. */
+  private static final long serialVersionUID = 1L;
 
-    /** The recipients which did not get the notification; empty means all of them. */
-    private final Set<String> failedRecipientUserIds;
+  /** The recipients which did not get the notification; empty means all of them. */
+  private final Set<String> failedRecipientUserIds;
 
-    /**
-     * Reports the recipients of a bulk which did not get the notification.
-     *
-     * @param failedRecipientUserIds the recipients the notification could not be delivered to; an
-     *                               empty collection is understood as "all of them"
-     * @param cause                  the last failure, may be {@code null}
-     */
-    public NotificationDeliveryException(
-            final List<String> failedRecipientUserIds,
-            final Throwable cause) {
+  /**
+   * Reports the recipients of a bulk which did not get the notification.
+   *
+   * @param failedRecipientUserIds the recipients the notification could not be delivered to; an
+   *                               empty collection is understood as "all of them"
+   * @param cause                  the last failure, may be {@code null}
+   */
+  public NotificationDeliveryException(
+      final List<String> failedRecipientUserIds,
+      final Throwable cause) {
 
-        super("Could not deliver notification to users " + failedRecipientUserIds, cause);
-        this.failedRecipientUserIds = Set.copyOf(failedRecipientUserIds);
+    super("Could not deliver notification to users "
+        + failedRecipientUserIds, cause);
+    this.failedRecipientUserIds = Set.copyOf(failedRecipientUserIds);
 
-    }
+  }
 
-    /**
-     * The recipients the notification could not be delivered to.
-     *
-     * @return the recipients which have to be retried; empty means the whole bulk has to be retried
-     */
-    public Set<String> getFailedRecipientUserIds() {
+  /**
+   * The recipients the notification could not be delivered to.
+   *
+   * @return the recipients which have to be retried; empty means the whole bulk has to be retried
+   */
+  public Set<String> getFailedRecipientUserIds() {
 
-        return failedRecipientUserIds;
+    return failedRecipientUserIds;
 
-    }
+  }
 
 }

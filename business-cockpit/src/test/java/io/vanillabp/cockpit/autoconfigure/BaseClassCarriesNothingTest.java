@@ -2,11 +2,13 @@ package io.vanillabp.cockpit.autoconfigure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.vanillabp.cockpit.BusinessCockpitApplication;
-import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.lang.annotation.Annotation;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import io.vanillabp.cockpit.BusinessCockpitApplication;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * An application which still extends {@code BusinessCockpitApplication} has to behave exactly like
@@ -21,47 +23,47 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @SuppressWarnings("removal")
 class BaseClassCarriesNothingTest {
 
-    @Test
-    void theBaseClassCarriesNothingButItsDeprecation() {
+  @Test
+  void theBaseClassCarriesNothingButItsDeprecation() {
 
-        assertThat(BusinessCockpitApplication.class.getAnnotations())
-                .extracting(Annotation::annotationType)
-                .containsExactly(Deprecated.class);
+    assertThat(BusinessCockpitApplication.class.getAnnotations())
+        .extracting(Annotation::annotationType)
+        .containsExactly(Deprecated.class);
 
+  }
+
+  /**
+   * Synthetic members are left out because the coverage agent adds one of its own to every class it
+   * instruments, and that one says nothing about what the class declares.
+   */
+  @Test
+  void theBaseClassHasNoMembersToInherit() {
+
+    assertThat(BusinessCockpitApplication.class.getDeclaredFields())
+        .filteredOn(field -> !field.isSynthetic())
+        .isEmpty();
+    assertThat(BusinessCockpitApplication.class.getDeclaredMethods())
+        .filteredOn(method -> !method.isSynthetic())
+        .isEmpty();
+    assertThat(BusinessCockpitApplication.class.getSuperclass()).isEqualTo(Object.class);
+
+  }
+
+  /**
+   * An application which extends it gets nothing, and so it gets no second copy of anything the
+   * auto-configurations register.
+   */
+  @Test
+  void extendingItAddsNothing() {
+
+    class StillExtendsTheBaseClass extends BusinessCockpitApplication {
     }
 
-    /**
-     * Synthetic members are left out because the coverage agent adds one of its own to every class it
-     * instruments, and that one says nothing about what the class declares.
-     */
-    @Test
-    void theBaseClassHasNoMembersToInherit() {
+    assertThat(StillExtendsTheBaseClass.class.getAnnotations()).isEmpty();
+    assertThat(StillExtendsTheBaseClass.class.getSuperclass().getAnnotations())
+        .extracting(Annotation::annotationType)
+        .containsExactly(Deprecated.class);
 
-        assertThat(BusinessCockpitApplication.class.getDeclaredFields())
-                .filteredOn(field -> !field.isSynthetic())
-                .isEmpty();
-        assertThat(BusinessCockpitApplication.class.getDeclaredMethods())
-                .filteredOn(method -> !method.isSynthetic())
-                .isEmpty();
-        assertThat(BusinessCockpitApplication.class.getSuperclass()).isEqualTo(Object.class);
-
-    }
-
-    /**
-     * An application which extends it gets nothing, and so it gets no second copy of anything the
-     * auto-configurations register.
-     */
-    @Test
-    void extendingItAddsNothing() {
-
-        class StillExtendsTheBaseClass extends BusinessCockpitApplication {
-        }
-
-        assertThat(StillExtendsTheBaseClass.class.getAnnotations()).isEmpty();
-        assertThat(StillExtendsTheBaseClass.class.getSuperclass().getAnnotations())
-                .extracting(Annotation::annotationType)
-                .containsExactly(Deprecated.class);
-
-    }
+  }
 
 }

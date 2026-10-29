@@ -15,12 +15,12 @@ baut. Hier steht die andere Seite, nämlich was der Gastgeber tut. Die Beispiel-
 
 Das Cockpit fragt ein Modul nach vier Namen, und nach keinem anderen von sich aus:
 
-| Teil | Was das Cockpit daraus liest | Wo es gebraucht wird |
-|---|---|---|
-| `UserTaskForm` | `UserTaskForm`, `buildTimestamp` | die Seite einer Aufgabe |
-| `WorkflowPage` | `WorkflowPage`, `buildTimestamp` | die Seite eines Geschäftsfalls |
-| `UserTaskList` | `userTaskListColumns`, `UserTaskListCell`, `buildTimestamp` | die Aufgabenliste |
-| `WorkflowList` | `workflowListColumns`, `WorkflowListCell`, `buildTimestamp` | die Fallliste |
+|      Teil      |                Was das Cockpit daraus liest                 |      Wo es gebraucht wird      |
+|----------------|-------------------------------------------------------------|--------------------------------|
+| `UserTaskForm` | `UserTaskForm`, `buildTimestamp`                            | die Seite einer Aufgabe        |
+| `WorkflowPage` | `WorkflowPage`, `buildTimestamp`                            | die Seite eines Geschäftsfalls |
+| `UserTaskList` | `userTaskListColumns`, `UserTaskListCell`, `buildTimestamp` | die Aufgabenliste              |
+| `WorkflowList` | `workflowListColumns`, `WorkflowListCell`, `buildTimestamp` | die Fallliste                  |
 
 Der Name des Teils ist der Name, unter dem das Modul ihn freigibt. Die Namen innerhalb des Teils
 sind die Namen seiner Exporte. Ein Modul, das `UserTaskForm` freigibt, seine Komponente aber anders
@@ -37,11 +37,11 @@ des Teils und hält ihn in einer Tabelle, damit derselbe Teil nur einmal geladen
 Drei Felder jeder Aufgabe und jedes Falls aus der GUI-API sagen, was zu laden ist, und sie heißen in
 beiden Objekten gleich:
 
-| Feld | Bedeutung |
-|---|---|
-| `workflowModuleId` | das Workflow-Modul, aus dem die Zeile kommt |
-| `uiUriType` | eine Zeichenkette; `WEBPACK_MF_REACT` für ein Bundle, `EXTERNAL` für eine fremde Seite |
-| `uiUri` | der gemeldete Pfad, beim Typ `EXTERNAL` die Adresse der fremden Seite |
+|        Feld        |                                       Bedeutung                                        |
+|--------------------|----------------------------------------------------------------------------------------|
+| `workflowModuleId` | das Workflow-Modul, aus dem die Zeile kommt                                            |
+| `uiUriType`        | eine Zeichenkette; `WEBPACK_MF_REACT` für ein Bundle, `EXTERNAL` für eine fremde Seite |
+| `uiUri`            | der gemeldete Pfad, beim Typ `EXTERNAL` die Adresse der fremden Seite                  |
 
 Beim Typ `WEBPACK_MF_REACT` steht in `uiUri` ein Pfad und keine Adresse. Das Cockpit liefert das
 Modul unter `/wm/<workflowModuleId>/` selbst aus, also hängt dein UI diesen Vorsatz vor den
@@ -89,14 +89,14 @@ Das mitgelieferte UI teilt sechs Bibliotheken, jede als Singleton und `eager`. D
 in der `package.json` neben der Webpack-Konfiguration, und das sind die Versionen, gegen die ein
 Workflow-Modul heute baut:
 
-| Bibliothek | Version im mitgelieferten UI |
-|---|---|
-| `react` | 18.2.0 |
-| `react-dom` | 18.2.0 |
-| `react-router-dom` | 6.3.0 |
-| `grommet` | 2.33.2 |
-| `i18next` | 22.0.3 |
-| `react-i18next` | 12.0.0 |
+|     Bibliothek     | Version im mitgelieferten UI |
+|--------------------|------------------------------|
+| `react`            | 18.2.0                       |
+| `react-dom`        | 18.2.0                       |
+| `react-router-dom` | 6.3.0                        |
+| `grommet`          | 2.33.2                       |
+| `i18next`          | 22.0.3                       |
+| `react-i18next`    | 12.0.0                       |
 
 Ein Modul erklärt `react`, `react-dom` und `react-router-dom` als geteilt und als Singleton. Was es
 darüber hinaus braucht, holt es aus dem geteilten Bereich, wenn der Gastgeber es anbietet, und
@@ -129,12 +129,12 @@ Server, dieser den geladenen Teil eines Moduls.
 
 Vier Zustände muss dein UI auseinanderhalten, denn sie sehen für den Benutzer verschieden aus:
 
-| Zustand | Woran du ihn erkennst | Was der Benutzer sieht |
-|---|---|---|
-| lädt noch | kein `buildTimestamp`, keine Wiederholung möglich | ein Ladezeichen |
-| geladen | `buildTimestamp` gesetzt | der Teil des Moduls |
-| gescheitert | eine Wiederholung ist möglich | ein Hinweis und eine Schaltfläche, die nochmal lädt |
-| nicht föderiert | `uiUriType` war `EXTERNAL` | was das Cockpit selbst weiß |
+|     Zustand     |               Woran du ihn erkennst               |               Was der Benutzer sieht                |
+|-----------------|---------------------------------------------------|-----------------------------------------------------|
+| lädt noch       | kein `buildTimestamp`, keine Wiederholung möglich | ein Ladezeichen                                     |
+| geladen         | `buildTimestamp` gesetzt                          | der Teil des Moduls                                 |
+| gescheitert     | eine Wiederholung ist möglich                     | ein Hinweis und eine Schaltfläche, die nochmal lädt |
+| nicht föderiert | `uiUriType` war `EXTERNAL`                        | was das Cockpit selbst weiß                         |
 
 Eine gescheiterte Ladung bleibt gescheitert, bis der Benutzer sie wiederholt. Der Gastgeber nimmt
 dabei das alte `<script>` wieder aus dem Dokument, sonst lädt der Browser dieselbe Adresse nie

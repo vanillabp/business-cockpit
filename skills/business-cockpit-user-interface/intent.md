@@ -195,26 +195,26 @@ Endpunkt ein, welcher Abschnitt oben ihn braucht. Ein Endpunkt ohne Abschnitt is
 oder eine Fähigkeit, die oben fehlt. Ein Abschnitt ohne Endpunkt ist entweder reine Oberfläche
 oder etwas, das die API noch nicht kann; beides ist einen Satz wert.
 
-| Aufruf | Wofür er da ist | Welcher Abschnitt braucht ihn |
-|---|---|---|
-| `POST /usertask` | eine Seite der Aufgabenliste | |
-| `PUT /usertask` | dieselbe Abfrage als Aktualisierung | |
-| `OPTIONS /usertask` | Vorschläge für ein Suchfeld über Aufgaben | |
-| `GET /usertask/{id}` | eine Aufgabe, zugleich als gelesen markierbar | |
-| `PATCH /usertask/claim` | Bearbeiter setzen oder zurückgeben | |
-| `PATCH /usertask/assign` | eine Person als Kandidat hinzufügen oder entfernen | |
-| `PATCH /usertask/mark-as-read` | als gelesen markieren oder zurücknehmen | |
-| `PATCH /usertask/{id}/follow-up-date` | Wiedervorlage setzen oder löschen | |
-| `POST /user` | Benutzer suchen, für die Zuweisung an eine Person | |
-| `POST /workflow` | eine Seite der Fallliste | |
-| `PUT /workflow` | dieselbe Abfrage als Aktualisierung | |
-| `OPTIONS /workflow` | Vorschläge für ein Suchfeld über Fälle | |
-| `GET /workflow/{id}` | ein Fall | |
-| `POST /workflow/{id}/usertasks` | die Aufgaben eines Falls | |
-| `GET /workflow-module` | die Module, die der Benutzer sehen darf | |
-| `GET /notifications/*` | die Benachrichtigungen des Benutzers | |
-| `GET /app/info`, `GET /app/current-user` | die Anwendung und der Benutzer | |
-| `GET /updates` | der Ereignisstrom | |
+|                  Aufruf                  |                  Wofür er da ist                   | Welcher Abschnitt braucht ihn |
+|------------------------------------------|----------------------------------------------------|-------------------------------|
+| `POST /usertask`                         | eine Seite der Aufgabenliste                       |                               |
+| `PUT /usertask`                          | dieselbe Abfrage als Aktualisierung                |                               |
+| `OPTIONS /usertask`                      | Vorschläge für ein Suchfeld über Aufgaben          |                               |
+| `GET /usertask/{id}`                     | eine Aufgabe, zugleich als gelesen markierbar      |                               |
+| `PATCH /usertask/claim`                  | Bearbeiter setzen oder zurückgeben                 |                               |
+| `PATCH /usertask/assign`                 | eine Person als Kandidat hinzufügen oder entfernen |                               |
+| `PATCH /usertask/mark-as-read`           | als gelesen markieren oder zurücknehmen            |                               |
+| `PATCH /usertask/{id}/follow-up-date`    | Wiedervorlage setzen oder löschen                  |                               |
+| `POST /user`                             | Benutzer suchen, für die Zuweisung an eine Person  |                               |
+| `POST /workflow`                         | eine Seite der Fallliste                           |                               |
+| `PUT /workflow`                          | dieselbe Abfrage als Aktualisierung                |                               |
+| `OPTIONS /workflow`                      | Vorschläge für ein Suchfeld über Fälle             |                               |
+| `GET /workflow/{id}`                     | ein Fall                                           |                               |
+| `POST /workflow/{id}/usertasks`          | die Aufgaben eines Falls                           |                               |
+| `GET /workflow-module`                   | die Module, die der Benutzer sehen darf            |                               |
+| `GET /notifications/*`                   | die Benachrichtigungen des Benutzers               |                               |
+| `GET /app/info`, `GET /app/current-user` | die Anwendung und der Benutzer                     |                               |
+| `GET /updates`                           | der Ereignisstrom                                  |                               |
 
 ## Was danach passiert
 

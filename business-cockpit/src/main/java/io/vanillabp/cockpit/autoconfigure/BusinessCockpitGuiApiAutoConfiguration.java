@@ -1,5 +1,10 @@
 package io.vanillabp.cockpit.autoconfigure;
 
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
+import org.springframework.context.annotation.Import;
+
 import io.vanillabp.cockpit.commons.exceptions.RestfulExceptionHandler;
 import io.vanillabp.cockpit.commons.security.usercontext.UserContextConfiguration;
 import io.vanillabp.cockpit.config.MicroserviceProxyConfiguration;
@@ -13,10 +18,6 @@ import io.vanillabp.cockpit.tasklist.api.v1.TasklistGuiApiMapperImpl;
 import io.vanillabp.cockpit.workflowlist.api.WorkflowStreamAudience;
 import io.vanillabp.cockpit.workflowlist.api.v1.WorkflowListGuiApiMapperImpl;
 import io.vanillabp.cockpit.workflowmodules.api.v1.WorkflowModulesGuiApiMapperImpl;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
-import org.springframework.context.annotation.Import;
 
 /**
  * What the user interface talks to: the endpoints of the GUI API which are the same for every
@@ -31,27 +32,15 @@ import org.springframework.context.annotation.Import;
 @AutoConfiguration
 @ConditionalOnWebApplication(type = Type.SERVLET)
 @Import({
-    JsonConfiguration.class,
-    LoginApiController.class,
-    MicroserviceProxyConfiguration.class,
-    NotificationConfigGuiApiController.class,
-    RestfulExceptionHandler.class,
-    SpaNoHandlerFoundExceptionHandler.class,
-    TasklistGuiApiMapperImpl.class,
-    UpdateStreams.class,
-    UserContextConfiguration.class,
-    UserTaskStreamAudience.class,
-    WorkflowListGuiApiMapperImpl.class,
-    WorkflowStreamAudience.class,
-    WorkflowModulesGuiApiMapperImpl.class
+    JsonConfiguration.class, LoginApiController.class, MicroserviceProxyConfiguration.class, NotificationConfigGuiApiController.class, RestfulExceptionHandler.class, SpaNoHandlerFoundExceptionHandler.class, TasklistGuiApiMapperImpl.class, UpdateStreams.class, UserContextConfiguration.class, UserTaskStreamAudience.class, WorkflowListGuiApiMapperImpl.class, WorkflowStreamAudience.class, WorkflowModulesGuiApiMapperImpl.class
 })
 public class BusinessCockpitGuiApiAutoConfiguration {
 
-    /**
-     * Called by Spring Boot. Everything this configuration adds comes from its annotations.
-     */
-    public BusinessCockpitGuiApiAutoConfiguration() {
+  /**
+   * Called by Spring Boot. Everything this configuration adds comes from its annotations.
+   */
+  public BusinessCockpitGuiApiAutoConfiguration() {
 
-    }
+  }
 
 }

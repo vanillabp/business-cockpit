@@ -1,7 +1,13 @@
 package io.vanillabp.cockpit.bpms.kafka;
 
 
+import static io.vanillabp.cockpit.bpms.kafka.KafkaConfiguration.KAFKA_CONSUMER_PREFIX;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.kafka.annotation.KafkaListener;
+
 import com.google.protobuf.InvalidProtocolBufferException;
+
 import io.vanillabp.cockpit.bpms.BpmsApiProperties;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCancelledEvent;
@@ -10,10 +16,6 @@ import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.model.UserTaskEndReason;
 import io.vanillabp.cockpit.util.protobuf.ProtobufHelper;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.springframework.kafka.annotation.KafkaListener;
-
-import static io.vanillabp.cockpit.bpms.kafka.KafkaConfiguration.KAFKA_CONSUMER_PREFIX;
 
 /**
  * Takes the reports about user tasks from the Kafka topic {@code user-task} which the properties name,
@@ -22,173 +24,190 @@ import static io.vanillabp.cockpit.bpms.kafka.KafkaConfiguration.KAFKA_CONSUMER_
  */
 public class KafkaUserTaskController {
 
-    private final ProtobufUserTaskMapper protobufUserTaskMapper;
+  private final ProtobufUserTaskMapper protobufUserTaskMapper;
 
-    private final UserTaskService userTaskService;
+  private final UserTaskService userTaskService;
 
-    private static final String CLIENT_ID = "user-task-client";
+  private static final String CLIENT_ID = "user-task-client";
 
-    /**
-     * Creates the listener.
-     *
-     * @param userTaskService Stores the reports
-     * @param protobufUserTaskMapper Maps the reports onto user tasks
-     */
-    public KafkaUserTaskController(UserTaskService userTaskService,
-                                   ProtobufUserTaskMapper protobufUserTaskMapper) {
-        this.protobufUserTaskMapper = protobufUserTaskMapper;
-        this.userTaskService = userTaskService;
-    }
+  /**
+   * Creates the listener.
+   *
+   * @param userTaskService Stores the reports
+   * @param protobufUserTaskMapper Maps the reports onto user tasks
+   */
+  public KafkaUserTaskController(
+      UserTaskService userTaskService,
+      ProtobufUserTaskMapper protobufUserTaskMapper) {
+    this.protobufUserTaskMapper = protobufUserTaskMapper;
+    this.userTaskService = userTaskService;
+  }
 
-    /**
-     * Parses one record as a protobuf event and stores the report it carries.
-     *
-     * @param record The record, with the id of the task as key and the event as value
-     */
-    @KafkaListener(containerFactory = KafkaConfiguration.LISTENER_CONTAINER_FACTORY,
-            topics = "${" + BpmsApiProperties.PREFIX + ".kafka.topics.user-task}",
-            clientIdPrefix = KAFKA_CONSUMER_PREFIX + "-" + CLIENT_ID + "-${workerId:local}",
-            groupId = KAFKA_CONSUMER_PREFIX + "-${" + BpmsApiProperties.PREFIX + ".kafka.group-id-suffix}")
-    public void consumeUserTaskEvent(ConsumerRecord<String, byte[]> record) {
-        try {
-            final var event = BcEvent.parseFrom(record.value());
+  /**
+   * Parses one record as a protobuf event and stores the report it carries.
+   *
+   * @param record The record, with the id of the task as key and the event as value
+   */
+  @KafkaListener(containerFactory = KafkaConfiguration.LISTENER_CONTAINER_FACTORY,
+      topics = "${"
+          + BpmsApiProperties.PREFIX
+          + ".kafka.topics.user-task}",
+      clientIdPrefix = KAFKA_CONSUMER_PREFIX
+          + "-"
+          + CLIENT_ID
+          + "-${workerId:local}",
+      groupId = KAFKA_CONSUMER_PREFIX
+          + "-${"
+          + BpmsApiProperties.PREFIX
+          + ".kafka.group-id-suffix}")
+  public void consumeUserTaskEvent(
+      ConsumerRecord<String, byte[]> record) {
+    try {
+      final var event = BcEvent.parseFrom(record.value());
 
-            if (event.hasUserTaskCreatedOrUpdated()) {
+      if (event.hasUserTaskCreatedOrUpdated()) {
 
-                UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated =
-                        event.getUserTaskCreatedOrUpdated();
+        UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated = event.getUserTaskCreatedOrUpdated();
 
-                if(userTaskCreatedOrUpdated.getUpdated()) {
-                    handleUserTaskUpdateEventV1(userTaskCreatedOrUpdated);
-                } else {
-                    handleUserTaskCreatedV1(userTaskCreatedOrUpdated);
-                }
-
-            } else if (event.hasUserTaskCompleted()) {
-
-                handleUserTaskCompletedEventV1(
-                        event.getUserTaskCompleted());
-
-            } else if (event.hasUserTaskCancelled()) {
-
-                handleUserTaskCancelledEventV1(
-                        event.getUserTaskCancelled());
-
-            } else if (event.hasUserTaskCreatedV11()) {
-
-                handleUserTaskCreatedV1_1(event.getUserTaskCreatedV11());
-
-            } else if (event.hasUserTaskUpdatedV11()) {
-
-                handleUserTaskUpdateEventV1_1(event.getUserTaskUpdatedV11());
-
-            } else if (event.hasUserTaskCompletedV11()) {
-
-                handleUserTaskCompletedEventV1_1(event.getUserTaskCompletedV11());
-
-            } else if (event.hasUserTaskCancelledV11()) {
-
-                handleUserTaskCancelledEventV1_1(event.getUserTaskCancelledV11());
-
-            } else {
-                throw new RuntimeException(
-                        "Unsupported event type '"
-                                + record.key()
-                                + "'!");
-            }
-
-        } catch (InvalidProtocolBufferException e) {
-            throw new RuntimeException(e);
+        if (userTaskCreatedOrUpdated.getUpdated()) {
+          handleUserTaskUpdateEventV1(userTaskCreatedOrUpdated);
+        } else {
+          handleUserTaskCreatedV1(userTaskCreatedOrUpdated);
         }
 
+      } else if (event.hasUserTaskCompleted()) {
+
+        handleUserTaskCompletedEventV1(
+            event.getUserTaskCompleted());
+
+      } else if (event.hasUserTaskCancelled()) {
+
+        handleUserTaskCancelledEventV1(
+            event.getUserTaskCancelled());
+
+      } else if (event.hasUserTaskCreatedV11()) {
+
+        handleUserTaskCreatedV1_1(event.getUserTaskCreatedV11());
+
+      } else if (event.hasUserTaskUpdatedV11()) {
+
+        handleUserTaskUpdateEventV1_1(event.getUserTaskUpdatedV11());
+
+      } else if (event.hasUserTaskCompletedV11()) {
+
+        handleUserTaskCompletedEventV1_1(event.getUserTaskCompletedV11());
+
+      } else if (event.hasUserTaskCancelledV11()) {
+
+        handleUserTaskCancelledEventV1_1(event.getUserTaskCancelledV11());
+
+      } else {
+        throw new RuntimeException(
+            "Unsupported event type '"
+                + record.key()
+                + "'!");
+      }
+
+    } catch (InvalidProtocolBufferException e) {
+      throw new RuntimeException(e);
     }
 
-    private void handleUserTaskCreatedV1(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
-        final var outcome = userTaskService.reportCreatedUserTask(
-                userTaskCreatedOrUpdated.getUserTaskId(),
-                ProtobufHelper.map(userTaskCreatedOrUpdated.getTimestamp()),
-                () -> protobufUserTaskMapper.toNewTask(userTaskCreatedOrUpdated));
-        RepeatUntilStored.storedOrThrow(outcome);
-    }
+  }
 
-    private void handleUserTaskCreatedV1_1(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
-        handleUserTaskCreatedV1(userTaskCreatedOrUpdated);
-    }
+  private void handleUserTaskCreatedV1(
+      UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
+    final var outcome = userTaskService.reportCreatedUserTask(
+        userTaskCreatedOrUpdated.getUserTaskId(),
+        ProtobufHelper.map(userTaskCreatedOrUpdated.getTimestamp()),
+        () -> protobufUserTaskMapper.toNewTask(userTaskCreatedOrUpdated));
+    RepeatUntilStored.storedOrThrow(outcome);
+  }
 
-    private void handleUserTaskUpdateEventV1(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
-        final var outcome = userTaskService.reportChangedUserTask(
-                userTaskCreatedOrUpdated.getUserTaskId(),
-                ProtobufHelper.map(userTaskCreatedOrUpdated.getTimestamp()),
-                // an update for a task the cockpit never saw creates it, mirroring the REST API
-                () -> protobufUserTaskMapper.toNewTask(userTaskCreatedOrUpdated),
-                task -> protobufUserTaskMapper.toUpdatedTask(userTaskCreatedOrUpdated, task));
-        RepeatUntilStored.storedOrThrow(outcome);
-    }
+  private void handleUserTaskCreatedV1_1(
+      UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
+    handleUserTaskCreatedV1(userTaskCreatedOrUpdated);
+  }
 
-    private void handleUserTaskUpdateEventV1_1(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
-        handleUserTaskUpdateEventV1(userTaskCreatedOrUpdated);
-    }
+  private void handleUserTaskUpdateEventV1(
+      UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
+    final var outcome = userTaskService.reportChangedUserTask(
+        userTaskCreatedOrUpdated.getUserTaskId(),
+        ProtobufHelper.map(userTaskCreatedOrUpdated.getTimestamp()),
+        // an update for a task the cockpit never saw creates it, mirroring the REST API
+        () -> protobufUserTaskMapper.toNewTask(userTaskCreatedOrUpdated),
+        task -> protobufUserTaskMapper.toUpdatedTask(userTaskCreatedOrUpdated, task));
+    RepeatUntilStored.storedOrThrow(outcome);
+  }
 
-    /**
-     * Version 1 of the API reports an end without the fields a change carries. A task the cockpit
-     * hears of by its end alone is therefore stored with the end and nothing else. The creation is
-     * still on its way and fills the rest in when it arrives.
-     * <p>
-     * For the same reason an end is not mapped here. An end of this version says who ended the
-     * task, and for a cancellation it also says why. Both are written by hand below. So an end of
-     * this version can never take the due date, the title or the business data away from a stored
-     * task, whatever the reporting side leaves out.
-     */
-    private void handleUserTaskCompletedEventV1(UserTaskCompletedEvent userTaskCompleted) {
-        final var outcome = userTaskService.reportEndedUserTask(
-                userTaskCompleted.getUserTaskId(),
-                ProtobufHelper.map(userTaskCompleted.getTimestamp()),
-                UserTaskEndReason.COMPLETED,
-                userTaskCompleted.hasCreatedAt() ? ProtobufHelper.map(userTaskCompleted.getCreatedAt()) : null,
-                // who completed the task, as reported by the application (may be null =
-                // completed by the process); read by the notification poller
-                task -> task.setInitiator(
-                        userTaskCompleted.hasInitiator() ? userTaskCompleted.getInitiator() : null));
-        RepeatUntilStored.storedOrThrow(outcome);
-    }
+  private void handleUserTaskUpdateEventV1_1(
+      UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
+    handleUserTaskUpdateEventV1(userTaskCreatedOrUpdated);
+  }
 
-    private void handleUserTaskCompletedEventV1_1(UserTaskCreatedOrUpdatedEvent userTaskCompleted) {
+  /**
+   * Version 1 of the API reports an end without the fields a change carries. A task the cockpit
+   * hears of by its end alone is therefore stored with the end and nothing else. The creation is
+   * still on its way and fills the rest in when it arrives.
+   * <p>
+   * For the same reason an end is not mapped here. An end of this version says who ended the
+   * task, and for a cancellation it also says why. Both are written by hand below. So an end of
+   * this version can never take the due date, the title or the business data away from a stored
+   * task, whatever the reporting side leaves out.
+   */
+  private void handleUserTaskCompletedEventV1(
+      UserTaskCompletedEvent userTaskCompleted) {
+    final var outcome = userTaskService.reportEndedUserTask(
+        userTaskCompleted.getUserTaskId(),
+        ProtobufHelper.map(userTaskCompleted.getTimestamp()),
+        UserTaskEndReason.COMPLETED,
+        userTaskCompleted.hasCreatedAt() ? ProtobufHelper.map(userTaskCompleted.getCreatedAt()) : null,
+        // who completed the task, as reported by the application (may be null =
+        // completed by the process); read by the notification poller
+        task -> task.setInitiator(
+            userTaskCompleted.hasInitiator() ? userTaskCompleted.getInitiator() : null));
+    RepeatUntilStored.storedOrThrow(outcome);
+  }
 
-        final var outcome = userTaskService.reportEndedUserTask(
-                userTaskCompleted.getUserTaskId(),
-                ProtobufHelper.map(userTaskCompleted.getTimestamp()),
-                UserTaskEndReason.COMPLETED,
-                userTaskCompleted.hasCreatedAt() ? ProtobufHelper.map(userTaskCompleted.getCreatedAt()) : null,
-                task -> protobufUserTaskMapper.toEndedTask(userTaskCompleted, task));
-        RepeatUntilStored.storedOrThrow(outcome);
+  private void handleUserTaskCompletedEventV1_1(
+      UserTaskCreatedOrUpdatedEvent userTaskCompleted) {
 
-    }
+    final var outcome = userTaskService.reportEndedUserTask(
+        userTaskCompleted.getUserTaskId(),
+        ProtobufHelper.map(userTaskCompleted.getTimestamp()),
+        UserTaskEndReason.COMPLETED,
+        userTaskCompleted.hasCreatedAt() ? ProtobufHelper.map(userTaskCompleted.getCreatedAt()) : null,
+        task -> protobufUserTaskMapper.toEndedTask(userTaskCompleted, task));
+    RepeatUntilStored.storedOrThrow(outcome);
 
-    /** @see #handleUserTaskCompletedEventV1(UserTaskCompletedEvent) */
-    private void handleUserTaskCancelledEventV1(UserTaskCancelledEvent userTaskCancelledEvent) {
-        final var outcome = userTaskService.reportEndedUserTask(
-                userTaskCancelledEvent.getUserTaskId(),
-                ProtobufHelper.map(userTaskCancelledEvent.getTimestamp()),
-                UserTaskEndReason.CANCELLED,
-                userTaskCancelledEvent.hasCreatedAt() ? ProtobufHelper.map(userTaskCancelledEvent.getCreatedAt()) : null,
-                task -> {
-                    task.setInitiator(
-                            userTaskCancelledEvent.hasInitiator() ? userTaskCancelledEvent.getInitiator() : null);
-                    task.setComment(userTaskCancelledEvent.getComment());
-                });
-        RepeatUntilStored.storedOrThrow(outcome);
-    }
+  }
 
-    private void handleUserTaskCancelledEventV1_1(UserTaskCreatedOrUpdatedEvent userTaskCancelled) {
+  /** @see #handleUserTaskCompletedEventV1(UserTaskCompletedEvent) */
+  private void handleUserTaskCancelledEventV1(
+      UserTaskCancelledEvent userTaskCancelledEvent) {
+    final var outcome = userTaskService.reportEndedUserTask(
+        userTaskCancelledEvent.getUserTaskId(),
+        ProtobufHelper.map(userTaskCancelledEvent.getTimestamp()),
+        UserTaskEndReason.CANCELLED,
+        userTaskCancelledEvent.hasCreatedAt() ? ProtobufHelper.map(userTaskCancelledEvent.getCreatedAt()) : null,
+        task -> {
+          task.setInitiator(
+              userTaskCancelledEvent.hasInitiator() ? userTaskCancelledEvent.getInitiator() : null);
+          task.setComment(userTaskCancelledEvent.getComment());
+        });
+    RepeatUntilStored.storedOrThrow(outcome);
+  }
 
-        final var outcome = userTaskService.reportEndedUserTask(
-                userTaskCancelled.getUserTaskId(),
-                ProtobufHelper.map(userTaskCancelled.getTimestamp()),
-                UserTaskEndReason.CANCELLED,
-                userTaskCancelled.hasCreatedAt() ? ProtobufHelper.map(userTaskCancelled.getCreatedAt()) : null,
-                task -> protobufUserTaskMapper.toEndedTask(userTaskCancelled, task));
-        RepeatUntilStored.storedOrThrow(outcome);
+  private void handleUserTaskCancelledEventV1_1(
+      UserTaskCreatedOrUpdatedEvent userTaskCancelled) {
 
-    }
+    final var outcome = userTaskService.reportEndedUserTask(
+        userTaskCancelled.getUserTaskId(),
+        ProtobufHelper.map(userTaskCancelled.getTimestamp()),
+        UserTaskEndReason.CANCELLED,
+        userTaskCancelled.hasCreatedAt() ? ProtobufHelper.map(userTaskCancelled.getCreatedAt()) : null,
+        task -> protobufUserTaskMapper.toEndedTask(userTaskCancelled, task));
+    RepeatUntilStored.storedOrThrow(outcome);
+
+  }
 
 }

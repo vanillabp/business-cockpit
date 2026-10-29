@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -15,6 +13,22 @@
   <description>Services, persistence, GUI API and security extension points of the VanillaBP
     Business Cockpit. Meant to be used as a dependency; the runnable reference application is the
     module 'container'. The jar carries no user interface.</description>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>VanillaBP</id>
+      <organization>Phactum Softwareentwicklung GmbH</organization>
+      <organizationUrl>https://www.phactum.at</organizationUrl>
+    </developer>
+  </developers>
 
   <properties>
     <m2e.apt.activation>jdt_apt</m2e.apt.activation>
@@ -33,48 +47,6 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
-
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.openapitools</groupId>
-        <artifactId>openapi-generator-maven-plugin</artifactId>
-        <version>6.4.0</version>
-        <!-- Still on 6.4.0, the version which once also generated the TypeScript client of the
-             webapp. Neither lives here any more, see decision 63 in the repository's DECISIONS.md,
-             so nothing holds this version back. The spring execution sets
-             useSpringBoot3, so it emits jakarta code. -->
-        <executions>
-          <execution>
-            <id>generate-gui-api</id>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-            <configuration>
-              <inputSpec>${project.basedir}/src/main/resources/api/gui/v1.yaml</inputSpec>
-              <output>${project.build.directory}/generated-sources</output>
-              <generatorName>spring</generatorName>
-              <apiPackage>io.vanillabp.cockpit.gui.api.v1</apiPackage>
-              <modelPackage>io.vanillabp.cockpit.gui.api.v1</modelPackage>
-              <generateSupportingFiles>true</generateSupportingFiles>
-              <supportingFilesToGenerate>ApiUtil.java</supportingFilesToGenerate>
-              <configOptions>
-                <sourceFolder>openapi</sourceFolder>
-                <useTags>true</useTags>
-                <interfaceOnly>true</interfaceOnly>
-                <useSpringBoot3>true</useSpringBoot3>
-                <useSpringController>true</useSpringController>
-                <enablePostProcessFile>true</enablePostProcessFile>
-                <useBeanValidation>false</useBeanValidation>
-                <disallowAdditionalPropertiesIfNotPresent>false</disallowAdditionalPropertiesIfNotPresent>
-              </configOptions>
-              <addCompileSourceRoot>true</addCompileSourceRoot>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
 
   <dependencies>
     <!--
@@ -278,20 +250,46 @@
     </dependency>
   </dependencies>
 
-  <licenses>
-    <license>
-      <name>Apache License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
-
-  <developers>
-    <developer>
-      <id>VanillaBP</id>
-      <organization>Phactum Softwareentwicklung GmbH</organization>
-      <organizationUrl>https://www.phactum.at</organizationUrl>
-    </developer>
-  </developers>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.openapitools</groupId>
+        <artifactId>openapi-generator-maven-plugin</artifactId>
+        <version>6.4.0</version>
+        <!-- Still on 6.4.0, the version which once also generated the TypeScript client of the
+             webapp. Neither lives here any more, see decision 63 in the repository's DECISIONS.md,
+             so nothing holds this version back. The spring execution sets
+             useSpringBoot3, so it emits jakarta code. -->
+        <executions>
+          <execution>
+            <id>generate-gui-api</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${project.basedir}/src/main/resources/api/gui/v1.yaml</inputSpec>
+              <output>${project.build.directory}/generated-sources</output>
+              <generatorName>spring</generatorName>
+              <apiPackage>io.vanillabp.cockpit.gui.api.v1</apiPackage>
+              <modelPackage>io.vanillabp.cockpit.gui.api.v1</modelPackage>
+              <generateSupportingFiles>true</generateSupportingFiles>
+              <supportingFilesToGenerate>ApiUtil.java</supportingFilesToGenerate>
+              <configOptions>
+                <sourceFolder>openapi</sourceFolder>
+                <useTags>true</useTags>
+                <interfaceOnly>true</interfaceOnly>
+                <useSpringBoot3>true</useSpringBoot3>
+                <useSpringController>true</useSpringController>
+                <enablePostProcessFile>true</enablePostProcessFile>
+                <useBeanValidation>false</useBeanValidation>
+                <disallowAdditionalPropertiesIfNotPresent>false</disallowAdditionalPropertiesIfNotPresent>
+              </configOptions>
+              <addCompileSourceRoot>true</addCompileSourceRoot>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 
 </project>

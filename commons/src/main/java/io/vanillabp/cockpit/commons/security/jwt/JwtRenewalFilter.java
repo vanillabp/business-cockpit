@@ -1,13 +1,15 @@
 package io.vanillabp.cockpit.commons.security.jwt;
 
+import java.io.IOException;
+
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.web.filter.OncePerRequestFilter;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.util.matcher.RequestMatcher;
-import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Keeps a login alive while it is used. A request whose token has less than half of its lifetime
@@ -25,48 +27,47 @@ import org.springframework.web.filter.OncePerRequestFilter;
  */
 public class JwtRenewalFilter extends OncePerRequestFilter {
 
-    private final JwtProperties properties;
+  private final JwtProperties properties;
 
-    private final JwtMapper<? extends JwtAuthenticationToken> jwtMapper;
+  private final JwtMapper<? extends JwtAuthenticationToken> jwtMapper;
 
-    private final RequestMatcher requestsWhichDoNotRenew;
+  private final RequestMatcher requestsWhichDoNotRenew;
 
-    /**
-     * Creates the filter.
-     *
-     * @param properties              The token settings, the cookie settings among them
-     * @param jwtMapper               Builds the renewed token
-     * @param requestsWhichDoNotRenew The requests which keep their token as it is
-     */
-    public JwtRenewalFilter(
-            final JwtProperties properties,
-            final JwtMapper<? extends JwtAuthenticationToken> jwtMapper,
-            final RequestMatcher requestsWhichDoNotRenew) {
+  /**
+   * Creates the filter.
+   *
+   * @param properties              The token settings, the cookie settings among them
+   * @param jwtMapper               Builds the renewed token
+   * @param requestsWhichDoNotRenew The requests which keep their token as it is
+   */
+  public JwtRenewalFilter(
+      final JwtProperties properties,
+      final JwtMapper<? extends JwtAuthenticationToken> jwtMapper,
+      final RequestMatcher requestsWhichDoNotRenew) {
 
-        this.properties = properties;
-        this.jwtMapper = jwtMapper;
-        this.requestsWhichDoNotRenew = requestsWhichDoNotRenew;
+    this.properties = properties;
+    this.jwtMapper = jwtMapper;
+    this.requestsWhichDoNotRenew = requestsWhichDoNotRenew;
 
+  }
+
+  @Override
+  protected void doFilterInternal(
+      final HttpServletRequest request,
+      final HttpServletResponse response,
+      final FilterChain filterChain) throws ServletException, IOException {
+
+    // the cookie is a header, so it has to be added before the response is committed
+    if (!requestsWhichDoNotRenew.matches(request) && (SecurityContextHolder.getContext()
+        .getAuthentication() instanceof JwtAuthenticationToken authentication)) {
+      jwtMapper
+          .renew(authentication.getJwt())
+          .ifPresent(token -> JwtSecurityContextRepository.addCookie(
+              properties, response, token.getKey(), token.getValue()));
     }
 
-    @Override
-    protected void doFilterInternal(
-            final HttpServletRequest request,
-            final HttpServletResponse response,
-            final FilterChain filterChain) throws ServletException, IOException {
+    filterChain.doFilter(request, response);
 
-        // the cookie is a header, so it has to be added before the response is committed
-        if (!requestsWhichDoNotRenew.matches(request)
-                && (SecurityContextHolder.getContext().getAuthentication()
-                        instanceof JwtAuthenticationToken authentication)) {
-            jwtMapper
-                    .renew(authentication.getJwt())
-                    .ifPresent(token -> JwtSecurityContextRepository.addCookie(
-                            properties, response, token.getKey(), token.getValue()));
-        }
-
-        filterChain.doFilter(request, response);
-
-    }
+  }
 
 }

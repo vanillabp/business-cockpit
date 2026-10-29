@@ -5,20 +5,23 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpServer;
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
-import io.vanillabp.integration.test.utils.OneFreePortPerJvm;
-import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpServer;
+
+import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.integration.test.utils.OneFreePortPerJvm;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * The users of the Spring profile 'local' come from a running DevShell-Simulator, so this test
@@ -31,189 +34,189 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(SuppressOutputExtension.class)
 class LocalUserDetailsProviderImplTest {
 
-    private static final String USERS = """
-            [
-              {
-                "id": "willi",
-                "email": "Willi.Wichtig@vanillabp.io",
-                "firstName": "Willi",
-                "lastName": "Wichtig",
-                "groups": [ "TREASURER" ]
-              },
-              {
-                "id": "testuser",
-                "email": "test.user@vanillabp.io",
-                "firstName": "Test",
-                "lastName": "User"
-              },
-              {
-                "id": "nameless",
-                "email": "nameless@vanillabp.io"
-              }
-            ]
-            """;
-
-    private HttpServer simulator;
-
-    private String usersUri;
-
-    private final AtomicReference<String> requestedPath = new AtomicReference<>();
-
-    @BeforeEach
-    void startSimulator() throws IOException {
-
-        final var port = OneFreePortPerJvm.getPort();
-        simulator = HttpServer.create(new InetSocketAddress("localhost", port), 0);
-        simulator.createContext("/dev-shell/user/all", this::serveUsers);
-        simulator.start();
-        usersUri = "http://localhost:%d/dev-shell/user".formatted(port);
-
-    }
-
-    @AfterEach
-    void stopSimulator() {
-
-        simulator.stop(0);
-
-    }
-
-    private void serveUsers(
-            final HttpExchange exchange) throws IOException {
-
-        requestedPath.set(exchange.getRequestURI().getPath());
-        final var body = USERS.getBytes(StandardCharsets.UTF_8);
-        exchange.getResponseHeaders().add("Content-Type", "application/json");
-        exchange.sendResponseHeaders(200, body.length);
-        try (var response = exchange.getResponseBody()) {
-            response.write(body);
+  private static final String USERS = """
+      [
+        {
+          "id": "willi",
+          "email": "Willi.Wichtig@vanillabp.io",
+          "firstName": "Willi",
+          "lastName": "Wichtig",
+          "groups": [ "TREASURER" ]
+        },
+        {
+          "id": "testuser",
+          "email": "test.user@vanillabp.io",
+          "firstName": "Test",
+          "lastName": "User"
+        },
+        {
+          "id": "nameless",
+          "email": "nameless@vanillabp.io"
         }
+      ]
+      """;
 
+  private HttpServer simulator;
+
+  private String usersUri;
+
+  private final AtomicReference<String> requestedPath = new AtomicReference<>();
+
+  @BeforeEach
+  void startSimulator() throws IOException {
+
+    final var port = OneFreePortPerJvm.getPort();
+    simulator = HttpServer.create(new InetSocketAddress("localhost", port), 0);
+    simulator.createContext("/dev-shell/user/all", this::serveUsers);
+    simulator.start();
+    usersUri = "http://localhost:%d/dev-shell/user".formatted(port);
+
+  }
+
+  @AfterEach
+  void stopSimulator() {
+
+    simulator.stop(0);
+
+  }
+
+  private void serveUsers(
+      final HttpExchange exchange) throws IOException {
+
+    requestedPath.set(exchange.getRequestURI().getPath());
+    final var body = USERS.getBytes(StandardCharsets.UTF_8);
+    exchange.getResponseHeaders().add("Content-Type", "application/json");
+    exchange.sendResponseHeaders(200, body.length);
+    try (var response = exchange.getResponseBody()) {
+      response.write(body);
     }
 
-    private LocalUserDetailsProviderImpl loadedProvider() {
+  }
 
-        final var provider = new LocalUserDetailsProviderImpl(usersUri);
-        provider.loadAllUsersFromDevShellSimulator();
-        return provider;
+  private LocalUserDetailsProviderImpl loadedProvider() {
 
-    }
+    final var provider = new LocalUserDetailsProviderImpl(usersUri);
+    provider.loadAllUsersFromDevShellSimulator();
+    return provider;
 
-    private static List<String> idsOf(
-            final List<UserDetails> users) {
+  }
 
-        return users
-                .stream()
-                .map(UserDetails::getId)
-                .toList();
+  private static List<String> idsOf(
+      final List<UserDetails> users) {
 
-    }
+    return users
+        .stream()
+        .map(UserDetails::getId)
+        .toList();
 
-    @Test
-    void theUsersAreFetchedBelowTheConfiguredUri() {
+  }
 
-        final var users = loadedProvider().getAllUsers();
+  @Test
+  void theUsersAreFetchedBelowTheConfiguredUri() {
 
-        assertEquals("/dev-shell/user/all", requestedPath.get());
-        assertEquals(List.of("willi", "testuser", "nameless"), idsOf(users));
+    final var users = loadedProvider().getAllUsers();
 
-    }
+    assertEquals("/dev-shell/user/all", requestedPath.get());
+    assertEquals(List.of("willi", "testuser", "nameless"), idsOf(users));
 
-    @Test
-    void aUserIsFoundById() {
+  }
 
-        final var user = loadedProvider().getUser("testuser");
+  @Test
+  void aUserIsFoundById() {
 
-        assertTrue(user.isPresent());
-        assertEquals("test.user@vanillabp.io", user.get().getEmail());
-        assertEquals("User, Test", user.get().getDisplay());
-        assertEquals("User, T.", user.get().getDisplayShort());
-        assertEquals(List.of(), user.get().getAuthorities());
+    final var user = loadedProvider().getUser("testuser");
 
-    }
+    assertTrue(user.isPresent());
+    assertEquals("test.user@vanillabp.io", user.get().getEmail());
+    assertEquals("User, Test", user.get().getDisplay());
+    assertEquals("User, T.", user.get().getDisplayShort());
+    assertEquals(List.of(), user.get().getAuthorities());
 
-    @Test
-    void anUnknownIdYieldsNothing() {
+  }
 
-        assertTrue(loadedProvider().getUser("nobody").isEmpty());
+  @Test
+  void anUnknownIdYieldsNothing() {
 
-    }
+    assertTrue(loadedProvider().getUser("nobody").isEmpty());
 
-    @Test
-    void aUserWithoutANameIsDisplayedByItsId() {
+  }
 
-        final var user = loadedProvider().getUser("nameless");
+  @Test
+  void aUserWithoutANameIsDisplayedByItsId() {
 
-        assertTrue(user.isPresent());
-        assertEquals("nameless", user.get().getDisplay());
-        assertEquals("nameless", user.get().getDisplayShort());
+    final var user = loadedProvider().getUser("nameless");
 
-    }
+    assertTrue(user.isPresent());
+    assertEquals("nameless", user.get().getDisplay());
+    assertEquals("nameless", user.get().getDisplayShort());
 
-    @Test
-    void theGroupsOfTheSimulatorBecomeAuthorities() {
+  }
 
-        final var user = loadedProvider().getUser("willi");
+  @Test
+  void theGroupsOfTheSimulatorBecomeAuthorities() {
 
-        assertTrue(user.isPresent());
-        assertEquals(List.of("TREASURER"), user.get().getAuthorities());
+    final var user = loadedProvider().getUser("willi");
 
-    }
+    assertTrue(user.isPresent());
+    assertEquals(List.of("TREASURER"), user.get().getAuthorities());
 
-    @Test
-    void theQueryMatchesDisplayAndEmail() {
+  }
 
-        final var provider = loadedProvider();
+  @Test
+  void theQueryMatchesDisplayAndEmail() {
 
-        assertEquals(List.of("willi"), idsOf(provider.findUsers("wichtig")));
-        assertEquals(List.of("testuser"), idsOf(provider.findUsers("test.user")));
-        assertEquals(List.of(), idsOf(provider.findUsers("nobody")));
+    final var provider = loadedProvider();
 
-    }
+    assertEquals(List.of("willi"), idsOf(provider.findUsers("wichtig")));
+    assertEquals(List.of("testuser"), idsOf(provider.findUsers("test.user")));
+    assertEquals(List.of(), idsOf(provider.findUsers("nobody")));
 
-    @Test
-    void excludedUsersAreLeftOutOfBothLists() {
+  }
 
-        final var provider = loadedProvider();
-        final var excluded = List.of("willi");
+  @Test
+  void excludedUsersAreLeftOutOfBothLists() {
 
-        assertEquals(List.of("testuser", "nameless"), idsOf(provider.getAllUsers(excluded)));
-        assertEquals(List.of(), idsOf(provider.findUsers("wichtig", excluded)));
-        assertEquals(List.of("testuser"), idsOf(provider.findUsers("test.user", excluded)));
+    final var provider = loadedProvider();
+    final var excluded = List.of("willi");
 
-    }
+    assertEquals(List.of("testuser", "nameless"), idsOf(provider.getAllUsers(excluded)));
+    assertEquals(List.of(), idsOf(provider.findUsers("wichtig", excluded)));
+    assertEquals(List.of("testuser"), idsOf(provider.findUsers("test.user", excluded)));
 
-    @Test
-    void aSimulatorWhichIsDownIsReportedWithTheProperty() {
+  }
 
-        simulator.stop(0);
+  @Test
+  void aSimulatorWhichIsDownIsReportedWithTheProperty() {
 
-        final var failure = assertThrows(
-                RuntimeException.class,
-                () -> new LocalUserDetailsProviderImpl(usersUri).loadAllUsersFromDevShellSimulator());
+    simulator.stop(0);
 
-        assertTrue(failure.getMessage().contains("dev-shell-simulator.users-uri"));
-        assertTrue(failure.getMessage().contains(usersUri));
+    final var failure = assertThrows(
+        RuntimeException.class,
+        () -> new LocalUserDetailsProviderImpl(usersUri).loadAllUsersFromDevShellSimulator());
 
-    }
+    assertTrue(failure.getMessage().contains("dev-shell-simulator.users-uri"));
+    assertTrue(failure.getMessage().contains(usersUri));
 
-    @Test
-    void anEmptySimulatorLeavesNoUsers() throws IOException {
+  }
 
-        simulator.removeContext("/dev-shell/user/all");
-        simulator.createContext("/dev-shell/user/all", exchange -> {
-            final var body = "[]".getBytes(StandardCharsets.UTF_8);
-            exchange.getResponseHeaders().add("Content-Type", "application/json");
-            exchange.sendResponseHeaders(200, body.length);
-            try (var response = exchange.getResponseBody()) {
-                response.write(body);
-            }
-        });
+  @Test
+  void anEmptySimulatorLeavesNoUsers() throws IOException {
 
-        final var provider = loadedProvider();
+    simulator.removeContext("/dev-shell/user/all");
+    simulator.createContext("/dev-shell/user/all", exchange -> {
+      final var body = "[]".getBytes(StandardCharsets.UTF_8);
+      exchange.getResponseHeaders().add("Content-Type", "application/json");
+      exchange.sendResponseHeaders(200, body.length);
+      try (var response = exchange.getResponseBody()) {
+        response.write(body);
+      }
+    });
 
-        assertTrue(provider.getAllUsers().isEmpty());
-        assertFalse(provider.getUser("willi").isPresent());
+    final var provider = loadedProvider();
 
-    }
+    assertTrue(provider.getAllUsers().isEmpty());
+    assertFalse(provider.getUser("willi").isPresent());
+
+  }
 
 }

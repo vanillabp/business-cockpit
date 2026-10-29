@@ -13,82 +13,82 @@ import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
  * does not know is stored as it is, without a name.
  */
 public class LocalPersonAndGroupMapperImpl implements PersonAndGroupMapper {
-    private final UserDetailsProvider userDetailsProvider;
+  private final UserDetailsProvider userDetailsProvider;
 
-    /**
-     * Creates the mapper on top of the demo users.
-     *
-     * @param userDetailsProvider The directory of the demo users, which is asked for the name of
-     *          a person by its id
-     */
-    public LocalPersonAndGroupMapperImpl(
-            final UserDetailsProvider userDetailsProvider) {
+  /**
+   * Creates the mapper on top of the demo users.
+   *
+   * @param userDetailsProvider The directory of the demo users, which is asked for the name of
+   *          a person by its id
+   */
+  public LocalPersonAndGroupMapperImpl(
+      final UserDetailsProvider userDetailsProvider) {
 
-        this.userDetailsProvider = userDetailsProvider;
+    this.userDetailsProvider = userDetailsProvider;
 
+  }
+
+  @Override
+  public Person toModelPerson(
+      final String personId) {
+
+    final var result = new Person();
+
+    final var userFound = userDetailsProvider
+        .getUser(personId);
+    if (userFound.isEmpty()) {
+      result.setId(personId);
+      return result;
     }
+    final var user = userFound.get();
 
-    @Override
-    public Person toModelPerson(
-            final String personId) {
-
-        final var result = new Person();
-
-        final var userFound = userDetailsProvider
-                .getUser(personId);
-        if (userFound.isEmpty()) {
-            result.setId(personId);
-            return result;
-        }
-        final var user = userFound.get();
-
-        result.setId(user.getId());
-        result.setFulltext(user.getDisplay());
-        if (user.getDisplay() != null) {
-            final var indexOfSpace = user.getDisplay().indexOf(' ');
-            if (indexOfSpace != -1) {
-                result.setSort(user.getDisplay().substring(0, indexOfSpace)
-                        + "                                                                                "
-                        + user.getDisplay().substring(indexOfSpace + 1));
-            } else {
-                result.setSort(user.getDisplay());
-            }
-        }
-        return result;
-
+    result.setId(user.getId());
+    result.setFulltext(user.getDisplay());
+    if (user.getDisplay() != null) {
+      final var indexOfSpace = user.getDisplay().indexOf(' ');
+      if (indexOfSpace != -1) {
+        result.setSort(user.getDisplay().substring(0, indexOfSpace)
+            + "                                                                                "
+            + user.getDisplay().substring(indexOfSpace + 1));
+      } else {
+        result.setSort(user.getDisplay());
+      }
     }
+    return result;
 
-    @Override
-    public Person toModelPerson(
-            final UserDetails user) {
+  }
 
-        final var result = new Person();
-        result.setId(user.getId());
-        result.setFulltext(user.getDisplay());
-        if (user.getDisplay() != null) {
-            final var indexOfSpace = user.getDisplay().indexOf(' ');
-            if (indexOfSpace != -1) {
-                result.setSort(user.getDisplay().substring(0, indexOfSpace)
-                        + "                                                                                "
-                        + user.getDisplay().substring(indexOfSpace + 1));
-            } else {
-                result.setSort(user.getDisplay());
-            }
-        }
-        return result;
+  @Override
+  public Person toModelPerson(
+      final UserDetails user) {
 
+    final var result = new Person();
+    result.setId(user.getId());
+    result.setFulltext(user.getDisplay());
+    if (user.getDisplay() != null) {
+      final var indexOfSpace = user.getDisplay().indexOf(' ');
+      if (indexOfSpace != -1) {
+        result.setSort(user.getDisplay().substring(0, indexOfSpace)
+            + "                                                                                "
+            + user.getDisplay().substring(indexOfSpace + 1));
+      } else {
+        result.setSort(user.getDisplay());
+      }
     }
+    return result;
 
-    @Override
-    public Group toModelGroup(
-            final String groupId) {
+  }
 
-        final var result = new Group();
-        result.setId(groupId);
-        result.setFulltext(groupId);
-        result.setSort(groupId);
-        return result;
+  @Override
+  public Group toModelGroup(
+      final String groupId) {
 
-    }
+    final var result = new Group();
+    result.setId(groupId);
+    result.setFulltext(groupId);
+    result.setSort(groupId);
+    return result;
+
+  }
 
 }
