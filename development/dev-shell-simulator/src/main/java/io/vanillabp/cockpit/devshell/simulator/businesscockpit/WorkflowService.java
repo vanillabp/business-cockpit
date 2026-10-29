@@ -190,6 +190,22 @@ public class WorkflowService {
   }
 
   /**
+   * Counts the workflows a list of the given mode shows.
+   *
+   * @param retrieveMode Which workflows to count
+   * @param businessIds Only workflows with one of these business ids. All if {@code null} or empty.
+   * @return The number of workflows
+   */
+  public long countWorkflows(
+      final RetrieveMode retrieveMode,
+      final List<String> businessIds) {
+
+    return getWorkflows(retrieveMode, businessIds, null, null, 0, Integer.MAX_VALUE)
+        .getTotalElements();
+
+  }
+
+  /**
    * Marks a workflow as completed.
    *
    * @param workflowId The ID of the Workflow to complete.

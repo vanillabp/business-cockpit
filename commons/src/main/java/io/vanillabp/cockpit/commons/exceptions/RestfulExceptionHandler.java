@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.commons.exceptions;
 
+import java.util.Arrays;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -17,8 +18,11 @@ import org.springframework.validation.method.ParameterErrors;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.exc.MismatchedInputException;
+import tools.jackson.databind.exc.ValueInstantiationException;
 
 /**
  * Turns the exceptions a REST controller throws into HTTP answers. Each kind of mistake gets its
@@ -266,17 +270,77 @@ public class RestfulExceptionHandler {
   }
 
   /**
-   * Answers a request body which cannot be read, like broken JSON, with
-   * {@code 400 Bad Request} and an empty body.
+   * Answers a request body which cannot be read with {@code 400 Bad Request}. If the body is JSON
+   * and one field of it has a value of the wrong kind, the answer names that field. For a field
+   * which takes a fixed set of names, like the mode of a list, the answer lists those names. A
+   * client which still sends a name the API dropped learns that way what it may send instead.
+   * Like the other answers, it never repeats the value the request sent. Broken JSON gets an
+   * empty body.
    *
-   * @param e What went wrong while reading the body
+   * @param exception What went wrong while reading the body
+   * @return The answer
    */
-  @ExceptionHandler
-  @ResponseStatus(HttpStatus.BAD_REQUEST)
-  public void handle(
-      final HttpMessageNotReadableException e) {
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<String> handleUnreadableRequestBody(
+      final HttpMessageNotReadableException exception) {
 
-    logger.warn("Returning HTTP 400 Bad Request", e);
+    if (!(exception.getCause() instanceof JacksonException cause) || cause.getPath().isEmpty()) {
+      logger.warn("Returning HTTP 400 Bad Request", exception);
+      return ResponseEntity.badRequest().build();
+    }
+
+    final var field = pathOf(cause);
+    final var names = namesTheFieldTakes(cause);
+    return invalidRequest(Stream.of(names == null
+        ? "'%s' cannot be read".formatted(field)
+        : "'%s' takes one of %s".formatted(field, names)));
+
+  }
+
+  private static String pathOf(
+      final JacksonException exception) {
+
+    final var path = new StringBuilder();
+    for (final var reference : exception.getPath()) {
+      if (reference.getPropertyName() != null) {
+        if (!path.isEmpty()) {
+          path.append('.');
+        }
+        path.append(reference.getPropertyName());
+      } else {
+        path.append('[').append(reference.getIndex()).append(']');
+      }
+    }
+    return path.toString();
+
+  }
+
+  /**
+   * @param exception What went wrong while reading the field
+   * @return The names an enum field takes, quoted and separated by commas, or {@code null} if
+   *         the field is no enum. The generated enums of the APIs answer {@code toString()} with
+   *         the name as it is written in the JSON.
+   */
+  private static String namesTheFieldTakes(
+      final JacksonException exception) {
+
+    final Class<?> targetType;
+    if (exception instanceof ValueInstantiationException instantiation) {
+      targetType = instantiation.getType() == null ? null : instantiation.getType().getRawClass();
+    } else if (exception instanceof MismatchedInputException mismatch) {
+      targetType = mismatch.getTargetType();
+    } else {
+      targetType = null;
+    }
+    if ((targetType == null) || !targetType.isEnum()) {
+      return null;
+    }
+    return Arrays
+        .stream(targetType.getEnumConstants())
+        .map(name -> "'"
+            + name
+            + "'")
+        .collect(Collectors.joining(", "));
 
   }
 

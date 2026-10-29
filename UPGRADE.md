@@ -232,3 +232,48 @@ application.
 If your application brings a user interface of its own, nothing changes. Put its `index.html` at
 `classpath:/static/index.html`, or name it with `application.spa-default-file`, and unknown paths
 get it as before. Decisions 62 and 63 in [DECISIONS.md](./DECISIONS.md) have the details.
+
+### `OpenTasks` is gone
+
+The GUI API knew two names for the same list of user tasks: `OpenTasks` and
+`OpenTasksWithFollowUp`. `OpenTasks` is gone. A request which still sends it gets 400. Send
+`OpenTasksWithFollowUp` instead. The list is the same: every task which has not ended, with or
+without a follow-up date. Its partner is `OpenTasksWithoutFollowUp`, which leaves out the tasks with
+a follow-up date in the future.
+
+A request without `mode` now gets the same list for the first page and for the update:
+
+- `POST /usertask` without `mode` shows no ended tasks any more. Before, it showed all tasks.
+- `POST /workflow` without `mode` shows no ended workflows any more. Before, it showed all workflows.
+- `POST /workflow/{workflowId}/usertasks` reads the whole `mode` now, like `POST /usertask`. Before,
+  it only looked for `OpenTasks` and answered every other mode with all tasks of the workflow,
+  `ClosedTasksOnly` included. Without `mode` it shows the open tasks of the workflow.
+
+If you need the ended ones, send `All`.
+
+A subclass of `AbstractWorkflowListGuiApiController` which overrides `getUserTasksOfWorkflow` gets a
+mode instead of the `boolean` which said whether to leave out the ended tasks. The same goes for a
+caller of `UserTaskService.getUserTasksOfWorkflow`.
+
+The dev-shell simulator still shows all tasks and all workflows without `mode`. It only fills the
+list a developer picks a task from, and it holds a few tasks only.
+
+### An ended user task refuses claim and assign
+
+Claiming a user task, giving it back, assigning it and unassigning it now answer 409 for a task which
+has ended. Before, they answered 200 and changed the task. The list forms do the same: if one of the
+tasks the user may see has ended, the request changes none of them and answers 409. A user interface
+which relied on 200 has to switch these actions off for a task whose `endedAt` is set.
+
+Marking as read and as unread still work for an ended task, and so does `GET /usertask/{id}` with
+`markAsRead=true`. A read marker only changes how the list shows the row.
+
+The list forms never answered 404, although the OpenAPI file said so. The file no longer says it.
+
+### Two count endpoints
+
+`POST /usertask/count` and `POST /workflow/count` are new. Each takes a list of filters, the same
+filters as its list, and answers one count per filter, with no rows and without sorting. Nothing
+else changes. A user interface which counted with a page of size 1 can switch when it likes. Two new
+changesets add indexes on the fields which decide who sees a user task or a workflow. On a large
+database the first start after the upgrade takes a little longer while MongoDB builds them.

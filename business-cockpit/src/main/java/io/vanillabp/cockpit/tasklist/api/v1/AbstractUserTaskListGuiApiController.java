@@ -14,6 +14,8 @@ import org.springframework.util.StringUtils;
 
 import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.gui.api.v1.Count;
+import io.vanillabp.cockpit.gui.api.v1.Counts;
 import io.vanillabp.cockpit.gui.api.v1.FollowUpDateRequest;
 import io.vanillabp.cockpit.gui.api.v1.KwicRequest;
 import io.vanillabp.cockpit.gui.api.v1.KwicResults;
@@ -21,6 +23,8 @@ import io.vanillabp.cockpit.gui.api.v1.OfficialTasklistApi;
 import io.vanillabp.cockpit.gui.api.v1.UpdateStreams;
 import io.vanillabp.cockpit.gui.api.v1.UserSearchResult;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
+import io.vanillabp.cockpit.gui.api.v1.UserTaskCountFilter;
+import io.vanillabp.cockpit.gui.api.v1.UserTaskCountsRequest;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskIds;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
@@ -32,6 +36,7 @@ import io.vanillabp.cockpit.tasklist.api.UserTaskStreamAudience;
 import io.vanillabp.cockpit.users.UserDetailsProvider;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
+import io.vanillabp.cockpit.util.CountKeys;
 import io.vanillabp.cockpit.util.ListPaging;
 import io.vanillabp.cockpit.util.SearchQuery;
 
@@ -46,6 +51,11 @@ import io.vanillabp.cockpit.util.SearchQuery;
  * assigned or marked as read by guessing its id either. All of those answer HTTP 404 in that case,
  * the same answer an id which was never reported gets, so the answer itself tells nobody the task
  * exists.
+ *
+ * <p>A task which has ended is documentation. Claiming, giving back, assigning and unassigning
+ * answer HTTP 409 for it, and so does a list of ids which holds one. Nothing is written then.
+ * Marking as read still works, because it only changes how the list shows the row. A task the
+ * user may not reach is answered with 404 first, whether it ended or not.
  *
  * <p>{@link UserTaskVisibility} names the ready-made views the cockpit ships with. An application
  * which needs another one builds a {@code UserTaskVisibility} of its own rather than overriding the
@@ -157,11 +167,65 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
         ListPaging.sortAscending(userTasksRequest.getSortAscending()),
         userTasksRequest.getMode() != null
             ? mapper.toModel(userTasksRequest.getMode())
-            : UserTaskService.RetrieveItemsMode.All);
+            : UserTaskService.RetrieveItemsMode.OpenTasksWithFollowUp);
 
     tellTheUpdateStreamsWhatIsShown(currentUser, visibility, userTasks);
 
     return ResponseEntity.ok(mapper.toApi(userTasks, timestamp, currentUser.getId()));
+
+  }
+
+  /**
+   * The number of tasks of one list. A subclass may override it to count in another way, and
+   * should then override {@link #getUserTasks(UserTaskVisibility, int, int, OffsetDateTime, Collection, String, boolean, UserTaskService.RetrieveItemsMode)}
+   * the same way, so the count agrees with the list.
+   *
+   * @param visibility Which tasks the user may reach
+   * @param initialTimestamp When the user started to page through the list, or {@code null} to
+   *        count only the tasks which have not ended
+   * @param searchQueries The filters of the list, or {@code null}
+   * @param mode Which tasks the list holds
+   * @return The number of tasks
+   */
+  protected long countUserTasks(
+      final UserTaskVisibility visibility,
+      final OffsetDateTime initialTimestamp,
+      final Collection<SearchQuery> searchQueries,
+      final UserTaskService.RetrieveItemsMode mode) {
+
+    return userTaskService.countUserTasks(visibility, initialTimestamp, searchQueries, mode);
+
+  }
+
+  @Override
+  public ResponseEntity<Counts> countUserTasks(
+      final UserTaskCountsRequest userTaskCountsRequest,
+      final OffsetDateTime initialTimestamp) {
+
+    final var filters = userTaskCountsRequest.getFilters();
+    CountKeys.checkThatEachKeyIsUsedOnce(filters.stream().map(UserTaskCountFilter::getKey).toList());
+
+    final var visibility = userTasksVisibleTo(userContext.getUserLoggedInDetails());
+    final var counts = filters
+        .stream()
+        .map(filter -> new Count()
+            .key(filter.getKey())
+            .count(countUserTasks(
+                visibility,
+                // without a timestamp the count asks for the tasks which have not ended,
+                // which MongoDB narrows down in the indexes of the visibility. 'now' gives the
+                // same number with an "or" more, and MongoDB then reads the index entries of
+                // every task the user may see, the ended ones included
+                initialTimestamp,
+                mapper.toModel(filter.getSearchQueries()),
+                filter.getMode() != null
+                    ? mapper.toModel(filter.getMode())
+                    : UserTaskService.RetrieveItemsMode.OpenTasksWithFollowUp)))
+        .toList();
+
+    return ResponseEntity.ok(new Counts()
+        .serverTimestamp(initialTimestamp != null ? initialTimestamp : OffsetDateTime.now())
+        .counts(counts));
 
   }
 
@@ -223,7 +287,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
         ListPaging.sortAscending(userTasksUpdateRequest.getSortAscending()),
         userTasksUpdateRequest.getMode() != null
             ? mapper.toModel(userTasksUpdateRequest.getMode())
-            : UserTaskService.RetrieveItemsMode.OpenTasks);
+            : UserTaskService.RetrieveItemsMode.OpenTasksWithFollowUp);
 
     tellTheUpdateStreamsWhatIsShown(currentUser, visibility, userTasks);
 
@@ -383,10 +447,15 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
     final var visibility = userTasksVisibleTo(currentUser);
     final var currentUserId = currentUser.getId();
 
-    final var result = (unclaim != null) && unclaim
-        ? userTaskService.unclaimTask(visibility, currentUserId, userTaskId, currentUserId)
-        : userTaskService.claimTask(
-            visibility, userTaskId, personAndGroupModelMapper.toModelPerson(currentUser));
+    final io.vanillabp.cockpit.tasklist.model.UserTask result;
+    try {
+      result = (unclaim != null) && unclaim
+          ? userTaskService.unclaimTask(visibility, currentUserId, userTaskId, currentUserId)
+          : userTaskService.claimTask(
+              visibility, userTaskId, personAndGroupModelMapper.toModelPerson(currentUser));
+    } catch (UserTaskAlreadyCompletedException e) {
+      return ResponseEntity.status(HttpStatus.CONFLICT).build();
+    }
 
     return result == null
         ? ResponseEntity.notFound().build()
@@ -403,14 +472,18 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
     final var visibility = userTasksVisibleTo(currentUser);
     final var currentUserId = currentUser.getId();
 
-    if ((unclaim != null) && unclaim) {
-      userTaskService.unclaimTask(
-          visibility, currentUserId, userTaskIds.getUserTaskIds(), currentUserId);
-    } else {
-      userTaskService.claimTask(
-          visibility,
-          userTaskIds.getUserTaskIds(),
-          personAndGroupModelMapper.toModelPerson(currentUser));
+    try {
+      if ((unclaim != null) && unclaim) {
+        userTaskService.unclaimTask(
+            visibility, currentUserId, userTaskIds.getUserTaskIds(), currentUserId);
+      } else {
+        userTaskService.claimTask(
+            visibility,
+            userTaskIds.getUserTaskIds(),
+            personAndGroupModelMapper.toModelPerson(currentUser));
+      }
+    } catch (UserTaskAlreadyCompletedException e) {
+      return ResponseEntity.status(HttpStatus.CONFLICT).build();
     }
 
     return ResponseEntity.ok().build();
@@ -425,10 +498,15 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 
     final var visibility = userTasksVisibleTo(userContext.getUserLoggedInDetails());
 
-    final var result = (unassign != null) && unassign
-        ? userTaskService.unassignTask(visibility, userTaskId, userId)
-        : userTaskService.assignTask(
-            visibility, userTaskId, personAndGroupModelMapper.toModelPerson(userId));
+    final io.vanillabp.cockpit.tasklist.model.UserTask result;
+    try {
+      result = (unassign != null) && unassign
+          ? userTaskService.unassignTask(visibility, userTaskId, userId)
+          : userTaskService.assignTask(
+              visibility, userTaskId, personAndGroupModelMapper.toModelPerson(userId));
+    } catch (UserTaskAlreadyCompletedException e) {
+      return ResponseEntity.status(HttpStatus.CONFLICT).build();
+    }
 
     return result == null
         ? ResponseEntity.notFound().build()
@@ -444,11 +522,15 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 
     final var visibility = userTasksVisibleTo(userContext.getUserLoggedInDetails());
 
-    if ((unassign != null) && unassign) {
-      userTaskService.unassignTask(visibility, body.getUserTaskIds(), userId);
-    } else {
-      userTaskService.assignTask(
-          visibility, body.getUserTaskIds(), personAndGroupModelMapper.toModelPerson(userId));
+    try {
+      if ((unassign != null) && unassign) {
+        userTaskService.unassignTask(visibility, body.getUserTaskIds(), userId);
+      } else {
+        userTaskService.assignTask(
+            visibility, body.getUserTaskIds(), personAndGroupModelMapper.toModelPerson(userId));
+      }
+    } catch (UserTaskAlreadyCompletedException e) {
+      return ResponseEntity.status(HttpStatus.CONFLICT).build();
     }
 
     return ResponseEntity.ok().build();

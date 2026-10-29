@@ -348,7 +348,7 @@ class ApplicationWithoutTheBaseClassTest {
       final String cookie,
       final String fulltextToken) {
 
-    return listOf("/usertask", cookie, fulltextToken, "OpenTasks");
+    return listOf("/usertask", cookie, fulltextToken, "OpenTasksWithFollowUp");
 
   }
 

@@ -108,6 +108,10 @@ public abstract class OfficialApiMapper {
 
   /**
    * Turns the retrieve mode of the official API into the one of the {@link TaskService}.
+   * <p>
+   * Without a mode the simulator shows every task, ended or not. The cockpit shows only the
+   * open ones. The difference is on purpose: the simulator only fills the list a developer picks
+   * a task from in the dev shell, and it holds a few tasks only, so nothing needs to be left out.
    *
    * @param retrieveMode The retrieve mode, may be {@code null}
    * @return The retrieve mode of the service, {@code ALL} if none was given
@@ -117,11 +121,18 @@ public abstract class OfficialApiMapper {
     if (retrieveMode == null) {
       return TaskService.RetrieveMode.ALL;
     }
-    return TaskService.RetrieveMode.valueOf(retrieveMode.name());
+    return switch (retrieveMode) {
+      case ALL -> TaskService.RetrieveMode.ALL;
+      case OPENTASKSWITHOUTFOLLOWUP -> TaskService.RetrieveMode.OPENTASKSWITHOUTFOLLOWUP;
+      case OPENTASKSWITHFOLLOWUP -> TaskService.RetrieveMode.OPENTASKSWITHFOLLOWUP;
+      case OPENTASKONLYFOLLOWUP -> TaskService.RetrieveMode.OPENTASKONLYFOLLOWUP;
+      case CLOSEDTASKSONLY -> TaskService.RetrieveMode.CLOSEDTASKSONLY;
+    };
   }
 
   /**
    * Turns the retrieve mode of the official API into the one of the {@link WorkflowService}.
+   * Without a mode the simulator shows every workflow, for the same reason as for the tasks.
    *
    * @param retrieveMode The retrieve mode, may be {@code null}
    * @return The retrieve mode of the service, {@code ALL} if none was given
@@ -131,7 +142,11 @@ public abstract class OfficialApiMapper {
     if (retrieveMode == null) {
       return WorkflowService.RetrieveMode.ALL;
     }
-    return WorkflowService.RetrieveMode.valueOf(retrieveMode.name());
+    return switch (retrieveMode) {
+      case ALL -> WorkflowService.RetrieveMode.ALL;
+      case ACTIVE -> WorkflowService.RetrieveMode.ACTIVE;
+      case INACTIVE -> WorkflowService.RetrieveMode.INACTIVE;
+    };
   }
 
   /**

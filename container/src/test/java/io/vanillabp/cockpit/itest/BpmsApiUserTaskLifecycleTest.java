@@ -79,7 +79,7 @@ class BpmsApiUserTaskLifecycleTest extends ItestBase {
             """.formatted(dueDate)));
     assertThat(created.statusCode()).isEqualTo(200);
 
-    final var list = userTaskList(cookie, token, "OpenTasks");
+    final var list = userTaskList(cookie, token, "OpenTasksWithFollowUp");
     assertThat(list.read("$.userTasks[*].id", List.class)).containsExactly(userTaskId);
     assertThat(list.read("$.page.totalElements", Integer.class)).isEqualTo(1);
 
@@ -290,7 +290,7 @@ class BpmsApiUserTaskLifecycleTest extends ItestBase {
         + userTaskId));
     assertThat(task.read("$.endedAt", String.class)).isNotNull();
 
-    assertThat(userTaskList(cookie, token, "OpenTasks")
+    assertThat(userTaskList(cookie, token, "OpenTasksWithFollowUp")
         .read("$.userTasks[*].id", List.class)).isEmpty();
     assertThat(userTaskList(cookie, token, "ClosedTasksOnly")
         .read("$.userTasks[*].id", List.class)).containsExactly(userTaskId);
@@ -327,7 +327,7 @@ class BpmsApiUserTaskLifecycleTest extends ItestBase {
     final var task = json(guiGet(cookie, "/usertask/"
         + userTaskId));
     assertThat(task.read("$.endedAt", String.class)).isNotNull();
-    assertThat(userTaskList(cookie, token, "OpenTasks")
+    assertThat(userTaskList(cookie, token, "OpenTasksWithFollowUp")
         .read("$.userTasks[*].id", List.class)).isEmpty();
 
   }
@@ -378,7 +378,7 @@ class BpmsApiUserTaskLifecycleTest extends ItestBase {
             "details": { "customer": "passenger A" }
             """)).statusCode()).isEqualTo(200);
 
-    assertThat(userTaskList(cookie, token, "OpenTasks")
+    assertThat(userTaskList(cookie, token, "OpenTasksWithFollowUp")
         .read("$.userTasks[*].id", List.class)).isEmpty();
     assertThat(userTaskList(cookie, token, "ClosedTasksOnly")
         .read("$.userTasks[*].id", List.class)).containsExactly(userTaskId);

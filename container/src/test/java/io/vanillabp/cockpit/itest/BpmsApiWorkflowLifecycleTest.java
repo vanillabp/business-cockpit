@@ -377,7 +377,7 @@ class BpmsApiWorkflowLifecycleTest extends ItestBase {
             + workflowId
             + "/usertasks?llatcup=false",
         """
-            { "pageSize": 10, "mode": "OpenTasks" }
+            { "pageSize": 10, "mode": "OpenTasksWithFollowUp" }
             """);
     assertThat(response.statusCode()).isEqualTo(200);
     assertThat(json(response).read("$[*].id", List.class))

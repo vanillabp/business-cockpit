@@ -132,7 +132,7 @@ class WorkflowModulePermissionsTest extends ItestBase {
       final String cookie,
       final String fulltextToken) {
 
-    return userTaskList(cookie, fulltextToken, "OpenTasks")
+    return userTaskList(cookie, fulltextToken, "OpenTasksWithFollowUp")
         .read("$.userTasks[*].id", List.class);
 
   }

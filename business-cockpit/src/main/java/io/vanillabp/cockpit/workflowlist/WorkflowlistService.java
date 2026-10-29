@@ -452,6 +452,46 @@ public class WorkflowlistService {
 
   }
 
+  /**
+   * The number of workflows of a list, with the same conditions as
+   * {@link #getWorkflows(int, int, OffsetDateTime, WorkflowVisibility, Collection, Collection, String, boolean, RetrieveItemsMode)}.
+   * Nothing is sorted and no workflow is read, so no sort index is needed either.
+   *
+   * @param initialTimestamp When the user started to page through the list, or {@code null}
+   *        for now. A workflow which ended after this time still counts as active.
+   * @param visibility Which workflows the caller may reach
+   * @param businessIds Only the workflows of these business ids, or {@code null} for all
+   * @param searchQueries The filters of the list, or {@code null}
+   * @param mode Which workflows the list holds
+   * @return The number of workflows the list holds
+   */
+  public long countWorkflows(
+      final OffsetDateTime initialTimestamp,
+      final WorkflowVisibility visibility,
+      final Collection<String> businessIds,
+      final Collection<SearchQuery> searchQueries,
+      final RetrieveItemsMode mode) {
+
+    final var endedSince = initialTimestamp != null
+        ? initialTimestamp
+        : OffsetDateTime.now();
+
+    final var query = new Query();
+    query.addCriteria(
+        buildWorkflowlistCriteria(
+            visibility,
+            endedSince,
+            mode,
+            null,
+            businessIds));
+    final var searchCriteria = filterCriteria(searchQueries);
+    if (searchCriteria != null) {
+      searchCriteria.forEach(query::addCriteria);
+    }
+    return mongoTemplate.count(query, Workflow.class);
+
+  }
+
   private record WorkflowListOrder(List<Order> order, String indexName, List<String> toBeIndexed) {
   }
 

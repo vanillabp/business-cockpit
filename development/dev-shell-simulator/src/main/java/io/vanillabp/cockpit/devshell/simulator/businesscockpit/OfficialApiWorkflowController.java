@@ -9,10 +9,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.vanillabp.cockpit.gui.api.v1.Count;
+import io.vanillabp.cockpit.gui.api.v1.Counts;
 import io.vanillabp.cockpit.gui.api.v1.OfficialWorkflowlistApi;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import io.vanillabp.cockpit.gui.api.v1.Workflow;
+import io.vanillabp.cockpit.gui.api.v1.WorkflowCountsRequest;
 import io.vanillabp.cockpit.gui.api.v1.Workflows;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowsRequest;
 
@@ -117,4 +120,30 @@ public class OfficialApiWorkflowController implements OfficialWorkflowlistApi {
     return ResponseEntity.ok(apiWorkflows);
 
   }
+
+  /**
+   * Counts the workflows of each filter, with the same modes and business ids as the list. Like
+   * the list, the simulator reads no search queries.
+   */
+  @Override
+  public ResponseEntity<Counts> countWorkflows(
+      final WorkflowCountsRequest workflowCountsRequest,
+      final OffsetDateTime initialTimestamp) {
+
+    final var counts = workflowCountsRequest
+        .getFilters()
+        .stream()
+        .map(filter -> new Count()
+            .key(filter.getKey())
+            .count(workflowService.countWorkflows(
+                mapper.toModel(filter.getMode()),
+                filter.getBusinessIds())))
+        .toList();
+
+    return ResponseEntity.ok(new Counts()
+        .serverTimestamp(initialTimestamp != null ? initialTimestamp : OffsetDateTime.now())
+        .counts(counts));
+
+  }
+
 }

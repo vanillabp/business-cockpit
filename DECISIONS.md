@@ -2399,7 +2399,7 @@ on a field the GUI API never shows, and guess its values from what the list answ
 stays allowed. The rule lives in one class, `io.vanillabp.cockpit.util.ListPaths`, which
 `SortIndexes` uses as well. `ListPathsTest` and `FilterPathsTest` in `container` hold it.
 
-### 58. `OpenTasksWithFollowUp` is another name for `OpenTasks`
+### 58. `OpenTasksWithFollowUp` is another name for `OpenTasks` - superseded by decision 70
 
 #### What was found
 
@@ -2882,3 +2882,153 @@ with it. Then the login stays.
 The fixed password `test` of the chain `guiHttpSecurity` stays as it is. Story 1517 looked at it
 too, and the maintainer decided to keep it.
 
+### 70. A list of user tasks has five modes, and a list without a mode shows the open entries
+
+This decision replaces decision 58.
+
+#### What was found
+
+The GUI API had two names for one list. `OpenTasks` and `OpenTasksWithFollowUp` both showed every
+open task, with or without a follow-up date. Somebody who builds a user interface sees two modes and
+looks for the difference. There is none.
+
+The lists also had different defaults. Without `mode`, `POST /usertask` showed all tasks and
+`PUT /usertask` showed the open ones. `POST /workflow` showed all workflows and `PUT /workflow` the
+active ones. So the update of a list could contradict its first page. And
+`POST /workflow/{workflowId}/usertasks` only checked whether `mode` was `OpenTasks`. Every other
+value gave all tasks of the workflow, `ClosedTasksOnly` and `OpenTasksWithoutFollowUp` included.
+
+#### What the cockpit does now
+
+`OpenTasks` is gone from `UserTaskRetrieveMode`. Five modes are left: `All`,
+`OpenTasksWithFollowUp`, `OpenTasksWithoutFollowUp`, `OpenTaskOnlyFollowUp` and `ClosedTasksOnly`.
+`OpenTasksWithFollowUp` and `OpenTasksWithoutFollowUp` are a pair which explains itself: with or
+without the tasks which wait for their follow-up date.
+
+A request which sends `OpenTasks` gets 400. The answer names the field and the modes there are. It
+does not take `OpenTasks` as another name for a while. Before 1.0 the break is cheap, and a server
+which renames the value quietly would keep a second name after all.
+
+Without `mode` the cockpit shows:
+
+- `OpenTasksWithFollowUp` for every list of user tasks: `POST /usertask`, `PUT /usertask`, the
+  suggestions of a search field, and `POST /workflow/{workflowId}/usertasks`.
+- `Active` for every list of workflows: `POST /workflow`, `PUT /workflow` and the suggestions.
+
+So the first page and its update show the same list. `POST /workflow/{workflowId}/usertasks` reads
+the whole mode, the same way as `POST /usertask`.
+
+The dev-shell simulator and every dev shell take `All` without `mode`, for tasks and for workflows.
+That is different from the cockpit on purpose. The simulator only fills the list a developer picks a
+task from in the dev shell, and its data comes from the developer's own test runs, so it is small.
+A dev shell keeps its switch "all, only open, only ended", and the switch starts on `All`.
+
+### 71. An ended user task refuses every change but the read marker
+
+#### What was found
+
+Only the follow-up date checked whether a user task had ended, and answered 409. Claiming, giving
+back, assigning, unassigning and marking as read took an ended task the user could see and answered
+200. The list forms did the same without a word. The OpenAPI file promised a 404 for the list forms
+which the code never sent.
+
+#### What the cockpit does now
+
+An ended task is documentation. It shows with which input it was completed. So these actions refuse
+an ended task with 409 and write nothing:
+
+- claiming and giving back (`PATCH /usertask/{id}/claim`, with and without `unclaim=true`),
+- assigning and unassigning (`PATCH /usertask/{id}/assign`, with and without `unassign=true`),
+- setting the follow-up date, as before.
+
+Giving back is refused as well. The assignee of an ended task is the person who completed it, and
+that stays as it was. The write of a give back also checks that the task has not ended, so a task
+which ends between the read and the write is not changed either.
+
+One rule in `UserTaskService` decides this for every action, so the actions cannot drift apart.
+
+The order of the answers is the same as for the follow-up date. A task the user may not see, or one
+which does not exist, gets 404. Only a task the user may see and which has ended gets 409.
+
+Marking as read and as unread still work for an ended task, as one task, as a list, and when
+`GET /usertask/{id}` is asked with `markAsRead=true`. "Read" only switches off the bold row in the
+list. It changes nothing a user entered and nothing about who worked on the task. And an ended task
+must stay readable, so opening it may not fail.
+
+A list form is all or nothing. If one of the tasks the user may see has ended, the request changes
+none of them and answers 409. Ids the user may not see are still left out without a word, because an
+answer about them would tell that they exist. The other choice was to change the open tasks and name
+the ended ones in the answer. That needs a body on endpoints which answer nothing today, so it is more
+interface for little gain. The 404 of the list forms is gone from the OpenAPI file, because no code
+sends it.
+
+### 72. A count has an endpoint of its own, and indexes of the visibility carry it
+
+#### What was found
+
+A user interface shows a count next to every primary filter of a list and next to every part of the
+switch "My tasks", "All tasks", "Cases" in its header. It asks for them again when it opens, when a
+list opens, on an event of the update stream and when the user comes back to the tab. The only way to
+count was a list request with `pageSize` 1. Such a request still sorts, by `dueDate` when it names no
+`sort`, makes sure the index of that sort exists, counts, and then reads one row nobody looks at.
+Five primary filters and three parts of the header are eight such requests for every refresh.
+
+#### What the cockpit does now
+
+`POST /usertask/count` and `POST /workflow/count` count. They exist on every base path of the list,
+so the count of "My tasks" uses the base path of that list. They mix nothing: tasks are counted on
+one endpoint and workflows on the other.
+
+The body is a list of filters, between 1 and 20 of them. Each filter carries what its list takes:
+`mode` and `searchQueries`, for workflows also `businessIds`, plus a `key` the client chooses. Which
+primary filters a user interface shows is up to the user interface, so it names its own. The answer
+has one entry per filter, `{ key, count }`, in the order of the request. So a client can read the
+answer by position or by key, whichever it likes better. An array was chosen over an object with the
+keys as field names, because an array keeps its order in every JSON library. A key used twice is
+answered with 400, which names the position of the second one and not the key.
+
+A filter without `mode` counts what its list shows without `mode`: `OpenTasksWithFollowUp` for tasks,
+`Active` for workflows. `initialTimestamp` is a query parameter, the same as for the lists.
+
+The count uses the conditions of its list: `UserTaskService.buildUserTasksCriteria` plus the
+filters, or `WorkflowlistService.buildWorkflowlistCriteria` plus the filters. So the count and the
+`page.totalElements` of the list cannot drift apart. It runs one `count` per filter, one after the
+other, and nothing else: no sort, no sort index, no `find`. `page.totalElements` stays on the list.
+
+#### Which index carries the count
+
+The query of a list reads "assignee, or candidate user, or candidate group, or admitted, or addressed
+to nobody, and not excluded", plus a condition on `endedAt` for the mode. Until now only `endedAt`
+had an index. MongoDB can answer an "or" from indexes only if every part of it has one. So two new
+changesets add one index per part, each followed by `endedAt`:
+
+- user tasks, `tasklist` `V000002`, order 16: `assignee._id`, `candidateUsers._id`,
+  `candidateGroups._id`, `admittedUsers._id` and `dangling`;
+- workflows, `workflowlist` `V000002`, order 1015: `accessibleToUsers._id`, `accessibleToGroups._id`
+  and `dangling`.
+
+`CountingMeasurement` in `business-cockpit` measured this on MongoDB 8.2 (`ContainerImages.MONGODB`)
+with 30,000 user tasks, 4,000 of them open, 30,000 workflows, 300 users and 30 groups. Some rows of
+it, for the main list of one user:
+
+|          mode           |          before: plan           |  keys / docs  | ms |      after: plan       | keys / docs | ms |
+|-------------------------|---------------------------------|---------------|----|------------------------|-------------|----|
+| `All`                   | `COLLSCAN`                      | 0 / 30,000    | 14 | `OR` of five `IXSCAN`  | 3339 / 3322 | 2  |
+| `OpenTasksWithFollowUp` | `IXSCAN` on `endedAt`           | 4000 / 4000   | 4  | `OR` of five `IXSCAN`  | 456 / 904   | 1  |
+| `ClosedTasksOnly`       | `IXSCAN` on `endedAt`, all keys | 30000 / 30000 | 21 | `OR` of five `IXSCAN`  | 3339 / 6208 | 3  |
+| workflows, `Active`     | `IXSCAN` on `endedAt`           | 4001 / 8000   | 3  | `OR` of three `IXSCAN` | 4043 / 4041 | 2  |
+| workflows, `Inactive`   | `IXSCAN` on `endedAt`, all keys | 30000 / 56000 | 20 | `OR` of three `IXSCAN` | 4043 / 4041 | 2  |
+
+With the new indexes no count reads the whole collection, and the cost follows what the user sees,
+not the size of the collection. Before, `All` read every document, and `ClosedTasksOnly` read every
+key of `endedAt`, which grows with every task that ends.
+
+A count of tasks without `initialTimestamp` asks only for the tasks which have not ended, and MongoDB
+then narrows down with `endedAt` inside each index: 456 keys above. With `initialTimestamp` the query
+has one "or" more ("not ended, or ended after the timestamp"), and MongoDB reads the index entries of
+every task the user may see: 3339 keys, still 3 to 4 ms. So the endpoint does not put in "now" when
+the client sends no timestamp, unlike the list. The number is the same, because no task ends in the
+future.
+
+`$facet` was not measured. One `count` per filter takes 1 to 4 ms here, and the parts of a `$facet`
+use no index, so it could not beat that.

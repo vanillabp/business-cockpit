@@ -12,7 +12,9 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.List;
+import java.util.Queue;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.kafka.clients.admin.Admin;
@@ -33,6 +35,8 @@ import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
 import com.sun.net.httpserver.HttpServer;
+
+import io.vanillabp.integration.test.utils.ContainerImages;
 
 /**
  * Base for black-box integration tests. It boots the complete application on a random port and
@@ -76,7 +80,7 @@ public abstract class ItestBase {
   protected static final String GROUP_OF_MARTIN = "accounting";
   protected static final String GROUP_OF_PETRA = "sales";
 
-  private static final MongoDBContainer MONGODB = new MongoDBContainer("mongo:7.0").withReplicaSet();
+  private static final MongoDBContainer MONGODB = new MongoDBContainer(ContainerImages.MONGODB).withReplicaSet();
   private static final KafkaContainer KAFKA = new KafkaContainer("apache/kafka:3.9.1");
   private static final HttpServer USERS_STUB;
 
@@ -338,6 +342,200 @@ public abstract class ItestBase {
           .method("PATCH", HttpRequest.BodyPublishers.ofString(jsonBody));
     }
     return send(builder.build());
+
+  }
+
+  protected HttpResponse<String> guiPut(
+      final String cookie,
+      final String path,
+      final String jsonBody) {
+
+    return send(HttpRequest
+        .newBuilder(URI.create(url("/gui/api/v1"
+            + path)))
+        .header("Cookie", cookie)
+        .header("Content-Type", "application/json")
+        .PUT(HttpRequest.BodyPublishers.ofString(jsonBody))
+        .build());
+
+  }
+
+  /**
+   * Reports a user task the way a workflow module does. The full text carries the token, so a
+   * list filtered by it shows only the test's own tasks.
+   *
+   * @param moduleId The workflow module, registered already
+   * @param token The token the test filters its lists by
+   * @param workflowId The workflow the task belongs to
+   * @param whoSeesIt The fields which say who sees the task, like {@code "assignee": "martin"}
+   * @return The id of the task
+   */
+  protected String reportUserTask(
+      final String moduleId,
+      final String token,
+      final String workflowId,
+      final String whoSeesIt) {
+
+    final var userTaskId = unique("task");
+    final var response = bpmsV1_1("/usertask/created", """
+        {
+          "id": "%s",
+          "userTaskId": "%s",
+          "timestamp": "%s",
+          "workflowModuleId": "%s",
+          "workflowId": "%s",
+          "bpmnProcessId": "taxi-ride",
+          "title": { "en": "Do ride" },
+          "taskDefinition": "do-ride",
+          "uiUriPath": "/remoteEntry.js",
+          "uiUriType": "WEBPACK_MF_REACT",
+          "detailsFulltextSearch": "%s",
+          %s
+        }
+        """.formatted(unique("event"), userTaskId, isoNow(), moduleId, workflowId, token, whoSeesIt));
+    if (response.statusCode() != 200) {
+      throw new IllegalStateException("Could not report user task: HTTP "
+          + response.statusCode()
+          + " "
+          + response.body());
+    }
+    return userTaskId;
+
+  }
+
+  /**
+   * Reports that a user task was completed, the way a workflow module does.
+   *
+   * @param moduleId The workflow module of the task
+   * @param token The token the test filters its lists by
+   * @param userTaskId The task, reported already
+   */
+  protected void reportUserTaskCompleted(
+      final String moduleId,
+      final String token,
+      final String userTaskId) {
+
+    final var response = bpmsV1_1("/usertask/"
+        + userTaskId
+        + "/completed", """
+            {
+              "id": "%s",
+              "userTaskId": "%s",
+              "timestamp": "%s",
+              "initiator": "martin",
+              "workflowModuleId": "%s",
+              "bpmnProcessId": "taxi-ride",
+              "title": { "en": "Do ride" },
+              "taskDefinition": "do-ride",
+              "uiUriPath": "/remoteEntry.js",
+              "uiUriType": "WEBPACK_MF_REACT",
+              "detailsFulltextSearch": "%s"
+            }
+            """.formatted(unique("event"), userTaskId, isoNow(), moduleId, token));
+    if (response.statusCode() != 200) {
+      throw new IllegalStateException("Could not report the completion: HTTP "
+          + response.statusCode()
+          + " "
+          + response.body());
+    }
+
+  }
+
+  /**
+   * Reports a workflow the way a workflow module does, or its completion.
+   *
+   * @param moduleId The workflow module, registered already
+   * @param token The token the test filters its lists by
+   * @param workflowId The id of the workflow
+   * @param what {@code "created"} or {@code "completed"}
+   */
+  protected void reportWorkflow(
+      final String moduleId,
+      final String token,
+      final String workflowId,
+      final String what) {
+
+    final var response = bpmsV1_1("/workflow/"
+        + ("created".equals(what) ? "" : workflowId
+            + "/")
+        + what, """
+            {
+              "id": "%s",
+              "workflowId": "%s",
+              "timestamp": "%s",
+              "workflowModuleId": "%s",
+              "bpmnProcessId": "taxi-ride",
+              "bpmnProcessVersion": "1",
+              "initiator": "martin",
+              "title": { "en": "Ride request" },
+              "uiUriPath": "/remoteEntry.js",
+              "uiUriType": "WEBPACK_MF_REACT",
+              "detailsFulltextSearch": "%s"
+            }
+            """.formatted(unique("event"), workflowId, isoNow(), moduleId, token));
+    if (response.statusCode() != 200) {
+      throw new IllegalStateException("Could not report the workflow: HTTP "
+          + response.statusCode()
+          + " "
+          + response.body());
+    }
+
+  }
+
+  /**
+   * Opens the update stream the way a browser does and collects its lines while it runs.
+   *
+   * @param cookie The login of the user the stream is opened for
+   * @return The lines received so far, filled by a thread of its own
+   */
+  protected Queue<String> openEventStream(
+      final String cookie) {
+
+    final var request = HttpRequest
+        .newBuilder(URI.create(url("/gui/api/v1/updates")))
+        .header("Cookie", cookie)
+        .header("Accept", "text/event-stream")
+        .GET()
+        .build();
+    final var response = HTTP
+        .sendAsync(request, HttpResponse.BodyHandlers.ofLines())
+        .join();
+    if (response.statusCode() != 200) {
+      throw new IllegalStateException("Could not open the update stream: HTTP "
+          + response.statusCode());
+    }
+
+    final var lines = new ConcurrentLinkedQueue<String>();
+    final var reader = new Thread(() -> {
+      try {
+        response.body().forEach(lines::add);
+      } catch (RuntimeException e) {
+        // the stream never completes. The read ends when the JVM shuts down
+      }
+    }, "sse-reader");
+    reader.setDaemon(true);
+    reader.start();
+    return lines;
+
+  }
+
+  /**
+   * How many update events the stream has delivered about one user task. The payload is written
+   * as indented JSON, one {@code data:} line per property, so the id appears on a line of its own
+   * and counting those lines counts the events.
+   *
+   * @param userTaskId The task
+   * @param lines The lines of the stream
+   * @return The number of events
+   */
+  protected static long eventsAbout(
+      final String userTaskId,
+      final Queue<String> lines) {
+
+    return lines
+        .stream()
+        .filter(line -> line.startsWith("data:") && line.contains(userTaskId))
+        .count();
 
   }
 

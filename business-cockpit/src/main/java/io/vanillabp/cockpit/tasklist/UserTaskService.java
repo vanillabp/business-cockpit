@@ -89,14 +89,11 @@ public class UserTaskService {
   public static enum RetrieveItemsMode {
     /** Every task, ended or not. */
     All,
-    /** Every task which has not ended, whatever its follow-up date says. */
-    OpenTasks,
     /** Open tasks without a follow-up date, or with one which is due. */
     OpenTasksWithoutFollowUp,
     /**
-     * Another name for {@link #OpenTasks}, which shows the same tasks. The name sounds like a
-     * filter, but there is none. It stays because the GUI API offers it. See decision 58 in
-     * the repository's DECISIONS.md.
+     * Every task which has not ended, with or without a follow-up date. It is what a list shows
+     * when the request names no mode.
      */
     OpenTasksWithFollowUp,
     /** Open tasks with a follow-up date which is not due yet. */
@@ -421,6 +418,7 @@ public class UserTaskService {
    * @param userTaskId The id of the task
    * @param person The person to add
    * @return The task as it is stored now, or {@code null} if the caller may not reach it
+   * @throws UserTaskAlreadyCompletedException if the task has ended. Nothing is written then.
    */
   public UserTask assignTask(
       final UserTaskVisibility visibility,
@@ -431,6 +429,7 @@ public class UserTaskService {
     if (userTask == null) {
       return null;
     }
+    refuseIfEnded(userTask);
     userTask.addCandidatePerson(person);
     return saveInitiatedByCockpit(userTask);
 
@@ -444,6 +443,8 @@ public class UserTaskService {
    * @param userTaskIds The ids of the tasks
    * @param person The person to add
    * @return The tasks as they are stored now
+   * @throws UserTaskAlreadyCompletedException if one of the tasks the caller may reach has ended.
+   *         None of the tasks is changed then.
    */
   public List<UserTask> assignTask(
       final UserTaskVisibility visibility,
@@ -451,6 +452,7 @@ public class UserTaskService {
       final Person person) {
 
     final var found = getUserTasks(visibility, userTaskIds);
+    found.forEach(this::refuseIfEnded);
     found.forEach(userTask -> userTask.addCandidatePerson(person));
     return saveAllInitiatedByCockpit(found);
 
@@ -463,6 +465,7 @@ public class UserTaskService {
    * @param userTaskId The id of the task
    * @param personId The id of the person to remove
    * @return The task as it is stored now, or {@code null} if the caller may not reach it
+   * @throws UserTaskAlreadyCompletedException if the task has ended. Nothing is written then.
    */
   public UserTask unassignTask(
       final UserTaskVisibility visibility,
@@ -473,6 +476,7 @@ public class UserTaskService {
     if (userTask == null) {
       return null;
     }
+    refuseIfEnded(userTask);
     userTask.removeCandidatePerson(personId);
     return saveInitiatedByCockpit(userTask);
 
@@ -486,6 +490,8 @@ public class UserTaskService {
    * @param userTaskIds The ids of the tasks
    * @param personId The id of the person to remove
    * @return The tasks as they are stored now
+   * @throws UserTaskAlreadyCompletedException if one of the tasks the caller may reach has ended.
+   *         None of the tasks is changed then.
    */
   public List<UserTask> unassignTask(
       final UserTaskVisibility visibility,
@@ -493,6 +499,7 @@ public class UserTaskService {
       final String personId) {
 
     final var found = getUserTasks(visibility, userTaskIds);
+    found.forEach(this::refuseIfEnded);
     found.forEach(userTask -> userTask.removeCandidatePerson(personId));
     return saveAllInitiatedByCockpit(found);
 
@@ -521,9 +528,7 @@ public class UserTaskService {
     if (userTask == null) {
       return null;
     }
-    if (userTask.getEndedAt() != null) {
-      throw new UserTaskAlreadyCompletedException(userTaskId);
-    }
+    refuseIfEnded(userTask);
     userTask.setFollowUpDate(normalizedFollowUpDate);
     return saveInitiatedByCockpit(userTask);
 
@@ -536,6 +541,7 @@ public class UserTaskService {
    * @param userTaskId The id of the task
    * @param person The person who takes the task
    * @return The task as it is stored now, or {@code null} if the caller may not reach it
+   * @throws UserTaskAlreadyCompletedException if the task has ended. Nothing is written then.
    */
   public UserTask claimTask(
       final UserTaskVisibility visibility,
@@ -546,6 +552,7 @@ public class UserTaskService {
     if (userTask == null) {
       return null;
     }
+    refuseIfEnded(userTask);
     if ((userTask.getAssignee() == null) || !userTask.getAssignee().getId().equals(person.getId())) {
       userTask.setAssignee(person);
       return saveInitiatedByCockpit(userTask);
@@ -561,6 +568,8 @@ public class UserTaskService {
    * @param userTaskIds The ids of the tasks
    * @param person The person who takes the tasks
    * @return The tasks as they are stored now
+   * @throws UserTaskAlreadyCompletedException if one of the tasks the caller may reach has ended.
+   *         None of the tasks is changed then.
    */
   public List<UserTask> claimTask(
       final UserTaskVisibility visibility,
@@ -568,6 +577,7 @@ public class UserTaskService {
       final Person person) {
 
     final var found = getUserTasks(visibility, userTaskIds);
+    found.forEach(this::refuseIfEnded);
     found.forEach(userTask -> userTask.setAssignee(person));
     return saveAllInitiatedByCockpit(found);
 
@@ -585,6 +595,7 @@ public class UserTaskService {
    * @param userTaskId The id of the task
    * @param personId The id of the assignee. The task is only given back if this is its assignee.
    * @return The task as it is stored now, or {@code null} if the caller may not reach it
+   * @throws UserTaskAlreadyCompletedException if the task has ended. Nothing is written then.
    */
   public UserTask unclaimTask(
       final UserTaskVisibility visibility,
@@ -592,13 +603,17 @@ public class UserTaskService {
       final String userTaskId,
       final String personId) {
 
-    if (getUserTask(visibility, userTaskId) == null) {
+    final var userTask = getUserTask(visibility, userTaskId);
+    if (userTask == null) {
       return null;
     }
+    refuseIfEnded(userTask);
 
     final var query = new Query();
     query.addCriteria(Criteria.where("id").is(userTaskId));
     query.addCriteria(Criteria.where("assignee.id").is(personId));
+    // a task which ends between the read above and this write stays as it ended
+    query.addCriteria(Criteria.where("endedAt").exists(false));
 
     mongoTemplate.updateFirst(query, unsetAssignee(currentUser), UserTask.class);
 
@@ -616,6 +631,8 @@ public class UserTaskService {
    * @param userTaskIds The ids of the tasks
    * @param personId The id of the assignee. A task is only given back if this is its assignee.
    * @return The tasks the caller may reach, as they are stored now
+   * @throws UserTaskAlreadyCompletedException if one of the tasks the caller may reach has ended.
+   *         None of the tasks is changed then.
    */
   public List<UserTask> unclaimTask(
       final UserTaskVisibility visibility,
@@ -623,7 +640,9 @@ public class UserTaskService {
       final Collection<String> userTaskIds,
       final String personId) {
 
-    final var unclaimable = getUserTasks(visibility, userTaskIds)
+    final var found = getUserTasks(visibility, userTaskIds);
+    found.forEach(this::refuseIfEnded);
+    final var unclaimable = found
         .stream()
         .map(UserTask::getId)
         .toList();
@@ -634,6 +653,7 @@ public class UserTaskService {
     final var query = new Query();
     query.addCriteria(Criteria.where("id").in(unclaimable));
     query.addCriteria(Criteria.where("assignee.id").is(personId));
+    query.addCriteria(Criteria.where("endedAt").exists(false));
 
     mongoTemplate.updateMulti(query, unsetAssignee(currentUser), UserTask.class);
 
@@ -641,6 +661,23 @@ public class UserTaskService {
     findQuery.addCriteria(Criteria.where("id").in(unclaimable));
 
     return mongoTemplate.find(findQuery, UserTask.class);
+
+  }
+
+  /**
+   * An ended task is documentation of how it was completed. Who worked on it, who was proposed
+   * and when it was due stay as they were at the end. Only the read marker of a user may still
+   * change, because it changes nothing but how the list shows the row.
+   *
+   * @param userTask The task as it is stored
+   * @throws UserTaskAlreadyCompletedException if the task has ended
+   */
+  private void refuseIfEnded(
+      final UserTask userTask) {
+
+    if (userTask.getEndedAt() != null) {
+      throw new UserTaskAlreadyCompletedException(userTask.getId());
+    }
 
   }
 
@@ -800,6 +837,35 @@ public class UserTaskService {
   }
 
   /**
+   * The number of user tasks of a list, with the same conditions as
+   * {@link #getUserTasks(UserTaskVisibility, int, int, OffsetDateTime, Collection, String, boolean, RetrieveItemsMode)}.
+   * Nothing is sorted and no task is read, so no sort index is needed either.
+   *
+   * @param visibility Which tasks the caller may reach
+   * @param initialTimestamp When the user started to page through the list. A task which ended
+   *        after this time still counts as open. {@code null} counts only the tasks which have
+   *        not ended, which the indexes of the visibility answer best.
+   * @param searchQueries The filters of the list, or {@code null}
+   * @param mode Which tasks the list holds
+   * @return The number of tasks the list holds
+   */
+  public long countUserTasks(
+      final UserTaskVisibility visibility,
+      final OffsetDateTime initialTimestamp,
+      final Collection<SearchQuery> searchQueries,
+      final RetrieveItemsMode mode) {
+
+    final var query = new Query();
+    query.addCriteria(buildUserTasksCriteria(visibility, initialTimestamp, mode, null));
+    final var searchCriteria = filterCriteria(searchQueries);
+    if (searchCriteria != null) {
+      searchCriteria.forEach(query::addCriteria);
+    }
+    return mongoTemplate.count(query, UserTask.class);
+
+  }
+
+  /**
    * Suggestions for a search field of the user task list: the words in a field which contain
    * the text typed so far. Only open tasks are searched. Nothing is suggested for less than three
    * letters.
@@ -829,7 +895,7 @@ public class UserTaskService {
     final var match = buildUserTasksCriteria(
         visibility,
         initialTimestamp,
-        RetrieveItemsMode.OpenTasks,
+        RetrieveItemsMode.OpenTasksWithFollowUp,
         searchCriteria);
 
     return kwicService.getKwicAggregatedResults(UserTask.class, match, searchQueries, path, query);
@@ -839,7 +905,8 @@ public class UserTaskService {
    * The user tasks of one workflow, for the first page of a list.
    *
    * @param workflowId The id of the workflow
-   * @param activeOnly Whether to leave out the tasks which have ended
+   * @param mode Which tasks of the workflow to return, or {@code null} for
+   *        {@link RetrieveItemsMode#OpenTasksWithFollowUp}
    * @param limitListAccordingToCurrentUsersPermissions Whether to show only what the user may
    *        work on, see {@link UserTaskVisibility#everythingTheUserMayWorkOn(String, Collection)}
    * @param currentUser The id of the user
@@ -851,7 +918,7 @@ public class UserTaskService {
    */
   public List<UserTask> getUserTasksOfWorkflow(
       final String workflowId,
-      final boolean activeOnly,
+      final RetrieveItemsMode mode,
       final boolean limitListAccordingToCurrentUsersPermissions,
       final String currentUser,
       final Collection<String> currentUserGroups,
@@ -870,7 +937,7 @@ public class UserTaskService {
         sort,
         sortAscending,
         List.of(Criteria.where("workflowId").is(workflowId)),
-        activeOnly ? RetrieveItemsMode.OpenTasks : RetrieveItemsMode.All
+        mode != null ? mode : RetrieveItemsMode.OpenTasksWithFollowUp
     ).getContent();
 
   }
@@ -887,7 +954,8 @@ public class UserTaskService {
    * @param searchQueries The filters of the list, or {@code null}
    * @param sort The paths to sort by, separated by commas, or {@code null} for the due date
    * @param sortAscending Whether to sort in ascending order
-   * @param mode Which tasks the list holds, or {@code null} for the open tasks
+   * @param mode Which tasks the list holds, or {@code null} for
+   *        {@link RetrieveItemsMode#OpenTasksWithFollowUp}
    * @return The tasks as one page, with the number of all tasks of the list
    */
   public Page<UserTask> getUserTasksUpdated(
@@ -906,7 +974,7 @@ public class UserTaskService {
         .withPage(0)
         .withSort(Sort.by(orderBySort.order()));
 
-    final var effectiveMode = mode != null ? mode : RetrieveItemsMode.OpenTasks;
+    final var effectiveMode = mode != null ? mode : RetrieveItemsMode.OpenTasksWithFollowUp;
 
     final var query = new Query();
     query.fields().include("_id");
@@ -1368,7 +1436,6 @@ public class UserTaskService {
     switch (mode) {
       case All:
         break;
-      case OpenTasks:
       case OpenTasksWithFollowUp:
       case OpenTasksWithoutFollowUp:
       case OpenTaskOnlyFollowUp:
