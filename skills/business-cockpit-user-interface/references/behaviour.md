@@ -415,22 +415,64 @@ The cockpit does it the other way round. In a web application the form would los
 moved to a new window. So the form stays, and the list moves out.
 
 The header of an open task offers a button "list in its own window". It opens the list with
-`window.open` in a window of its own, and the cockpit keeps the window object this returns. Whether
-the browser shows a window or a tab is up to the browser. The task stays in this tab. From then on,
-the application header of the task tab stays as it is, because it holds the task actions. Only the
-burger menu goes. In its place stands a red icon button "back to the list".
+`window.open(listUrl, 'bc-list')`, without `noopener`, and the cockpit keeps the window object this
+returns. The list page sets `window.name = 'bc-list'` itself as well, so the name finds it again when
+the window object is gone. Whether the browser shows a window or a tab is up to the browser. The
+task stays in this tab. From then on, the application header of the task tab stays as it is,
+because it holds the task actions. Only the burger menu goes. In its place stands a red icon button
+"back to the list".
 
-The button cancels the work on the task and brings the window of the list to the front, with
-`focus()` on the kept window object, as long as that window still exists. If it is gone, or the
-browser does not allow it, the cockpit shows a hint that the list is in another window.
+The window object only works while both pages share one browsing context group. `noopener`, a link
+with `target="_blank"` and no `rel="opener"`, and a different `Cross-Origin-Opener-Policy` on the two
+pages all cut it: the list then has no `opener`, and the window object reports `closed`. So the
+cockpit sends no `noopener`, and if it sets a `Cross-Origin-Opener-Policy`, every page of the cockpit
+sets the same value.
 
-Before that, the cockpit warns that the input may be lost, and the user can stay. The same warning
-comes when the user closes the tab (`beforeunload`).
+#### Back to the list
 
-**To verify:** whether `window.open` gives a window or a tab, and whether `focus()` on the kept
-window object brings it to the front, is up to the browser. Probe `1508` checks it: a small example
-application in plain JavaScript that shows what works in which browser today. Until its result is
-in, the checklist items `TF-007`, `TF-017` and `TF-018` say they are to be verified with `1508`.
+Before anything else, the button asks in a dialog of the cockpit whether the input may be lost, and
+the user can stay. The cockpit does not use `window.confirm` for this. A browser lets a page bring
+another window to the front only for a few seconds after a click, and a user who reads a
+`window.confirm` for longer has used that time up. The click on the dialog's confirm button gives a
+fresh one, so the steps below run in that click handler:
+
+1. The cockpit removes its `beforeunload` handler first. Otherwise the browser asks a second time
+   when the tab closes itself in step 5.
+2. If the kept window object is not `closed`, has the cockpit's origin and still shows the list
+   (`location.pathname`), the cockpit calls `focus()` on it. The path matters: a list window that
+   went to another page of the cockpit is still open, and `focus()` would bring that page to the
+   front instead.
+3. If there is no usable window object, for example because the task tab was reloaded, the cockpit
+   asks over a `BroadcastChannel` whether a list tab is alive and waits at most 300 ms. A
+   `BroadcastChannel` works without any window object, also after `noopener`. If a list answers,
+   `window.open('', 'bc-list')` brings that tab to the front. If none answers, the cockpit never
+   calls `window.open`, because the browser would open an empty tab.
+4. About 300 ms later the cockpit asks the list again whether its `document.visibilityState` is
+   `visible`. It does not trust `hasFocus()`, which some browsers report as true for a tab in the
+   background.
+5. If the list did not come to the front, or no list answered, the task tab tries `window.close()`.
+   A browser closes a tab this way only if a script opened it, or if it has exactly one entry in its
+   history, so this rarely works. If the tab is still open afterwards, the cockpit shows a hint that
+   the list is in another tab or window.
+
+Measured on 2026-10-29 and 2026-10-30: Chrome, Edge, Chromium and Firefox bring the list to the front
+this way, as a tab and as a window, also after the task tab was reloaded. The answer of the list came
+within 0 to 13 ms, well inside the time a click gives. Safari 26 on macOS does the same. Only the
+WebKit browsers of Linux (GNOME Web, the Playwright MiniBrowser) leave the list behind, and the user
+sees the hint there. A tab in the background never brings itself to the front, in no browser, also
+not when it receives a `postMessage` or a `BroadcastChannel` message. So the call must come from the
+tab the user just clicked in.
+
+#### Closing the task tab
+
+Closing or reloading the task tab warns with `beforeunload`, and the user can stay. A browser shows
+this question only after the user has interacted with the page, and some browsers (GNOME Web) never
+show it. So the dialog of the cockpit stays the real protection for "back to the list", and
+`beforeunload` only covers closing the tab.
+
+Not measured yet: Safari 27 and 18, Safari on iOS, Chrome on Android, and the window mode on Windows,
+where the window manager may decide differently. Where the list stays behind, the hint is the
+answer.
 
 ### What the page does
 
