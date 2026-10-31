@@ -76,8 +76,8 @@ modules: it calls `import()` for the files their manifests name, see
 Two rules for the output come from the backend:
 
 - `index.html` is the shell. It must not be cached, and it is served for every unknown path.
-- Every other file lies below one prefix, `/assets/` by default. Then the backend application
-  opens all of them without a login with one rule, see
+- Every other file lies below one prefix, `/assets/` by default. Where the files have to load
+  without a login (`Q-HOSTING` is `in-front`), one rule then opens all of them, see
   [gui-api.md](gui-api.md#protection-and-login). Many build tools put their files into an `assets`
   folder by default. Where yours does not, configure the output path or the base path so that it
   does.
@@ -158,13 +158,32 @@ types module builds the types jar, see [The types jar](#the-types-jar).
 
 ## The nginx image
 
-Some organisations do not put the user interface into the backend but deploy it on its own. For
-them, `docker/Dockerfile` builds an image based on the official `nginx` image. It copies
-`packages/ui/dist` into `/usr/share/nginx/html` and the configuration into
-`/etc/nginx/templates/`, so the address of the backend comes from an environment variable when the
-container starts.
+Some organisations do not put the user interface into the backend but deploy it on its own
+(`Q-HOSTING` is `behind` or `in-front`, see
+[SKILL.md](../SKILL.md#where-the-user-interface-runs)). For them, `docker/Dockerfile` builds an
+image based on the official `nginx` image. It copies `packages/ui/dist` into
+`/usr/share/nginx/html` and the configuration into `/etc/nginx/templates/`.
 
-The configuration does four things:
+### Behind the backend (`behind`)
+
+The browser talks to the backend only, and the nginx serves files. Its configuration does one
+thing: every path that is no file gets `index.html` (`try_files $uri $uri/ /index.html`), and
+`index.html` is sent with `Cache-Control: no-cache`. It forwards nothing.
+
+The backend passes on to the nginx what the cockpit does not know itself. The cockpit already
+brings `spring-cloud-starter-gateway-server-webmvc` for its proxy under `/wm/`. One more route
+goes to the nginx, for the path `/**` and with the lowest priority of all routes. Then every path
+of the cockpit (the GUI API, `/wm/`, the login) is answered by the cockpit first, and the security
+of the backend covers the files of the user interface as well. The address of the nginx is a
+configuration value of the backend. `application.spa-default-file` is not needed then, because the
+nginx answers an unknown path with `index.html`.
+
+So far this way has only been built with the session or the token in a cookie.
+
+### In front of the backend (`in-front`)
+
+The address of the backend comes from an environment variable when the container starts. The
+configuration does four things:
 
 - Every path that is no file gets `index.html`
   (`try_files $uri $uri/ /index.html`). `index.html` is sent with `Cache-Control: no-cache`.

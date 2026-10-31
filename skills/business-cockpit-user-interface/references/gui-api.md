@@ -97,8 +97,16 @@ stream with `EventSource`, or with `fetch` and a reader on the body, see
 
 ## Protection and login
 
-The backend serves the user interface. The single-page application has to load without a login
-and log in afterwards, when needed. So these stay open:
+Which paths stay open depends on where the user interface runs (`Q-HOSTING`, see
+[`../SKILL.md`](../SKILL.md#where-the-user-interface-runs)).
+
+With `embedded` and `behind` the login comes first. Only the proxy to the workflow modules under
+`/wm/**` stays open, because a module protects itself. Everything else asks for a login, the files
+of the user interface included. So a browser without a login goes straight to the login of the
+backend, and the user interface loads after it.
+
+With `in-front` the single-page application loads without a login and logs in afterwards, when
+needed. So these stay open:
 
 - the static files of the user interface,
 - the shell, `index.html`, also as the answer to an unknown path,
