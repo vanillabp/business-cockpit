@@ -48,8 +48,8 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 | `PKG-009` | The bundle contains no part of any workflow module.                                                                                                                                                                                                             | always |
 | `PKG-010` | Removed: replaced by `PKG-016`.                                                                                                                                                                                                                                 | removed |
 | `PKG-011` | The upload script puts jar, pom and their checksums into the Maven repository with HTTP `PUT`, and refuses to overwrite a release version that is already there.                                                                                                | always |
-| `PKG-012` | The nginx image serves the user interface, answers an unknown path with `index.html`, and forwards `/gui/api/`, `/wm/` and the login paths to the backend.                                                                                                      | always |
-| `PKG-013` | Through the nginx image the update stream delivers events without delay and stays open longer than the ping interval.                                                                                                                                           | always |
+| `PKG-012` | The nginx image serves the user interface, answers an unknown path with `index.html`, and forwards `/gui/api/`, `/wm/` and the login paths to the backend.                                                                                                      | `Q-HOSTING` is `in-front` |
+| `PKG-013` | Through the nginx image the update stream delivers events without delay and stays open longer than the ping interval.                                                                                                                                           | `Q-HOSTING` is `in-front` |
 | `PKG-014` | The UI repository has no `pom.xml`, and the backend repository has no `package.json`.                                                                                                                                                                           | always |
 | `PKG-015` | One npm workspace builds the user interface, the types library, every dev shell and the UI jar with one command, without Maven and without Java.                                                                                                                | always |
 | `PKG-016` | The types jar is built with Maven outside the UI repository, from `ui-uri-types.json` of the types library of the same version; it holds one constant per entry, `EXTERNAL` included, and none points to a constant of VanillaBP.                               | always |
@@ -60,19 +60,22 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 | `PKG-021` | The types library ships `bc-check-entries`, a script without dependencies that fails a module's build when an entry of the manifest has no file, or when a data entry with the files it imports is larger than `Q-DATA-ENTRY-LIMIT` or contains framework code. | always |
 | `PKG-022` | `bc-check-entries` passes for every blueprint module the end-to-end tests use, and fails for a test entry that imports a framework.                                                                                                                             | always |
 | `PKG-023` | `DATA_ENTRIES` of the types library names `UserTaskList`, `WorkflowList`, `UserTaskForm`, `WorkflowPage` and the data entries of the interview, and `bc-check-entries` checks all of them against `Q-DATA-ENTRY-LIMIT`, by default 32 KB before compression.    | always |
+| `PKG-024` | With `Q-HOSTING` `behind`, the backend has a gateway route `/**` to the nginx image with the lowest priority: every path of the cockpit is answered by the cockpit, every other path by the nginx, and both are behind the backend's security.                  | `Q-HOSTING` is `behind` |
+| `PKG-025` | With `Q-HOSTING` `behind`, the nginx image only serves the files of the user interface and answers an unknown path with `index.html`; it forwards nothing to the backend.                                                                                       | `Q-HOSTING` is `behind` |
 
 ## AUTH: loading and login
 
-| Id         | Item                                                                                                      | Applies |
-|------------|-----------------------------------------------------------------------------------------------------------|---------|
-| `AUTH-001` | Without a login, the shell and its static files load, and the frame shows the title from `GET /app/info`. | always |
-| `AUTH-002` | When `GET /app/current-user` answers without a body, the browser is sent to the login of the backend.     | always |
-| `AUTH-003` | After the login, the user interface shows the user from `GET /app/current-user`.                          | always |
-| `AUTH-004` | A 401 on any later request sends the browser to the login, and no error page is shown.                    | always |
-| `AUTH-005` | The user interface has no login form, no user management and no rights check of its own.                  | always |
-| `AUTH-006` | The user interface makes no request in the background only to stay logged in.                             | always |
-| `AUTH-007` | `/logout` ends the session and shows the start page.                                                      | always |
-| `AUTH-008` | The groups used to shape the screens come from `GET /app/current-user`, not from the token.               | always |
+| Id         | Item                                                                                                                                                        | Applies |
+|------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `AUTH-001` | Without a login, the shell and its static files load, and the frame shows the title from `GET /app/info`.                                                   | `Q-HOSTING` is `in-front` |
+| `AUTH-002` | When `GET /app/current-user` answers without a body, the browser is sent to the login of the backend.                                                       | always |
+| `AUTH-003` | After the login, the user interface shows the user from `GET /app/current-user`.                                                                            | always |
+| `AUTH-004` | A 401 on any later request sends the browser to the login, and no error page is shown.                                                                      | always |
+| `AUTH-005` | The user interface has no login form, no user management and no rights check of its own.                                                                    | always |
+| `AUTH-006` | The user interface makes no request in the background only to stay logged in.                                                                               | always |
+| `AUTH-007` | `/logout` ends the session and shows the start page.                                                                                                        | always |
+| `AUTH-008` | The groups used to shape the screens come from `GET /app/current-user`, not from the token.                                                                 | always |
+| `AUTH-009` | A browser without a login gets the login of the backend before any file of the user interface; after the login the user interface loads and shows the user. | `Q-HOSTING` is `embedded` or `behind` |
 
 ## NAV: screens, header and menu
 
@@ -162,7 +165,7 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 ## TF: the page of a user task
 
 | Id       | Item                                                                                                                                                                                                                                                                                          | Applies |
-|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------|
+|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
 | `TF-001` | Opening a task loads it, marks it as read and shows the web components the module's page function names.                                                                                                                                                                                      | always |
 | `TF-002` | Removed: replaced by `TF-025`.                                                                                                                                                                                                                                                                | removed |
 | `TF-003` | Removed: replaced by `TF-026`.                                                                                                                                                                                                                                                                | removed |
@@ -222,23 +225,24 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 
 ## SRCH: search, filter, sort and paging
 
-| Id         | Item                                                                                                                                    | Applies |
-|------------|-----------------------------------------------------------------------------------------------------------------------------------------|---------|
-| `SRCH-001` | Both lists have a full-text search with an x button that clears it.                                                                     | always |
-| `SRCH-002` | Suggestions are asked from three characters on, 300 milliseconds after the last key.                                                    | always |
-| `SRCH-003` | At most 20 suggestions show, and a note shows instead when the server returns 21.                                                       | always |
-| `SRCH-004` | Special characters typed by the user are escaped before they go to the server.                                                          | always |
-| `SRCH-005` | A filter can be set and removed per column, and only one filter per path is sent.                                                       | always |
-| `SRCH-006` | A button resets all searches and filters.                                                                                               | always |
-| `SRCH-007` | A click on a sortable header sorts by it, a second turns the direction, a third goes back to the default.                               | always |
-| `SRCH-008` | An `i18n` column sorts by `<path>.<language>`, a `person` column by `<path>.sort,<path>.id`.                                            | always |
-| `SRCH-009` | Only columns with `sortable` offer sorting, and only columns with `filterable` offer a filter.                                          | always |
-| `SRCH-010` | The list scrolls virtually and holds a window of pages: the visible area plus one page ahead in both directions; far pages are dropped. | always |
-| `SRCH-011` | Every request of a list after the first sends the `initialTimestamp` of the first answer.                                               | always |
-| `SRCH-012` | Every list request sets `pageSize` and the primary filter.                                                                              | always |
-| `SRCH-013` | After scrolling a list of 20,000 cases from top to bottom, the JavaScript heap is below the limit from the interview.                   | always, with `Q-MEMORY-LIMIT` |
-| `SRCH-014` | A taller list area holds more rows in its window than a shorter one.                                                                    | always |
-| `SRCH-015` | Scrolling up and down shows no empty rows while pages load.                                                                             | always |
+| Id         | Item                                                                                                                                                                                                                                                  | Applies |
+|------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `SRCH-001` | Both lists have a full-text search with an x button that clears it.                                                                                                                                                                                   | always |
+| `SRCH-002` | Suggestions are asked from three characters on, 300 milliseconds after the last key.                                                                                                                                                                  | always |
+| `SRCH-003` | At most 20 suggestions show, and a note shows instead when the server returns 21.                                                                                                                                                                     | always |
+| `SRCH-004` | Special characters typed by the user are escaped before they go to the server.                                                                                                                                                                        | always |
+| `SRCH-005` | A filter can be set and removed per column, and only one filter per path is sent.                                                                                                                                                                     | always |
+| `SRCH-006` | A button resets all searches and filters.                                                                                                                                                                                                             | always |
+| `SRCH-007` | A click on a sortable header sorts by it, a second turns the direction, a third goes back to the default.                                                                                                                                             | always |
+| `SRCH-008` | An `i18n` column sorts by `<path>.<language>`, a `person` column by `<path>.sort,<path>.id`.                                                                                                                                                          | always |
+| `SRCH-009` | Only columns with `sortable` offer sorting, and only columns with `filterable` offer a filter.                                                                                                                                                        | always |
+| `SRCH-010` | The list scrolls virtually and holds a window of pages: the visible area plus one page ahead in both directions; far pages are dropped.                                                                                                               | always |
+| `SRCH-011` | Every request of a list after the first sends the `initialTimestamp` of the first answer.                                                                                                                                                             | always |
+| `SRCH-012` | Every list request sets `pageSize` and the primary filter.                                                                                                                                                                                            | always |
+| `SRCH-013` | After scrolling from top to bottom through 30,000 user tasks or cases of three or four modules, the JavaScript heap is below the limit from the interview, for each primary filter, closed tasks included.                                            | always, with `Q-MEMORY-LIMIT` |
+| `SRCH-014` | A taller list area holds more rows in its window than a shorter one.                                                                                                                                                                                  | always |
+| `SRCH-015` | Scrolling up and down shows no empty rows while pages load.                                                                                                                                                                                           | always |
+| `SRCH-016` | Scrolling a list of 30,000 entries with the mouse wheel for ten seconds has at most a few frames longer than 50 ms and shows no placeholder row; after a fast drag of the scroll bar, every placeholder gets its data soon after the scrolling stops. | always |
 
 ## LIVE: live updates
 

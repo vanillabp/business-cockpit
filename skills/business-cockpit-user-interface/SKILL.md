@@ -10,7 +10,7 @@ metadata:
 # Generating a Business Cockpit user interface
 
 The Business Cockpit is the central user interface of a company. Employees find the user tasks that
-the digitised business processes give them, and they look up the state of a business case. The
+the digitised business processes give them, and they look up the state of a business case. The VanillaBP
 cockpit backend has no user interface of its own. Every organisation brings its own framework, its
 own version of it, its own component library and its own design. So no single user interface fits,
 and this skill does not describe one.
@@ -58,15 +58,24 @@ The UI repository is a pure npm project. It produces:
 - A dev shell for each framework the workflow modules use, as an npm package. It is the workbench on
   which somebody writes a user task form without starting a cockpit.
 - A `Dockerfile` that serves the user interface with nginx, for an organisation that deploys it
-  apart from the backend.
+  apart from the backend (`Q-HOSTING` is `behind` or `in-front`).
 
-The backend repository is a pure Maven project, the cockpit application of the organisation. It
-pulls the UI jar as an ordinary dependency. The skill does not write the application, but it tells
-the user which dependency to add.
+The types module, the small Maven project, produces:
+
+- The types jar, for the Java side of the workflow modules. It holds one constant for each
+  `ui-uri-type` value this user interface understands, so a workflow module reports the same values
+  the types library lists.
+
+The backend repository is a pure Maven project, the cockpit application of the organisation. By
+default it pulls the UI jar as an ordinary dependency and serves the user interface itself. The skill
+does not write the application, but it tells the user which dependency to add. The user interface can
+also run in an nginx of its own. Then the backend still answers every request of the browser and
+passes on to that nginx only what the cockpit does not know itself. The three ways are described in
+[Where the user interface runs](#where-the-user-interface-runs), and `Q-HOSTING` decides between
+them.
 
 The types module is a Maven project of its own, apart from the backend application and from the UI
-build. It builds the types jar with the constants of the `ui-uri-type` values, for the Java side of
-the workflow modules. It reads the npm package of the types library, and the user interface needs
+build. It builds the types jar. It reads the npm package of the types library, and the user interface needs
 the OpenAPI files of the cockpit jars first. Inside the cockpit build that would be a circle, so its
 `README.md` explains the order: cockpit release, user interface, types module, backend.
 
@@ -206,10 +215,31 @@ The backend repository adds the UI jar as a dependency. A Spring Boot cockpit se
 `static` on its class path, a Quarkus application what lies below `META-INF/resources`. So the UI jar
 puts its files there. The details are in [references/project.md](references/project.md#the-ui-jar).
 
-An organisation that does not want the user interface inside the backend runs the nginx image of
-the UI repository instead. It forwards the GUI API, the workflow modules and the login to the
-backend, so the browser still sees one origin, see
-[references/project.md](references/project.md#the-nginx-image).
+### Where the user interface runs
+
+There are three ways. Ask which one in the interview (`Q-HOSTING`); the default is `embedded`.
+
+1. **`embedded`: inside the backend.** The backend takes the UI jar as a dependency and serves its
+   files, as described above. One application, one deployment, and the backend's security covers
+   everything. This is the default.
+2. **`behind`: in an nginx of its own, behind the backend.** The user interface has its own release
+   cycle and runs in the nginx image of the UI repository. The browser talks to the backend only. The
+   backend has one more route in its Spring Cloud Gateway (the cockpit already uses
+   `spring-cloud-starter-gateway-server-webmvc` for `/wm/`): `/**` to the nginx, with the lowest
+   priority of all routes. So every path the cockpit knows is answered by the cockpit, and only what
+   it does not know reaches the nginx. The backend's security covers the user interface as well, just
+   as in `embedded`. This way has been built so far only with the session or the token in a cookie.
+3. **`in-front`: in an nginx in front of the backend.** The nginx serves the user interface and
+   forwards the GUI API, the workflow modules and the login to the backend, so the browser still sees
+   one origin, see [references/project.md](references/project.md#in-front-of-the-backend-in-front). This way is only
+   worth it when the user interface has to load before the login. Today almost every login goes
+   through OIDC or OAuth2, a redirect to another site. Loading the user interface before that
+   redirect only delays what the user sees. It is needed when the user interface sends the token in
+   the `Authorization` header instead of a cookie. Then the user interface itself handles the token,
+   so it has to load first.
+
+Propose `embedded`. Propose `behind` when the user interface needs its own deployment. Propose
+`in-front` only for a token in the `Authorization` header.
 
 The library sets no rules for login. How a user logs in is decided by the backend application. In
 Spring Boot, for example, an unauthenticated request can be sent to the `/login` endpoint. Depending
@@ -222,10 +252,16 @@ memory. Prompt `1510` moves it into `container`, see
 
 What your user interface needs from the backend application:
 
-- The single-page application loads without a login. Its static files, its shell `index.html` and
-  the two endpoints `GET /gui/api/v1/app/info` and `GET /gui/api/v1/app/current-user` stay open.
-- After that it logs in when needed. When `current-user` answers without a user, or any other call
-  answers 401, the user interface sends the browser to the login of the backend.
+- Whether the login or the user interface comes first depends on `Q-HOSTING`. With `embedded` and
+  `behind` the login comes first. A browser without a login gets the login of the backend before any
+  file of the user interface, for example the redirect to an OIDC provider. Loading the user
+  interface first would only delay that redirect. With `in-front` the single-page application loads
+  first, because it may have to handle the token itself. Then its static files, its shell
+  `index.html` and the two endpoints `GET /gui/api/v1/app/info` and
+  `GET /gui/api/v1/app/current-user` stay open.
+- In every variant the user interface logs in again when needed. When `current-user` answers without
+  a user, or any other call answers 401, it sends the browser to the login of the backend. That
+  happens when a session ends while the page is open.
 - `application.spa-default-file` names the shell, by default `classpath:/static/index.html`. Every
   path that no controller and no file answers gets this file instead of an error. That is what
   makes a link into the middle of your application work.
@@ -240,20 +276,37 @@ seeing anything.
 2. The frame and the login. `GET /app/info` and `GET /app/current-user` are enough for an
    application that knows who is there. Then the header with its toggle and the menu.
 3. A list without the columns of the modules, with the primary filter and its counts, and with the
-   window of loaded rows. This settles paging. Write the memory test now, not at the end.
+   window of loaded rows. This settles paging. Write the memory test and the scrolling test now, not
+   at the end, and run them with a lot of data: three or four simulated workflow modules that
+   together report 30,000 user tasks or cases. Run them on the primary filter for closed tasks as
+   well, because that is where the most rows pile up. Watch two things, because they pull in opposite
+   directions. The JavaScript heap stays below the limit. The list scrolls without stuttering, and a
+   placeholder instead of the data shows only when the user scrolls very fast. A larger window of
+   loaded rows scrolls more smoothly and costs more memory. See
+   [references/behaviour.md](references/behaviour.md#paging-and-the-window-of-loaded-rows).
 4. Sorting and searching. After this, the paths and their traps are clear.
 5. The types library with `bc-check-entries`, the registry of modules and the central loader. Then
    the columns of a list, then the page of a user task with its areas, then the page of a case,
    then the other extension points.
 6. The update stream. It comes late, because it needs most of the rest.
 7. The dev shells, one per framework the workflow modules use.
-8. The types module with its `README.md`, and the nginx image.
+8. The types module with its `README.md`, and the nginx image when `Q-HOSTING` is `behind` or
+   `in-front`.
 9. The end-to-end tests, one per checklist item.
 
 ## How you know it is done
 
 Run the generated user interface against a running cockpit with workflow modules. As workflow
-modules, use the Business Cockpit blueprints in the `vanillabp-blueprints` organisation. One of
+modules, use the Business Cockpit blueprints in the `vanillabp-blueprints` organisation. They do not
+wait for a generated cockpit. They are built against the module kit, a small npm package in plain
+JavaScript from its own repository (`vanillabp/business-cockpit-module-kit`). It holds the module's
+side of the contract: the manifest, `bc-check-entries`, the helper for events and the names of the
+data entries. It also holds a minimal host which loads a module part the way
+[references/module-loading.md](references/module-loading.md) describes, for its own tests and those
+of the blueprints. The types library you generate takes the module kit in when it is built, so it
+still ships without dependencies (`PKG-006`), and adds what only this user interface knows, such as
+its `ui-uri-type` values. So a blueprint which passes against the
+module kit loads in every generated cockpit. One of
 them shows user tasks, one shows a workflow details page, and one shows an extension of the header.
 If the organisation's cockpit has extension points that no blueprint offers, extend a blueprint, so
 that every extension point is tested by a real module.
@@ -266,11 +319,14 @@ Then:
 4. A change to a task that somebody else makes shows up without a reload.
 5. Claiming and unclaiming work, and the row shows it afterwards.
 6. Paging, sorting and searching return what they should, also over reported business data.
-7. Scrolling through 20,000 cases keeps the JavaScript heap below the limit from the interview.
+7. Scrolling through 30,000 user tasks or cases of three or four modules keeps the JavaScript heap
+   below the limit from the interview, also on the primary filter for closed tasks. The list scrolls
+   without stuttering, and placeholders show only when the user scrolls very fast.
 8. A user task whose `uiUriType` is `EXTERNAL` opens its address in a tab of its own and leaves
    the list intact.
 9. The dev shell shows the page of a blueprint module the same way the cockpit shows it.
 10. A page shows parts of modules in two frameworks other than the cockpit's, side by side, and the
     data entries of a module load without its framework.
-11. The backend repository builds with the UI jar as a dependency, and the nginx image serves the
-    same user interface against the same backend.
+11. The backend repository builds and serves the user interface the way `Q-HOSTING` chose: with the
+    UI jar as a dependency (`embedded`), through its gateway route to the nginx image (`behind`), or
+    behind the nginx image (`in-front`).

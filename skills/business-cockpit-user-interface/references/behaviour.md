@@ -641,18 +641,41 @@ browser out of memory at 10,360 cases, and the page could no longer be used. So:
   little is kept or asked again.
 - The loading sign shows on the first load, not when loading more.
 
-An end-to-end test proves it. It is mandatory:
+Two things are measured, and they pull in opposite directions. The memory must stay low, and the
+list must scroll smoothly. A larger window of loaded rows scrolls more smoothly, because the next
+rows are already there, but it costs more memory. Find the size of the window that passes both
+tests, and do not trade one for the other.
 
-1. Fill the cockpit the test runs against with 20,000 cases, for example from a simulator that
-   reports them through the BPMS API.
+The data for both tests is large and mixed. Simulate three or four workflow modules that together
+report 30,000 user tasks or cases, for example with a simulator that reports them through the BPMS
+API. Each module brings its own columns, so the rows differ the way they do in production. Run the
+tests on the primary filter for closed tasks as well (`ClosedTasksOnly`). Closed tasks are never
+removed, so that is where the most rows pile up.
+
+An end-to-end test proves the memory. It is mandatory:
+
+1. Fill the cockpit the test runs against with that data.
 2. Open the case list and scroll from the top to the bottom.
 3. Force a garbage collection and read the JavaScript heap with Playwright through the Chrome
    DevTools Protocol: a `CDPSession` with `HeapProfiler.collectGarbage` and then
    `Runtime.getHeapUsage`.
 4. The used heap is below the limit from the interview (`Q-MEMORY-LIMIT`, 150 MB by default).
 
-The same test runs for the task list. The CDP calls exist in Chromium only, so this test runs in
-Chromium.
+The same test runs for the task list, with each primary filter the interview chose, closed tasks
+included.
+
+A second end-to-end test proves the scrolling. It is mandatory too:
+
+1. Use the same data and open the list.
+2. Scroll the way a user reads: with the mouse wheel, a few rows at a time, for about ten seconds.
+   During that time, count the frames that take longer than 50 ms, with a `PerformanceObserver` on
+   `long-animation-frame`. At most a few may be that long.
+3. While scrolling at that speed, no placeholder row is visible. A placeholder is the empty or grey
+   row the list shows instead of data that has not arrived yet.
+4. Then drag the scroll bar fast, from the top to the bottom. Placeholders may show now, but each
+   one is replaced by its data soon after the scrolling stops.
+
+The CDP calls and `long-animation-frame` exist in Chromium only, so these tests run in Chromium.
 
 ## Live updates
 
