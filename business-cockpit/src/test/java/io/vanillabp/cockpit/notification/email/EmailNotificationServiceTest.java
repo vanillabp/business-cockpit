@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.notification.email;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -35,6 +36,8 @@ class EmailNotificationServiceTest {
 
   private EmailNotificationService service;
 
+  private ApplicationProperties applicationProperties;
+
   @BeforeEach
   void setUp() {
     greenMail = new GreenMail(ServerSetupTest.SMTP);
@@ -52,7 +55,7 @@ class EmailNotificationServiceTest {
     when(userRepository.findById("u1")).thenReturn(java.util.Optional.of(user));
     when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-    final var applicationProperties = new ApplicationProperties();
+    applicationProperties = new ApplicationProperties();
     applicationProperties.setApplicationUri("http://cockpit.example.org/");
 
     final var notificationProperties = new NotificationProperties();
@@ -94,10 +97,22 @@ class EmailNotificationServiceTest {
     assertTrue(body.toLowerCase().contains("forced") || body.contains("cannot be switched off"), body);
   }
 
+  /**
+   * The library has no default locale. Without one the template without a language in its name
+   * is taken, and not the one of the machine's locale.
+   */
+  @Test
+  void resolveLocale_withoutAnApplicationDefaultIsTheRootLocale() {
+    // the module container sets English, the library sets nothing
+    assertNull(new ApplicationProperties().getDefaultLocale());
+    assertEquals(java.util.Locale.ROOT, service.resolveLocale(new User()));
+    assertEquals(java.util.Locale.ROOT, service.resolveLocale(null));
+  }
+
   @Test
   void resolveLocale_usesUserLocale_elseApplicationDefault() {
+    applicationProperties.setDefaultLocale(java.util.Locale.GERMAN);
     final var withoutLocale = new User();
-    // application default is German (set via ApplicationProperties default)
     assertEquals(java.util.Locale.GERMAN, service.resolveLocale(withoutLocale));
     assertEquals(java.util.Locale.GERMAN, service.resolveLocale(null));
 

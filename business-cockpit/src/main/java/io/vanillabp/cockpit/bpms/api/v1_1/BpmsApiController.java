@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.vanillabp.cockpit.bpms.AnswerToAReport;
-import io.vanillabp.cockpit.bpms.BpmsApiWebSecurityConfiguration;
+import io.vanillabp.cockpit.bpms.BpmsApiAuthority;
 import io.vanillabp.cockpit.bpms.PathAndBody;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.model.UserTaskEndReason;
@@ -25,7 +25,7 @@ import jakarta.validation.Valid;
  */
 @RestController("bpmsApiControllerV1_1")
 @RequestMapping(path = BpmsApiController.BPMS_API_URL_PREFIX)
-@Secured(BpmsApiWebSecurityConfiguration.BPMS_API_AUTHORITY)
+@Secured(BpmsApiAuthority.BPMS_API_AUTHORITY)
 public class BpmsApiController implements BpmsApi {
 
   /**

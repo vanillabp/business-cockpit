@@ -11,6 +11,7 @@ import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.servlet.NoHandlerFoundException;
@@ -27,12 +28,16 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
  * The jar of this module carries no shell. The Maven build does not build a user interface, see
  * decision 62 in the repository's DECISIONS.md. An application without one of its own answers an
  * unknown path with 404, the same as a server which has no single-page application at all.
+ * <p>
+ * The library has no value for {@code application.spa-default-file}, because only the application
+ * knows where its shell is. Without the value every unknown path gets 404, and the startup check
+ * says so. The module {@code container} sets {@code classpath:/static/index.html}.
  */
 @ControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class SpaNoHandlerFoundExceptionHandler {
 
-  @Value("${application.spa-default-file:classpath:/static/index.html}")
+  @Value("${application.spa-default-file:}")
   private String defaultFile;
 
   @Autowired
@@ -54,6 +59,9 @@ public class SpaNoHandlerFoundExceptionHandler {
   })
   public ResponseEntity<Resource> handleNotFound() {
 
+    if (!StringUtils.hasText(defaultFile)) {
+      return ResponseEntity.notFound().build();
+    }
     final var shell = resourceLoader.getResource(defaultFile);
     if (!shell.exists()) {
       return ResponseEntity.notFound().build();

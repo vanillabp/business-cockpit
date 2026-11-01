@@ -5,9 +5,10 @@ import org.springframework.context.annotation.ConditionContext;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 
 /**
- * Keeps the BPMS API out of the application until realm, user and password are configured, so that
- * an application which has not set them yet still boots. {@link StartupConfigurationCheck} says so
- * in a warning on every start.
+ * Keeps a BPMS API chain built from {@code bpms-api.*} out of the application until realm, user and
+ * password are configured, so that an application which has not set them yet still boots. The
+ * module {@code container} puts it on its chain. {@link StartupConfigurationCheck} says on every
+ * start what is missing.
  * <p>
  * The condition is written by hand and not taken from {@code @ConditionalOnProperty}. That one
  * counts a property set to an empty string as present, which would let an incomplete configuration

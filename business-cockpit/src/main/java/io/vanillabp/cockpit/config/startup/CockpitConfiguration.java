@@ -141,6 +141,16 @@ public final class CockpitConfiguration {
   public static final String SMTP_ENABLED = "business-cockpit.notification.smtp.enabled";
 
   /**
+   * The language a notification is written in for a user who has none of their own.
+   */
+  public static final String DEFAULT_LOCALE = "business-cockpit.default-locale";
+
+  /**
+   * The shell of the single-page application, which an unknown path is answered with.
+   */
+  public static final String SPA_DEFAULT_FILE = "application.spa-default-file";
+
+  /**
    * The sender address of the notification emails.
    */
   public static final String SMTP_FROM = "business-cockpit.notification.smtp.from";
@@ -185,8 +195,9 @@ public final class CockpitConfiguration {
   }
 
   /**
-   * Whether the BPMS API can be served. It authenticates every request by HTTP basic, which
-   * needs all three: realm, user and password.
+   * Whether the BPMS API chain of the module {@code container} can be built. It authenticates
+   * every request by HTTP basic, which needs all three: realm, user and password. An application
+   * with a chain of its own may use the same three values.
    *
    * @param environment The environment to read from
    * @return {@code true} if realm, user and password are all set

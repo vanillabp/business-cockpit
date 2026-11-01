@@ -1,10 +1,11 @@
-package io.vanillabp.cockpit.bpms;
+package io.vanillabp.cockpit.security;
 
 import static org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher.pathPattern;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -17,37 +18,30 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationEn
 import org.springframework.security.web.context.NullSecurityContextRepository;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 
+import io.vanillabp.cockpit.bpms.BpmsApiAuthority;
+import io.vanillabp.cockpit.bpms.BpmsApiProperties;
 import io.vanillabp.cockpit.config.startup.BpmsApiIsConfigured;
 import io.vanillabp.cockpit.config.startup.BpmsApiIsNotConfigured;
 
 /**
- * Secures the BPMS API by HTTP basic against the one client the application configures for its BPMS
- * adapters.
+ * Secures the BPMS API by HTTP basic against the one client configured for the BPMS adapters.
+ * <p>
+ * This is the application's part, and the library brings none of it. A custom cockpit writes a
+ * chain like this one, or protects the BPMS API in another way. The wiki page "Security" says
+ * what every chain has to keep.
  * <p>
  * An application which has not configured that client yet still starts. The conditions leave out
  * the chain and its user. Requests to the BPMS API paths then fall through to the GUI chain and
- * are answered with 401, and the startup check says on every start what to add. Before that, a
- * missing realm or missing credentials ended the start with an exception from Spring Security.
+ * are answered with 401, and the library's startup check says on every start what to add.
  */
-public class BpmsApiWebSecurityConfiguration {
+@Configuration
+public class BpmsApiSecurityConfiguration {
 
   /**
-   * The role of the one user of the BPMS API.
+   * Creates the configuration. Spring creates it, because the component scan of the application
+   * finds it.
    */
-  public static final String BPMS_API_ROLE = "BPMS-API";
-
-  /**
-   * The authority Spring Security makes of {@link #BPMS_API_ROLE}. The BPMS API controllers ask
-   * for it.
-   */
-  public static final String BPMS_API_AUTHORITY = "ROLE_"
-      + BPMS_API_ROLE;
-
-  /**
-   * Creates the configuration. Spring creates it, because the web security configuration imports
-   * it.
-   */
-  public BpmsApiWebSecurityConfiguration() {
+  public BpmsApiSecurityConfiguration() {
   }
 
   @Autowired
@@ -105,7 +99,7 @@ public class BpmsApiWebSecurityConfiguration {
     final var user = User.builder()
         .username(properties.getUsername())
         .password(properties.getPassword())
-        .roles(BPMS_API_ROLE)
+        .roles(BpmsApiAuthority.BPMS_API_ROLE)
         .build();
     return new InMemoryUserDetailsManager(user);
 

@@ -229,9 +229,9 @@ package of the cockpit is released with 0.9.0. If your application depends on `b
 it serves no user interface, and a path no API knows gets 404 instead of the single-page
 application.
 
-If your application brings a user interface of its own, nothing changes. Put its `index.html` at
-`classpath:/static/index.html`, or name it with `application.spa-default-file`, and unknown paths
-get it as before. Decisions 62 and 63 in [DECISIONS.md](./DECISIONS.md) have the details.
+If your application brings a user interface of its own, name its `index.html` with
+`application.spa-default-file`, for example `classpath:/static/index.html`, and unknown paths get it
+as before. The library has no value for the key any more, see "Two values are the application's" below. Decisions 62 and 63 in [DECISIONS.md](./DECISIONS.md) have the details.
 
 ### `OpenTasks` is gone
 
@@ -277,3 +277,49 @@ filters as its list, and answers one count per filter, with no rows and without 
 else changes. A user interface which counted with a page of size 1 can switch when it likes. Two new
 changesets add indexes on the fields which decide who sees a user task or a workflow. On a large
 database the first start after the upgrade takes a little longer while MongoDB builds them.
+
+### Signing in is the application's
+
+The library `business-cockpit` brings no login any more. The two security chains `guiHttpSecurity`
+and `bpmsApiHttpSecurity`, the users with the password `test` and the bean `userDetailsProvider`
+moved into the module `container`. The runnable jar of `container` behaves as before.
+
+If your application depends on `business-cockpit` and relied on what the library brought, write
+these three beans yourself. The classes `GuiSecurityConfiguration` and
+`BpmsApiSecurityConfiguration` in `container` are the template, and the wiki page
+[Security](https://github.com/vanillabp/business-cockpit/wiki/Security) says what every chain has to
+keep.
+
+- Without `userDetailsProvider` the application does not start. The failure report shows the bean
+  to write.
+- Without any chain of your own, Spring Boot adds its default chain. It asks for a login on every
+  path, with a password it generates and prints. Your users and the BPMS adapters cannot log in.
+- With some chains of your own but not these two, a request which none of your chains takes is not
+  checked at all.
+
+On every start the log names each of the two chains your application does not have. The keys
+`bpms-api.realm-name`, `bpms-api.username` and `bpms-api.password` stay. The library no longer
+builds a chain from them, the chain of `container` does.
+
+The constants `BPMS_API_ROLE` and `BPMS_API_AUTHORITY` moved from
+`io.vanillabp.cockpit.bpms.BpmsApiWebSecurityConfiguration` to
+`io.vanillabp.cockpit.bpms.BpmsApiAuthority`. The BPMS API still answers only a caller with the
+authority `ROLE_BPMS-API`.
+
+The users of the dev-shell simulator log in with `test` now, as they do at the cockpit. Before, it
+was `Secure_123`.
+
+### Two values are the application's
+
+The library has no value for `application.spa-default-file` and `business-cockpit.default-locale`
+any more. `container` sets both in its `application.yaml`.
+
+- `application.spa-default-file` was `classpath:/static/index.html`. Without it, every path no API
+  knows gets 404, and the log says so on every start. If your application has a user interface,
+  write the key.
+- `business-cockpit.default-locale` was German. `container` sets English now, so the delivered
+  application writes a mail in English to a user who has no language of their own. Without the
+  key, such a mail uses the template without a language in its name, and the log warns while
+  e-mail notifications are switched on. If your application relied on German, write
+  `business-cockpit.default-locale: de`.
+

@@ -31,10 +31,10 @@ public class ApplicationProperties {
 
   /**
    * The default locale of the whole application. It is used where a user has no locale of their
-   * own, when a notification template is rendered for example. It defaults to German, the
-   * language every user interface is fixed to today.
+   * own, when a notification template is rendered for example. The library has no value for it,
+   * because the language is the application's choice. The module {@code container} sets English.
    */
-  private Locale defaultLocale = Locale.GERMAN;
+  private Locale defaultLocale;
 
   private Map<String, Object> additionalProperties;
 
@@ -64,8 +64,8 @@ public class ApplicationProperties {
   }
 
   /**
-   * The short title of the application. The browser shows it in the header, and the BPMS API
-   * uses it as the realm name of its basic authentication.
+   * The short title of the application. The browser shows it in the header. The GUI chain of the
+   * module {@code container} also uses it as the realm name of its basic authentication.
    *
    * @return The short title
    */
@@ -161,9 +161,9 @@ public class ApplicationProperties {
 
   /**
    * The default locale of the whole application. It is used where a user has no locale of their
-   * own, when a notification template is rendered for example. It defaults to German.
+   * own, when a notification template is rendered for example. The library has no value for it.
    *
-   * @return The default locale
+   * @return The default locale, or {@code null} if the application sets none
    */
   public Locale getDefaultLocale() {
     return defaultLocale;

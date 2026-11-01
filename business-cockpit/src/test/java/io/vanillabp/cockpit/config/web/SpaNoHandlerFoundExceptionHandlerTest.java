@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -36,6 +37,26 @@ class SpaNoHandlerFoundExceptionHandlerTest {
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     assertThat(response.getBody()).isNull();
+
+  }
+
+  /**
+   * The library has no value for {@code application.spa-default-file}. Without one, an unknown
+   * path gets 404 and not an error.
+   */
+  @Test
+  void anApplicationWhichNamesNoShellAnswersNotFound() throws Exception {
+
+    assertThat(handlerWithShellAt(null).handleNotFound().getStatusCode())
+        .isEqualTo(HttpStatus.NOT_FOUND);
+    assertThat(handlerWithShellAt("").handleNotFound().getStatusCode())
+        .isEqualTo(HttpStatus.NOT_FOUND);
+    // the empty default after the colon: the library names no file, the module container does
+    assertThat(SpaNoHandlerFoundExceptionHandler.class
+        .getDeclaredField("defaultFile")
+        .getAnnotation(Value.class)
+        .value())
+        .isEqualTo("${application.spa-default-file:}");
 
   }
 

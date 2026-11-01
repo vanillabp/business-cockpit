@@ -24,7 +24,7 @@ This file is about the module.
 
 ## What is here
 
-Four things, and each of them is the reference answer to something a custom cockpit has to write for
+Five things, and each of them is the reference answer to something a custom cockpit has to write for
 itself:
 
 * `BusinessCockpitStandaloneApplication`, a `@SpringBootApplication` with a `main` method and nothing
@@ -36,12 +36,22 @@ itself:
   `mongodb.write-concern: majority`, which a custom cockpit writes too.
   [The write concern](https://github.com/vanillabp/business-cockpit/wiki/Running-the-Business-Cockpit#the-write-concern)
   in the wiki says why, and what another value would cost.
+  They set two values the library has none for: `application.spa-default-file`, the shell a deep
+  link is answered with, and `business-cockpit.default-locale: en`, the language of a mail to a
+  user who has none of their own.
 * The five concrete GUI API controllers below `io/vanillabp/cockpit`, which implement the three
   abstract controllers of the library and decide which tasks, workflows and modules a user gets.
   The rule they apply is described in the wiki under
   [Who sees which workflow](https://github.com/vanillabp/business-cockpit/wiki/Security#who-sees-which-workflow).
 * The local user directory below `users/local`, which answers who a user is without an identity
   provider.
+* The two security chains below `security`. `guiHttpSecurity` logs a person in by HTTP basic, with
+  the password `test` for every user of the directory, and hands out the JWT cookie.
+  `bpmsApiHttpSecurity` lets the BPMS adapters in with `bpms-api.username` and `bpms-api.password`.
+  The same package has the bean `userDetailsProvider`, which reads the user from the cookie. The
+  library brings none of the three, so that no example login is active in an application built on
+  it. [Security](https://github.com/vanillabp/business-cockpit/wiki/Security) in the wiki says what
+  every chain has to keep.
 
 ## Why the library and the application are two modules
 
@@ -54,6 +64,8 @@ it. The split is what keeps a custom cockpit from doing that.
 
 Anything added here which a custom cockpit would also need belongs in the library instead. The test
 for it is whether an application depending only on `business-cockpit` would miss it.
+The login is the exception. Every application needs one, but each one picks its own, so the library
+holds only what every login shares: the JWT cookie and the paths which stay open.
 
 ## Why its own tests cannot prove the wiring
 
@@ -80,7 +92,7 @@ It wants the MongoDB of the compose file in [development](../development), and
 carries no user interface, see decision 63 in the repository's [DECISIONS.md](../DECISIONS.md), so
 a path no API knows gets 404.
 
-Backend changes usually belong in `business-cockpit`. Only the four things listed above are changed
+Backend changes usually belong in `business-cockpit`. Only the five things listed above are changed
 here.
 
 ## Why it is not reactive

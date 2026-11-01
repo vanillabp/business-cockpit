@@ -9,9 +9,9 @@ import org.springframework.context.annotation.Import;
  * What workflow modules and BPMS adapters report to: the two versions of the BPMS API and the
  * mappers turning a reported event into a stored document.
  * <p>
- * The endpoints are always registered. Whether they answer is decided by the security chain of the
- * BPMS API, which is absent while no client is configured, and the startup check says on every start
- * what to configure to have one.
+ * The endpoints are always registered, and they answer only a caller with the authority
+ * {@code ROLE_BPMS-API}. How a caller logs in is decided by a security chain of the application.
+ * The library brings none, and the startup check says on every start when it is missing.
  */
 @AutoConfiguration
 @ConditionalOnWebApplication(type = Type.SERVLET)

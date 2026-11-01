@@ -43,9 +43,8 @@ public class User {
 
   /**
    * The locale the user prefers. {@code null} means the application's default locale, which is
-   * {@code business-cockpit.default-locale}. Setting it is a story of its own. Today every user
-   * interface is fixed to German, so this stays {@code null}, but the notification templating
-   * already reads it.
+   * {@code business-cockpit.default-locale}. Setting it is a story of its own, so this stays
+   * {@code null} today, but the notification templating already reads it.
    */
   private Locale locale;
 

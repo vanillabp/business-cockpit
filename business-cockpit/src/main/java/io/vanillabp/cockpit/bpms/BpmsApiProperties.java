@@ -8,6 +8,9 @@ import io.vanillabp.cockpit.commons.kafka.KafkaProperties;
  * How the BPMS adapters of the workflow modules reach the cockpit to report user tasks, cases and
  * workflow modules: by REST with HTTP basic, or by Kafka. The properties start with
  * {@code bpms-api}.
+ * <p>
+ * The library checks no credentials itself. Realm, user name and password are read by the BPMS API
+ * chain of the module {@code container}, and a chain of the application's own may read them too.
  */
 @ConfigurationProperties(prefix = BpmsApiProperties.PREFIX, ignoreUnknownFields = false)
 public class BpmsApiProperties {

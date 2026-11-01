@@ -37,9 +37,10 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * This is the point of the auto-configurations. An application which adds the dependency and
- * writes nothing else runs and serves the user interface, and its lists are empty only because
- * nobody has reported anything yet. The last part is why this test reports something and looks
- * again.
+ * writes only what the library leaves to it runs and serves the GUI API, and its lists are empty
+ * only because nobody has reported anything yet. The last part is why this test reports something
+ * and looks again. What the application writes is the list controllers, its users and the two
+ * security chains, because the library brings no login.
  *
  * <p>{@link DerivedCockpitApplication} is that application, and its package is what makes the test
  * mean something. The delivered {@code container} lives in {@code io.vanillabp.cockpit} and finds the
@@ -57,8 +58,6 @@ class ApplicationWithoutTheBaseClassTest {
   private static final String BPMS_API_USER = "reporting";
 
   private static final String BPMS_API_PASSWORD = "secret";
-
-  private static final String GUI_PASSWORD = "test";
 
   private static final MongoDBContainer MONGODB = new MongoDBContainer("mongo:7.0").withReplicaSet();
 
@@ -185,6 +184,17 @@ class ApplicationWithoutTheBaseClassTest {
    * cockpit. So each of them says on every start what it does, and what to write to decide it
    * differently. A developer who never reads the wiki has to meet them in the log.
    */
+  /**
+   * The application has both chains, so the startup check has nothing to say about them.
+   */
+  @Test
+  void noChainIsReportedMissing() {
+
+    assertThat(startupLog)
+        .doesNotContain("no security chain named");
+
+  }
+
   @Test
   void everySwitchAffectingTheWholeApplicationIsReportedOnStartup() {
 
@@ -200,8 +210,8 @@ class ApplicationWithoutTheBaseClassTest {
   }
 
   /**
-   * The BPMS API is protected by a chain of its own. If Spring Boot's default had replaced the
-   * cockpit's chains, the reports above could have gone through by accident.
+   * The BPMS API is protected by the application's own chain. If Spring Boot's default had
+   * replaced it, the reports above could have gone through by accident.
    */
   @Test
   void theBpmsApiRejectsAClientWithoutTheConfiguredCredentials() {
@@ -279,7 +289,7 @@ class ApplicationWithoutTheBaseClassTest {
 
     final var response = send(HttpRequest
         .newBuilder(URI.create(url("/gui/api/v1/app/current-user")))
-        .header("Authorization", basicAuth(userId, GUI_PASSWORD))
+        .header("Authorization", basicAuth(userId, DerivedCockpitApplication.PASSWORD))
         .GET()
         .build());
     return response
