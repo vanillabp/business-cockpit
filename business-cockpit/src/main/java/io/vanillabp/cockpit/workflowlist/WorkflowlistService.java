@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -37,6 +38,7 @@ import com.mongodb.client.model.changestream.ChangeStreamDocument;
 
 import io.vanillabp.cockpit.bpms.OrderOfReports;
 import io.vanillabp.cockpit.bpms.OutcomeOfStoring;
+import io.vanillabp.cockpit.bpms.SuspensionOfARecord;
 import io.vanillabp.cockpit.bpms.WhatAnEndReports;
 import io.vanillabp.cockpit.commons.mongo.changestreams.ChangeStreamUtils;
 import io.vanillabp.cockpit.config.startup.CockpitConfiguration;
@@ -100,7 +102,8 @@ public class WorkflowlistService {
   public static final Set<String> FIELDS_OF_THE_LIST = Set.of(
       PROPERTY_ID, "version", "initiator", PROPERTY_CREATEDAT, "updatedAt", "endedAt",
       "workflowModuleId", "comment", "bpmnProcessId", "bpmnProcessVersion", "businessId", "title",
-      "uiUriType", "accessibleToUsers", "accessibleToGroups", "detailsFulltextSearch", "endReason", "note");
+      "uiUriType", "accessibleToUsers", "accessibleToGroups", "detailsFulltextSearch", "endReason", "note",
+      "suspendedAt");
 
   @Autowired
   private Logger logger;
@@ -242,6 +245,8 @@ public class WorkflowlistService {
 
     // a change never reopens a case: an end is mapped onto 'endedAt' by neither mapper
     ontoStored.accept(stored);
+    // only a running process instance reports a change
+    SuspensionOfARecord.activatedByAYoungerChange(stored, eventTimestamp);
     stored.setLatestEventAt(eventTimestamp);
     return save(stored);
 
@@ -301,6 +306,80 @@ public class WorkflowlistService {
 
   }
 
+  /**
+   * Stores that the process instance which is a workflow was suspended. The case stays in every list
+   * and carries the moment of the suspension in {@code suspendedAt}, see
+   * {@link SuspensionOfARecord} for the rules.
+   * <p>
+   * A suspension of a case the cockpit does not hold is left out. The report says nothing but the
+   * moment, so it cannot create the case. The creation brings the case, and the next report about
+   * the suspension marks it.
+   *
+   * @param workflowId The case the report is about
+   * @param eventTimestamp When the process instance was suspended, by the workflow module's clock
+   * @return Whether the cockpit is up to date about the case, and if not, whether the same
+   *         report can go through when it comes again
+   */
+  public OutcomeOfStoring reportSuspendedWorkflow(
+      final String workflowId,
+      final OffsetDateTime eventTimestamp) {
+
+    return reportSuspension(workflowId, "suspension", eventTimestamp, SuspensionOfARecord::suspend);
+
+  }
+
+  /**
+   * Stores that the process instance which is a workflow was activated again after a suspension. It is
+   * the counterpart of {@link #reportSuspendedWorkflow(String, OffsetDateTime)}.
+   *
+   * @param workflowId The case the report is about
+   * @param eventTimestamp When the process instance was activated, by the workflow module's clock
+   * @return Whether the cockpit is up to date about the case, and if not, whether the same
+   *         report can go through when it comes again
+   */
+  public OutcomeOfStoring reportActivatedWorkflow(
+      final String workflowId,
+      final OffsetDateTime eventTimestamp) {
+
+    return reportSuspension(workflowId, "activation", eventTimestamp, SuspensionOfARecord::activate);
+
+  }
+
+  private OutcomeOfStoring reportSuspension(
+      final String workflowId,
+      final String kindOfReport,
+      final OffsetDateTime eventTimestamp,
+      final BiFunction<Workflow, OffsetDateTime, SuspensionOfARecord.Outcome> rule) {
+
+    final var stored = getWorkflow(workflowId);
+    if (stored == null) {
+      logger.info(
+          "Leaving out the reported {} of workflow '{}' at {}: the cockpit does not know the case. "
+              + "Its creation brings it, and the next report about its suspension marks it.",
+          kindOfReport,
+          workflowId,
+          eventTimestamp);
+      return OutcomeOfStoring.upToDate();
+    }
+
+    final var outcome = rule.apply(stored, eventTimestamp);
+    if (outcome == SuspensionOfARecord.Outcome.CHANGED) {
+      return save(stored);
+    }
+    if (outcome != SuspensionOfARecord.Outcome.REPEATED) {
+      logger.info(
+          "Keeping workflow '{}' as it is: the reported {} happened at {}, and what is stored is about {}",
+          workflowId,
+          kindOfReport,
+          eventTimestamp,
+          outcome == SuspensionOfARecord.Outcome.ENDED
+              ? "the end of the case"
+              : "a younger event");
+    }
+    return OutcomeOfStoring.upToDate();
+
+  }
+
   private static void endWorkflow(
       final Workflow workflow,
       final OffsetDateTime timestamp,
@@ -308,6 +387,7 @@ public class WorkflowlistService {
 
     workflow.setEndedAt(timestamp);
     workflow.setEndReason(endReason);
+    SuspensionOfARecord.endedRecordIsNotSuspended(workflow);
 
   }
 

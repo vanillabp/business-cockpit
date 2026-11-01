@@ -97,6 +97,50 @@ class BpmsApiWorkflowLifecycleTest extends ItestBase {
    * A case which is followed in another application is not served through the cockpit's proxy, so
    * the address the workflow module reported is what the user interface is told to open.
    */
+  /**
+   * A suspended case stays in the list of active cases and carries the moment of its suspension.
+   * An activation removes it again.
+   */
+  @Test
+  void aSuspendedWorkflowStaysInTheListAndCarriesTheMomentOfItsSuspension() {
+
+    final var workflowId = unique("workflow");
+    bpmsV1_1("/workflow/created", workflowPayload(workflowId, "2026-11-01T08:00:00Z", ""));
+    final var suspendedAt = OffsetDateTime.parse("2026-11-01T09:00:00Z");
+
+    final var suspended = bpmsV1_1("/workflow/"
+        + workflowId
+        + "/suspended", """
+            {
+              "id": "%s",
+              "workflowId": "%s",
+              "timestamp": "%s"
+            }
+            """.formatted(unique("event"), workflowId, suspendedAt));
+    assertThat(suspended.statusCode()).isEqualTo(200);
+
+    assertThat(workflowList(cookie, token, "Active").read("$.workflows[*].id", List.class))
+        .containsExactly(workflowId);
+    final var workflow = json(guiGet(cookie, "/workflow/"
+        + workflowId));
+    assertThat(OffsetDateTime.parse(workflow.read("$.suspendedAt", String.class)).toInstant())
+        .isEqualTo(suspendedAt.toInstant());
+
+    final var activated = bpmsV1_1("/workflow/"
+        + workflowId
+        + "/activated", """
+            {
+              "id": "%s",
+              "workflowId": "%s",
+              "timestamp": "2026-11-01T10:00:00Z"
+            }
+            """.formatted(unique("event"), workflowId));
+    assertThat(activated.statusCode()).isEqualTo(200);
+    assertThat(json(guiGet(cookie, "/workflow/"
+        + workflowId)).read("$.suspendedAt", String.class)).isNull();
+
+  }
+
   @Test
   void anExternalWorkflowKeepsTheAddressItWasReportedWith() {
 

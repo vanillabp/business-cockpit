@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.devshell.simulator.businesscockpit;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -279,6 +280,28 @@ public class WorkflowService {
     }
     found.setNote(StringUtils.hasText(text) ? text : null);
     return workflows.save(found);
+
+  }
+
+  /**
+   * Marks a workflow as suspended, or removes the mark. A workflow the simulator does not hold, and one
+   * which has ended, stay as they are, like in the cockpit.
+   *
+   * @param workflowId The id
+   * @param suspendedAt When the process instance was suspended, or {@code null} where it was
+   *        activated again
+   */
+  public void changeSuspension(
+      final String workflowId,
+      final OffsetDateTime suspendedAt) {
+
+    workflows
+        .findById(workflowId)
+        .filter(found -> found.getEndedAt() == null)
+        .ifPresent(found -> {
+          found.setSuspendedAt(suspendedAt);
+          workflows.save(found);
+        });
 
   }
 

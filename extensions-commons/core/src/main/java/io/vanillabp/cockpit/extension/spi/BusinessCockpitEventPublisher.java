@@ -18,11 +18,17 @@ import java.util.List;
  * {@link BusinessCockpitBpmsBridge#prefilledUserTaskDetails} and the application's details
  * provider, both asked here and not later. A failure of either travels back to the caller, so
  * the engine's own work fails with it.
+ * A suspension and an activation ({@link UserTaskEventKind#SUSPENDED},
+ * {@link UserTaskEventKind#ACTIVATED} and the same pair of {@link WorkflowEventKind}) are built
+ * from the identifiers alone. Neither the half nor the details provider is asked for them.
  * <p>
  * <b>Repetitions are free.</b> The entries carry an idempotency key, and a second report about
  * the same task and the same kind of event takes the place of the one which is still waiting.
  * Waiting updates of one task collapse into one entry on purpose, and the one which is left
- * carries the youngest report.
+ * carries the youngest report. Two suspensions with an activation between them collapse as
+ * well, while a suspension and an activation which wait together are two entries. The cockpit
+ * puts them in order by their timestamps, so pass the moment the BPMS says the instance was
+ * suspended or activated, the same on every node of the application.
  */
 public interface BusinessCockpitEventPublisher {
 

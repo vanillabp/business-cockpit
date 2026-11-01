@@ -9,13 +9,17 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi;
 import io.vanillabp.cockpit.bpms.api.v1_1.RegisterWorkflowModuleEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskActivatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCancelledEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCreatedEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskSuspendedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskUpdatedEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowActivatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCancelledEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCreatedEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowSuspendedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowUpdatedEvent;
 
 /**
@@ -247,6 +251,78 @@ public class BpmsApiV1_1Controller implements BpmsApi {
 
     workflowService.completeWorkflow(workflowId, workflow -> mapper.ontoModel(workflow, event));
 
+    return ResponseEntity.ok().build();
+
+  }
+
+  /**
+   * Marks the user task as suspended. The simulator keeps the latest report as it comes.
+   *
+   * @param userTaskId (required)
+   * @param event (required)
+   * @return Returns the fitting response code.
+   */
+  @Override
+  public ResponseEntity<Void> userTaskSuspendedEvent(
+      final String userTaskId,
+      final UserTaskSuspendedEvent event) {
+
+    log.info("Received UserTaskSuspendedEvent v1.1: {}", event);
+    taskService.changeSuspension(userTaskId, event.getTimestamp());
+    return ResponseEntity.ok().build();
+
+  }
+
+  /**
+   * Removes the mark of a suspension from the user task.
+   *
+   * @param userTaskId (required)
+   * @param event (required)
+   * @return Returns the fitting response code.
+   */
+  @Override
+  public ResponseEntity<Void> userTaskActivatedEvent(
+      final String userTaskId,
+      final UserTaskActivatedEvent event) {
+
+    log.info("Received UserTaskActivatedEvent v1.1: {}", event);
+    taskService.changeSuspension(userTaskId, null);
+    return ResponseEntity.ok().build();
+
+  }
+
+  /**
+   * Marks the workflow as suspended. The simulator keeps the latest report as it comes.
+   *
+   * @param workflowId (required)
+   * @param event (required)
+   * @return Returns the fitting response code.
+   */
+  @Override
+  public ResponseEntity<Void> workflowSuspendedEvent(
+      final String workflowId,
+      final WorkflowSuspendedEvent event) {
+
+    log.info("Received WorkflowSuspendedEvent v1.1: {}", event);
+    workflowService.changeSuspension(workflowId, event.getTimestamp());
+    return ResponseEntity.ok().build();
+
+  }
+
+  /**
+   * Removes the mark of a suspension from the workflow.
+   *
+   * @param workflowId (required)
+   * @param event (required)
+   * @return Returns the fitting response code.
+   */
+  @Override
+  public ResponseEntity<Void> workflowActivatedEvent(
+      final String workflowId,
+      final WorkflowActivatedEvent event) {
+
+    log.info("Received WorkflowActivatedEvent v1.1: {}", event);
+    workflowService.changeSuspension(workflowId, null);
     return ResponseEntity.ok().build();
 
   }

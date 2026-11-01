@@ -933,6 +933,20 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       final String eventId,
       final OffsetDateTime timestamp) {
 
+    if (changesTheSuspension(kind)) {
+      // a suspension carries no business data, so neither the BPMS half nor the details provider
+      // is asked
+      return PhaseTwoCall
+          .of(
+              BusinessCockpitOperations.publishUserTaskEvent(),
+              userTask.workflowModuleId(),
+              userTask.bpmnProcessId(),
+              userTask.workflowAggregateId(),
+              userTask.adapterId(),
+              args,
+              ReportPayload.of(buildUserTaskEvent(userTask, kind, eventId, timestamp)))
+          .replacingWhatIsStillWaiting();
+    }
     final var prefill = prefilledUserTaskDetails(userTask);
     if (prefill.isEmpty() && !ends(kind)) {
       reportDropped(described(userTask), kind.name(), userTask.adapterId());
@@ -997,6 +1011,19 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       final String eventId,
       final OffsetDateTime timestamp) {
 
+    if (changesTheSuspension(kind)) {
+      // see userTaskCall
+      return PhaseTwoCall
+          .of(
+              BusinessCockpitOperations.publishWorkflowEvent(),
+              workflow.workflowModuleId(),
+              workflow.bpmnProcessId(),
+              workflow.workflowAggregateId(),
+              workflow.adapterId(),
+              args,
+              ReportPayload.of(buildWorkflowEvent(workflow, kind, eventId, timestamp)))
+          .replacingWhatIsStillWaiting();
+    }
     final var prefill = prefilledWorkflowDetails(workflow);
     if (prefill.isEmpty() && !ends(kind)) {
       reportDropped(described(workflow), kind.name(), workflow.adapterId());
@@ -2128,6 +2155,34 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       final WorkflowEventKind kind) {
 
     return (kind == WorkflowEventKind.COMPLETED) || (kind == WorkflowEventKind.CANCELLED);
+
+  }
+
+  /**
+   * Whether the kind of a user-task event says that the process instance was suspended or
+   * activated again.
+   *
+   * @param kind What happened to the user task
+   * @return Whether the report is built from the identifiers alone
+   */
+  private static boolean changesTheSuspension(
+      final UserTaskEventKind kind) {
+
+    return (kind == UserTaskEventKind.SUSPENDED) || (kind == UserTaskEventKind.ACTIVATED);
+
+  }
+
+  /**
+   * Whether the kind of a workflow event says that the process instance was suspended or
+   * activated again.
+   *
+   * @param kind What happened to the workflow
+   * @return Whether the report is built from the identifiers alone
+   */
+  private static boolean changesTheSuspension(
+      final WorkflowEventKind kind) {
+
+    return (kind == WorkflowEventKind.SUSPENDED) || (kind == WorkflowEventKind.ACTIVATED);
 
   }
 

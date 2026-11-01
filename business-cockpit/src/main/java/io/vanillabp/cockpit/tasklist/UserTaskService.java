@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -42,6 +43,7 @@ import com.mongodb.client.model.changestream.ChangeStreamDocument;
 
 import io.vanillabp.cockpit.bpms.OrderOfReports;
 import io.vanillabp.cockpit.bpms.OutcomeOfStoring;
+import io.vanillabp.cockpit.bpms.SuspensionOfARecord;
 import io.vanillabp.cockpit.bpms.WhatAnEndReports;
 import io.vanillabp.cockpit.bpms.WhoSeesAUserTask;
 import io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException;
@@ -125,7 +127,7 @@ public class UserTaskService {
       "comment", "bpmnProcessId", "bpmnProcessVersion", "workflowTitle", "workflowId",
       "businessId", "title", "bpmnTaskId", "taskDefinition", "taskDefinitionTitle", "uiUriType",
       "assignee", "candidateUsers", "candidateGroups", PROPERTY_DUEDATE, "followUpDate",
-      "detailsFulltextSearch", "endReason", "note");
+      "detailsFulltextSearch", "endReason", "note", "suspendedAt");
 
   @Autowired
   private Logger logger;
@@ -1230,6 +1232,8 @@ public class UserTaskService {
     // a change never reopens a task: an end is mapped onto neither 'endedAt' nor 'endReason'.
     // And it never changes who sees the task
     WhoSeesAUserTask.keepWhoSeesTheStoredTask(stored, "change", ontoStored);
+    // only a running process instance reports a change
+    SuspensionOfARecord.activatedByAYoungerChange(stored, eventTimestamp);
     stored.setLatestEventAt(eventTimestamp);
     return save(stored);
 
@@ -1292,6 +1296,80 @@ public class UserTaskService {
 
   }
 
+  /**
+   * Stores that the process instance of a user task was suspended. The task stays in every list
+   * and carries the moment of the suspension in {@code suspendedAt}, see
+   * {@link SuspensionOfARecord} for the rules.
+   * <p>
+   * A suspension of a task the cockpit does not hold is left out. The report says nothing but the
+   * moment, so it cannot create the task. The creation brings the task, and the next report about
+   * the suspension marks it.
+   *
+   * @param userTaskId The task the report is about
+   * @param eventTimestamp When the process instance was suspended, by the workflow module's clock
+   * @return Whether the cockpit is up to date about the task, and if not, whether the same
+   *         report can go through when it comes again
+   */
+  public OutcomeOfStoring reportSuspendedUserTask(
+      final String userTaskId,
+      final OffsetDateTime eventTimestamp) {
+
+    return reportSuspension(userTaskId, "suspension", eventTimestamp, SuspensionOfARecord::suspend);
+
+  }
+
+  /**
+   * Stores that the process instance of a user task was activated again after a suspension. It is
+   * the counterpart of {@link #reportSuspendedUserTask(String, OffsetDateTime)}.
+   *
+   * @param userTaskId The task the report is about
+   * @param eventTimestamp When the process instance was activated, by the workflow module's clock
+   * @return Whether the cockpit is up to date about the task, and if not, whether the same
+   *         report can go through when it comes again
+   */
+  public OutcomeOfStoring reportActivatedUserTask(
+      final String userTaskId,
+      final OffsetDateTime eventTimestamp) {
+
+    return reportSuspension(userTaskId, "activation", eventTimestamp, SuspensionOfARecord::activate);
+
+  }
+
+  private OutcomeOfStoring reportSuspension(
+      final String userTaskId,
+      final String kindOfReport,
+      final OffsetDateTime eventTimestamp,
+      final BiFunction<UserTask, OffsetDateTime, SuspensionOfARecord.Outcome> rule) {
+
+    final var stored = getUserTask(userTaskId);
+    if (stored == null) {
+      logger.info(
+          "Leaving out the reported {} of user task '{}' at {}: the cockpit does not know the task. "
+              + "Its creation brings it, and the next report about its suspension marks it.",
+          kindOfReport,
+          userTaskId,
+          eventTimestamp);
+      return OutcomeOfStoring.upToDate();
+    }
+
+    final var outcome = rule.apply(stored, eventTimestamp);
+    if (outcome == SuspensionOfARecord.Outcome.CHANGED) {
+      return save(stored);
+    }
+    if (outcome != SuspensionOfARecord.Outcome.REPEATED) {
+      logger.info(
+          "Keeping user task '{}' as it is: the reported {} happened at {}, and what is stored is about {}",
+          userTaskId,
+          kindOfReport,
+          eventTimestamp,
+          outcome == SuspensionOfARecord.Outcome.ENDED
+              ? "the end of the task"
+              : "a younger event");
+    }
+    return OutcomeOfStoring.upToDate();
+
+  }
+
   private static void endUserTask(
       final UserTask userTask,
       final OffsetDateTime timestamp,
@@ -1299,6 +1377,7 @@ public class UserTaskService {
 
     userTask.setEndedAt(timestamp);
     userTask.setEndReason(endReason);
+    SuspensionOfARecord.endedRecordIsNotSuspended(userTask);
 
   }
 

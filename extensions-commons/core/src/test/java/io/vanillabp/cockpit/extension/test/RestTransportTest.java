@@ -193,6 +193,31 @@ public class RestTransportTest {
   }
 
   @Test
+  @DisplayName("A suspension and an activation go to their own endpoints and carry no business data")
+  public void aSuspensionAndAnActivationGoToTheirOwnEndpoints() {
+
+    transport.publishUserTaskEvent(EventFixture.userTask(UserTaskEventKind.SUSPENDED));
+    transport.publishUserTaskEvent(EventFixture.userTask(UserTaskEventKind.ACTIVATED));
+    transport.publishWorkflowEvent(EventFixture.workflow(WorkflowEventKind.SUSPENDED));
+    transport.publishWorkflowEvent(EventFixture.workflow(WorkflowEventKind.ACTIVATED));
+
+    assertEquals(
+        List
+            .of(
+                "/bpms/api/v1_1/usertask/task-1/suspended",
+                "/bpms/api/v1_1/usertask/task-1/activated",
+                "/bpms/api/v1_1/workflow/workflow-1/suspended",
+                "/bpms/api/v1_1/workflow/workflow-1/activated"),
+        received.stream().map(Request::path).toList());
+    final var suspension = received.getFirst().body();
+    assertTrue(suspension.contains("\"userTaskId\":\"task-1\""), suspension);
+    assertTrue(suspension.contains("\"timestamp\""), suspension);
+    assertFalse(suspension.contains("\"details\""), suspension);
+    assertFalse(suspension.contains("\"title\""), suspension);
+
+  }
+
+  @Test
   @DisplayName("Workflow events go to their four endpoints")
   public void workflowEventsGoToTheirEndpoints() {
 

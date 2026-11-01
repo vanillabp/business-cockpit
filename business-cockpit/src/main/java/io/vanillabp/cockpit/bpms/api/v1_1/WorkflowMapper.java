@@ -74,6 +74,8 @@ public abstract class WorkflowMapper {
   @Mapping(target = "reportedAt", ignore = true)
   // the event's timestamp, stamped where reports are weighed against each other:
   @Mapping(target = "latestEventAt", ignore = true)
+  @Mapping(target = "suspendedAt", ignore = true)
+  @Mapping(target = "suspensionChangedAt", ignore = true)
   @Mapping(target = "createdAt", source = "timestamp")
   @Mapping(target = "knownFromItsEndAlone", ignore = true)
   @Mapping(target = "updatedAt", source = "timestamp")
@@ -101,6 +103,8 @@ public abstract class WorkflowMapper {
   @Mapping(target = "reportedAt", ignore = true)
   // the event's timestamp, stamped where reports are weighed against each other:
   @Mapping(target = "latestEventAt", ignore = true)
+  @Mapping(target = "suspendedAt", ignore = true)
+  @Mapping(target = "suspensionChangedAt", ignore = true)
   @Mapping(target = "createdAt", source = "timestamp")
   @Mapping(target = "knownFromItsEndAlone", ignore = true)
   @Mapping(target = "updatedAt", source = "timestamp")
@@ -130,6 +134,8 @@ public abstract class WorkflowMapper {
   @Mapping(target = "reportedAt", ignore = true)
   // the event's timestamp, stamped where reports are weighed against each other:
   @Mapping(target = "latestEventAt", ignore = true)
+  @Mapping(target = "suspendedAt", ignore = true)
+  @Mapping(target = "suspensionChangedAt", ignore = true)
   @Mapping(target = "createdAt", ignore = true)
   @Mapping(target = "knownFromItsEndAlone", ignore = true)
   @Mapping(target = "updatedAt", source = "timestamp")
@@ -165,6 +171,8 @@ public abstract class WorkflowMapper {
   @Mapping(target = "reportedAt", ignore = true)
   // the event's timestamp, stamped where reports are weighed against each other:
   @Mapping(target = "latestEventAt", ignore = true)
+  @Mapping(target = "suspendedAt", ignore = true)
+  @Mapping(target = "suspensionChangedAt", ignore = true)
   // an end does not say when the case began. Guessing it would make the same case look
   // different, depending on which of the two reports arrived first:
   @Mapping(target = "createdAt", ignore = true)
@@ -205,6 +213,8 @@ public abstract class WorkflowMapper {
   @Mapping(target = "reportedAt", ignore = true)
   // the event's timestamp, stamped where reports are weighed against each other:
   @Mapping(target = "latestEventAt", ignore = true)
+  @Mapping(target = "suspendedAt", ignore = true)
+  @Mapping(target = "suspensionChangedAt", ignore = true)
   // an end does not say when the case began. Guessing it would make the same case look
   // different, depending on which of the two reports arrived first:
   @Mapping(target = "createdAt", ignore = true)

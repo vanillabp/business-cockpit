@@ -10,9 +10,11 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 import io.vanillabp.cockpit.bpms.BpmsApiProperties;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
+import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskActivatedEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCancelledEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCreatedOrUpdatedEvent;
+import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskSuspendedEvent;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.model.UserTaskEndReason;
 import io.vanillabp.cockpit.util.protobuf.ProtobufHelper;
@@ -100,6 +102,14 @@ public class KafkaUserTaskController {
       } else if (event.hasUserTaskCancelledV11()) {
 
         handleUserTaskCancelledEventV1_1(event.getUserTaskCancelledV11());
+
+      } else if (event.hasUserTaskSuspended()) {
+
+        handleUserTaskSuspendedEvent(event.getUserTaskSuspended());
+
+      } else if (event.hasUserTaskActivated()) {
+
+        handleUserTaskActivatedEvent(event.getUserTaskActivated());
 
       } else {
         throw new RuntimeException(
@@ -206,6 +216,31 @@ public class KafkaUserTaskController {
         UserTaskEndReason.CANCELLED,
         userTaskCancelled.hasCreatedAt() ? ProtobufHelper.map(userTaskCancelled.getCreatedAt()) : null,
         task -> protobufUserTaskMapper.toEndedTask(userTaskCancelled, task));
+    RepeatUntilStored.storedOrThrow(outcome);
+
+  }
+
+  /**
+   * The message is the same for both versions of the API, so one handler serves both. The report
+   * says nothing besides the moment, so a task the cockpit does not hold is not created by it.
+   */
+  private void handleUserTaskSuspendedEvent(
+      UserTaskSuspendedEvent userTaskSuspended) {
+
+    final var outcome = userTaskService.reportSuspendedUserTask(
+        userTaskSuspended.getUserTaskId(),
+        ProtobufHelper.map(userTaskSuspended.getTimestamp()));
+    RepeatUntilStored.storedOrThrow(outcome);
+
+  }
+
+  /** @see #handleUserTaskSuspendedEvent(UserTaskSuspendedEvent) */
+  private void handleUserTaskActivatedEvent(
+      UserTaskActivatedEvent userTaskActivated) {
+
+    final var outcome = userTaskService.reportActivatedUserTask(
+        userTaskActivated.getUserTaskId(),
+        ProtobufHelper.map(userTaskActivated.getTimestamp()));
     RepeatUntilStored.storedOrThrow(outcome);
 
   }

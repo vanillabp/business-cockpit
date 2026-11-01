@@ -234,6 +234,10 @@ public final class BusinessCockpitHandlers {
       case UPDATED -> DetailsEvent.Event.UPDATED;
       case COMPLETED -> DetailsEvent.Event.COMPLETED;
       case CANCELED -> DetailsEvent.Event.CANCELED;
+      // no details provider is asked about a suspension, so nothing should get here
+      case SUSPENDED, ACTIVATED -> throw new IllegalStateException(
+          "A details provider is never asked about a user task which was %s"
+              .formatted(event.getEventKind()));
     };
 
   }

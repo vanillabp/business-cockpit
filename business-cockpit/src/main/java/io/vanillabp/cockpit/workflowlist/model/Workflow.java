@@ -10,6 +10,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import io.vanillabp.cockpit.bpms.SuspendableRecord;
 import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
 import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
@@ -21,7 +22,7 @@ import io.vanillabp.cockpit.util.candidates.CandidatesAware;
  * reported about it.
  */
 @Document(collection = Workflow.COLLECTION_NAME)
-public class Workflow extends CandidatesAware implements UpdateInformationAware {
+public class Workflow extends CandidatesAware implements UpdateInformationAware, SuspendableRecord {
 
   /** The name of the MongoDB collection the workflows are stored in. */
   public static final String COLLECTION_NAME = "workflow";
@@ -83,6 +84,19 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
   private String updatedBy;
 
   private OffsetDateTime endedAt;
+
+  /**
+   * When the process instance of this workflow was suspended, or {@code null} while it is not.
+   * A missing field means "not suspended", so the records stored before the field existed need no
+   * changeset. See {@link io.vanillabp.cockpit.bpms.SuspensionOfARecord}.
+   */
+  private OffsetDateTime suspendedAt;
+
+  /**
+   * When the event happened which set or removed {@link #suspendedAt} the last time, by the clock
+   * of the reporting workflow system.
+   */
+  private OffsetDateTime suspensionChangedAt;
 
   /** Why the case ended, and {@code null} while it is running. */
   private WorkflowEndReason endReason;
@@ -402,6 +416,28 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
   public void setEndedAt(
       OffsetDateTime endedAt) {
     this.endedAt = endedAt;
+  }
+
+  @Override
+  public OffsetDateTime getSuspendedAt() {
+    return suspendedAt;
+  }
+
+  @Override
+  public void setSuspendedAt(
+      final OffsetDateTime suspendedAt) {
+    this.suspendedAt = suspendedAt;
+  }
+
+  @Override
+  public OffsetDateTime getSuspensionChangedAt() {
+    return suspensionChangedAt;
+  }
+
+  @Override
+  public void setSuspensionChangedAt(
+      final OffsetDateTime suspensionChangedAt) {
+    this.suspensionChangedAt = suspensionChangedAt;
   }
 
   /**

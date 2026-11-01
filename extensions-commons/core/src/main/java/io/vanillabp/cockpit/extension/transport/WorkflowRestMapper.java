@@ -2,9 +2,11 @@ package io.vanillabp.cockpit.extension.transport;
 
 import static io.vanillabp.cockpit.extension.transport.UserTaskRestMapper.copy;
 
+import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowActivatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCancelledEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCreatedEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowSuspendedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowUpdatedEvent;
 import io.vanillabp.cockpit.extension.event.WorkflowEvent;
 
@@ -147,5 +149,46 @@ public final class WorkflowRestMapper {
 
   }
 
+  /**
+   * Turns a workflow event into the body the cockpit server gets for a suspension. It carries the
+   * identifiers and the moment, and no business data.
+   *
+   * @param event The Suspended event
+   * @return What the cockpit's API is sent
+   */
+  public static WorkflowSuspendedEvent mapSuspended(
+      final WorkflowEvent event) {
+
+    final var dto = new WorkflowSuspendedEvent();
+    dto.setId(event.getEventId());
+    dto.setWorkflowId(event.getWorkflowId());
+    dto.setInitiator(event.getInitiator());
+    dto.setTimestamp(event.getTimestamp());
+    dto.setSource(event.getSource());
+    dto.setComment(event.getComment());
+    return dto;
+
+  }
+
+  /**
+   * Turns a workflow event into the body the cockpit server gets for an activation. It carries the
+   * identifiers and the moment, and no business data.
+   *
+   * @param event The Activated event
+   * @return What the cockpit's API is sent
+   */
+  public static WorkflowActivatedEvent mapActivated(
+      final WorkflowEvent event) {
+
+    final var dto = new WorkflowActivatedEvent();
+    dto.setId(event.getEventId());
+    dto.setWorkflowId(event.getWorkflowId());
+    dto.setInitiator(event.getInitiator());
+    dto.setTimestamp(event.getTimestamp());
+    dto.setSource(event.getSource());
+    dto.setComment(event.getComment());
+    return dto;
+
+  }
 
 }

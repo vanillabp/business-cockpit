@@ -202,6 +202,42 @@ public class BpmsApiController implements BpmsApi {
 
   }
 
+  /**
+   * The process instance of the task was suspended. The task stays in every list, marked with the
+   * moment of the suspension. The report says nothing besides that moment, so a task the cockpit
+   * does not hold is not created by it.
+   */
+  @Override
+  public ResponseEntity<Void> userTaskSuspendedEvent(
+      final String userTaskId,
+      final @Valid UserTaskSuspendedEvent userTaskSuspendedEvent) {
+
+    if (!PathAndBody.nameTheSameRecord("user task", userTaskId, userTaskSuspendedEvent.getUserTaskId())) {
+      return AnswerToAReport.refused();
+    }
+    return AnswerToAReport.afterStoring(
+        userTaskService.reportSuspendedUserTask(
+            userTaskId,
+            userTaskSuspendedEvent.getTimestamp()));
+
+  }
+
+  /** @see #userTaskSuspendedEvent(String, UserTaskSuspendedEvent) */
+  @Override
+  public ResponseEntity<Void> userTaskActivatedEvent(
+      final String userTaskId,
+      final @Valid UserTaskActivatedEvent userTaskActivatedEvent) {
+
+    if (!PathAndBody.nameTheSameRecord("user task", userTaskId, userTaskActivatedEvent.getUserTaskId())) {
+      return AnswerToAReport.refused();
+    }
+    return AnswerToAReport.afterStoring(
+        userTaskService.reportActivatedUserTask(
+            userTaskId,
+            userTaskActivatedEvent.getTimestamp()));
+
+  }
+
   @Override
   public ResponseEntity<Void> registerWorkflowModule(
       final String id,

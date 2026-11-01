@@ -266,6 +266,62 @@ public class BusinessCockpitExtensionTest {
   }
 
   @Test
+  @DisplayName("A suspension and an activation of a task are reported with their identifiers alone")
+  public void aSuspensionOfATaskCarriesNoBusinessData() throws Exception {
+
+    final var aggregate = aStartedWorkflow();
+    bridge.forgetLookups();
+    final var userTask = TestBpmsBridge
+        .userTask(
+            WORKFLOW_MODULE, BPMN_PROCESS, aggregate.getId().toString(),
+            TestBpmsBridge.USER_TASK_ID);
+
+    transaction.begin();
+    publisher
+        .publishUserTaskEvent(
+            userTask, UserTaskEventKind.SUSPENDED, "bpms-event-suspended", OffsetDateTime.now(),
+            EventTransaction.CURRENT);
+    transaction.commit();
+    transaction.begin();
+    publisher
+        .publishUserTaskEvent(
+            userTask, UserTaskEventKind.ACTIVATED, "bpms-event-activated", OffsetDateTime.now(),
+            EventTransaction.CURRENT);
+    transaction.commit();
+
+    final var suspended = CockpitServer
+        .awaitRequest("/usertask/task-1/suspended", "bpms-event-suspended");
+    assertFalse(suspended.body().contains("\"customer\":\"Anna\""), suspended.body());
+    CockpitServer.awaitRequest("/usertask/task-1/activated", "bpms-event-activated");
+    // neither the BPMS half nor the details provider was asked
+    assertEquals(0, bridge.taskReads());
+
+  }
+
+  @Test
+  @DisplayName("A suspension of a workflow reaches the cockpit")
+  public void aSuspensionOfAWorkflowReachesTheCockpit() throws Exception {
+
+    final var aggregate = aStartedWorkflow();
+
+    transaction.begin();
+    publisher
+        .publishWorkflowEvent(
+            new WorkflowReference(
+                TestBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, TestBpmsBridge.PROCESS_VERSION, aggregate
+                    .getId()
+                    .toString(), TestBpmsBridge.WORKFLOW_ID),
+            WorkflowEventKind.SUSPENDED, "bpms-event-workflow-suspended", OffsetDateTime.now(),
+            EventTransaction.CURRENT);
+    transaction.commit();
+
+    final var request = CockpitServer
+        .awaitRequest("/workflow/workflow-1/suspended", "bpms-event-workflow-suspended");
+    assertFalse(request.body().contains("workflow of Anna"), request.body());
+
+  }
+
+  @Test
   @DisplayName("A finished workflow is reported with the business data it ended with")
   public void aFinishedWorkflowCarriesItsBusinessData() throws Exception {
 

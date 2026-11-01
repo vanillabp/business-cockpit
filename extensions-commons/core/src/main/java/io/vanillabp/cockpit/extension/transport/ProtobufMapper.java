@@ -9,8 +9,12 @@ import com.google.protobuf.Timestamp;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.GroupHierarchy;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.NotificationDelivery;
+import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskActivatedEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCreatedOrUpdatedEvent;
+import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskSuspendedEvent;
+import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowActivatedEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCreatedOrUpdatedEvent;
+import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowSuspendedEvent;
 import io.vanillabp.cockpit.extension.event.RegisterWorkflowModuleEvent;
 import io.vanillabp.cockpit.extension.event.UserTaskEvent;
 import io.vanillabp.cockpit.extension.event.WorkflowEvent;
@@ -25,7 +29,8 @@ import io.vanillabp.cockpit.extension.spi.WorkflowEventKind;
  * ones this version of the API uses, and the older slots stay in the schema so that a cockpit
  * server still reading them keeps working. The message inside is the same for all four kinds of
  * user-task event, which is why one mapper serves them all. What differs is the slot and the
- * <code>updated</code> flag.
+ * <code>updated</code> flag. A suspension and an activation have messages of their own, which
+ * carry the identifiers and the moment and nothing else.
  * <p>
  * Every field is set through {@link Optional}, because a protobuf setter refuses
  * <code>null</code> while nearly everything a workflow module reports is optional.
@@ -61,13 +66,14 @@ public final class ProtobufMapper {
   public BcEvent map(
       final UserTaskEvent event) {
 
-    final var message = userTaskMessage(event);
     final var envelope = BcEvent.newBuilder();
     switch (event.getEventKind()) {
-      case CREATED -> envelope.setUserTaskCreatedV11(message);
-      case UPDATED -> envelope.setUserTaskUpdatedV11(message);
-      case COMPLETED -> envelope.setUserTaskCompletedV11(message);
-      case CANCELED -> envelope.setUserTaskCancelledV11(message);
+      case CREATED -> envelope.setUserTaskCreatedV11(userTaskMessage(event));
+      case UPDATED -> envelope.setUserTaskUpdatedV11(userTaskMessage(event));
+      case COMPLETED -> envelope.setUserTaskCompletedV11(userTaskMessage(event));
+      case CANCELED -> envelope.setUserTaskCancelledV11(userTaskMessage(event));
+      case SUSPENDED -> envelope.setUserTaskSuspended(userTaskSuspendedMessage(event));
+      case ACTIVATED -> envelope.setUserTaskActivated(userTaskActivatedMessage(event));
     }
     return envelope.build();
 
@@ -82,13 +88,14 @@ public final class ProtobufMapper {
   public BcEvent map(
       final WorkflowEvent event) {
 
-    final var message = workflowMessage(event);
     final var envelope = BcEvent.newBuilder();
     switch (event.getEventKind()) {
-      case CREATED -> envelope.setWorkflowCreatedV11(message);
-      case UPDATED -> envelope.setWorkflowUpdatedV11(message);
-      case COMPLETED -> envelope.setWorkflowCompletedV11(message);
-      case CANCELLED -> envelope.setWorkflowCancelledV11(message);
+      case CREATED -> envelope.setWorkflowCreatedV11(workflowMessage(event));
+      case UPDATED -> envelope.setWorkflowUpdatedV11(workflowMessage(event));
+      case COMPLETED -> envelope.setWorkflowCompletedV11(workflowMessage(event));
+      case CANCELLED -> envelope.setWorkflowCancelledV11(workflowMessage(event));
+      case SUSPENDED -> envelope.setWorkflowSuspended(workflowSuspendedMessage(event));
+      case ACTIVATED -> envelope.setWorkflowActivated(workflowActivatedMessage(event));
     }
     return envelope.build();
 
@@ -126,6 +133,68 @@ public final class ProtobufMapper {
                 .addGroupHierarchy(
                     GroupHierarchy.newBuilder().setGroup(group).addAllTarget(targets).build()));
     return BcEvent.newBuilder().setRegisterWorkflowModule(builder.build()).build();
+
+  }
+
+  // the two messages are alike field by field, but protobuf generated two classes with no common
+  // type, so each one is built on its own
+  private UserTaskSuspendedEvent userTaskSuspendedMessage(
+      final UserTaskEvent event) {
+
+    final var builder = UserTaskSuspendedEvent.newBuilder();
+    builder.setId(event.getEventId());
+    builder.setApiVersion(API_VERSION);
+    builder.setUserTaskId(event.getUserTaskId());
+    builder.setTimestamp(timestampOf(event.getTimestamp()));
+    Optional.ofNullable(event.getInitiator()).ifPresent(builder::setInitiator);
+    Optional.ofNullable(event.getSource()).ifPresent(builder::setSource);
+    Optional.ofNullable(event.getComment()).ifPresent(builder::setComment);
+    return builder.build();
+
+  }
+
+  private UserTaskActivatedEvent userTaskActivatedMessage(
+      final UserTaskEvent event) {
+
+    final var builder = UserTaskActivatedEvent.newBuilder();
+    builder.setId(event.getEventId());
+    builder.setApiVersion(API_VERSION);
+    builder.setUserTaskId(event.getUserTaskId());
+    builder.setTimestamp(timestampOf(event.getTimestamp()));
+    Optional.ofNullable(event.getInitiator()).ifPresent(builder::setInitiator);
+    Optional.ofNullable(event.getSource()).ifPresent(builder::setSource);
+    Optional.ofNullable(event.getComment()).ifPresent(builder::setComment);
+    return builder.build();
+
+  }
+
+  private WorkflowSuspendedEvent workflowSuspendedMessage(
+      final WorkflowEvent event) {
+
+    final var builder = WorkflowSuspendedEvent.newBuilder();
+    builder.setId(event.getEventId());
+    builder.setApiVersion(API_VERSION);
+    builder.setWorkflowId(event.getWorkflowId());
+    builder.setTimestamp(timestampOf(event.getTimestamp()));
+    Optional.ofNullable(event.getInitiator()).ifPresent(builder::setInitiator);
+    Optional.ofNullable(event.getSource()).ifPresent(builder::setSource);
+    Optional.ofNullable(event.getComment()).ifPresent(builder::setComment);
+    return builder.build();
+
+  }
+
+  private WorkflowActivatedEvent workflowActivatedMessage(
+      final WorkflowEvent event) {
+
+    final var builder = WorkflowActivatedEvent.newBuilder();
+    builder.setId(event.getEventId());
+    builder.setApiVersion(API_VERSION);
+    builder.setWorkflowId(event.getWorkflowId());
+    builder.setTimestamp(timestampOf(event.getTimestamp()));
+    Optional.ofNullable(event.getInitiator()).ifPresent(builder::setInitiator);
+    Optional.ofNullable(event.getSource()).ifPresent(builder::setSource);
+    Optional.ofNullable(event.getComment()).ifPresent(builder::setComment);
+    return builder.build();
 
   }
 

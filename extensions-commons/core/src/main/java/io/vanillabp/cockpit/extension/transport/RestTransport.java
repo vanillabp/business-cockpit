@@ -147,6 +147,12 @@ public class RestTransport implements BusinessCockpitTransport {
             case CANCELED -> api
                 .userTaskCancelledEvent(
                     event.getUserTaskId(), UserTaskRestMapper.mapCancelled(event));
+            case SUSPENDED -> api
+                .userTaskSuspendedEvent(
+                    event.getUserTaskId(), UserTaskRestMapper.mapSuspended(event));
+            case ACTIVATED -> api
+                .userTaskActivatedEvent(
+                    event.getUserTaskId(), UserTaskRestMapper.mapActivated(event));
           }
         });
 
@@ -169,6 +175,12 @@ public class RestTransport implements BusinessCockpitTransport {
             case CANCELLED -> api
                 .workflowCancelledEvent(
                     event.getWorkflowId(), WorkflowRestMapper.mapCancelled(event));
+            case SUSPENDED -> api
+                .workflowSuspendedEvent(
+                    event.getWorkflowId(), WorkflowRestMapper.mapSuspended(event));
+            case ACTIVATED -> api
+                .workflowActivatedEvent(
+                    event.getWorkflowId(), WorkflowRestMapper.mapActivated(event));
           }
         });
 

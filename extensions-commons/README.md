@@ -159,6 +159,17 @@ BPMS half calls it when its engine reported something, saying which transaction 
 - the current one for an embedded engine invoking its listeners inside the engine's transaction, a
 new one for a remote engine's worker thread.
 
+A half reports a suspension of a process instance with the kinds `SUSPENDED` and `ACTIVATED`, of
+`UserTaskEventKind` and of `WorkflowEventKind`. Such a report carries the identifiers and the moment,
+and nothing else. The publisher asks neither the half's `prefilled…` questions nor a details
+provider for it. A BPMS suspends a process instance and never a single task, so the half reports
+`SUSPENDED` for every open task of the instance it saw suspended, and `SUSPENDED` of the workflow
+where that instance is the case. A called process instance is not suspended with its caller, so its
+tasks are not reported. The timestamp is the moment the BPMS says the instance was suspended or
+activated, the same on every node of the application. The cockpit puts the reports in order by
+it, and a repeat from a second node changes nothing there. A suspension and an activation of one
+task have keys of their own in the outbox, so neither replaces the other while both wait.
+
 The publisher also says which process variables the application's user-task details providers read
 with `@TaskParam` (`variablesTheDetailsProvidersRead`). Some engines hand out only the variables a
 half asked for. A Camunda 8 worker is one of them. Such a half asks for these names and passes on

@@ -136,6 +136,35 @@ public class KafkaTransportTest {
   }
 
   @Test
+  @DisplayName("A suspension and an activation use slots of their own and carry the moment")
+  public void aSuspensionAndAnActivationHaveTheirSlots() throws Exception {
+
+    final var suspended = EventFixture.userTask(UserTaskEventKind.SUSPENDED);
+    transport.publishUserTaskEvent(suspended);
+    final var taskSuspended = BcEvent.parseFrom(producer.history().getFirst().value());
+    assertTrue(taskSuspended.hasUserTaskSuspended());
+    assertEquals("task-1", taskSuspended.getUserTaskSuspended().getUserTaskId());
+    assertEquals(
+        suspended.getTimestamp().toEpochSecond(),
+        taskSuspended.getUserTaskSuspended().getTimestamp().getSeconds());
+    producer.clear();
+
+    transport.publishUserTaskEvent(EventFixture.userTask(UserTaskEventKind.ACTIVATED));
+    assertTrue(BcEvent.parseFrom(producer.history().getFirst().value()).hasUserTaskActivated());
+    producer.clear();
+
+    transport.publishWorkflowEvent(EventFixture.workflow(WorkflowEventKind.SUSPENDED));
+    final var workflowSuspended = BcEvent.parseFrom(producer.history().getFirst().value());
+    assertTrue(workflowSuspended.hasWorkflowSuspended());
+    assertEquals("workflow-1", workflowSuspended.getWorkflowSuspended().getWorkflowId());
+    producer.clear();
+
+    transport.publishWorkflowEvent(EventFixture.workflow(WorkflowEventKind.ACTIVATED));
+    assertTrue(BcEvent.parseFrom(producer.history().getFirst().value()).hasWorkflowActivated());
+
+  }
+
+  @Test
   @DisplayName("A completed task carries the business data it was completed with")
   public void aCompletionCarriesItsBusinessData() throws Exception {
 

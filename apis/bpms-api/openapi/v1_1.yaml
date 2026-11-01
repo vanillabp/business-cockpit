@@ -105,9 +105,13 @@ paths:
         - bpms
       summary: processes a user task SUSPENDED event
       description: >-
-        Not implemented. The cockpit answers every such report with 501 and stores nothing of it.
-        No integration of the cockpit sends it. Do not send it again, because the answer stays the
-        same.
+        The process instance of the user task was suspended, so the task cannot be worked on until
+        it is activated again. The cockpit sets 'suspendedAt' of the task to the timestamp of this
+        report, and the task stays in every list. A task which is suspended already keeps the moment
+        it was suspended first. The report changes nothing where the cockpit holds a younger
+        suspension, activation or change of the task, where the task has ended, or where the cockpit
+        does not know the task. The answer is 200 in each of these cases, so do not send the report
+        again.
       operationId: userTaskSuspendedEvent
       parameters:
         - in: path
@@ -129,20 +133,25 @@ paths:
         401:
           description: You are not authorized to view the resource
         403:
-          description: Accessing the resource you were trying to reach is forbidden 
+          description: Accessing the resource you were trying to reach is forbidden
+        422:
+          $ref: "#/components/responses/NeverStorable"
         500:
           $ref: "#/components/responses/Unexpected"
-        501:
-          $ref: "#/components/responses/NotImplemented"
+        503:
+          $ref: "#/components/responses/NotNow"
   /usertask/{userTaskId}/activated:
     post:
       tags:
         - bpms
       summary: processes a user task ACTIVATED event
       description: >-
-        Not implemented. The cockpit answers every such report with 501 and stores nothing of it.
-        No integration of the cockpit sends it. Do not send it again, because the answer stays the
-        same.
+        The process instance of the user task was activated again after a suspension. The cockpit
+        removes 'suspendedAt' from the task. The report changes nothing where the cockpit holds a
+        younger suspension or activation of the task, where the task has ended, or where the cockpit
+        does not know the task. The answer is 200 in each of these cases, so do not send the report
+        again. Any change or end of the task which is younger than the suspension removes
+        'suspendedAt' as well.
       operationId: userTaskActivatedEvent
       parameters:
         - in: path
@@ -164,11 +173,13 @@ paths:
         401:
           description: You are not authorized to view the resource
         403:
-          description: Accessing the resource you were trying to reach is forbidden 
+          description: Accessing the resource you were trying to reach is forbidden
+        422:
+          $ref: "#/components/responses/NeverStorable"
         500:
           $ref: "#/components/responses/Unexpected"
-        501:
-          $ref: "#/components/responses/NotImplemented"
+        503:
+          $ref: "#/components/responses/NotNow"
   /usertask/{userTaskId}/completed:
     post:
       tags:
@@ -364,6 +375,88 @@ paths:
           $ref: "#/components/responses/Unexpected"
         503:
           $ref: "#/components/responses/NotNow"
+  /workflow/{workflowId}/suspended:
+    post:
+      tags:
+        - bpms
+      summary: processes a workflow SUSPENDED event
+      description: >-
+        The process instance which is the workflow was suspended. The cockpit sets 'suspendedAt' of
+        the workflow to the timestamp of this report, and the workflow stays in every list. A
+        workflow which is suspended already keeps the moment it was suspended first. A called
+        process which is suspended does not make its workflow suspended, so report it only for the
+        workflow's own process instance. The report changes nothing where the cockpit holds a
+        younger suspension, activation or change of the workflow, where the workflow has ended, or
+        where the cockpit does not know the workflow. The answer is 200 in each of these cases, so
+        do not send the report again.
+      operationId: workflowSuspendedEvent
+      parameters:
+        - in: path
+          name: workflowId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowSuspendedEvent"
+      responses:
+        200:
+          description: successful operation
+        400:
+          $ref: "#/components/responses/Refused"
+        401:
+          description: You are not authorized to view the resource
+        403:
+          description: Accessing the resource you were trying to reach is forbidden
+        422:
+          $ref: "#/components/responses/NeverStorable"
+        500:
+          $ref: "#/components/responses/Unexpected"
+        503:
+          $ref: "#/components/responses/NotNow"
+  /workflow/{workflowId}/activated:
+    post:
+      tags:
+        - bpms
+      summary: processes a workflow ACTIVATED event
+      description: >-
+        The process instance which is the workflow was activated again after a suspension. The
+        cockpit removes 'suspendedAt' from the workflow. The report changes nothing where the
+        cockpit holds a younger suspension or activation of the workflow, where the workflow has
+        ended, or where the cockpit does not know the workflow. The answer is 200 in each of these
+        cases, so do not send the report again. Any change or end of the workflow which is younger
+        than the suspension removes 'suspendedAt' as well.
+      operationId: workflowActivatedEvent
+      parameters:
+        - in: path
+          name: workflowId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowActivatedEvent"
+      responses:
+        200:
+          description: successful operation
+        400:
+          $ref: "#/components/responses/Refused"
+        401:
+          description: You are not authorized to view the resource
+        403:
+          description: Accessing the resource you were trying to reach is forbidden
+        422:
+          $ref: "#/components/responses/NeverStorable"
+        500:
+          $ref: "#/components/responses/Unexpected"
+        503:
+          $ref: "#/components/responses/NotNow"
 
 components:
   # What the cockpit answers where a report does not go through, and what the sender does about
@@ -396,11 +489,6 @@ components:
         Something went wrong which the cockpit did not expect, for example a read from MongoDB
         which failed before anything was stored. Send the same request again later. If it keeps
         failing, the body holds the message of the error, and the log of the cockpit has the rest.
-    NotImplemented:
-      description: >-
-        The cockpit knows the path of this report but does nothing with it. Nothing of the report
-        was stored. Do not send it again, because the cockpit answers the same report the same way
-        every time.
   schemas:
     UiUriType:
       type: string
@@ -805,6 +893,42 @@ components:
           type: array
           items:
             type: string
+    WorkflowLifecycleEvent:
+      type: object
+      required:
+        - id
+        - workflowId
+        - timestamp
+      properties:
+        id:
+          type: string
+          description: event id within the source system
+        workflowId:
+          type: string
+          description: The unique key of the workflow
+          example: c26f4d10-a7a7-44e5-97ed-cbfd06e760e1
+        initiator:
+          type: string
+          description: The user who triggered the event. Null if the system did it.
+        timestamp:
+          type: string
+          format: date-time
+          description: >-
+            When the process instance was suspended or activated, by the clock of the reporting
+            system. The cockpit orders the reports about one workflow by this timestamp.
+          example: 2019-05-21T13:30:26.202Z
+        source:
+          type: string
+          description: name of the source system sending this event
+        comment:
+          type: string
+          example: The reason why the workflow was suspended
+    WorkflowSuspendedEvent:
+      allOf:
+        - $ref: "#/components/schemas/WorkflowLifecycleEvent"
+    WorkflowActivatedEvent:
+      allOf:
+        - $ref: "#/components/schemas/WorkflowLifecycleEvent"
     RegisterWorkflowModuleEvent:
       type: object
       required:
