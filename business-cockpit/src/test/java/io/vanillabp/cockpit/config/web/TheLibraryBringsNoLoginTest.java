@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.type.classreading.CachingMetadataReaderFactory;
@@ -15,6 +16,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.SecurityFilterChain;
 
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetailsProvider;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * The library brings no security chain, no users and no user details provider. Those are the
@@ -22,6 +24,7 @@ import io.vanillabp.cockpit.commons.security.usercontext.UserDetailsProvider;
  * would be active in every application built on it, and nothing would say so. So this test reads
  * every class of the library and fails on a bean method which produces one of them.
  */
+@ExtendWith(SuppressOutputExtension.class)
 class TheLibraryBringsNoLoginTest {
 
   private static final String CLASSES_OF_THE_LIBRARY = "classpath*:io/vanillabp/cockpit/**/*.class";
