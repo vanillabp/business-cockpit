@@ -45,6 +45,7 @@ import io.vanillabp.cockpit.bpms.OutcomeOfStoring;
 import io.vanillabp.cockpit.bpms.WhatAnEndReports;
 import io.vanillabp.cockpit.bpms.WhoSeesAUserTask;
 import io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException;
+import io.vanillabp.cockpit.commons.mongo.OptimisticLockingUtils;
 import io.vanillabp.cockpit.commons.mongo.changestreams.ChangeStreamUtils;
 import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
 import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
@@ -186,6 +187,19 @@ public class UserTaskService {
     return userLoggedIn == null
         ? UpdateInformationAware.COCKPIT_USER
         : userLoggedIn;
+
+  }
+
+  /**
+   * Runs a change of the GUI API which reads tasks, changes them and saves them whole. A report
+   * of a workflow module can be stored between the read and the save. Then the save fails the
+   * version check, and the change is run again on what is stored now. Without that, the user
+   * would get an error, although nothing is wrong with the change.
+   */
+  private static <R> R againIfAReportCameInBetween(
+      final Supplier<R> readChangeAndSave) {
+
+    return OptimisticLockingUtils.doWithRetries(readChangeAndSave);
 
   }
 
@@ -342,12 +356,14 @@ public class UserTaskService {
       final String userTaskId,
       final String userId) {
 
-    final var userTask = getUserTask(visibility, userTaskId);
-    if (userTask == null) {
-      return null;
-    }
-    userTask.setReadAt(userId);
-    return saveInitiatedByCockpit(userTask);
+    return againIfAReportCameInBetween(() -> {
+      final var userTask = getUserTask(visibility, userTaskId);
+      if (userTask == null) {
+        return null;
+      }
+      userTask.setReadAt(userId);
+      return saveInitiatedByCockpit(userTask);
+    });
 
   }
 
@@ -364,9 +380,11 @@ public class UserTaskService {
       final Collection<String> userTaskIds,
       final String userId) {
 
-    final var found = getUserTasks(visibility, userTaskIds);
-    found.forEach(userTask -> userTask.setReadAt(userId));
-    return saveAllInitiatedByCockpit(found);
+    return againIfAReportCameInBetween(() -> {
+      final var found = getUserTasks(visibility, userTaskIds);
+      found.forEach(userTask -> userTask.setReadAt(userId));
+      return saveAllInitiatedByCockpit(found);
+    });
 
   }
 
@@ -383,12 +401,14 @@ public class UserTaskService {
       final String userTaskId,
       final String userId) {
 
-    final var userTask = getUserTask(visibility, userTaskId);
-    if (userTask == null) {
-      return null;
-    }
-    userTask.clearReadAt(userId);
-    return saveInitiatedByCockpit(userTask);
+    return againIfAReportCameInBetween(() -> {
+      final var userTask = getUserTask(visibility, userTaskId);
+      if (userTask == null) {
+        return null;
+      }
+      userTask.clearReadAt(userId);
+      return saveInitiatedByCockpit(userTask);
+    });
 
   }
 
@@ -405,9 +425,11 @@ public class UserTaskService {
       final Collection<String> userTaskIds,
       final String userId) {
 
-    final var found = getUserTasks(visibility, userTaskIds);
-    found.forEach(userTask -> userTask.clearReadAt(userId));
-    return saveAllInitiatedByCockpit(found);
+    return againIfAReportCameInBetween(() -> {
+      final var found = getUserTasks(visibility, userTaskIds);
+      found.forEach(userTask -> userTask.clearReadAt(userId));
+      return saveAllInitiatedByCockpit(found);
+    });
 
   }
 
@@ -426,13 +448,15 @@ public class UserTaskService {
       final String userTaskId,
       final Person person) {
 
-    final var userTask = getUserTask(visibility, userTaskId);
-    if (userTask == null) {
-      return null;
-    }
-    refuseIfEnded(userTask);
-    userTask.addCandidatePerson(person);
-    return saveInitiatedByCockpit(userTask);
+    return againIfAReportCameInBetween(() -> {
+      final var userTask = getUserTask(visibility, userTaskId);
+      if (userTask == null) {
+        return null;
+      }
+      refuseIfEnded(userTask);
+      userTask.addCandidatePerson(person);
+      return saveInitiatedByCockpit(userTask);
+    });
 
   }
 
@@ -452,10 +476,12 @@ public class UserTaskService {
       final Collection<String> userTaskIds,
       final Person person) {
 
-    final var found = getUserTasks(visibility, userTaskIds);
-    found.forEach(this::refuseIfEnded);
-    found.forEach(userTask -> userTask.addCandidatePerson(person));
-    return saveAllInitiatedByCockpit(found);
+    return againIfAReportCameInBetween(() -> {
+      final var found = getUserTasks(visibility, userTaskIds);
+      found.forEach(this::refuseIfEnded);
+      found.forEach(userTask -> userTask.addCandidatePerson(person));
+      return saveAllInitiatedByCockpit(found);
+    });
 
   }
 
@@ -473,13 +499,15 @@ public class UserTaskService {
       final String userTaskId,
       final String personId) {
 
-    final var userTask = getUserTask(visibility, userTaskId);
-    if (userTask == null) {
-      return null;
-    }
-    refuseIfEnded(userTask);
-    userTask.removeCandidatePerson(personId);
-    return saveInitiatedByCockpit(userTask);
+    return againIfAReportCameInBetween(() -> {
+      final var userTask = getUserTask(visibility, userTaskId);
+      if (userTask == null) {
+        return null;
+      }
+      refuseIfEnded(userTask);
+      userTask.removeCandidatePerson(personId);
+      return saveInitiatedByCockpit(userTask);
+    });
 
   }
 
@@ -499,10 +527,12 @@ public class UserTaskService {
       final Collection<String> userTaskIds,
       final String personId) {
 
-    final var found = getUserTasks(visibility, userTaskIds);
-    found.forEach(this::refuseIfEnded);
-    found.forEach(userTask -> userTask.removeCandidatePerson(personId));
-    return saveAllInitiatedByCockpit(found);
+    return againIfAReportCameInBetween(() -> {
+      final var found = getUserTasks(visibility, userTaskIds);
+      found.forEach(this::refuseIfEnded);
+      found.forEach(userTask -> userTask.removeCandidatePerson(personId));
+      return saveAllInitiatedByCockpit(found);
+    });
 
   }
 
@@ -525,13 +555,15 @@ public class UserTaskService {
         ? null
         : followUpDate.withSecond(0).withNano(0);
 
-    final var userTask = getUserTask(visibility, userTaskId);
-    if (userTask == null) {
-      return null;
-    }
-    refuseIfEnded(userTask);
-    userTask.setFollowUpDate(normalizedFollowUpDate);
-    return saveInitiatedByCockpit(userTask);
+    return againIfAReportCameInBetween(() -> {
+      final var userTask = getUserTask(visibility, userTaskId);
+      if (userTask == null) {
+        return null;
+      }
+      refuseIfEnded(userTask);
+      userTask.setFollowUpDate(normalizedFollowUpDate);
+      return saveInitiatedByCockpit(userTask);
+    });
 
   }
 
@@ -549,16 +581,18 @@ public class UserTaskService {
       final String userTaskId,
       final Person person) {
 
-    final var userTask = getUserTask(visibility, userTaskId);
-    if (userTask == null) {
-      return null;
-    }
-    refuseIfEnded(userTask);
-    if ((userTask.getAssignee() == null) || !userTask.getAssignee().getId().equals(person.getId())) {
-      userTask.setAssignee(person);
-      return saveInitiatedByCockpit(userTask);
-    }
-    return userTask;
+    return againIfAReportCameInBetween(() -> {
+      final var userTask = getUserTask(visibility, userTaskId);
+      if (userTask == null) {
+        return null;
+      }
+      refuseIfEnded(userTask);
+      if ((userTask.getAssignee() == null) || !userTask.getAssignee().getId().equals(person.getId())) {
+        userTask.setAssignee(person);
+        return saveInitiatedByCockpit(userTask);
+      }
+      return userTask;
+    });
 
   }
 
@@ -577,10 +611,12 @@ public class UserTaskService {
       final Collection<String> userTaskIds,
       final Person person) {
 
-    final var found = getUserTasks(visibility, userTaskIds);
-    found.forEach(this::refuseIfEnded);
-    found.forEach(userTask -> userTask.setAssignee(person));
-    return saveAllInitiatedByCockpit(found);
+    return againIfAReportCameInBetween(() -> {
+      final var found = getUserTasks(visibility, userTaskIds);
+      found.forEach(this::refuseIfEnded);
+      found.forEach(userTask -> userTask.setAssignee(person));
+      return saveAllInitiatedByCockpit(found);
+    });
 
   }
 
@@ -755,6 +791,11 @@ public class UserTaskService {
 
     final var update = new Update();
     update.unset("assignee");
+    // a report which read the task before this update has to fail the version check, or its
+    // save brings the assignee back. MongoTemplate raises the version of an update it is given
+    // with the entity class as well, but only then. Saying it here keeps it raised however the
+    // update is sent, the same way NotesOfTheCockpit does it for the note
+    update.inc("version", 1);
     update.set("updatedAt", OffsetDateTime.now());
     update.set("updatedBy", currentUser == null ? UpdateInformationAware.SYSTEM_USER : currentUser);
     update.set("initiator", currentUser == null ? UpdateInformationAware.COCKPIT_USER : currentUser);

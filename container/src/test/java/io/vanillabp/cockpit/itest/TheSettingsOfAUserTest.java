@@ -195,11 +195,51 @@ class TheSettingsOfAUserTest extends ItestBase {
         .as("the setting leaves the notification configuration as it was")
         .isTrue();
 
-    // the notification configuration is saved as a whole document, which has to carry the
-    // settings along
     assertThat(guiPut(petra, "/notifications/config", """
         { "globalAllViaMedium": { "email": false } }""").statusCode()).isEqualTo(200);
-    assertThat(guiGet(petra, SETTINGS + key).body()).isEqualTo("\"de\"");
+    assertThat(guiGet(petra, SETTINGS + key).body())
+        .as("the notification configuration leaves the setting as it was")
+        .isEqualTo("\"de\"");
+
+  }
+
+  /**
+   * The settings and the notification configuration of a user share one document. A write of one
+   * of them must not fail because the other one was written at the same time, and none of them may
+   * get lost.
+   */
+  @Test
+  void settingsAndTheNotificationConfigurationWrittenAtTheSameTimeAllSucceed() throws Exception {
+
+    final var prefix = unique("tab");
+    final var writes = 12;
+    try (var pool = Executors.newFixedThreadPool(8)) {
+      final var futures = new ArrayList<CompletableFuture<String>>();
+      for (var number = 0; number < writes; ++number) {
+        final var setting = prefix
+            + "-"
+            + number;
+        final var value = Integer.toString(number);
+        final var email = number % 2 == 0;
+        futures.add(CompletableFuture.supplyAsync(() -> "setting "
+            + guiPut(martin, SETTINGS + setting, value).statusCode(), pool));
+        futures.add(CompletableFuture.supplyAsync(() -> "notification configuration "
+            + guiPut(martin, "/notifications/config", """
+                { "globalAllViaMedium": { "email": %s } }""".formatted(email)).statusCode(), pool));
+      }
+      for (final var future : futures) {
+        assertThat(future.get()).matches(".* (200|204)");
+      }
+    }
+
+    for (var number = 0; number < writes; ++number) {
+      assertThat(guiGet(martin, SETTINGS
+          + prefix
+          + "-"
+          + number).body()).isEqualTo(Integer.toString(number));
+    }
+    assertThat(json(guiGet(martin, "/notifications/config")).read("$.globalAllViaMedium.email", Boolean.class))
+        .isNotNull();
 
   }
 
@@ -219,9 +259,9 @@ class TheSettingsOfAUserTest extends ItestBase {
   }
 
   /**
-   * The notification configuration is saved as a whole document, through the mapping of Spring
-   * Data. That mapping refuses a key with a dot in a map. Such a key inside a setting would break
-   * every later save of the notification configuration, so the setting is refused.
+   * The mapping of Spring Data refuses a key with a dot in a map when it saves a whole document.
+   * Such a key inside a setting would break every later save of the user's whole document, so the
+   * setting is refused.
    */
   @Test
   void aKeyInsideTheValueWhichMongoDbCannotTakeIsRefused() {

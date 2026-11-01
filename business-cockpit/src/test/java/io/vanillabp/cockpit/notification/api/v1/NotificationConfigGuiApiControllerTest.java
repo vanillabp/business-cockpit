@@ -2,7 +2,9 @@ package io.vanillabp.cockpit.notification.api.v1;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -150,20 +152,16 @@ class NotificationConfigGuiApiControllerTest {
 
   @Test
   void config_put_persistsDomainConfiguration() throws Exception {
-    final var user = new User();
-    user.setId("u1");
-    when(userRepository.findById("u1")).thenReturn(Optional.of(user));
-    when(userRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-
     clientWith(List.of(emailMedium())).perform(put("/gui/api/v1/notifications/config")
         .contentType(MediaType.APPLICATION_JSON)
         .content("{ \"globalAllViaMedium\": { \"email\": true } }"))
         .andExpect(status().isOk());
 
-    final ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
-    verify(userRepository).save(saved.capture());
-    final var config = saved.getValue().getNotificationConfiguration();
-    assertTrue(config.globalAllViaMedium().get("email"));
+    // the field alone, so that a setting written at the same time is no conflict
+    final ArgumentCaptor<NotificationConfiguration> written = ArgumentCaptor.forClass(NotificationConfiguration.class);
+    verify(userRepository).writeNotificationConfiguration(eq("u1"), written.capture());
+    verify(userRepository, never()).save(any());
+    assertTrue(written.getValue().globalAllViaMedium().get("email"));
   }
 
   @Test

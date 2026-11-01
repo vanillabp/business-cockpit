@@ -19,7 +19,6 @@ import io.vanillabp.cockpit.notification.NotificationService;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.UserTaskVisibility;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
-import io.vanillabp.cockpit.users.model.User;
 import io.vanillabp.cockpit.users.model.UserRepository;
 
 /**
@@ -88,17 +87,8 @@ public class NotificationConfigGuiApiController implements OfficialNotificationC
       final NotificationConfiguration notificationConfiguration) {
 
     final var userId = userContext.getUserLoggedInDetails().getId();
-    final var config = toDomainConfig(notificationConfiguration);
-
-    final var user = userRepository
-        .findById(userId)
-        .orElseGet(() -> {
-          final var created = new User();
-          created.setId(userId);
-          return created;
-        });
-    user.setNotificationConfiguration(config);
-    userRepository.save(user);
+    // one atomic update of the field, so a setting written at the same time is no conflict
+    userRepository.writeNotificationConfiguration(userId, toDomainConfig(notificationConfiguration));
 
     return ResponseEntity.ok().build();
 
