@@ -200,6 +200,58 @@ paths:
           description: User task is unknown
         409:
           description: User task already completed
+  /usertask/note:
+    patch:
+      tags:
+        - officialTasklist
+      summary: set or clear the note of several user tasks
+      operationId: setUserTasksNote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserTasksNoteRequest"
+      responses:
+        200:
+          description: >-
+            The note of each user task is set. Ids of user tasks the user may not see are left out
+            without a word, because an answer about them would tell that they exist.
+        409:
+          description: >-
+            One of the user tasks the user may see has ended. None of them is changed. The note of
+            an ended user task can still be read.
+  /usertask/{userTaskId}/note:
+    patch:
+      tags:
+        - officialTasklist
+      summary: set, change or clear the note of a user task
+      operationId: setUserTaskNote
+      parameters:
+        - in: path
+          name: userTaskId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NoteRequest"
+      responses:
+        200:
+          description: The note is set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserTask'
+        404:
+          description: The user task is unknown, or the user may not see it
+        409:
+          description: >-
+            The user task has ended and its note is not changed. The note of an ended user task can
+            still be read.
   /usertask/count:
     post:
       tags:
@@ -492,6 +544,58 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Workflows'
+  /workflow/note:
+    patch:
+      tags:
+        - officialWorkflowlist
+      summary: set or clear the note of several cases
+      operationId: setWorkflowsNote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowsNoteRequest"
+      responses:
+        200:
+          description: >-
+            The note of each case is set. Ids of cases the user may not see are left out
+            without a word, because an answer about them would tell that they exist.
+        409:
+          description: >-
+            One of the cases the user may see has ended. None of them is changed. The note of
+            an ended case can still be read.
+  /workflow/{workflowId}/note:
+    patch:
+      tags:
+        - officialWorkflowlist
+      summary: set, change or clear the note of a case
+      operationId: setWorkflowNote
+      parameters:
+        - in: path
+          name: workflowId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NoteRequest"
+      responses:
+        200:
+          description: The note is set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+        404:
+          description: The case is unknown, or the user may not see it
+        409:
+          description: >-
+            The case has ended and its note is not changed. The note of an ended case can
+            still be read.
   /workflow/count:
     post:
       tags:
@@ -852,6 +956,42 @@ components:
           type: string
           format: date-time
           example: 2026-05-08T14:00:00+02:00
+    NoteRequest:
+      type: object
+      description: >-
+        Body for setting a note. A missing, null or empty text clears the note.
+      properties:
+        text:
+          type: string
+          example: Customer calls back on Monday
+    UserTasksNoteRequest:
+      type: object
+      description: >-
+        Body for setting the same note on several user tasks. A missing, null or empty text
+        clears the note of each of them.
+      required:
+        - userTaskIds
+      properties:
+        userTaskIds:
+          type: array
+          items:
+            type: string
+        text:
+          type: string
+    WorkflowsNoteRequest:
+      type: object
+      description: >-
+        Body for setting the same note on several cases. A missing, null or empty text clears the
+        note of each of them.
+      required:
+        - workflowIds
+      properties:
+        workflowIds:
+          type: array
+          items:
+            type: string
+        text:
+          type: string
     UserTask:
       type: object
       required:
@@ -894,6 +1034,13 @@ components:
           example: 2019-05-21T13:30:26.202Z
         endReason:
           $ref: '#/components/schemas/EndReason'
+        note:
+          type: string
+          description: >-
+            A note the users keep about this entry, for what is not in the business data. There
+            is one note, and everybody who sees the entry may change it. The workflow module
+            never sees or changes it. The full-text search of the list searches it too. Missing
+            if there is none.
         workflowModuleId:
           type: string
           description: The workflow module of this usertask
@@ -1034,6 +1181,13 @@ components:
           example: 2019-05-21T13:30:26.202Z
         endReason:
           $ref: '#/components/schemas/EndReason'
+        note:
+          type: string
+          description: >-
+            A note the users keep about this entry, for what is not in the business data. There
+            is one note, and everybody who sees the entry may change it. The workflow module
+            never sees or changes it. The full-text search of the list searches it too. Missing
+            if there is none.
         workflowModuleId:
           type: string
           description: The workflow module of this usertask

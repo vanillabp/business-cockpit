@@ -19,6 +19,7 @@ import io.vanillabp.cockpit.gui.api.v1.Counts;
 import io.vanillabp.cockpit.gui.api.v1.FollowUpDateRequest;
 import io.vanillabp.cockpit.gui.api.v1.KwicRequest;
 import io.vanillabp.cockpit.gui.api.v1.KwicResults;
+import io.vanillabp.cockpit.gui.api.v1.NoteRequest;
 import io.vanillabp.cockpit.gui.api.v1.OfficialTasklistApi;
 import io.vanillabp.cockpit.gui.api.v1.UpdateStreams;
 import io.vanillabp.cockpit.gui.api.v1.UserSearchResult;
@@ -27,6 +28,7 @@ import io.vanillabp.cockpit.gui.api.v1.UserTaskCountFilter;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskCountsRequest;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskIds;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
+import io.vanillabp.cockpit.gui.api.v1.UserTasksNoteRequest;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksUpdateRequest;
 import io.vanillabp.cockpit.tasklist.UserTaskAlreadyCompletedException;
@@ -560,6 +562,49 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
     }
 
     return ResponseEntity.ok(mapper.toApi(userTask, currentUser.getId()));
+
+  }
+
+  @Override
+  public ResponseEntity<UserTask> setUserTaskNote(
+      final String userTaskId,
+      final NoteRequest noteRequest) {
+
+    final var currentUser = userContext.getUserLoggedInDetails();
+    final var text = noteRequest == null ? null : noteRequest.getText();
+
+    final io.vanillabp.cockpit.tasklist.model.UserTask userTask;
+    try {
+      userTask = userTaskService.setNote(
+          userTasksVisibleTo(currentUser), currentUser.getId(), userTaskId, text);
+    } catch (UserTaskAlreadyCompletedException e) {
+      return ResponseEntity.status(HttpStatus.CONFLICT).build();
+    }
+    if (userTask == null) {
+      return ResponseEntity.notFound().build();
+    }
+
+    return ResponseEntity.ok(mapper.toApi(userTask, currentUser.getId()));
+
+  }
+
+  @Override
+  public ResponseEntity<Void> setUserTasksNote(
+      final UserTasksNoteRequest userTasksNoteRequest) {
+
+    final var currentUser = userContext.getUserLoggedInDetails();
+
+    try {
+      userTaskService.setNote(
+          userTasksVisibleTo(currentUser),
+          currentUser.getId(),
+          userTasksNoteRequest.getUserTaskIds(),
+          userTasksNoteRequest.getText());
+    } catch (UserTaskAlreadyCompletedException e) {
+      return ResponseEntity.status(HttpStatus.CONFLICT).build();
+    }
+
+    return ResponseEntity.ok().build();
 
   }
 

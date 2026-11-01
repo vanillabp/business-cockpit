@@ -95,6 +95,7 @@ public abstract class ProtobufUserTaskMapper {
   @Mapping(target = "updatedAt", source = "timestamp")
   @Mapping(target = "updatedBy", source = "initiator")
   @Mapping(target = "endedAt", ignore = true)
+  @Mapping(target = "note", ignore = true)
   @Mapping(target = "readBy", ignore = true)
   @Mapping(target = "readAt", ignore = true)
   @Mapping(target = "dangling", ignore = true)
@@ -141,6 +142,7 @@ public abstract class ProtobufUserTaskMapper {
   @Mapping(target = "updatedAt", source = "timestamp")
   @Mapping(target = "updatedBy", source = "initiator")
   @Mapping(target = "endedAt", ignore = true)
+  @Mapping(target = "note", ignore = true)
   @Mapping(target = "readBy", ignore = true)
   @Mapping(target = "readAt", ignore = true)
   @Mapping(target = "dangling", ignore = true)
@@ -206,6 +208,7 @@ public abstract class ProtobufUserTaskMapper {
       nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
   // the service sets these two, because an end means more to it than the event says:
   @Mapping(target = "endedAt", ignore = true)
+  @Mapping(target = "note", ignore = true)
   @Mapping(target = "endReason", ignore = true)
   // read from the assignee and the candidates whenever they are asked for:
   @Mapping(target = "dangling", ignore = true)

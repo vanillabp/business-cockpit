@@ -4,16 +4,19 @@ import java.time.OffsetDateTime;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.vanillabp.cockpit.gui.api.v1.Count;
 import io.vanillabp.cockpit.gui.api.v1.Counts;
+import io.vanillabp.cockpit.gui.api.v1.NoteRequest;
 import io.vanillabp.cockpit.gui.api.v1.OfficialTasklistApi;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskCountsRequest;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
+import io.vanillabp.cockpit.gui.api.v1.UserTasksNoteRequest;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 
 /**
@@ -103,6 +106,46 @@ public class OfficialApiTaskController implements OfficialTasklistApi {
     return ResponseEntity.ok(new Counts()
         .serverTimestamp(initialTimestamp != null ? initialTimestamp : OffsetDateTime.now())
         .counts(counts));
+
+  }
+
+  /**
+   * Sets the note of a user task the way the cockpit does: 404 for an unknown task and 409 for
+   * an ended one.
+   */
+  @Override
+  public ResponseEntity<UserTask> setUserTaskNote(
+      final String userTaskId,
+      final NoteRequest noteRequest) {
+
+    try {
+      final var userTask = taskService.setNote(
+          userTaskId, noteRequest == null ? null : noteRequest.getText());
+      return userTask == null
+          ? ResponseEntity.notFound().build()
+          : ResponseEntity.ok(mapper.toApi(userTask));
+    } catch (IllegalStateException e) {
+      return ResponseEntity.status(HttpStatus.CONFLICT).build();
+    }
+
+  }
+
+  /**
+   * Sets the same note on several user tasks. Unlike the cockpit, the simulator changes the open
+   * tasks before it meets an ended one, which is good enough for a developer's machine.
+   */
+  @Override
+  public ResponseEntity<Void> setUserTasksNote(
+      final UserTasksNoteRequest userTasksNoteRequest) {
+
+    try {
+      userTasksNoteRequest
+          .getUserTaskIds()
+          .forEach(userTaskId -> taskService.setNote(userTaskId, userTasksNoteRequest.getText()));
+      return ResponseEntity.ok().build();
+    } catch (IllegalStateException e) {
+      return ResponseEntity.status(HttpStatus.CONFLICT).build();
+    }
 
   }
 

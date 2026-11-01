@@ -95,6 +95,7 @@ public abstract class UserTaskMapper {
   @Mapping(target = "updatedAt", source = "timestamp")
   @Mapping(target = "updatedBy", source = "initiator")
   @Mapping(target = "endedAt", ignore = true)
+  @Mapping(target = "note", ignore = true)
   @Mapping(target = "readBy", ignore = true)
   @Mapping(target = "readAt", ignore = true)
   @Mapping(target = "targetGroups", ignore = true)
@@ -129,6 +130,7 @@ public abstract class UserTaskMapper {
   @Mapping(target = "updatedAt", source = "timestamp")
   @Mapping(target = "updatedBy", source = "initiator")
   @Mapping(target = "endedAt", ignore = true)
+  @Mapping(target = "note", ignore = true)
   @Mapping(target = "readBy", ignore = true)
   @Mapping(target = "readAt", ignore = true)
   @Mapping(target = "targetGroups", ignore = true)
@@ -165,6 +167,7 @@ public abstract class UserTaskMapper {
   @Mapping(target = "updatedAt", source = "timestamp")
   @Mapping(target = "updatedBy", source = "initiator")
   @Mapping(target = "endedAt", ignore = true)
+  @Mapping(target = "note", ignore = true)
   @Mapping(target = "readBy", ignore = true)
   @Mapping(target = "readAt", ignore = true)
   @Mapping(target = "targetGroups", ignore = true)
@@ -217,6 +220,7 @@ public abstract class UserTaskMapper {
   // the service and the controller set these three, because an end means more to them than the
   // event says:
   @Mapping(target = "endedAt", ignore = true)
+  @Mapping(target = "note", ignore = true)
   @Mapping(target = "endReason", ignore = true)
   @Mapping(target = "initiator", ignore = true)
   // read from the assignee and the candidates whenever they are asked for:
@@ -273,6 +277,7 @@ public abstract class UserTaskMapper {
   // the service and the controller set these three, because an end means more to them than the
   // event says:
   @Mapping(target = "endedAt", ignore = true)
+  @Mapping(target = "note", ignore = true)
   @Mapping(target = "endReason", ignore = true)
   @Mapping(target = "initiator", ignore = true)
   // read from the assignee and the candidates whenever they are asked for:

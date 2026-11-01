@@ -345,3 +345,10 @@ and cases which ended before a reason, on the first start: `CANCELLED` where `co
 cancellation without a reason becomes `COMPLETED`, and a completion with a comment becomes
 `CANCELLED`. If you need it otherwise, correct `endReason` in the collections `usertask` and
 `workflow` by hand after the start. A list can also be filtered and sorted by `endReason`.
+
+### A note on a task and on a case
+
+`UserTask` and `Workflow` of the GUI API carry `note`, a text the users keep about the entry. It is
+set with `PATCH /usertask/{userTaskId}/note` and `PATCH /workflow/{workflowId}/note`, and for
+several entries at once with `PATCH /usertask/note` and `PATCH /workflow/note`. Nothing else
+changes. The full-text filter of the lists now finds an entry by its note as well.

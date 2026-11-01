@@ -43,6 +43,7 @@ import io.vanillabp.cockpit.config.startup.CockpitConfiguration;
 import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
 import io.vanillabp.cockpit.config.startup.SortIndexLimit;
 import io.vanillabp.cockpit.util.ListPaths;
+import io.vanillabp.cockpit.util.NotesOfTheCockpit;
 import io.vanillabp.cockpit.util.SearchCriteriaHelper;
 import io.vanillabp.cockpit.util.SearchQuery;
 import io.vanillabp.cockpit.util.SortIndexes;
@@ -99,7 +100,7 @@ public class WorkflowlistService {
   public static final Set<String> FIELDS_OF_THE_LIST = Set.of(
       PROPERTY_ID, "version", "initiator", PROPERTY_CREATEDAT, "updatedAt", "endedAt",
       "workflowModuleId", "comment", "bpmnProcessId", "bpmnProcessVersion", "businessId", "title",
-      "uiUriType", "accessibleToUsers", "accessibleToGroups", "detailsFulltextSearch", "endReason");
+      "uiUriType", "accessibleToUsers", "accessibleToGroups", "detailsFulltextSearch", "endReason", "note");
 
   @Autowired
   private Logger logger;
@@ -197,6 +198,7 @@ public class WorkflowlistService {
     workflow.setEndReason(stored.getEndReason());
     workflow.setComment(stored.getComment());
     workflow.setInitiator(stored.getInitiator());
+    workflow.setNote(stored.getNote());
     workflow.setLatestEventAt(stored.getLatestEventAt());
     // this report fills in what the end could not say about the case. Where the end did say
     // something, the end is younger and wins. One rule decides both cases
@@ -398,6 +400,90 @@ public class WorkflowlistService {
             List.of(Criteria.where("id").is(workflowId)),
             null)),
         Workflow.class);
+
+  }
+
+  /**
+   * Sets the note of a case, or clears it where the text is empty. Everybody who may reach the
+   * case may change its note. An ended case is documentation, so its note stays as it is. The
+   * note is written by an update of its own, see {@link NotesOfTheCockpit}.
+   *
+   * @param visibility Which workflows the caller may reach
+   * @param currentUser The id of the user who writes the note
+   * @param workflowId The id of the workflow
+   * @param text The text of the note, or {@code null}
+   * @return The workflow as it is stored now, or {@code null} if the caller may not reach it
+   * @throws WorkflowAlreadyEndedException if the workflow has ended. Nothing is written then.
+   */
+  public Workflow setNote(
+      final WorkflowVisibility visibility,
+      final String currentUser,
+      final String workflowId,
+      final String text) {
+
+    final var workflow = getWorkflow(visibility, workflowId);
+    if (workflow == null) {
+      return null;
+    }
+    refuseIfEnded(workflow);
+
+    final var written = mongoTemplate.updateFirst(
+        new Query(Criteria.where("id").is(workflowId)).addCriteria(NotesOfTheCockpit.notEnded()),
+        NotesOfTheCockpit.setTo(text, currentUser),
+        Workflow.class);
+    // the workflow ended between the read above and this write
+    if (written.getMatchedCount() == 0) {
+      throw new WorkflowAlreadyEndedException(workflowId);
+    }
+
+    return getWorkflow(workflowId);
+
+  }
+
+  /**
+   * Sets the same note on several workflows, the same way as for one. Workflows the caller may
+   * not reach are left out.
+   *
+   * @param visibility Which workflows the caller may reach
+   * @param currentUser The id of the user who writes the note
+   * @param workflowIds The ids of the workflows
+   * @param text The text of the note, or {@code null}
+   * @throws WorkflowAlreadyEndedException if one of the workflows the caller may reach has
+   *         ended. None of them is changed then.
+   */
+  public void setNote(
+      final WorkflowVisibility visibility,
+      final String currentUser,
+      final Collection<String> workflowIds,
+      final String text) {
+
+    final var found = mongoTemplate.find(
+        new Query(buildWorkflowlistCriteria(
+            visibility,
+            null,
+            RetrieveItemsMode.All,
+            List.of(Criteria.where("id").in(workflowIds)),
+            null)),
+        Workflow.class);
+    found.forEach(WorkflowlistService::refuseIfEnded);
+    if (found.isEmpty()) {
+      return;
+    }
+
+    mongoTemplate.updateMulti(
+        new Query(Criteria.where("id").in(found.stream().map(Workflow::getId).toList()))
+            .addCriteria(NotesOfTheCockpit.notEnded()),
+        NotesOfTheCockpit.setTo(text, currentUser),
+        Workflow.class);
+
+  }
+
+  private static void refuseIfEnded(
+      final Workflow workflow) {
+
+    if (workflow.getEndedAt() != null) {
+      throw new WorkflowAlreadyEndedException(workflow.getId());
+    }
 
   }
 

@@ -64,6 +64,10 @@ public class Workflow {
   @Column(name = "COMMENT")
   private String comment;
 
+  /** The note the users keep. No report of the BPMS changes it. */
+  @Column(name = "NOTE")
+  private String note;
+
   @Column(name = "BPMN_PROCESS_ID")
   private String bpmnProcessId;
 

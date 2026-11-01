@@ -114,6 +114,13 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
   private String detailsFulltextSearch;
 
   /**
+   * The note the users keep about this entry. It belongs to the cockpit: no report of a workflow
+   * module carries or changes it, and it is written with an update of its own, see
+   * {@code NotesOfTheCockpit}.
+   */
+  private String note;
+
+  /**
    * Creates an empty workflow. Used by Spring Data when it reads a document, and by the cockpit
    * before it fills in a report.
    */
@@ -664,6 +671,25 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
   public void setAccessibleToUsers(
       List<Person> accessibleToUsers) {
     this.accessibleToUsers = accessibleToUsers;
+  }
+
+  /**
+   * The note the users keep about this workflow.
+   *
+   * @return The note, or {@code null} if there is none
+   */
+  public String getNote() {
+    return note;
+  }
+
+  /**
+   * Sets the note of this workflow.
+   *
+   * @param note The note, or {@code null} for none
+   */
+  public void setNote(
+      String note) {
+    this.note = note;
   }
 
 }
