@@ -21,6 +21,7 @@ import org.testcontainers.mongodb.MongoDBContainer;
 
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
+import com.mongodb.client.model.IndexOptions;
 
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
@@ -41,9 +42,12 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * not found, and that changeset runs a second time. The orders below are those of the releases,
  * read from the tags.
  * <p>
- * Only the records are written. The collections and indexes those changesets built are not, so
- * the new changesets run against an empty database. Whether they meet an index of an old release
- * which is in their way is not what this test asks.
+ * The collections and indexes of the release are written as well, also by the driver alone. They
+ * are what stood after the last changeset of the release, read from the tags, together with the
+ * sort index each list built on demand when it was shown for the first time. So a new changeset
+ * meets every index of the old release. One which has the same name but other keys or options
+ * stops the start, and the test with it. At the end the test compares the indexes of each
+ * collection with the old ones plus those of the new changesets.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
@@ -192,16 +196,112 @@ class AnUpgradeRepeatsNoChangesetTest {
       "io.vanillabp.cockpit.workflowlist.model.changesets.V000003#giveEveryEndedCaseItsReason",
       "io.vanillabp.cockpit.workflowlist.model.changesets.V000003#indexTheNote");
 
+  /**
+   * An index as MongoDB lists it: its name, its keys in their order, and whether it is unique.
+   */
+  private record OldIndex(
+                          String collection,
+                          String name,
+                          Document keys,
+                          boolean unique) {
+
+    private static OldIndex of(
+        final String collection,
+        final String name,
+        final String... fields) {
+
+      return new OldIndex(collection, name, ascending(fields), false);
+
+    }
+
+    private static OldIndex unique(
+        final String collection,
+        final String name,
+        final String... fields) {
+
+      return new OldIndex(collection, name, ascending(fields), true);
+
+    }
+
+    private static Document ascending(
+        final String... fields) {
+
+      final var keys = new Document();
+      for (final var field : fields) {
+        keys.append(field, 1);
+      }
+      return keys;
+
+    }
+
+  }
+
+  /**
+   * The collections and indexes after the last changeset of 0.3.4, read from the changeset
+   * classes at the tag. Indexes which a later changeset of the release dropped are left out.
+   * {@code _id_} is not listed, MongoDB creates it with each collection.
+   */
+  private static final List<String> COLLECTIONS_OF_0_3_4 = List.of(
+      "usertask", "workflow", "modules");
+
+  private static final List<OldIndex> INDEXES_OF_0_3_4 = List.of(
+      OldIndex.of("usertask", "_endedAt", "endedAt"),
+      OldIndex.of("usertask", "_readBy", "readBy.userId"),
+      OldIndex.of("workflow", "workflow_endedAt", "endedAt"),
+      OldIndex.of("workflow", "workflow_fulltext", "detailsFulltextSearch"),
+      OldIndex.of("workflow", "_sort_businessId", "businessId", "createdAt", "_id"),
+      // no changeset built these two. The release built them when a list was shown with its
+      // default sort for the first time, so every installation which was used has them
+      OldIndex.of("usertask", "_sort_dueDate", "dueDate", "createdAt", "_id"),
+      OldIndex.of("workflow", "_sort_createdAt", "createdAt", "_id"));
+
+  /**
+   * 0.4.3 has the collections and indexes of 0.3.4, and two collections more.
+   */
+  private static final List<String> COLLECTIONS_OF_0_4_3 = Stream
+      .concat(COLLECTIONS_OF_0_3_4.stream(), Stream.of("notification_outbox", "users"))
+      .toList();
+
+  private static final List<OldIndex> INDEXES_OF_0_4_3 = Stream
+      .concat(INDEXES_OF_0_3_4.stream(), Stream.of(
+          OldIndex.unique("notification_outbox", "_outboxUnique",
+              "userTaskId", "notificationType", "recipientUserId", "medium"),
+          OldIndex.of("notification_outbox", "_outboxPending", "sentAt", "createdAt")))
+      .toList();
+
+  /**
+   * The indexes the new changesets build. Written out here and not read from the changesets, so
+   * a changeset which builds something else is noticed too.
+   */
+  private static final List<OldIndex> INDEXES_OF_THE_NEW_CHANGESETS = List.of(
+      OldIndex.of("usertask", "_visibility_assignee", "assignee._id", "endedAt"),
+      OldIndex.of("usertask", "_visibility_candidateUsers", "candidateUsers._id", "endedAt"),
+      OldIndex.of("usertask", "_visibility_candidateGroups", "candidateGroups._id", "endedAt"),
+      OldIndex.of("usertask", "_visibility_admittedUsers", "admittedUsers._id", "endedAt"),
+      OldIndex.of("usertask", "_visibility_dangling", "dangling", "endedAt"),
+      OldIndex.of("workflow", "_visibility_accessibleToUsers", "accessibleToUsers._id", "endedAt"),
+      OldIndex.of("workflow", "_visibility_accessibleToGroups", "accessibleToGroups._id", "endedAt"),
+      OldIndex.of("workflow", "_visibility_dangling", "dangling", "endedAt"),
+      OldIndex.of("workflow", "workflow_note", "note"));
+
   enum Release {
 
-    V0_3_4(RECORDS_OF_0_3_4),
-    V0_4_3(RECORDS_OF_0_4_3);
+    V0_3_4(RECORDS_OF_0_3_4, COLLECTIONS_OF_0_3_4, INDEXES_OF_0_3_4),
+    V0_4_3(RECORDS_OF_0_4_3, COLLECTIONS_OF_0_4_3, INDEXES_OF_0_4_3);
 
     private final List<OldRecord> records;
 
+    private final List<String> collections;
+
+    private final List<OldIndex> indexes;
+
     Release(
-        final List<OldRecord> records) {
+        final List<OldRecord> records,
+        final List<String> collections,
+        final List<OldIndex> indexes) {
       this.records = records;
+      this.collections = collections;
+      this.indexes = indexes;
     }
 
     String database() {
@@ -238,8 +338,11 @@ class AnUpgradeRepeatsNoChangesetTest {
     assertThat(RECORDS_OF_0_4_3).hasSize(27);
 
     final var written = writeTheRecordsOf(release);
+    buildTheCollectionsAndIndexesOf(release);
 
     startTheCockpitOn(release.database());
+
+    theIndexesAreTheOldOnesAndTheNewOnes(release);
 
     final var afterTheUpgrade = recordsIn(release.database());
 
@@ -300,6 +403,74 @@ class AnUpgradeRepeatsNoChangesetTest {
       appliedAt += 1_000L;
     }
     return written;
+
+  }
+
+  /**
+   * Builds the collections and indexes with the driver alone, as the release left them.
+   */
+  private void buildTheCollectionsAndIndexesOf(
+      final Release release) {
+
+    final var database = client.getDatabase(release.database());
+    release.collections.forEach(database::createCollection);
+    for (final var index : release.indexes) {
+      database
+          .getCollection(index.collection())
+          .createIndex(index.keys(), new IndexOptions()
+              .name(index.name())
+              .unique(index.unique()));
+    }
+
+  }
+
+  /**
+   * Every collection of the new changesets has the indexes of the old release and those the new
+   * changesets build, and no other. The upgrade from 0.3.4 also builds the two collections of
+   * 0.4.3, so both releases end with the same indexes.
+   */
+  private void theIndexesAreTheOldOnesAndTheNewOnes(
+      final Release release) {
+
+    final var expected = new ArrayList<OldIndex>();
+    expected.addAll(INDEXES_OF_0_4_3);
+    expected.addAll(INDEXES_OF_THE_NEW_CHANGESETS);
+    final var collections = COLLECTIONS_OF_0_4_3;
+
+    final var database = client.getDatabase(release.database());
+    assertThat(database.listCollectionNames().into(new ArrayList<>()))
+        .as("the collections after the upgrade from %s", release)
+        .containsAll(collections);
+
+    for (final var collection : collections) {
+      final var actual = new ArrayList<OldIndex>();
+      for (final var index : database.getCollection(collection).listIndexes()) {
+        if ("_id_".equals(index.getString("name"))) {
+          continue;
+        }
+        actual.add(new OldIndex(
+            collection, index.getString("name"),
+            // MongoDB may list a key as 1 or as 1.0, so each key is read as a number
+            ascending(index.get("key", Document.class)), index.getBoolean("unique", false)));
+      }
+      assertThat(actual)
+          .as("the indexes of '%s' after the upgrade from %s", collection, release)
+          .containsExactlyInAnyOrderElementsOf(expected
+              .stream()
+              .filter(index -> index.collection().equals(collection))
+              .toList());
+    }
+
+  }
+
+  private static Document ascending(
+      final Document keys) {
+
+    final var normalized = new Document();
+    keys.forEach((
+        field,
+        direction) -> normalized.append(field, ((Number) direction).intValue()));
+    return normalized;
 
   }
 

@@ -12,9 +12,11 @@ import io.vanillabp.cockpit.config.web.JsonConfiguration;
 import io.vanillabp.cockpit.config.web.SpaNoHandlerFoundExceptionHandler;
 import io.vanillabp.cockpit.gui.api.v1.LoginApiController;
 import io.vanillabp.cockpit.gui.api.v1.UpdateStreams;
+import io.vanillabp.cockpit.gui.api.v1.UserSettingsApiController;
 import io.vanillabp.cockpit.notification.api.v1.NotificationConfigGuiApiController;
 import io.vanillabp.cockpit.tasklist.api.UserTaskStreamAudience;
 import io.vanillabp.cockpit.tasklist.api.v1.TasklistGuiApiMapperImpl;
+import io.vanillabp.cockpit.users.UserSettings;
 import io.vanillabp.cockpit.workflowlist.api.WorkflowStreamAudience;
 import io.vanillabp.cockpit.workflowlist.api.v1.WorkflowListGuiApiMapperImpl;
 import io.vanillabp.cockpit.workflowmodules.api.v1.WorkflowModulesGuiApiMapperImpl;
@@ -32,7 +34,7 @@ import io.vanillabp.cockpit.workflowmodules.api.v1.WorkflowModulesGuiApiMapperIm
 @AutoConfiguration
 @ConditionalOnWebApplication(type = Type.SERVLET)
 @Import({
-    JsonConfiguration.class, LoginApiController.class, MicroserviceProxyConfiguration.class, NotificationConfigGuiApiController.class, RestfulExceptionHandler.class, SpaNoHandlerFoundExceptionHandler.class, TasklistGuiApiMapperImpl.class, UpdateStreams.class, UserContextConfiguration.class, UserTaskStreamAudience.class, WorkflowListGuiApiMapperImpl.class, WorkflowStreamAudience.class, WorkflowModulesGuiApiMapperImpl.class
+    JsonConfiguration.class, LoginApiController.class, MicroserviceProxyConfiguration.class, NotificationConfigGuiApiController.class, RestfulExceptionHandler.class, SpaNoHandlerFoundExceptionHandler.class, TasklistGuiApiMapperImpl.class, UpdateStreams.class, UserContextConfiguration.class, UserSettings.class, UserSettingsApiController.class, UserTaskStreamAudience.class, WorkflowListGuiApiMapperImpl.class, WorkflowStreamAudience.class, WorkflowModulesGuiApiMapperImpl.class
 })
 public class BusinessCockpitGuiApiAutoConfiguration {
 

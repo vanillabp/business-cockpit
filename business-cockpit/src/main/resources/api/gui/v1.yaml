@@ -43,6 +43,79 @@ paths:
                 $ref: '#/components/schemas/User'
         404:
           description: No user logged in
+  /app/current-user/settings/{key}:
+    parameters:
+      - in: path
+        name: key
+        required: true
+        description: |
+          The name of the setting. It holds letters, digits, `-`, `_` and `:` only, and at most
+          200 of them. Anything else answers 400, because the key becomes the name of a field in
+          MongoDB, which reads a dot as a step into a nested document and a leading `$` as an
+          operator.
+        schema:
+          type: string
+    get:
+      tags:
+        - userSettings
+      summary: one setting of the user signed in
+      operationId: getSettingOfCurrentUser
+      description: |
+        A setting is any JSON value the user interface keeps for the user signed in: a number, a
+        text, a boolean, an object or a list. The cockpit stores it with the user, so it follows
+        the user to every browser. The cockpit does not look into the value.
+      responses:
+        200:
+          description: The value as it was written
+          content:
+            application/json:
+              schema: {}
+        400:
+          description: The key breaks the rule above
+        401:
+          description: Nobody is signed in
+        404:
+          description: The user has no setting of this key
+    put:
+      tags:
+        - userSettings
+      summary: write one setting of the user signed in
+      operationId: putSettingOfCurrentUser
+      description: |
+        Writes one setting and leaves every other setting as it is. So two tabs which write
+        different keys at the same time lose nothing. The body is the value. A body of `null`, or
+        no body at all, answers 400, because `DELETE` is what removes a setting.
+
+        There is no limit of its own. All settings of a user live in one MongoDB document,
+        together with what the user configured about notifications. A write which would make
+        that document larger than MongoDB allows, 16 MB, answers 413.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: {}
+      responses:
+        204:
+          description: The setting is stored
+        400:
+          description: The key breaks the rule above, the body is `null`, or an object in the
+            value has a key MongoDB cannot store
+        401:
+          description: Nobody is signed in
+        413:
+          description: The settings of the user would be larger than MongoDB allows
+    delete:
+      tags:
+        - userSettings
+      summary: remove one setting of the user signed in
+      operationId: deleteSettingOfCurrentUser
+      responses:
+        204:
+          description: The setting is gone, or there was none
+        400:
+          description: The key breaks the rule above
+        401:
+          description: Nobody is signed in
   /updates:
     get:
       tags:

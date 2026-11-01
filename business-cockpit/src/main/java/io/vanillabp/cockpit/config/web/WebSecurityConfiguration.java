@@ -37,7 +37,8 @@ public class WebSecurityConfiguration {
 
   /**
    * The user who is logged in. It is open to everybody, so the browser can find out whether
-   * somebody is logged in at all.
+   * somebody is logged in at all. It matches exactly this path and nothing below it, because the
+   * settings of the user, at {@code /gui/api/v1/app/current-user/settings/...}, need a login.
    */
   public static final RequestMatcher currentUserRequestMatcher = pathPattern(
       "/gui/api/v1/app/current-user");

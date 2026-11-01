@@ -352,3 +352,10 @@ cancellation without a reason becomes `COMPLETED`, and a completion with a comme
 set with `PATCH /usertask/{userTaskId}/note` and `PATCH /workflow/{workflowId}/note`, and for
 several entries at once with `PATCH /usertask/note` and `PATCH /workflow/note`. Nothing else
 changes. The full-text filter of the lists now finds an entry by its note as well.
+
+### The settings of a user
+
+`GET`, `PUT` and `DELETE /gui/api/v1/app/current-user/settings/{key}` are new. They keep one setting
+of the user signed in, in the new field `customSettings` of the collection `users`. Nothing breaks.
+A chain of your own needs nothing new, as long as it keeps `currentUserRequestMatcher` as it is and
+does not open `/gui/api/v1/app/current-user/**`.
