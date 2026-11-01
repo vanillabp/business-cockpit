@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.users.model;
 
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
@@ -58,6 +59,15 @@ public class User {
    * {@code {"emailAddress": "a@b.c"}}.
    */
   private Map<String, Map<String, String>> recipientConfigurations;
+
+  /**
+   * What the user interface keeps for the user, keyed by the name of the setting: a filter, the
+   * columns of a list, the language, a "don't ask again". Each value is the JSON the user
+   * interface wrote. Here it lives, and not in the browser, so it follows the user to every
+   * browser. It is written one key at a time by {@code UserSettings}, never by saving this whole
+   * document, so two tabs which write different keys keep both.
+   */
+  private Map<String, Object> customSettings = new HashMap<>();
 
   /**
    * Creates an empty user. Used by Spring Data when it reads a document.
@@ -197,6 +207,26 @@ public class User {
   public void setRecipientConfigurations(
       Map<String, Map<String, String>> recipientConfigurations) {
     this.recipientConfigurations = recipientConfigurations;
+  }
+
+  /**
+   * What the user interface keeps for the user, keyed by the name of the setting.
+   *
+   * @return The settings, empty if there are none
+   */
+  public Map<String, Object> getCustomSettings() {
+    return customSettings;
+  }
+
+  /**
+   * Sets what the user interface keeps for the user. Only Spring Data calls this, when it reads
+   * the document. The cockpit writes single settings through {@code UserSettings}.
+   *
+   * @param customSettings The settings, keyed by the name of the setting
+   */
+  public void setCustomSettings(
+      Map<String, Object> customSettings) {
+    this.customSettings = customSettings == null ? new HashMap<>() : customSettings;
   }
 
 }

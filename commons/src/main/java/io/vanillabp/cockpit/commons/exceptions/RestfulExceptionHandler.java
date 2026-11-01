@@ -119,6 +119,27 @@ public class RestfulExceptionHandler {
   }
 
   /**
+   * Answers a request whose content is too large to be stored with
+   * {@code 413 Content Too Large}. The body is the message of the exception, which names the
+   * limit.
+   *
+   * @param exception A {@link BcContentTooLargeException}
+   * @return The answer
+   */
+  @ExceptionHandler(BcContentTooLargeException.class)
+  public ResponseEntity<String> handleContentTooLargeException(
+      final BcContentTooLargeException exception) {
+
+    logger.warn("Returning HTTP 413 Content Too Large: {}", exception.getMessage());
+
+    return ResponseEntity
+        .status(HttpStatus.CONTENT_TOO_LARGE)
+        .contentType(MediaType.TEXT_PLAIN)
+        .body(exception.getMessage());
+
+  }
+
+  /**
    * Answers a request without a valid login with {@code 401 Unauthorized}. The body is the
    * message of the exception.
    *
