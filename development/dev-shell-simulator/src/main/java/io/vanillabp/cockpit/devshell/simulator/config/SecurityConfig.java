@@ -40,9 +40,10 @@ public class SecurityConfig {
   /**
    * The one password all simulated users share. It belongs to this simulator and nowhere else:
    * the users are made up people from a configuration file, and the simulator runs on a
-   * developer's machine and ships in no product.
+   * developer's machine and ships in no product. It is the password the same people log in to
+   * the module {@code container} with, so a developer has one password to remember.
    */
-  static final String SIMULATED_USER_PASSWORD = "Secure_123";
+  static final String SIMULATED_USER_PASSWORD = "test";
 
   /**
    * Creates the configuration. Spring creates it, nobody else does.

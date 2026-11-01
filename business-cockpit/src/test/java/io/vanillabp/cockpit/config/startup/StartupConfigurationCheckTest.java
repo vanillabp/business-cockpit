@@ -15,11 +15,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.mock.env.MockEnvironment;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import io.vanillabp.cockpit.commons.security.jwt.JwtUserDetailsProvider;
+import io.vanillabp.cockpit.commons.security.usercontext.UserDetailsProvider;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
@@ -176,15 +180,60 @@ class StartupConfigurationCheckTest {
 
   }
 
-  @Test
-  void anUnconfiguredBpmsApiLetsTheApplicationBootAndNamesAllThreeProperties() {
+  /**
+   * Bean definitions as the check sees them before the first bean is built. Every name stands for a
+   * bean which the application defines.
+   */
+  private DefaultListableBeanFactory applicationWith(
+      final String... beanNames) {
 
-    check.checkConfigurationOf(configurationWithout(
-        CockpitConfiguration.BPMS_API_REALM_NAME,
-        CockpitConfiguration.BPMS_API_USERNAME,
-        CockpitConfiguration.BPMS_API_PASSWORD));
+    final var beanFactory = new DefaultListableBeanFactory();
+    for (final var beanName : beanNames) {
+      beanFactory.registerBeanDefinition(beanName, new RootBeanDefinition(Object.class));
+    }
+    beanFactory.registerBeanDefinition(
+        "userDetailsProvider", new RootBeanDefinition(JwtUserDetailsProvider.class));
+    return beanFactory;
+
+  }
+
+  @Test
+  void anApplicationWithBothChainsIsToldNothingAboutThem() {
+
+    check.checkTheSecurityOf(configurationWithout(), applicationWith(
+        StartupConfigurationCheck.GUI_CHAIN, StartupConfigurationCheck.BPMS_API_CHAIN));
+
+    assertThat(warnings()).isEmpty();
+
+  }
+
+  /**
+   * The library brings no chain. The application still starts, and the warning names the bean to
+   * write and where the wiki describes it.
+   */
+  @Test
+  void aMissingGuiChainLetsTheApplicationBootAndNamesTheBean() {
+
+    check.checkTheSecurityOf(configurationWithout(), applicationWith(
+        StartupConfigurationCheck.BPMS_API_CHAIN));
 
     assertThat(warnings())
+        .contains("'guiHttpSecurity'")
+        .contains("wiki/Security")
+        .doesNotContain("'bpmsApiHttpSecurity'");
+
+  }
+
+  @Test
+  void aMissingBpmsApiChainLetsTheApplicationBootAndNamesAllThreeProperties() {
+
+    check.checkTheSecurityOf(configurationWithout(
+        CockpitConfiguration.BPMS_API_REALM_NAME,
+        CockpitConfiguration.BPMS_API_USERNAME,
+        CockpitConfiguration.BPMS_API_PASSWORD), applicationWith(StartupConfigurationCheck.GUI_CHAIN));
+
+    assertThat(warnings())
+        .contains("'bpmsApiHttpSecurity'")
         .contains("BPMS API")
         .contains(CockpitConfiguration.BPMS_API_REALM_NAME)
         .contains(CockpitConfiguration.BPMS_API_USERNAME)
@@ -196,13 +245,41 @@ class StartupConfigurationCheckTest {
   }
 
   @Test
-  void anIncompleteBpmsApiIsReportedWithTheMissingPropertyOnly() {
+  void aMissingBpmsApiChainIsReportedWithTheMissingPropertyOnly() {
 
-    check.checkConfigurationOf(configurationWithout(CockpitConfiguration.BPMS_API_PASSWORD));
+    check.checkTheSecurityOf(configurationWithout(CockpitConfiguration.BPMS_API_PASSWORD),
+        applicationWith(StartupConfigurationCheck.GUI_CHAIN));
 
     assertThat(warnings())
         .contains(CockpitConfiguration.BPMS_API_PASSWORD)
         .doesNotContain(CockpitConfiguration.BPMS_API_USERNAME);
+
+  }
+
+  /**
+   * An application which set the three values for the library's chain of an older release has
+   * them still. The warning has to say that nothing is built from them now.
+   */
+  @Test
+  void aMissingBpmsApiChainIsReportedEvenIfAllThreePropertiesAreSet() {
+
+    check.checkTheSecurityOf(configurationWithout(), applicationWith(StartupConfigurationCheck.GUI_CHAIN));
+
+    assertThat(warnings())
+        .contains("'bpmsApiHttpSecurity'")
+        .contains("The library does not build a chain from them");
+
+  }
+
+  @Test
+  void aMissingUserDetailsProviderStopsTheStartAndShowsTheBean() {
+
+    final var beanFactory = new DefaultListableBeanFactory();
+
+    assertThatThrownBy(() -> check.checkTheSecurityOf(configurationWithout(), beanFactory))
+        .isInstanceOf(UserDetailsProviderIsMissingException.class)
+        .hasMessageContaining(UserDetailsProvider.class.getName())
+        .hasMessageContaining("new JwtUserDetailsProvider()");
 
   }
 

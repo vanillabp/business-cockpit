@@ -277,3 +277,34 @@ filters as its list, and answers one count per filter, with no rows and without 
 else changes. A user interface which counted with a page of size 1 can switch when it likes. Two new
 changesets add indexes on the fields which decide who sees a user task or a workflow. On a large
 database the first start after the upgrade takes a little longer while MongoDB builds them.
+
+### Signing in is the application's
+
+The library `business-cockpit` brings no login any more. The two security chains `guiHttpSecurity`
+and `bpmsApiHttpSecurity`, the users with the password `test` and the bean `userDetailsProvider`
+moved into the module `container`. The runnable jar of `container` behaves as before.
+
+If your application depends on `business-cockpit` and relied on what the library brought, write
+these three beans yourself. The classes `GuiSecurityConfiguration` and
+`BpmsApiSecurityConfiguration` in `container` are the template, and the wiki page
+[Security](https://github.com/vanillabp/business-cockpit/wiki/Security) says what every chain has to
+keep.
+
+- Without `userDetailsProvider` the application does not start. The failure report shows the bean
+  to write.
+- Without any chain of your own, Spring Boot adds its default chain. It asks for a login on every
+  path, with a password it generates and prints. Your users and the BPMS adapters cannot log in.
+- With some chains of your own but not these two, a request which none of your chains takes is not
+  checked at all.
+
+On every start the log names each of the two chains your application does not have. The keys
+`bpms-api.realm-name`, `bpms-api.username` and `bpms-api.password` stay. The library no longer
+builds a chain from them, the chain of `container` does.
+
+The constants `BPMS_API_ROLE` and `BPMS_API_AUTHORITY` moved from
+`io.vanillabp.cockpit.bpms.BpmsApiWebSecurityConfiguration` to
+`io.vanillabp.cockpit.bpms.BpmsApiAuthority`. The BPMS API still answers only a caller with the
+authority `ROLE_BPMS-API`.
+
+The users of the dev-shell simulator log in with `test` now, as they do at the cockpit. Before, it
+was `Secure_123`.

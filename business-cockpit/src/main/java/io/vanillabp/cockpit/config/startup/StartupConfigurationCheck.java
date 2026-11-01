@@ -40,7 +40,9 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.stereotype.Component;
 
+import io.vanillabp.cockpit.bpms.BpmsApiAuthority;
 import io.vanillabp.cockpit.commons.security.jwt.JwtCookie;
+import io.vanillabp.cockpit.commons.security.usercontext.UserDetailsProvider;
 
 /**
  * Reports everything a cockpit application still has to configure, on every start and in as few
@@ -62,12 +64,29 @@ import io.vanillabp.cockpit.commons.security.jwt.JwtCookie;
  * warning naming that feature, so the developer can fix them one start at a time.</li>
  * <li>The JWT signing key is generated on the spot and the generated value is handed to the
  * developer to copy, because guessing a key is the one thing this check can do for them.</li>
+ * <li>A missing security chain is a warning. The library brings none, and the application decides
+ * how it is protected. A missing user details provider stops the start, because nothing works
+ * without it.</li>
  * </ul>
  */
 @Component
 public class StartupConfigurationCheck implements BeanFactoryPostProcessor, EnvironmentAware {
 
   private static final Logger logger = LoggerFactory.getLogger(StartupConfigurationCheck.class);
+
+  /**
+   * The bean name of the chain which protects the GUI API, in the module {@code container} and in
+   * the wiki.
+   */
+  static final String GUI_CHAIN = "guiHttpSecurity";
+
+  /**
+   * The bean name of the chain which protects the BPMS API, in the module {@code container} and
+   * in the wiki.
+   */
+  static final String BPMS_API_CHAIN = "bpmsApiHttpSecurity";
+
+  private static final String WIKI_SECURITY = "https://github.com/vanillabp/business-cockpit/wiki/Security";
 
   private static final String GENERATED_JWT_KEY_SOURCE = "business-cockpit-generated-jwt-key";
 
@@ -97,6 +116,7 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
       final ConfigurableListableBeanFactory beanFactory) {
 
     checkConfigurationOf(environment);
+    checkTheSecurityOf(environment, beanFactory);
 
   }
 
@@ -114,7 +134,6 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
     failOnAnUnusableMapKeyDotReplacement(environment);
     failOnAnUnusableJwtLifetime(environment);
     failOnAnUnusableSortIndexLimit(environment);
-    warnAboutTheBpmsApi(environment);
     generateAJwtKeyIfNoneIsConfigured(environment);
     warnAboutALoginWhichIsNeverRenewed(environment);
     warnAboutKafkaIngestion(environment);
@@ -139,7 +158,7 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
     if (CockpitConfiguration.isMissing(environment, TITLE_SHORT)) {
       missing.add(new MissingConfiguration(
           TITLE_SHORT, "The short application title. It names the application in the user interface and "
-              + "is the HTTP basic realm users log in to.", "business-cockpit.title-short: MyCockpit"));
+              + "is the HTTP basic realm of the login in the module 'container'.", "business-cockpit.title-short: MyCockpit"));
     }
 
     // Kafka ingestion is optional, but once topics are given the application is meant to consume
@@ -287,12 +306,77 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
 
   }
 
-  private void warnAboutTheBpmsApi(
-      final Environment environment) {
+  /**
+   * Throws {@link UserDetailsProviderIsMissingException} if the application has no user details
+   * provider, and logs a warning for each security chain the application does not have. The
+   * library brings no chain, so this is how a developer learns about them.
+   * <p>
+   * The chains are looked for by their bean names. That is the one thing the check can see before
+   * the first bean is built, and the module {@code container} uses the same names.
+   *
+   * @param environment The configuration of the application
+   * @param beanFactory The bean definitions of the application
+   */
+  public void checkTheSecurityOf(
+      final Environment environment,
+      final ConfigurableListableBeanFactory beanFactory) {
 
-    if (CockpitConfiguration.isBpmsApiConfigured(environment)) {
+    failOnAMissingUserDetailsProvider(beanFactory);
+    if (!beanFactory.containsBean(GUI_CHAIN)) {
+      warnAboutTheMissingGuiChain();
+    }
+    if (!beanFactory.containsBean(BPMS_API_CHAIN)) {
+      warnAboutTheMissingBpmsApiChain(environment);
+    }
+
+  }
+
+  /**
+   * Without the provider the start would fail anyway, but with a message about a parameter of a
+   * bean the developer never wrote.
+   */
+  private void failOnAMissingUserDetailsProvider(
+      final ConfigurableListableBeanFactory beanFactory) {
+
+    if (beanFactory.getBeanNamesForType(UserDetailsProvider.class, true, false).length > 0) {
       return;
     }
+    throw new UserDetailsProviderIsMissingException(
+        "The Business Cockpit cannot start. The application has no bean of type '"
+            + UserDetailsProvider.class.getName()
+            + "'. The cockpit asks it for the user of every request, and the library brings none.", """
+                Add a bean which reads the user from the login token:
+
+                    @Bean
+                    public UserDetailsProvider userDetailsProvider() {
+                        return new JwtUserDetailsProvider();
+                    }
+
+                The module 'container' of the Business Cockpit has this bean in its \
+                GuiSecurityConfiguration. The wiki says more: """ + WIKI_SECURITY);
+
+  }
+
+  private void warnAboutTheMissingGuiChain() {
+
+    logger.warn("""
+        The application has no security chain named '{}'. The Business Cockpit library brings no \
+        login of its own, neither for the GUI API nor for the BPMS API. If the application has no \
+        chain at all, Spring Boot's default chain asks for a login on every path, with a password \
+        it generates. If the application has other chains, a request which none of them takes is \
+        not checked at all.
+
+        Write a bean '{}' of type SecurityFilterChain. The module 'container' of the Business \
+        Cockpit is the reference, and the wiki says what every chain has to keep:
+        {}
+
+        If a chain with another name already protects the GUI API, name it '{}' and this \
+        warning goes away.""", GUI_CHAIN, GUI_CHAIN, WIKI_SECURITY, GUI_CHAIN);
+
+  }
+
+  private void warnAboutTheMissingBpmsApiChain(
+      final Environment environment) {
 
     final var missing = new ArrayList<MissingConfiguration>();
     if (CockpitConfiguration.isMissing(environment, BPMS_API_REALM_NAME)) {
@@ -308,15 +392,24 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
           BPMS_API_PASSWORD, "The password of that user, prefixed by the encoding it is stored in.", "bpms-api.password: \"{bcrypt}$2a$10$...\", or \"{noop}secret\" for local development"));
     }
 
+    final var howTheReferenceDoesIt = missing.isEmpty()
+        ? "The values '%s', '%s' and '%s' are set. The library does not build a chain from them, the module 'container' does."
+            .formatted(BPMS_API_REALM_NAME, BPMS_API_USERNAME, BPMS_API_PASSWORD)
+        : "The module 'container' builds the chain once these values are set. Missing:\n\n"
+            + MissingConfiguration.asMessageBlocks(missing);
+
     logger.warn("""
-        The BPMS API is deactivated because it is not configured. Requests to '/bpms/api/**' \
-        are rejected, so no workflow module and no BPMS adapter can report user tasks or \
-        workflows to this cockpit. Missing:
+        The application has no security chain named '{}', so the BPMS API is not protected by a \
+        login of its own. Its endpoints answer only a caller with the authority '{}'. As long as \
+        nobody gets that authority, no workflow module and no BPMS adapter can report user tasks \
+        or workflows to this cockpit.
 
         {}
 
-        Add these values to activate the BPMS API on the next start.""",
-        MissingConfiguration.asMessageBlocks(missing));
+        A custom cockpit writes a bean '{}' of type SecurityFilterChain, as the module \
+        'container' of the Business Cockpit does. The wiki says what the chain has to keep:
+        {}""", BPMS_API_CHAIN, BpmsApiAuthority.BPMS_API_AUTHORITY, howTheReferenceDoesIt,
+        BPMS_API_CHAIN, WIKI_SECURITY);
 
   }
 

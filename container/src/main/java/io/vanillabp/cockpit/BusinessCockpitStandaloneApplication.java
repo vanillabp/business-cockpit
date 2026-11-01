@@ -13,8 +13,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * {@code io.vanillabp.cockpit.autoconfigure}. A custom cockpit writes exactly this much.
  * <p>
  * This module adds more than starting Spring Boot, and a custom cockpit writes that part for
- * itself as well. It is the concrete GUI API controllers, the demo users of the profile
- * {@code local} and the {@code application*.yaml} defaults below {@code config/}. The component
+ * itself as well. It is the two security chains with their users below {@code security}, the
+ * concrete GUI API controllers, the demo users of the profile {@code local} and the
+ * {@code application*.yaml} defaults below {@code config/}. The component
  * scan of {@code @SpringBootApplication} finds them, because it reaches the packages below this
  * one.
  */

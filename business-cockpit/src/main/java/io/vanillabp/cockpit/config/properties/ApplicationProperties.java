@@ -64,8 +64,8 @@ public class ApplicationProperties {
   }
 
   /**
-   * The short title of the application. The browser shows it in the header, and the BPMS API
-   * uses it as the realm name of its basic authentication.
+   * The short title of the application. The browser shows it in the header. The GUI chain of the
+   * module {@code container} also uses it as the realm name of its basic authentication.
    *
    * @return The short title
    */

@@ -18,9 +18,9 @@ import jakarta.servlet.http.HttpServletResponse;
  * Upserts the {@code users} document of the authenticated caller, independent of which
  * {@link org.springframework.security.web.SecurityFilterChain} authenticated it.
  * <p>
- * It is a plain filter bean on purpose, and not part of one security chain. A derived cockpit
- * application such as {@code central-ui-service} declares its own {@code guiHttpSecurity}, so a
- * login hook wired into the chain upstream would not run there. Spring Boot applies a filter bean
+ * It is a plain filter bean on purpose, and not part of one security chain. The library brings no
+ * chain, and every application declares its own {@code guiHttpSecurity}. So a login hook wired
+ * into one chain would not run in the others. Spring Boot applies a filter bean
  * to every request, whichever security chain is active, so a derived application inherits the
  * behaviour. It is ordered last, so it runs inside the security filter chain where the security
  * context already stands.

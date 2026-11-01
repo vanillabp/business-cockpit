@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.vanillabp.cockpit.commons.security.jwt.JwtUserDetailsProvider;
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.tasklist.UserTaskVisibility;
 import io.vanillabp.cockpit.tasklist.api.v1.AbstractUserTaskListGuiApiController;
@@ -27,8 +28,9 @@ import io.vanillabp.cockpit.workflowmodules.api.v1.AbstractWorkflowModulesGuiApi
 /**
  * A cockpit application written the way the wiki describes one. It has the dependency on
  * {@code business-cockpit}, {@code @SpringBootApplication}, a {@code main} method and the handful
- * of beans the library leaves to the application. There is no base class, no cockpit annotation
- * and no component scan over {@code io.vanillabp.cockpit}.
+ * of beans the library leaves to the application. Among them are the two security chains in
+ * {@link DerivedCockpitSecurity}, because the library brings none. There is no base class, no
+ * cockpit annotation and no component scan over {@code io.vanillabp.cockpit}.
  *
  * <p>The package matters. It is outside {@code io.vanillabp.cockpit}, so the component scan of
  * {@code @SpringBootApplication} reaches nothing of the library, and the same goes for the package
@@ -42,7 +44,7 @@ import io.vanillabp.cockpit.workflowmodules.api.v1.AbstractWorkflowModulesGuiApi
  */
 @SpringBootApplication
 @Import({
-    DerivedCockpitApplication.TaskList.class, DerivedCockpitApplication.WorkflowList.class, DerivedCockpitApplication.ModuleList.class
+    DerivedCockpitSecurity.class, DerivedCockpitApplication.TaskList.class, DerivedCockpitApplication.WorkflowList.class, DerivedCockpitApplication.ModuleList.class
 })
 public class DerivedCockpitApplication {
 
@@ -52,6 +54,8 @@ public class DerivedCockpitApplication {
 
   public static final String GROUP_OF_USER = "accounting";
 
+  public static final String PASSWORD = "test";
+
   private static final List<UserDetails> USERS = List.of(
       new UserDetailsImpl(USER, "martin@example.com", "Martin Meier", "M. Meier", List.of(GROUP_OF_USER, "bc-users")),
       new UserDetailsImpl(OTHER_USER, "petra@example.com", "Petra Huber", "P. Huber", List.of("sales", "bc-users")));
@@ -60,6 +64,17 @@ public class DerivedCockpitApplication {
       final String... args) {
 
     SpringApplication.run(DerivedCockpitApplication.class, args);
+
+  }
+
+  /**
+   * Who is logged in, read from the login token. The library asks it on every request and brings
+   * none.
+   */
+  @Bean
+  public io.vanillabp.cockpit.commons.security.usercontext.UserDetailsProvider userDetailsProvider() {
+
+    return new JwtUserDetailsProvider();
 
   }
 

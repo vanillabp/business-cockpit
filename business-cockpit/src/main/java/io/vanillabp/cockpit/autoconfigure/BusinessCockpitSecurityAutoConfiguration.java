@@ -3,24 +3,21 @@ package io.vanillabp.cockpit.autoconfigure;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
-import org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration;
 import org.springframework.context.annotation.Import;
 
 import io.vanillabp.cockpit.config.web.WebSecurityConfiguration;
 import io.vanillabp.cockpit.users.UserLoginUpsertConfiguration;
 
 /**
- * The two security chains of the cockpit, one for the user interface and one for the BPMS API, plus
- * the filter which records a user's login.
+ * What the library adds to the security of an application: the JWT cookie a login is carried in,
+ * and the filter which records a user's login.
  * <p>
- * Ordered ahead of Spring Boot's {@link UserDetailsServiceAutoConfiguration}, and through it ahead
- * of Spring Boot's own web security, because both of those stand aside for what is already there.
- * The cockpit brings a {@code SecurityFilterChain} and a set of users, so being first is what keeps
- * Spring Boot from adding a chain of its own and from inventing a user with a generated password.
- * Being last would produce both, which is a configuration nobody wrote and which is different from
- * one start to the next.
+ * There is no security chain and no user here. The application writes those, and the module
+ * {@code container} is the reference. Without a chain of the application's own, Spring Boot adds
+ * its default chain, which asks for a login on every path with a password it generates. That
+ * keeps an application closed which forgot its chains, and the startup check says what to add.
  */
-@AutoConfiguration(before = UserDetailsServiceAutoConfiguration.class)
+@AutoConfiguration
 @ConditionalOnWebApplication(type = Type.SERVLET)
 @Import({
     WebSecurityConfiguration.class, UserLoginUpsertConfiguration.class

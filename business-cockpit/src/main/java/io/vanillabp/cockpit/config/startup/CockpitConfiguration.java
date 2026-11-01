@@ -185,8 +185,9 @@ public final class CockpitConfiguration {
   }
 
   /**
-   * Whether the BPMS API can be served. It authenticates every request by HTTP basic, which
-   * needs all three: realm, user and password.
+   * Whether the BPMS API chain of the module {@code container} can be built. It authenticates
+   * every request by HTTP basic, which needs all three: realm, user and password. An application
+   * with a chain of its own may use the same three values.
    *
    * @param environment The environment to read from
    * @return {@code true} if realm, user and password are all set

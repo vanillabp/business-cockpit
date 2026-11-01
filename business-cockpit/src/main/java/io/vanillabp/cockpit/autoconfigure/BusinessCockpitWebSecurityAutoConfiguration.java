@@ -11,7 +11,8 @@ import org.springframework.security.config.BeanIds;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 
 /**
- * Switches Spring Security's servlet support on, which the cockpit's two chains are built with.
+ * Switches Spring Security's servlet support on, which the application's security chains are built
+ * with.
  * <p>
  * The condition is the one Spring Boot uses for the same annotation: an application which already
  * has a {@code springSecurityFilterChain}, from its own {@code @EnableWebSecurity} or from a bean

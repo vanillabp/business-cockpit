@@ -171,7 +171,8 @@ application depends on. It produces no runnable jar. Backend changes usually lan
 
 Neither jar carries a user interface. The service answers its APIs at
 [http://localhost:8080/](http://localhost:8080/), and a path no API knows gets 404. The login for a
-local run is user `test` with password `test`.
+local run is user `test` with password `test`. Every user of the dev shell simulator logs in with
+`test` as well, there and at the cockpit.
 
 To build again after a change, build the modules you touched and what they depend on:
 

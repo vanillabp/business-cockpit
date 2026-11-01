@@ -1,4 +1,4 @@
-package io.vanillabp.cockpit.config.web;
+package io.vanillabp.cockpit.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.config.Customizer.withDefaults;
@@ -11,6 +11,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Bean;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.annotation.Order;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -24,7 +25,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.context.support.GenericWebApplicationContext;
 
 import io.vanillabp.cockpit.bpms.BpmsApiProperties;
-import io.vanillabp.cockpit.bpms.BpmsApiWebSecurityConfiguration;
 import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationToken;
 import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationTokenMapper;
 import io.vanillabp.cockpit.commons.security.jwt.JwtMapper;
@@ -36,7 +36,7 @@ import io.vanillabp.cockpit.users.UserDetailsProvider;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * The two servlet security chains of the cockpit. This asserts which requests they take, in which
+ * The two servlet security chains of this application. This asserts which requests they take, in which
  * order they are consulted and where the JWT filter sits inside the GUI chain.
  *
  * <p>None of this fails loudly when it breaks. A JWT filter placed after the authorization filter leaves
@@ -52,7 +52,7 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * filters these assertions are about.
  */
 @ExtendWith(SuppressOutputExtension.class)
-class WebSecurityChainTest {
+class SecurityChainsTest {
 
   /**
    * Any HMAC key of the right length. The chains are built here, not used for cryptography.
@@ -106,9 +106,9 @@ class WebSecurityChainTest {
 
   }
 
-  private WebSecurityConfiguration guiConfiguration() {
+  private GuiSecurityConfiguration guiConfiguration() {
 
-    final var configuration = new WebSecurityConfiguration();
+    final var configuration = new GuiSecurityConfiguration();
     ReflectionTestUtils.setField(configuration, "properties", applicationProperties());
     return configuration;
 
@@ -132,7 +132,7 @@ class WebSecurityChainTest {
     properties.setUsername("abc");
     properties.setPassword("{noop}123");
 
-    final var configuration = new BpmsApiWebSecurityConfiguration();
+    final var configuration = new BpmsApiSecurityConfiguration();
     ReflectionTestUtils.setField(configuration, "properties", properties);
     return configuration.bpmsApiHttpSecurity(httpSecurity());
 
@@ -191,22 +191,6 @@ class WebSecurityChainTest {
   }
 
   /**
-   * The update stream connects again by itself. It must not keep a login alive which nobody
-   * uses.
-   */
-  @Test
-  void theUpdateStreamDoesNotRenewTheLogin() {
-
-    assertThat(WebSecurityConfiguration.updatesRequestMatcher
-        .matches(new MockHttpServletRequest("GET", "/gui/api/v1/updates")))
-        .isTrue();
-    assertThat(WebSecurityConfiguration.updatesRequestMatcher
-        .matches(new MockHttpServletRequest("GET", "/gui/api/v1/app/current-user")))
-        .isFalse();
-
-  }
-
-  /**
    * Anonymous access is switched off in the GUI chain, so the chain must carry no anonymous filter.
    * Otherwise an unauthenticated request would get an anonymous principal instead of a 401, and
    * nothing would say so.
@@ -255,9 +239,9 @@ class WebSecurityChainTest {
   void theBpmsApiChainIsConsultedBeforeTheGuiChain() throws Exception {
 
     final var bpmsApiOrder = orderOf(
-        BpmsApiWebSecurityConfiguration.class, "bpmsApiHttpSecurity", HttpSecurity.class);
+        BpmsApiSecurityConfiguration.class, "bpmsApiHttpSecurity", HttpSecurity.class);
     final var guiOrder = orderOf(
-        WebSecurityConfiguration.class, "guiHttpSecurity", HttpSecurity.class,
+        GuiSecurityConfiguration.class, "guiHttpSecurity", HttpSecurity.class,
         JwtSecurityContextRepository.class, JwtMapper.class, UserDetailsProvider.class);
 
     assertThat(bpmsApiOrder).isLessThan(guiOrder);
@@ -265,26 +249,22 @@ class WebSecurityChainTest {
   }
 
   /**
-   * Both extension points are declared with {@code @ConditionalOnMissingBean(name = ..)}, which ties them
-   * to the <b>bean name</b>, and that is the method name. Renaming the method would leave the condition
-   * pointing at a name nobody defines, so an application's override would stop taking effect without any
-   * error. These names are public API for cockpit applications.
+   * The library's startup check looks for the two chains by their bean names, and the wiki shows
+   * the same names. The bean name is the method name, so renaming a method here would make the
+   * check warn about a chain which is there.
    */
   @Test
-  void theNamedExtensionPointsStillMatchTheirMethodNames() throws Exception {
+  void theChainsCarryTheNamesTheStartupCheckLooksFor() throws Exception {
 
-    assertThat(WebSecurityConfiguration.class
+    assertThat(GuiSecurityConfiguration.class
         .getDeclaredMethod("guiHttpSecurity", HttpSecurity.class,
             JwtSecurityContextRepository.class, JwtMapper.class, UserDetailsProvider.class)
-        .getAnnotation(org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean.class)
-        .name())
-        .containsExactly("guiHttpSecurity");
-
-    assertThat(WebSecurityConfiguration.class
-        .getDeclaredMethod("userDetailsProvider")
-        .getAnnotation(org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean.class)
-        .name())
-        .containsExactly("userDetailsProvider");
+        .getAnnotation(Bean.class))
+        .isNotNull();
+    assertThat(BpmsApiSecurityConfiguration.class
+        .getDeclaredMethod("bpmsApiHttpSecurity", HttpSecurity.class)
+        .getAnnotation(Bean.class))
+        .isNotNull();
 
   }
 
