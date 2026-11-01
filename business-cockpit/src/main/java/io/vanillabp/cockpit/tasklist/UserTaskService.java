@@ -123,7 +123,7 @@ public class UserTaskService {
       "comment", "bpmnProcessId", "bpmnProcessVersion", "workflowTitle", "workflowId",
       "businessId", "title", "bpmnTaskId", "taskDefinition", "taskDefinitionTitle", "uiUriType",
       "assignee", "candidateUsers", "candidateGroups", PROPERTY_DUEDATE, "followUpDate",
-      "detailsFulltextSearch");
+      "detailsFulltextSearch", "endReason");
 
   @Autowired
   private Logger logger;

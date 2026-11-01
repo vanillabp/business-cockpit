@@ -61,9 +61,9 @@ class WhatAnEndMayNotOverwriteTest {
         });
 
     final var workflowlistService = mock(WorkflowlistService.class);
-    when(workflowlistService.reportEndedWorkflow(anyString(), any(), any(), any()))
+    when(workflowlistService.reportEndedWorkflow(anyString(), any(), any(), any(), any()))
         .thenAnswer(invocation -> {
-          ((Consumer<Workflow>) invocation.getArgument(3)).accept(endedWorkflow);
+          ((Consumer<Workflow>) invocation.getArgument(4)).accept(endedWorkflow);
           return OutcomeOfStoring.upToDate();
         });
 

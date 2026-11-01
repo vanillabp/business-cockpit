@@ -184,8 +184,8 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
   private io.vanillabp.spi.cockpit.usertask.NotificationDelivery notificationDelivery;
 
   /**
-   * Why the task ended, and {@code null} while it is open. It lets the notification poller tell
-   * a completion from a cancellation.
+   * Why the task ended, and {@code null} while it is open. The notification poller and the GUI
+   * API read it.
    */
   private UserTaskEndReason endReason;
 

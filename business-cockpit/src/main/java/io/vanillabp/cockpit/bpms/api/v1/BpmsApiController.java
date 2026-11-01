@@ -12,6 +12,7 @@ import io.vanillabp.cockpit.bpms.PathAndBody;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.model.UserTaskEndReason;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
+import io.vanillabp.cockpit.workflowlist.model.WorkflowEndReason;
 import io.vanillabp.cockpit.workflowmodules.WorkflowModuleService;
 import jakarta.validation.Valid;
 
@@ -156,6 +157,7 @@ public class BpmsApiController implements BpmsApi {
         workflowlistService.reportEndedWorkflow(
             workflowId,
             workflowCancelledEvent.getTimestamp(),
+            WorkflowEndReason.CANCELLED,
             workflowCancelledEvent.getCreatedAt(),
             workflow -> workflow.setComment(workflowCancelledEvent.getComment())));
 
@@ -174,6 +176,7 @@ public class BpmsApiController implements BpmsApi {
         workflowlistService.reportEndedWorkflow(
             workflowId,
             workflowCompletedEvent.getTimestamp(),
+            WorkflowEndReason.COMPLETED,
             workflowCompletedEvent.getCreatedAt(),
             // version 1 reports nothing about a completed case but that it completed
             workflow -> {

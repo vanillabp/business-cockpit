@@ -3,8 +3,8 @@ package io.vanillabp.cockpit.tasklist.model;
 /**
  * Why a user task ended. {@code null} while the task is still open.
  * <p>
- * It was added so the notification poller can tell a completion from a cancellation by the
- * process. The entity otherwise records nothing but {@code endedAt}.
+ * The notification poller reads it to tell a completion from a cancellation by the process, and
+ * the GUI API shows it, so a list can show a cancelled task in its own way.
  */
 public enum UserTaskEndReason {
 

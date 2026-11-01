@@ -806,6 +806,14 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Person'
+    EndReason:
+      type: string
+      description: |
+        Why a user task or a case ended. It is missing as long as the user task or the case is
+        open.
+      enum:
+        - COMPLETED
+        - CANCELLED
     UiUriType:
       type: string
       description: >-
@@ -884,6 +892,8 @@ components:
           format: date-time
           description: The time the task was ended
           example: 2019-05-21T13:30:26.202Z
+        endReason:
+          $ref: '#/components/schemas/EndReason'
         workflowModuleId:
           type: string
           description: The workflow module of this usertask
@@ -1022,6 +1032,8 @@ components:
           format: date-time
           description: The time the task was ended
           example: 2019-05-21T13:30:26.202Z
+        endReason:
+          $ref: '#/components/schemas/EndReason'
         workflowModuleId:
           type: string
           description: The workflow module of this usertask

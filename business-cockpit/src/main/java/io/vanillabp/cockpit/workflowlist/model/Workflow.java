@@ -84,6 +84,9 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
 
   private OffsetDateTime endedAt;
 
+  /** Why the case ended, and {@code null} while it is running. */
+  private WorkflowEndReason endReason;
+
   private String source;
 
   private String workflowModuleId;
@@ -392,6 +395,25 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
   public void setEndedAt(
       OffsetDateTime endedAt) {
     this.endedAt = endedAt;
+  }
+
+  /**
+   * Why the workflow ended.
+   *
+   * @return The reason, or {@code null} while the workflow is open
+   */
+  public WorkflowEndReason getEndReason() {
+    return endReason;
+  }
+
+  /**
+   * Sets why the workflow ended.
+   *
+   * @param endReason The reason
+   */
+  public void setEndReason(
+      WorkflowEndReason endReason) {
+    this.endReason = endReason;
   }
 
   /**

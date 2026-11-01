@@ -49,6 +49,7 @@ import io.vanillabp.cockpit.util.SortIndexes;
 import io.vanillabp.cockpit.util.kwic.KwicResult;
 import io.vanillabp.cockpit.util.kwic.KwicService;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
+import io.vanillabp.cockpit.workflowlist.model.WorkflowEndReason;
 import io.vanillabp.cockpit.workflowlist.model.WorkflowRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -98,7 +99,7 @@ public class WorkflowlistService {
   public static final Set<String> FIELDS_OF_THE_LIST = Set.of(
       PROPERTY_ID, "version", "initiator", PROPERTY_CREATEDAT, "updatedAt", "endedAt",
       "workflowModuleId", "comment", "bpmnProcessId", "bpmnProcessVersion", "businessId", "title",
-      "uiUriType", "accessibleToUsers", "accessibleToGroups", "detailsFulltextSearch");
+      "uiUriType", "accessibleToUsers", "accessibleToGroups", "detailsFulltextSearch", "endReason");
 
   @Autowired
   private Logger logger;
@@ -193,6 +194,7 @@ public class WorkflowlistService {
     // cockpit itself has recorded about the case since the end arrived
     workflow.setVersion(stored.getVersion());
     workflow.setEndedAt(stored.getEndedAt());
+    workflow.setEndReason(stored.getEndReason());
     workflow.setComment(stored.getComment());
     workflow.setInitiator(stored.getInitiator());
     workflow.setLatestEventAt(stored.getLatestEventAt());
@@ -256,6 +258,7 @@ public class WorkflowlistService {
    *
    * @param workflowId The case the report is about
    * @param eventTimestamp When the case ended, by the workflow module's clock
+   * @param endReason Whether the case was completed or cancelled
    * @param reportedStart When the case was started, as the end reports it, or {@code null}
    *        where it does not. Read only where the end creates the case
    * @param ontoStored Lays the report onto the case the cockpit holds, or onto an empty one
@@ -265,6 +268,7 @@ public class WorkflowlistService {
   public OutcomeOfStoring reportEndedWorkflow(
       final String workflowId,
       final OffsetDateTime eventTimestamp,
+      final WorkflowEndReason endReason,
       final OffsetDateTime reportedStart,
       final Consumer<Workflow> ontoStored) {
 
@@ -277,7 +281,7 @@ public class WorkflowlistService {
       // the case began, the end is the earliest moment the cockpit knows of
       workflow.setCreatedAt(reportedStart != null ? reportedStart : eventTimestamp);
       workflow.setKnownFromItsEndAlone(true);
-      workflow.setEndedAt(eventTimestamp);
+      endWorkflow(workflow, eventTimestamp, endReason);
       return storeReportedWorkflow(workflow, eventTimestamp);
     }
 
@@ -290,8 +294,18 @@ public class WorkflowlistService {
       ontoStored.accept(stored);
       stored.setLatestEventAt(eventTimestamp);
     }
-    stored.setEndedAt(eventTimestamp);
+    endWorkflow(stored, eventTimestamp, endReason);
     return save(stored);
+
+  }
+
+  private static void endWorkflow(
+      final Workflow workflow,
+      final OffsetDateTime timestamp,
+      final WorkflowEndReason endReason) {
+
+    workflow.setEndedAt(timestamp);
+    workflow.setEndReason(endReason);
 
   }
 
