@@ -123,7 +123,8 @@ Die gebauten Dateien gehören unter `/static` oder `/assets`. Nur diese zwei Pr�
 Anmeldung erreichbar. Liegt dein Bundle woanders, verlangt der Server dafür eine Anmeldung, und der
 Browser lädt es nicht.
 
-Die Hülle benennt `application.spa-default-file`, standardmäßig `classpath:/static/index.html`.
+Die Hülle benennt `application.spa-default-file`. Die Bibliothek hat dafür keinen Wert, der
+`container` setzt `classpath:/static/index.html`. Ohne den Wert bekommt jeder unbekannte Pfad 404.
 Jeder Pfad, den kein Controller und keine Datei beantwortet, bekommt diese Datei statt eines
 Fehlers. Das ist es, was einen Link mitten in deine Anwendung funktionieren lässt.
 

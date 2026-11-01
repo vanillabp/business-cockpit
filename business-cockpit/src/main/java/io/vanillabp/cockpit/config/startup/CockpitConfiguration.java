@@ -141,6 +141,16 @@ public final class CockpitConfiguration {
   public static final String SMTP_ENABLED = "business-cockpit.notification.smtp.enabled";
 
   /**
+   * The language a notification is written in for a user who has none of their own.
+   */
+  public static final String DEFAULT_LOCALE = "business-cockpit.default-locale";
+
+  /**
+   * The shell of the single-page application, which an unknown path is answered with.
+   */
+  public static final String SPA_DEFAULT_FILE = "application.spa-default-file";
+
+  /**
    * The sender address of the notification emails.
    */
   public static final String SMTP_FROM = "business-cockpit.notification.smtp.from";

@@ -5,6 +5,7 @@ import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.APPLICATI
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.BPMS_API_PASSWORD;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.BPMS_API_REALM_NAME;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.BPMS_API_USERNAME;
+import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.DEFAULT_LOCALE;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.JWT_EXPIRES_DURATION;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.JWT_KEY;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.JWT_MAX_LOGIN_DURATION;
@@ -16,6 +17,7 @@ import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.MONGODB_H
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.MONGODB_URI;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.SMTP_ENABLED;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.SMTP_FROM;
+import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.SPA_DEFAULT_FILE;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.TITLE_LONG;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.TITLE_SHORT;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.WORKER_ID;
@@ -527,8 +529,20 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
           APPLICATION_VERSION, "The version the user interface displays, usually filled by the build.", "business-cockpit.application-version: \"@project.version@\""));
     }
 
-    // both only matter once notification e-mails are actually sent
+    if (CockpitConfiguration.isMissing(environment, SPA_DEFAULT_FILE)) {
+      missing.add(new MissingConfiguration(
+          SPA_DEFAULT_FILE, "The shell of the user interface, which a deep link like '/tasklist/4711' is "
+              + "answered with. Without it every path no API knows gets 404. An application without a "
+              + "user interface of its own can leave this warning as it is.", "application.spa-default-file: classpath:/static/index.html"));
+    }
+
+    // these only matter once notification e-mails are actually sent
     if (isSmtpNotificationEnabled(environment)) {
+      if (CockpitConfiguration.isMissing(environment, DEFAULT_LOCALE)) {
+        missing.add(new MissingConfiguration(
+            DEFAULT_LOCALE, "The language of a notification e-mail for a user who has none of their own. "
+                + "Without it such a user gets the template without a language in its name.", "business-cockpit.default-locale: en"));
+      }
       if (CockpitConfiguration.isMissing(environment, APPLICATION_URI)) {
         missing.add(new MissingConfiguration(
             APPLICATION_URI, "The URI this cockpit is reachable at. Notification e-mails link to their "

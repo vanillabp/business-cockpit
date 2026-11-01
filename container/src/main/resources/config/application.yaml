@@ -42,3 +42,14 @@ server:
 
 bpms-api:
   realm-name: BPMS-API
+
+application:
+  # the shell a deep link is answered with. The library names none, because only the
+  # application knows where its user interface is. This jar carries none, so a deep link gets 404
+  # until a user interface is put there.
+  spa-default-file: classpath:/static/index.html
+
+business-cockpit:
+  # the language of a notification e-mail for a user who has none of their own. The library has
+  # no value for it, because the language is the application's choice
+  default-locale: en

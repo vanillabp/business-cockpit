@@ -229,9 +229,9 @@ package of the cockpit is released with 0.9.0. If your application depends on `b
 it serves no user interface, and a path no API knows gets 404 instead of the single-page
 application.
 
-If your application brings a user interface of its own, nothing changes. Put its `index.html` at
-`classpath:/static/index.html`, or name it with `application.spa-default-file`, and unknown paths
-get it as before. Decisions 62 and 63 in [DECISIONS.md](./DECISIONS.md) have the details.
+If your application brings a user interface of its own, name its `index.html` with
+`application.spa-default-file`, for example `classpath:/static/index.html`, and unknown paths get it
+as before. The library has no value for the key any more, see "Two values are the application's" below. Decisions 62 and 63 in [DECISIONS.md](./DECISIONS.md) have the details.
 
 ### `OpenTasks` is gone
 
@@ -308,3 +308,18 @@ authority `ROLE_BPMS-API`.
 
 The users of the dev-shell simulator log in with `test` now, as they do at the cockpit. Before, it
 was `Secure_123`.
+
+### Two values are the application's
+
+The library has no value for `application.spa-default-file` and `business-cockpit.default-locale`
+any more. `container` sets both in its `application.yaml`.
+
+- `application.spa-default-file` was `classpath:/static/index.html`. Without it, every path no API
+  knows gets 404, and the log says so on every start. If your application has a user interface,
+  write the key.
+- `business-cockpit.default-locale` was German. `container` sets English now, so the delivered
+  application writes a mail in English to a user who has no language of their own. Without the
+  key, such a mail uses the template without a language in its name, and the log warns while
+  e-mail notifications are switched on. If your application relied on German, write
+  `business-cockpit.default-locale: de`.
+

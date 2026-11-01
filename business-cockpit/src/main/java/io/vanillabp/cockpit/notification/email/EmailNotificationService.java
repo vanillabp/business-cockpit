@@ -200,7 +200,9 @@ public class EmailNotificationService extends AbstractTemplatingNotificationServ
   /**
    * The locale a notification is rendered in for a recipient. It is the locale the user
    * prefers, and where the user has none, the application's default locale
-   * ({@code business-cockpit.default-locale}).
+   * ({@code business-cockpit.default-locale}). Without that, it is {@link Locale#ROOT}. Then the
+   * template without a language in its name is taken. FreeMarker would otherwise fall back to the
+   * locale of the machine, and the same mail would read differently on another server.
    */
   Locale resolveLocale(
       final User user) {
@@ -208,7 +210,8 @@ public class EmailNotificationService extends AbstractTemplatingNotificationServ
     if (user != null && user.getLocale() != null) {
       return user.getLocale();
     }
-    return applicationProperties.getDefaultLocale();
+    final var defaultLocale = applicationProperties.getDefaultLocale();
+    return defaultLocale != null ? defaultLocale : Locale.ROOT;
 
   }
 

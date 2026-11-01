@@ -47,7 +47,8 @@ class StartupConfigurationCheckTest {
       CockpitConfiguration.JWT_KEY, "0aH1oXQ4wZk5H0nB8mS1uQ8pQ0kZ1x2y3z4A5b6C7d8=",
       CockpitConfiguration.BPMS_API_REALM_NAME, "BPMS-API",
       CockpitConfiguration.BPMS_API_USERNAME, "bpms",
-      CockpitConfiguration.BPMS_API_PASSWORD, "{noop}secret");
+      CockpitConfiguration.BPMS_API_PASSWORD, "{noop}secret",
+      CockpitConfiguration.SPA_DEFAULT_FILE, "classpath:/static/index.html");
 
   private final StartupConfigurationCheck check = new StartupConfigurationCheck();
 
@@ -327,7 +328,9 @@ class StartupConfigurationCheckTest {
   void notificationValuesAreOnlyAskedForOnceNotificationIsSwitchedOn() {
 
     check.checkConfigurationOf(configurationWithout());
-    assertThat(warnings()).doesNotContain(CockpitConfiguration.APPLICATION_URI);
+    assertThat(warnings())
+        .doesNotContain(CockpitConfiguration.APPLICATION_URI)
+        .doesNotContain(CockpitConfiguration.DEFAULT_LOCALE);
 
     final var withNotification = configurationWithout();
     withNotification.withProperty(CockpitConfiguration.SMTP_ENABLED, "true");
@@ -335,7 +338,28 @@ class StartupConfigurationCheckTest {
 
     assertThat(warnings())
         .contains(CockpitConfiguration.APPLICATION_URI)
-        .contains(CockpitConfiguration.SMTP_FROM);
+        .contains(CockpitConfiguration.SMTP_FROM)
+        .contains("Example: "
+            + CockpitConfiguration.DEFAULT_LOCALE
+            + ": en");
+
+  }
+
+  /**
+   * The library has no shell of a user interface and no value for where one is. The application
+   * starts, and the warning says what to write if it brings one.
+   */
+  @Test
+  void aMissingShellOfTheUserInterfaceIsAWarning() {
+
+    check.checkConfigurationOf(configurationWithout(CockpitConfiguration.SPA_DEFAULT_FILE));
+
+    assertThat(warnings())
+        .contains(CockpitConfiguration.SPA_DEFAULT_FILE)
+        .contains("404")
+        .contains("Example: "
+            + CockpitConfiguration.SPA_DEFAULT_FILE
+            + ": classpath:/static/index.html");
 
   }
 

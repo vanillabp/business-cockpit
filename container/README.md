@@ -36,6 +36,9 @@ itself:
   `mongodb.write-concern: majority`, which a custom cockpit writes too.
   [The write concern](https://github.com/vanillabp/business-cockpit/wiki/Running-the-Business-Cockpit#the-write-concern)
   in the wiki says why, and what another value would cost.
+  They set two values the library has none for: `application.spa-default-file`, the shell a deep
+  link is answered with, and `business-cockpit.default-locale: en`, the language of a mail to a
+  user who has none of their own.
 * The five concrete GUI API controllers below `io/vanillabp/cockpit`, which implement the three
   abstract controllers of the library and decide which tasks, workflows and modules a user gets.
   The rule they apply is described in the wiki under
