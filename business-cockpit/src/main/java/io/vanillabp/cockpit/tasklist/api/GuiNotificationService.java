@@ -40,7 +40,7 @@ public class GuiNotificationService {
             notification.getSource().toString(), notification.getUserTaskId(), new UserTaskEvent()
                 .name("UserTask")
                 .id(notification.getUserTaskId())
-                .type(notification.getType().toString())));
+                .type(UserTaskEvent.TypeEnum.fromValue(notification.getType().name()))));
 
   }
 

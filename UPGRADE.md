@@ -323,3 +323,15 @@ any more. `container` sets both in its `application.yaml`.
   e-mail notifications are switched on. If your application relied on German, write
   `business-cockpit.default-locale: de`.
 
+### The update stream is in the OpenAPI file
+
+`GET /gui/api/v1/updates` is now described in the cockpit's own OpenAPI file,
+`business-cockpit/src/main/resources/api/gui/v1.yaml`, with its events and their data. The stream
+itself does not change.
+
+Two classes moved to another jar, in the same package `io.vanillabp.cockpit.gui.api.v1`.
+`UserTaskEvent` and `WorkflowEvent` are no longer in `official-gui-api-server`. They are in
+`business-cockpit` now, and their `type` is an enum instead of a string. A client generated from the
+official file alone no longer has them. Generate it from both files. `Person` and `Group` used to
+be in both jars. Now they are only in `official-gui-api-server`. `UserAllOf` is gone, nothing used
+it. The generator of the cockpit's file is now 7.24.0, the same as for the official file.

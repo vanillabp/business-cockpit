@@ -984,19 +984,6 @@ components:
           type: string
           format: date-time
           example: 2020-05-21T13:30:26.202Z
-    UserTaskEvent:
-      type: object
-      required:
-        - id
-        - name
-        - type
-      properties:
-        type:
-          type: string
-        name:
-          type: string
-        id:
-          type: string
     Workflow:
       type: object
       required:
@@ -1093,19 +1080,6 @@ components:
         detailsFulltextSearch:
           type: string
           description: List of words for fulltext searching details
-    WorkflowEvent:
-      type: object
-      required:
-        - id
-        - name
-        - type
-      properties:
-        type:
-          type: string
-        name:
-          type: string
-        id:
-          type: string
     Page:
       type: object
       required:
