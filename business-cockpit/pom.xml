@@ -255,11 +255,10 @@
       <plugin>
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
-        <version>6.4.0</version>
-        <!-- Still on 6.4.0, the version which once also generated the TypeScript client of the
-             webapp. Neither lives here any more, see decision 63 in the repository's DECISIONS.md,
-             so nothing holds this version back. The spring execution sets
-             useSpringBoot3, so it emits jakarta code. -->
+        <version>7.24.0</version>
+        <!-- The same version as apis/official-gui-api/server. 6.4.0 does not know x-internal, and the
+             update stream needs it: the stream is written by hand, and a generated interface for its
+             path would map the same request twice. -->
         <executions>
           <execution>
             <id>generate-gui-api</id>
@@ -274,6 +273,10 @@
               <modelPackage>io.vanillabp.cockpit.gui.api.v1</modelPackage>
               <generateSupportingFiles>true</generateSupportingFiles>
               <supportingFilesToGenerate>ApiUtil.java</supportingFilesToGenerate>
+              <!-- User points at Person and Group of the official file. Without these mappings the
+                   generator writes both a second time into the same package as
+                   official-gui-api-server, and two classes of one name end up on the class path -->
+              <schemaMappings>Group=io.vanillabp.cockpit.gui.api.v1.Group,Person=io.vanillabp.cockpit.gui.api.v1.Person</schemaMappings>
               <configOptions>
                 <sourceFolder>openapi</sourceFolder>
                 <useTags>true</useTags>
@@ -283,6 +286,13 @@
                 <enablePostProcessFile>true</enablePostProcessFile>
                 <useBeanValidation>false</useBeanValidation>
                 <disallowAdditionalPropertiesIfNotPresent>false</disallowAdditionalPropertiesIfNotPresent>
+                <!-- the next three options keep the generated code as 6.4.0 wrote it. 7.x
+                     snake-cases enum constants, fills optional containers with an empty
+                     collection, which would put "[]" on the wire, and annotates with
+                     org.springframework.lang.Nullable, which Spring Framework 7 marks for removal -->
+                <enumPropertyNaming>legacy</enumPropertyNaming>
+                <containerDefaultToNull>true</containerDefaultToNull>
+                <useJspecify>true</useJspecify>
               </configOptions>
               <addCompileSourceRoot>true</addCompileSourceRoot>
             </configuration>

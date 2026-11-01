@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Page;
 import io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Workflow;
@@ -251,6 +252,33 @@ public class WorkflowService {
           mapOnto.accept(workflowFound);
           workflows.save(workflowFound);
         });
+
+  }
+
+  /**
+   * Sets the note of one entry, or clears it where the text is empty. The simulator follows the
+   * cockpit: an ended entry keeps its note.
+   *
+   * @param workflowId The id
+   * @param text The text of the note, or {@code null}
+   * @return The entry as it is stored now, or {@code null} if there is none of that id
+   * @throws IllegalStateException if the entry has ended
+   */
+  public Workflow setNote(
+      final String workflowId,
+      final String text) {
+
+    final var found = workflows.findById(workflowId).orElse(null);
+    if (found == null) {
+      return null;
+    }
+    if (found.getEndedAt() != null) {
+      throw new IllegalStateException("'"
+          + workflowId
+          + "' has ended");
+    }
+    found.setNote(StringUtils.hasText(text) ? text : null);
+    return workflows.save(found);
 
   }
 

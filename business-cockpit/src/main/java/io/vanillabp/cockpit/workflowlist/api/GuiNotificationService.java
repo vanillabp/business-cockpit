@@ -40,7 +40,7 @@ public class GuiNotificationService {
             notification.getSource().toString(), notification.getWorkflowId(), new WorkflowEvent()
                 .name("Workflow")
                 .id(notification.getWorkflowId())
-                .type(notification.getType().toString())));
+                .type(WorkflowEvent.TypeEnum.fromValue(notification.getType().name()))));
 
   }
 

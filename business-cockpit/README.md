@@ -26,6 +26,24 @@ So a stereotype annotation alone does not make a bean here any more. A class add
 `io.vanillabp.cockpit.autoconfigure` says why it is written out rather than scanned, and
 `container/README.md` says why the delivered application cannot be the one to prove it works.
 
+## The cockpit's own part of the GUI API
+
+Most of the GUI API is in [`apis/official-gui-api`](../apis/official-gui-api/README.md), because the
+dev-shell simulator plays it as well. The rest is in `src/main/resources/api/gui/v1.yaml`: the
+information about the application, the current user and the update stream. The simulator has none
+of these. Its code is generated into the same package as the code of the official file. So
+`schemaMappings` in the POM points `Person` and `Group` at the classes of `official-gui-api-server`.
+Otherwise the generator writes them a second time, and two classes of one name end up on the class
+path.
+
+The file describes `GET /updates`, but nothing is generated for it. A generated interface cannot
+return a stream of events in a servlet application. So `LoginApiController` writes the stream by
+hand, and the operation carries `x-internal: true`. Without it the generator writes an
+`UpdatesApi`, which maps the same request a second time, and the cockpit does not start. A user
+interface reads the stream with the browser's `EventSource`, not with a generated client. The
+schemas of the events are generated as usual. `UpdateStreamIsInTheOpenApiFileTest` fails when the
+file no longer names the stream.
+
 ## The write concern the cockpit needs
 
 A write concern says when MongoDB counts a write as stored. The cockpit needs one which survives a

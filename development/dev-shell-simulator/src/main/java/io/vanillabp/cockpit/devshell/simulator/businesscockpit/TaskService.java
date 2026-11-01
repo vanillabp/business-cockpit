@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Page;
 import io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.UserTask;
@@ -320,6 +321,33 @@ public class TaskService {
           mapOnto.accept(userTaskFound);
           userTasks.save(userTaskFound);
         });
+
+  }
+
+  /**
+   * Sets the note of one entry, or clears it where the text is empty. The simulator follows the
+   * cockpit: an ended entry keeps its note.
+   *
+   * @param userTaskId The id
+   * @param text The text of the note, or {@code null}
+   * @return The entry as it is stored now, or {@code null} if there is none of that id
+   * @throws IllegalStateException if the entry has ended
+   */
+  public UserTask setNote(
+      final String userTaskId,
+      final String text) {
+
+    final var found = userTasks.findById(userTaskId).orElse(null);
+    if (found == null) {
+      return null;
+    }
+    if (found.getEndedAt() != null) {
+      throw new IllegalStateException("'"
+          + userTaskId
+          + "' has ended");
+    }
+    found.setNote(StringUtils.hasText(text) ? text : null);
+    return userTasks.save(found);
 
   }
 

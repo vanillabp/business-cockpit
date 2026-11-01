@@ -84,6 +84,9 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
 
   private OffsetDateTime endedAt;
 
+  /** Why the case ended, and {@code null} while it is running. */
+  private WorkflowEndReason endReason;
+
   private String source;
 
   private String workflowModuleId;
@@ -109,6 +112,13 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
   private Map<String, Object> details = null;
 
   private String detailsFulltextSearch;
+
+  /**
+   * The note the users keep about this entry. It belongs to the cockpit: no report of a workflow
+   * module carries or changes it, and it is written with an update of its own, see
+   * {@code NotesOfTheCockpit}.
+   */
+  private String note;
 
   /**
    * Creates an empty workflow. Used by Spring Data when it reads a document, and by the cockpit
@@ -395,6 +405,25 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
   }
 
   /**
+   * Why the workflow ended.
+   *
+   * @return The reason, or {@code null} while the workflow is open
+   */
+  public WorkflowEndReason getEndReason() {
+    return endReason;
+  }
+
+  /**
+   * Sets why the workflow ended.
+   *
+   * @param endReason The reason
+   */
+  public void setEndReason(
+      WorkflowEndReason endReason) {
+    this.endReason = endReason;
+  }
+
+  /**
    * The name of the system which sent the report.
    *
    * @return The name of the system
@@ -642,6 +671,25 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
   public void setAccessibleToUsers(
       List<Person> accessibleToUsers) {
     this.accessibleToUsers = accessibleToUsers;
+  }
+
+  /**
+   * The note the users keep about this workflow.
+   *
+   * @return The note, or {@code null} if there is none
+   */
+  public String getNote() {
+    return note;
+  }
+
+  /**
+   * Sets the note of this workflow.
+   *
+   * @param note The note, or {@code null} for none
+   */
+  public void setNote(
+      String note) {
+    this.note = note;
   }
 
 }

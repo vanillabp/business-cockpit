@@ -144,7 +144,7 @@ class ChangesetsRunOncePerDatabaseTest extends ItestBase {
         .isEqualTo(whatTheChangesetBeansOfTheApplicationAreCalled())
         .allSatisfy(id -> assertThat(id)
             .startsWith("io.vanillabp.cockpit.")
-            .containsPattern("\\.model\\.changesets\\.V00000[12]#"));
+            .containsPattern("\\.model\\.changesets\\.V\\d{6}#"));
 
   }
 

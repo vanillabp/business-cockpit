@@ -43,12 +43,14 @@ import io.vanillabp.cockpit.config.startup.CockpitConfiguration;
 import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
 import io.vanillabp.cockpit.config.startup.SortIndexLimit;
 import io.vanillabp.cockpit.util.ListPaths;
+import io.vanillabp.cockpit.util.NotesOfTheCockpit;
 import io.vanillabp.cockpit.util.SearchCriteriaHelper;
 import io.vanillabp.cockpit.util.SearchQuery;
 import io.vanillabp.cockpit.util.SortIndexes;
 import io.vanillabp.cockpit.util.kwic.KwicResult;
 import io.vanillabp.cockpit.util.kwic.KwicService;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
+import io.vanillabp.cockpit.workflowlist.model.WorkflowEndReason;
 import io.vanillabp.cockpit.workflowlist.model.WorkflowRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -98,7 +100,7 @@ public class WorkflowlistService {
   public static final Set<String> FIELDS_OF_THE_LIST = Set.of(
       PROPERTY_ID, "version", "initiator", PROPERTY_CREATEDAT, "updatedAt", "endedAt",
       "workflowModuleId", "comment", "bpmnProcessId", "bpmnProcessVersion", "businessId", "title",
-      "uiUriType", "accessibleToUsers", "accessibleToGroups", "detailsFulltextSearch");
+      "uiUriType", "accessibleToUsers", "accessibleToGroups", "detailsFulltextSearch", "endReason", "note");
 
   @Autowired
   private Logger logger;
@@ -193,8 +195,10 @@ public class WorkflowlistService {
     // cockpit itself has recorded about the case since the end arrived
     workflow.setVersion(stored.getVersion());
     workflow.setEndedAt(stored.getEndedAt());
+    workflow.setEndReason(stored.getEndReason());
     workflow.setComment(stored.getComment());
     workflow.setInitiator(stored.getInitiator());
+    workflow.setNote(stored.getNote());
     workflow.setLatestEventAt(stored.getLatestEventAt());
     // this report fills in what the end could not say about the case. Where the end did say
     // something, the end is younger and wins. One rule decides both cases
@@ -256,6 +260,7 @@ public class WorkflowlistService {
    *
    * @param workflowId The case the report is about
    * @param eventTimestamp When the case ended, by the workflow module's clock
+   * @param endReason Whether the case was completed or cancelled
    * @param reportedStart When the case was started, as the end reports it, or {@code null}
    *        where it does not. Read only where the end creates the case
    * @param ontoStored Lays the report onto the case the cockpit holds, or onto an empty one
@@ -265,6 +270,7 @@ public class WorkflowlistService {
   public OutcomeOfStoring reportEndedWorkflow(
       final String workflowId,
       final OffsetDateTime eventTimestamp,
+      final WorkflowEndReason endReason,
       final OffsetDateTime reportedStart,
       final Consumer<Workflow> ontoStored) {
 
@@ -277,7 +283,7 @@ public class WorkflowlistService {
       // the case began, the end is the earliest moment the cockpit knows of
       workflow.setCreatedAt(reportedStart != null ? reportedStart : eventTimestamp);
       workflow.setKnownFromItsEndAlone(true);
-      workflow.setEndedAt(eventTimestamp);
+      endWorkflow(workflow, eventTimestamp, endReason);
       return storeReportedWorkflow(workflow, eventTimestamp);
     }
 
@@ -290,8 +296,18 @@ public class WorkflowlistService {
       ontoStored.accept(stored);
       stored.setLatestEventAt(eventTimestamp);
     }
-    stored.setEndedAt(eventTimestamp);
+    endWorkflow(stored, eventTimestamp, endReason);
     return save(stored);
+
+  }
+
+  private static void endWorkflow(
+      final Workflow workflow,
+      final OffsetDateTime timestamp,
+      final WorkflowEndReason endReason) {
+
+    workflow.setEndedAt(timestamp);
+    workflow.setEndReason(endReason);
 
   }
 
@@ -384,6 +400,90 @@ public class WorkflowlistService {
             List.of(Criteria.where("id").is(workflowId)),
             null)),
         Workflow.class);
+
+  }
+
+  /**
+   * Sets the note of a case, or clears it where the text is empty. Everybody who may reach the
+   * case may change its note. An ended case is documentation, so its note stays as it is. The
+   * note is written by an update of its own, see {@link NotesOfTheCockpit}.
+   *
+   * @param visibility Which workflows the caller may reach
+   * @param currentUser The id of the user who writes the note
+   * @param workflowId The id of the workflow
+   * @param text The text of the note, or {@code null}
+   * @return The workflow as it is stored now, or {@code null} if the caller may not reach it
+   * @throws WorkflowAlreadyEndedException if the workflow has ended. Nothing is written then.
+   */
+  public Workflow setNote(
+      final WorkflowVisibility visibility,
+      final String currentUser,
+      final String workflowId,
+      final String text) {
+
+    final var workflow = getWorkflow(visibility, workflowId);
+    if (workflow == null) {
+      return null;
+    }
+    refuseIfEnded(workflow);
+
+    final var written = mongoTemplate.updateFirst(
+        new Query(Criteria.where("id").is(workflowId)).addCriteria(NotesOfTheCockpit.notEnded()),
+        NotesOfTheCockpit.setTo(text, currentUser),
+        Workflow.class);
+    // the workflow ended between the read above and this write
+    if (written.getMatchedCount() == 0) {
+      throw new WorkflowAlreadyEndedException(workflowId);
+    }
+
+    return getWorkflow(workflowId);
+
+  }
+
+  /**
+   * Sets the same note on several workflows, the same way as for one. Workflows the caller may
+   * not reach are left out.
+   *
+   * @param visibility Which workflows the caller may reach
+   * @param currentUser The id of the user who writes the note
+   * @param workflowIds The ids of the workflows
+   * @param text The text of the note, or {@code null}
+   * @throws WorkflowAlreadyEndedException if one of the workflows the caller may reach has
+   *         ended. None of them is changed then.
+   */
+  public void setNote(
+      final WorkflowVisibility visibility,
+      final String currentUser,
+      final Collection<String> workflowIds,
+      final String text) {
+
+    final var found = mongoTemplate.find(
+        new Query(buildWorkflowlistCriteria(
+            visibility,
+            null,
+            RetrieveItemsMode.All,
+            List.of(Criteria.where("id").in(workflowIds)),
+            null)),
+        Workflow.class);
+    found.forEach(WorkflowlistService::refuseIfEnded);
+    if (found.isEmpty()) {
+      return;
+    }
+
+    mongoTemplate.updateMulti(
+        new Query(Criteria.where("id").in(found.stream().map(Workflow::getId).toList()))
+            .addCriteria(NotesOfTheCockpit.notEnded()),
+        NotesOfTheCockpit.setTo(text, currentUser),
+        Workflow.class);
+
+  }
+
+  private static void refuseIfEnded(
+      final Workflow workflow) {
+
+    if (workflow.getEndedAt() != null) {
+      throw new WorkflowAlreadyEndedException(workflow.getId());
+    }
 
   }
 

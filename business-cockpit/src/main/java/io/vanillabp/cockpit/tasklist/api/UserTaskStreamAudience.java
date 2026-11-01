@@ -30,9 +30,6 @@ public class UserTaskStreamAudience implements UpdateStreamAudience {
   /** The kind of entity this audience decides about, as the update streams name it. */
   public static final String KIND_OF_ENTITY = "UserTask";
 
-  /** The type of the wake-up call which makes a task list load everything it shows again. */
-  public static final String RELOAD = "RELOAD";
-
   private final MongoTemplate mongoTemplate;
 
   /**
@@ -115,7 +112,7 @@ public class UserTaskStreamAudience implements UpdateStreamAudience {
         KIND_OF_ENTITY, null, new UserTaskEvent()
             .name(KIND_OF_ENTITY)
             .id("")
-            .type(RELOAD));
+            .type(UserTaskEvent.TypeEnum.RELOAD));
 
   }
 

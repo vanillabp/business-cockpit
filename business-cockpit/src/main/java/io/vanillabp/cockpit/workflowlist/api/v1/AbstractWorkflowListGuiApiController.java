@@ -7,6 +7,7 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 
@@ -16,6 +17,7 @@ import io.vanillabp.cockpit.gui.api.v1.Count;
 import io.vanillabp.cockpit.gui.api.v1.Counts;
 import io.vanillabp.cockpit.gui.api.v1.KwicRequest;
 import io.vanillabp.cockpit.gui.api.v1.KwicResults;
+import io.vanillabp.cockpit.gui.api.v1.NoteRequest;
 import io.vanillabp.cockpit.gui.api.v1.OfficialWorkflowlistApi;
 import io.vanillabp.cockpit.gui.api.v1.UpdateStreams;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
@@ -23,12 +25,14 @@ import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowCountFilter;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowCountsRequest;
 import io.vanillabp.cockpit.gui.api.v1.Workflows;
+import io.vanillabp.cockpit.gui.api.v1.WorkflowsNoteRequest;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowsRequest;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowsUpdateRequest;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.util.CountKeys;
 import io.vanillabp.cockpit.util.ListPaging;
 import io.vanillabp.cockpit.util.SearchQuery;
+import io.vanillabp.cockpit.workflowlist.WorkflowAlreadyEndedException;
 import io.vanillabp.cockpit.workflowlist.WorkflowVisibility;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowlist.api.WorkflowStreamAudience;
@@ -333,6 +337,48 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
     return workflow == null
         ? ResponseEntity.notFound().build()
         : ResponseEntity.ok(mapper.toApi(workflow));
+
+  }
+
+  @Override
+  public ResponseEntity<io.vanillabp.cockpit.gui.api.v1.Workflow> setWorkflowNote(
+      final String workflowId,
+      final NoteRequest noteRequest) {
+
+    final var currentUser = userContext.getUserLoggedInDetails();
+    final var text = noteRequest == null ? null : noteRequest.getText();
+
+    final Workflow workflow;
+    try {
+      workflow = workflowlistService.setNote(
+          workflowsVisibleTo(currentUser), currentUser.getId(), workflowId, text);
+    } catch (WorkflowAlreadyEndedException e) {
+      return ResponseEntity.status(HttpStatus.CONFLICT).build();
+    }
+
+    return workflow == null
+        ? ResponseEntity.notFound().build()
+        : ResponseEntity.ok(mapper.toApi(workflow));
+
+  }
+
+  @Override
+  public ResponseEntity<Void> setWorkflowsNote(
+      final WorkflowsNoteRequest workflowsNoteRequest) {
+
+    final var currentUser = userContext.getUserLoggedInDetails();
+
+    try {
+      workflowlistService.setNote(
+          workflowsVisibleTo(currentUser),
+          currentUser.getId(),
+          workflowsNoteRequest.getWorkflowIds(),
+          workflowsNoteRequest.getText());
+    } catch (WorkflowAlreadyEndedException e) {
+      return ResponseEntity.status(HttpStatus.CONFLICT).build();
+    }
+
+    return ResponseEntity.ok().build();
 
   }
 

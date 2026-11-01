@@ -187,7 +187,10 @@ class AnUpgradeRepeatsNoChangesetTest {
       WORKFLOWS
           + "startWhatIsKnownFromItsEndAlone",
       "io.vanillabp.cockpit.workflowlist.model.changesets.V000002#indexTheVisibilityOfAWorkflow",
-      "io.vanillabp.cockpit.workflowmodules.model.changesets.V000002#correctTheRollbackOfTheWorkflowModuleCollection");
+      "io.vanillabp.cockpit.workflowmodules.model.changesets.V000002#correctTheRollbackOfTheWorkflowModuleCollection",
+      "io.vanillabp.cockpit.tasklist.model.changesets.V000003#giveEveryEndedTaskItsReason",
+      "io.vanillabp.cockpit.workflowlist.model.changesets.V000003#giveEveryEndedCaseItsReason",
+      "io.vanillabp.cockpit.workflowlist.model.changesets.V000003#indexTheNote");
 
   enum Release {
 

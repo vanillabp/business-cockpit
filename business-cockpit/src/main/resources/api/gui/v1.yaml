@@ -43,6 +43,64 @@ paths:
                 $ref: '#/components/schemas/User'
         404:
           description: No user logged in
+  /updates:
+    get:
+      tags:
+        - updates
+      summary: the update stream of one browser tab
+      operationId: getUpdates
+      # The stream is written by hand, in LoginApiController, because a generated interface cannot
+      # return a stream of events. x-internal keeps the generator from writing an interface for the
+      # path, which would map the same request a second time and stop the cockpit from starting.
+      x-internal: true
+      description: |
+        A stream of server-sent events (`text/event-stream`). Each browser tab opens one stream.
+        A user interface reads it with the browser's `EventSource`, not with a client generated
+        from this file.
+
+        An event is a wake-up call and carries no data of the entity. It says which kind of entity
+        changed, its id and what happened. The user interface then asks the list or the entity
+        again, through the usual endpoints. The stream only tells about entities the person may
+        see, or about entities the browser of this tab still shows.
+
+        There are three names of events. Each event has a new UUID as its `id`.
+
+        - `UserTask`: the data is a JSON array of `UserTaskUpdate`.
+        - `Workflow`: the data is a JSON array of `WorkflowUpdate`.
+        - `ping`: the data is a `PingEvent`. The first ping comes about 300 milliseconds after the
+          stream was opened, then one every 27 seconds. It keeps an idle connection open.
+
+        The JSON is indented, so the data of one event spans several `data:` lines. The cockpit
+        collects changes and writes them out every half second at most, with at most 100
+        elements in one event. Both can be configured below `business-cockpit.gui-sse`.
+
+        An element whose `type` is `RELOAD` has an empty `id`. It means: load every list of this
+        kind again. The cockpit sends it right after the stream was opened, because the browser
+        may show lists the new stream does not know about. It sends it again when the stream had
+        to forget ids the browser may still show.
+
+        The stream ends when the sign-in expires and when the cockpit shuts down. The browser's
+        `EventSource` then opens a new one.
+      x-event-types:
+        UserTask:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserTaskUpdate'
+        Workflow:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowUpdate'
+        ping:
+          $ref: '#/components/schemas/PingEvent'
+      responses:
+        200:
+          description: The stream. It stays open, see the description of the operation.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        401:
+          description: Nobody is signed in
 components:
   schemas:
     AppInformation:
@@ -99,11 +157,93 @@ components:
                 $ref: '../../../../../../apis/official-gui-api/openapi/v1.yaml/#/components/schemas/Group'
     PingEvent:
       type: object
-      required:
-        - id
-        - name
+      description: |
+        The data of the event `ping`. It only shows that the stream is alive. The cockpit sends it
+        as an empty object today, `{ }`.
       properties:
         id:
           type: string
         name:
           type: string
+    UserTaskUpdate:
+      type: object
+      description: One element of the data of the event `UserTask`.
+      required:
+        - event
+        - source
+        - timestamp
+      properties:
+        event:
+          $ref: '#/components/schemas/UserTaskEvent'
+        source:
+          type: string
+          description: The name of the event, `UserTask`
+        timestamp:
+          type: integer
+          format: int64
+          description: When the cockpit noticed the change, in milliseconds since 1970-01-01 UTC
+    UserTaskEvent:
+      type: object
+      description: What happened to one user task.
+      required:
+        - id
+        - name
+        - type
+      properties:
+        type:
+          type: string
+          description: |
+            What happened. `FOLLOWUP` says that the follow-up date of the task was reached.
+            `RELOAD` is not about one task, see the update stream.
+          enum:
+            - INSERT
+            - UPDATE
+            - DELETE
+            - FOLLOWUP
+            - RELOAD
+        name:
+          type: string
+          description: The name of the event, `UserTask`
+        id:
+          type: string
+          description: The id of the user task, or empty for `RELOAD`
+    WorkflowUpdate:
+      type: object
+      description: One element of the data of the event `Workflow`.
+      required:
+        - event
+        - source
+        - timestamp
+      properties:
+        event:
+          $ref: '#/components/schemas/WorkflowEvent'
+        source:
+          type: string
+          description: The name of the event, `Workflow`
+        timestamp:
+          type: integer
+          format: int64
+          description: When the cockpit noticed the change, in milliseconds since 1970-01-01 UTC
+    WorkflowEvent:
+      type: object
+      description: What happened to one case.
+      required:
+        - id
+        - name
+        - type
+      properties:
+        type:
+          type: string
+          description: |
+            What happened. `RELOAD` is not about one case, see the update stream.
+          enum:
+            - INSERT
+            - UPDATE
+            - DELETE
+            - RELOAD
+        name:
+          type: string
+          description: The name of the event, `Workflow`
+        id:
+          type: string
+          description: The id of the case, or empty for `RELOAD`

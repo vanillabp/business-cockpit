@@ -8,10 +8,13 @@ import java.util.Map;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import io.vanillabp.cockpit.gui.api.v1.EndReason;
 import io.vanillabp.cockpit.gui.api.v1.Group;
 import io.vanillabp.cockpit.gui.api.v1.Person;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -51,11 +54,20 @@ public class UserTask {
   @Column(name = "ENDED_AT", columnDefinition = "TIMESTAMP WITH TIME ZONE")
   private OffsetDateTime endedAt;
 
+  /** Why it ended, set by the report of the end. The cockpit keeps it the same way. */
+  @Enumerated(EnumType.STRING)
+  @Column(name = "END_REASON")
+  private EndReason endReason;
+
   @Column(name = "WORKFLOW_MODULE_ID")
   private String workflowModuleId;
 
   @Column(name = "COMMENT")
   private String comment;
+
+  /** The note the users keep. No report of the BPMS changes it. */
+  @Column(name = "NOTE")
+  private String note;
 
   @Column(name = "BPMN_PROCESS_ID")
   private String bpmnProcessId;

@@ -56,6 +56,7 @@ import io.vanillabp.cockpit.tasklist.model.UserTaskEndReason;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.util.ListPaths;
+import io.vanillabp.cockpit.util.NotesOfTheCockpit;
 import io.vanillabp.cockpit.util.SearchCriteriaHelper;
 import io.vanillabp.cockpit.util.SearchQuery;
 import io.vanillabp.cockpit.util.SortIndexes;
@@ -123,7 +124,7 @@ public class UserTaskService {
       "comment", "bpmnProcessId", "bpmnProcessVersion", "workflowTitle", "workflowId",
       "businessId", "title", "bpmnTaskId", "taskDefinition", "taskDefinitionTitle", "uiUriType",
       "assignee", "candidateUsers", "candidateGroups", PROPERTY_DUEDATE, "followUpDate",
-      "detailsFulltextSearch");
+      "detailsFulltextSearch", "endReason", "note");
 
   @Autowired
   private Logger logger;
@@ -665,6 +666,74 @@ public class UserTaskService {
   }
 
   /**
+   * Sets the note of a task, or clears it where the text is empty. Everybody who may reach the
+   * task may change its note. The note is written by an update of its own, see
+   * {@link NotesOfTheCockpit}.
+   *
+   * @param visibility Which tasks the caller may reach
+   * @param currentUser The id of the user who writes the note
+   * @param userTaskId The id of the task
+   * @param text The text of the note, or {@code null}
+   * @return The task as it is stored now, or {@code null} if the caller may not reach it
+   * @throws UserTaskAlreadyCompletedException if the task has ended. Nothing is written then.
+   */
+  public UserTask setNote(
+      final UserTaskVisibility visibility,
+      final String currentUser,
+      final String userTaskId,
+      final String text) {
+
+    final var userTask = getUserTask(visibility, userTaskId);
+    if (userTask == null) {
+      return null;
+    }
+    refuseIfEnded(userTask);
+
+    final var written = mongoTemplate.updateFirst(
+        new Query(Criteria.where("id").is(userTaskId)).addCriteria(NotesOfTheCockpit.notEnded()),
+        NotesOfTheCockpit.setTo(text, currentUser),
+        UserTask.class);
+    // the task ended between the read above and this write
+    if (written.getMatchedCount() == 0) {
+      throw new UserTaskAlreadyCompletedException(userTaskId);
+    }
+
+    return getUserTask(userTaskId);
+
+  }
+
+  /**
+   * Sets the same note on several tasks, the same way as for one task. Tasks the caller may not
+   * reach are left out.
+   *
+   * @param visibility Which tasks the caller may reach
+   * @param currentUser The id of the user who writes the note
+   * @param userTaskIds The ids of the tasks
+   * @param text The text of the note, or {@code null}
+   * @throws UserTaskAlreadyCompletedException if one of the tasks the caller may reach has ended.
+   *         None of the tasks is changed then.
+   */
+  public void setNote(
+      final UserTaskVisibility visibility,
+      final String currentUser,
+      final Collection<String> userTaskIds,
+      final String text) {
+
+    final var found = getUserTasks(visibility, userTaskIds);
+    found.forEach(this::refuseIfEnded);
+    if (found.isEmpty()) {
+      return;
+    }
+
+    mongoTemplate.updateMulti(
+        new Query(Criteria.where("id").in(found.stream().map(UserTask::getId).toList()))
+            .addCriteria(NotesOfTheCockpit.notEnded()),
+        NotesOfTheCockpit.setTo(text, currentUser),
+        UserTask.class);
+
+  }
+
+  /**
    * An ended task is documentation of how it was completed. Who worked on it, who was proposed
    * and when it was due stay as they were at the end. Only the read marker of a user may still
    * change, because it changes nothing but how the list shows the row.
@@ -1068,6 +1137,7 @@ public class UserTaskService {
     task.setComment(stored.getComment());
     task.setInitiator(stored.getInitiator());
     task.setReadBy(stored.getReadBy());
+    task.setNote(stored.getNote());
     task.setLatestEventAt(stored.getLatestEventAt());
     // this report fills in what the end could not say about the task. Where the end did say
     // something, the end is younger and wins. One rule decides both cases

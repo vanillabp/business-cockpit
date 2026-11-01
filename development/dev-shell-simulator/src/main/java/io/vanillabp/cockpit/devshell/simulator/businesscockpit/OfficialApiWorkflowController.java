@@ -5,18 +5,21 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.vanillabp.cockpit.gui.api.v1.Count;
 import io.vanillabp.cockpit.gui.api.v1.Counts;
+import io.vanillabp.cockpit.gui.api.v1.NoteRequest;
 import io.vanillabp.cockpit.gui.api.v1.OfficialWorkflowlistApi;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import io.vanillabp.cockpit.gui.api.v1.Workflow;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowCountsRequest;
 import io.vanillabp.cockpit.gui.api.v1.Workflows;
+import io.vanillabp.cockpit.gui.api.v1.WorkflowsNoteRequest;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowsRequest;
 
 /**
@@ -143,6 +146,47 @@ public class OfficialApiWorkflowController implements OfficialWorkflowlistApi {
     return ResponseEntity.ok(new Counts()
         .serverTimestamp(initialTimestamp != null ? initialTimestamp : OffsetDateTime.now())
         .counts(counts));
+
+  }
+
+  /**
+   * Sets the note of a workflow the way the cockpit does: 404 for an unknown workflow and 409 for
+   * an ended one.
+   */
+  @Override
+  public ResponseEntity<Workflow> setWorkflowNote(
+      final String workflowId,
+      final NoteRequest noteRequest) {
+
+    try {
+      final var workflow = workflowService.setNote(
+          workflowId, noteRequest == null ? null : noteRequest.getText());
+      return workflow == null
+          ? ResponseEntity.notFound().build()
+          : ResponseEntity.ok(mapper.toApi(workflow));
+    } catch (IllegalStateException e) {
+      return ResponseEntity.status(HttpStatus.CONFLICT).build();
+    }
+
+  }
+
+  /**
+   * Sets the same note on several workflows. Unlike the cockpit, the simulator changes the
+   * running workflows before it meets an ended one, which is good enough for a developer's
+   * machine.
+   */
+  @Override
+  public ResponseEntity<Void> setWorkflowsNote(
+      final WorkflowsNoteRequest workflowsNoteRequest) {
+
+    try {
+      workflowsNoteRequest
+          .getWorkflowIds()
+          .forEach(workflowId -> workflowService.setNote(workflowId, workflowsNoteRequest.getText()));
+      return ResponseEntity.ok().build();
+    } catch (IllegalStateException e) {
+      return ResponseEntity.status(HttpStatus.CONFLICT).build();
+    }
 
   }
 

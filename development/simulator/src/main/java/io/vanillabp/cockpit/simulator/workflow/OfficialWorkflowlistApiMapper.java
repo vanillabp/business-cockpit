@@ -29,6 +29,8 @@ public abstract class OfficialWorkflowlistApiMapper {
   @Mapping(target = "createdAt", expression = "java(java.time.OffsetDateTime.now())")
   @Mapping(target = "updatedAt", expression = "java(java.time.OffsetDateTime.now())")
   @Mapping(target = "endedAt", ignore = true)
+  @Mapping(target = "endReason", ignore = true)
+  @Mapping(target = "note", ignore = true)
   @Mapping(target = "version", constant = "1")
   @Mapping(target = "uiUri", expression = "java(proxiedUiUri(event))")
   @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(event))")

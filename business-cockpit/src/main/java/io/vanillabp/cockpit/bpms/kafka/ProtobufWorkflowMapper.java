@@ -85,6 +85,8 @@ public abstract class ProtobufWorkflowMapper {
   @Mapping(target = "updatedAt", source = "timestamp")
   @Mapping(target = "updatedBy", source = "initiator")
   @Mapping(target = "endedAt", ignore = true)
+  @Mapping(target = "note", ignore = true)
+  @Mapping(target = "endReason", ignore = true)
   @Mapping(target = "dangling", ignore = true)
   @Mapping(target = "targetGroups", ignore = true)
   @Mapping(target = "initiator", source = "initiator", qualifiedByName = PERSON_MAPPING)
@@ -117,6 +119,8 @@ public abstract class ProtobufWorkflowMapper {
   @Mapping(target = "updatedAt", source = "timestamp")
   @Mapping(target = "updatedBy", source = "initiator")
   @Mapping(target = "endedAt", ignore = true)
+  @Mapping(target = "note", ignore = true)
+  @Mapping(target = "endReason", ignore = true)
   @Mapping(target = "dangling", ignore = true)
   @Mapping(target = "targetGroups", ignore = true)
   @Mapping(target = "initiator", source = "initiator", qualifiedByName = PERSON_MAPPING)
@@ -159,6 +163,8 @@ public abstract class ProtobufWorkflowMapper {
   @Mapping(target = "updatedBy", source = "initiator")
   // the service sets this one, because an end means more to it than the event says
   @Mapping(target = "endedAt", ignore = true)
+  @Mapping(target = "note", ignore = true)
+  @Mapping(target = "endReason", ignore = true)
   // read from the users and groups the case is accessible to whenever they are asked for:
   @Mapping(target = "dangling", ignore = true)
   @Mapping(target = "targetGroups", ignore = true)

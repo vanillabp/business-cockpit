@@ -174,6 +174,13 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
 
   private String detailsFulltextSearch;
 
+  /**
+   * The note the users keep about this entry. It belongs to the cockpit: no report of a workflow
+   * module carries or changes it, and it is written with an update of its own, see
+   * {@code NotesOfTheCockpit}.
+   */
+  private String note;
+
   private List<ReadBy> readBy;
 
   /**
@@ -184,8 +191,8 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
   private io.vanillabp.spi.cockpit.usertask.NotificationDelivery notificationDelivery;
 
   /**
-   * Why the task ended, and {@code null} while it is open. It lets the notification poller tell
-   * a completion from a cancellation.
+   * Why the task ended, and {@code null} while it is open. The notification poller and the GUI
+   * API read it.
    */
   private UserTaskEndReason endReason;
 
@@ -1211,6 +1218,25 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
   public void setForced(
       boolean forced) {
     this.forced = forced;
+  }
+
+  /**
+   * The note the users keep about this task.
+   *
+   * @return The note, or {@code null} if there is none
+   */
+  public String getNote() {
+    return note;
+  }
+
+  /**
+   * Sets the note of this task.
+   *
+   * @param note The note, or {@code null} for none
+   */
+  public void setNote(
+      String note) {
+    this.note = note;
   }
 
 }
