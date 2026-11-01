@@ -111,24 +111,9 @@ public class EmailNotificationService extends AbstractTemplatingNotificationServ
       final String userId,
       final Map<String, String> configurationValues) {
 
-    final var user = userRepository
-        .findById(userId)
-        .orElseGet(() -> {
-          final var created = new User();
-          created.setId(userId);
-          return created;
-        });
-
-    var recipientConfigurations = user.getRecipientConfigurations();
-    if (recipientConfigurations == null) {
-      recipientConfigurations = new HashMap<>();
-      user.setRecipientConfigurations(recipientConfigurations);
-    }
-    recipientConfigurations.put(
-        TYPE,
-        configurationValues == null ? new HashMap<>() : new HashMap<>(configurationValues));
-
-    userRepository.save(user);
+    // one atomic update of this medium's entry, so a setting written at the same time is no
+    // conflict
+    userRepository.writeRecipientConfiguration(userId, TYPE, configurationValues);
 
   }
 

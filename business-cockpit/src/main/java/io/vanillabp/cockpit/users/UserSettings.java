@@ -27,9 +27,9 @@ import io.vanillabp.cockpit.users.model.User;
  * none yet. Reading the whole document, changing it and saving it again would let two tabs
  * overwrite each other, and the notification configuration with them.
  * <p>
- * The write also raises {@code version}. The notification configuration is still saved as a
- * whole document. If such a save read the document before a setting was written, the version
- * check refuses it, so it cannot wipe out the new setting.
+ * The write also raises {@code version}, as every write of one part of the user's document does
+ * (see {@code UserDocumentWrites}). A save of the whole document which read it before a setting
+ * was written then fails the version check, so it cannot wipe out the new setting.
  */
 @Component
 public class UserSettings {
@@ -139,9 +139,10 @@ public class UserSettings {
 
   /**
    * MongoDB stores a key with a dot, or one which starts with {@code $}, when it comes in by an
-   * update. But the notification configuration is saved as a whole document, through the mapping
-   * of Spring Data, and that mapping refuses such a key in a map. One such key in a setting would
-   * break every later save of the notification configuration, so it is refused here.
+   * update. But the mapping of Spring Data refuses a key with a dot in a map when it writes a whole
+   * document. No code saves the user's document whole: each part of it is written by an update of
+   * its own. The rule keeps a save of the whole document possible, because one such key in a
+   * setting would make every such save of this user's document fail.
    *
    * @param value A value as Jackson read it: maps, lists and plain values
    * @return The first key which cannot be taken, if there is one

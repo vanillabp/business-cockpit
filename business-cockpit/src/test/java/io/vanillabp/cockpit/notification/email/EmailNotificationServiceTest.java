@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -38,6 +40,8 @@ class EmailNotificationServiceTest {
 
   private ApplicationProperties applicationProperties;
 
+  private UserRepository userRepository;
+
   @BeforeEach
   void setUp() {
     greenMail = new GreenMail(ServerSetupTest.SMTP);
@@ -51,9 +55,8 @@ class EmailNotificationServiceTest {
     user.setId("u1");
     user.setEmail("u1@example.org");
     user.setLocale(java.util.Locale.ENGLISH); // template builds English URL paths (/task, /tasks)
-    final var userRepository = mock(UserRepository.class);
+    userRepository = mock(UserRepository.class);
     when(userRepository.findById("u1")).thenReturn(java.util.Optional.of(user));
-    when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
     applicationProperties = new ApplicationProperties();
     applicationProperties.setApplicationUri("http://cockpit.example.org/");
@@ -119,6 +122,18 @@ class EmailNotificationServiceTest {
     final var withLocale = new User();
     withLocale.setLocale(java.util.Locale.FRENCH);
     assertEquals(java.util.Locale.FRENCH, service.resolveLocale(withLocale));
+  }
+
+  /**
+   * The address is written as one atomic update of the e-mail entry, so a setting of the user
+   * interface written at the same time is no conflict.
+   */
+  @Test
+  void saveRecipientConfiguration_writesTheEntryOfTheMediumOnly() {
+    service.saveRecipientConfiguration("u1", Map.of("emailAddress", "u1@example.com"));
+
+    verify(userRepository).writeRecipientConfiguration("u1", "email", Map.of("emailAddress", "u1@example.com"));
+    verify(userRepository, never()).save(any());
   }
 
 }
