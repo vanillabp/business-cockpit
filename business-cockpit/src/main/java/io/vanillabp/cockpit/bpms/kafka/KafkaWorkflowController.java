@@ -218,7 +218,7 @@ public class KafkaWorkflowController {
     final var outcome = workflowlistService.reportSuspendedWorkflow(
         workflowSuspended.getWorkflowId(),
         ProtobufHelper.map(workflowSuspended.getTimestamp()),
-        workflowSuspended.hasSuspendedBy() ? workflowSuspended.getSuspendedBy() : null);
+        workflowSuspended.hasInitiator() ? workflowSuspended.getInitiator() : null);
     RepeatUntilStored.storedOrThrow(outcome);
 
   }
@@ -230,7 +230,7 @@ public class KafkaWorkflowController {
     final var outcome = workflowlistService.reportActivatedWorkflow(
         workflowActivated.getWorkflowId(),
         ProtobufHelper.map(workflowActivated.getTimestamp()),
-        workflowActivated.hasSuspendedBy() ? workflowActivated.getSuspendedBy() : null);
+        workflowActivated.hasInitiator() ? workflowActivated.getInitiator() : null);
     RepeatUntilStored.storedOrThrow(outcome);
 
   }

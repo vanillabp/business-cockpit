@@ -42,7 +42,7 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * activated again.
  * <p>
  * A suspended user task or case stays in every list and carries the moment of the suspension and
- * the person who suspended it. Only the reports of a suspension and an activation change that: a
+ * the person who suspended it, the initiator of the report. Only the reports of a suspension and an activation change that: a
  * creation, a change or an end leaves it as it is. The reports overtake each other like all
  * reports, so the cockpit orders them by their timestamps.
  * Every test drives the REST way in of the current API version, and one drives version 1, which
@@ -239,7 +239,7 @@ class SuspendedAndActivatedTest {
             + timestamp)
         .userTaskId("task-1")
         .timestamp(timestamp)
-        .suspendedBy(OPERATOR);
+        .initiator(OPERATOR);
 
   }
 
@@ -251,7 +251,7 @@ class SuspendedAndActivatedTest {
             + timestamp)
         .userTaskId("task-1")
         .timestamp(timestamp)
-        .suspendedBy(SUPERVISOR);
+        .initiator(SUPERVISOR);
 
   }
 
@@ -323,7 +323,7 @@ class SuspendedAndActivatedTest {
             + timestamp)
         .workflowId("workflow-1")
         .timestamp(timestamp)
-        .suspendedBy(OPERATOR);
+        .initiator(OPERATOR);
 
   }
 
@@ -335,7 +335,7 @@ class SuspendedAndActivatedTest {
             + timestamp)
         .workflowId("workflow-1")
         .timestamp(timestamp)
-        .suspendedBy(SUPERVISOR);
+        .initiator(SUPERVISOR);
 
   }
 
@@ -382,7 +382,7 @@ class SuspendedAndActivatedTest {
       api.userTaskSuspendedEvent("task-1", taskSuspended(SUSPENDED_AT));
       // a second node of the application reports the same suspension
       api.userTaskSuspendedEvent("task-1", taskSuspended(SUSPENDED_AT));
-      api.userTaskSuspendedEvent("task-1", taskSuspended(SUSPENDED_AGAIN_AT).suspendedBy("otto"));
+      api.userTaskSuspendedEvent("task-1", taskSuspended(SUSPENDED_AGAIN_AT).initiator("otto"));
     });
 
     assertEquals(SUSPENDED_AT, cockpit.storedTask().getSuspendedAt());
@@ -569,10 +569,11 @@ class SuspendedAndActivatedTest {
         new io.vanillabp.cockpit.bpms.api.v1.UserTaskSuspendedEvent()
             .id("event-suspended")
             .userTaskId("task-1")
+            .initiator(OPERATOR)
             .timestamp(SUSPENDED_AT));
     assertEquals(HttpStatus.OK, suspended.getStatusCode());
     assertEquals(SUSPENDED_AT, cockpit.storedTask().getSuspendedAt());
-    assertNull(cockpit.storedTask().getSuspendedBy(), "version 1 cannot name the person");
+    assertEquals(OPERATOR, cockpit.storedTask().getSuspendedBy(), "the initiator names the person");
 
     final var activated = cockpit.bpmsApiV1.userTaskActivatedEvent(
         "task-1",

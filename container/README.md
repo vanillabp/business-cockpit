@@ -118,7 +118,7 @@ them.
 
 A workflow module reports that a process instance was suspended or activated again, by REST or by
 Kafka. The cockpit keeps such a task or case in every list and marks it with `suspendedAt` in the
-GUI API, together with `suspendedBy`, the person who suspended it. Only an activation removes the
+GUI API, together with `suspendedBy`, the initiator of the report: the person who suspended it. Only an activation removes the
 mark, and it then names the person who activated. The
 [library's README](../business-cockpit/README.md#a-suspended-task-or-case) has the rules, and
 [the BPMS API's README](../apis/bpms-api/README.md) the reports. `BpmsApiUserTaskLifecycleTest` and

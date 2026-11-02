@@ -171,7 +171,7 @@ class KafkaSuspendedAndActivatedTest {
             .setApiVersion("1.0")
             .setUserTaskId("task-1")
             .setTimestamp(protobuf(SUSPENDED_AT))
-            .setSuspendedBy("olivia"))
+            .setInitiator("olivia"))
         .build()));
 
     assertSameMoment(SUSPENDED_AT, storedTasks.get("task-1").getSuspendedAt());
@@ -185,7 +185,7 @@ class KafkaSuspendedAndActivatedTest {
             .setApiVersion("1.0")
             .setUserTaskId("task-1")
             .setTimestamp(protobuf(ACTIVATED_AT))
-            .setSuspendedBy("sam"))
+            .setInitiator("sam"))
         .build()));
 
     assertNull(storedTasks.get("task-1").getSuspendedAt());
@@ -235,7 +235,7 @@ class KafkaSuspendedAndActivatedTest {
             .setApiVersion("1.0")
             .setWorkflowId("workflow-1")
             .setTimestamp(protobuf(SUSPENDED_AT))
-            .setSuspendedBy("olivia"))
+            .setInitiator("olivia"))
         .build()));
 
     assertSameMoment(SUSPENDED_AT, storedWorkflows.get("workflow-1").getSuspendedAt());
@@ -249,7 +249,7 @@ class KafkaSuspendedAndActivatedTest {
             .setApiVersion("1.0")
             .setWorkflowId("workflow-1")
             .setTimestamp(protobuf(ACTIVATED_AT))
-            .setSuspendedBy("sam"))
+            .setInitiator("sam"))
         .build()));
 
     assertNull(storedWorkflows.get("workflow-1").getSuspendedAt());

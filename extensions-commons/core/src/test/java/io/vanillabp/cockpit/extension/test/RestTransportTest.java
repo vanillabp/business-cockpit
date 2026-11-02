@@ -197,7 +197,7 @@ public class RestTransportTest {
   public void aSuspensionAndAnActivationGoToTheirOwnEndpoints() {
 
     final var suspended = EventFixture.userTask(UserTaskEventKind.SUSPENDED);
-    suspended.setSuspendedBy("olivia");
+    suspended.setInitiator("olivia");
     transport.publishUserTaskEvent(suspended);
     transport.publishUserTaskEvent(EventFixture.userTask(UserTaskEventKind.ACTIVATED));
     transport.publishWorkflowEvent(EventFixture.workflow(WorkflowEventKind.SUSPENDED));
@@ -214,7 +214,7 @@ public class RestTransportTest {
     final var suspension = received.getFirst().body();
     assertTrue(suspension.contains("\"userTaskId\":\"task-1\""), suspension);
     assertTrue(suspension.contains("\"timestamp\""), suspension);
-    assertTrue(suspension.contains("\"suspendedBy\":\"olivia\""), suspension);
+    assertTrue(suspension.contains("\"initiator\":\"olivia\""), suspension);
     assertFalse(suspension.contains("\"details\""), suspension);
     assertFalse(suspension.contains("\"title\""), suspension);
 

@@ -2233,14 +2233,15 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   }
 
   /**
-   * Names the person on the report of a suspension or an activation. It is the only thing such a
-   * report carries besides the identifiers and the moment.
+   * Names the person on the report of a suspension or an activation, as its initiator. The cockpit
+   * stores the initiator of these reports as {@code suspendedBy}. It is the only thing such a report
+   * carries besides the identifiers and the moment.
    */
   private static UserTaskEvent suspensionReport(
       final UserTaskEvent event,
       final String suspendedBy) {
 
-    event.setSuspendedBy(suspendedBy);
+    event.setInitiator(suspendedBy);
     return event;
 
   }
@@ -2250,7 +2251,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       final WorkflowEvent event,
       final String suspendedBy) {
 
-    event.setSuspendedBy(suspendedBy);
+    event.setInitiator(suspendedBy);
     return event;
 
   }

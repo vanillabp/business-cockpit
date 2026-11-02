@@ -161,8 +161,9 @@ new one for a remote engine's worker thread.
 
 A half reports a suspension of a process instance with the kinds `SUSPENDED` and `ACTIVATED`, of
 `UserTaskEventKind` and of `WorkflowEventKind`, through `publishUserTaskSuspension` and
-`publishWorkflowSuspension`. Such a report carries the identifiers, the moment and `suspendedBy`, the
-person who suspended or activated the instance where the BPMS says so, and nothing else. Only these
+`publishWorkflowSuspension`. Such a report carries the identifiers, the moment and, as its initiator, the
+person who suspended or activated the instance where the BPMS says so, and nothing else. The cockpit
+stores that initiator as `suspendedBy`. Only these
 reports change the suspension in the cockpit. A details provider reads `getSuspendedAt()` and
 `getSuspendedBy()` of the prefilled details, which a half fills with `suspendedAt` and `suspendedBy`
 of its prefill where it knows them, and cannot change them. The publisher asks neither the half's `prefilled…` questions nor a details

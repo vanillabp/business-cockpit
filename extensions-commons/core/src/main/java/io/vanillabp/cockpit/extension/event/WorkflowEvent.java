@@ -42,8 +42,9 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
   private OffsetDateTime suspendedAt;
 
   /**
-   * Who suspended or activated the process instance the last time. The report of a suspension or
-   * an activation sends it, every other report only shows it to the details provider.
+   * Who suspended or activated the process instance the last time, as the BPMS half prefilled it
+   * for the details provider. No mapper sends it: the report of a suspension names the person as
+   * its initiator.
    */
   private String suspendedBy;
 

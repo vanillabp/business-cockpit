@@ -18,9 +18,9 @@ A process instance can be suspended and activated again. Both versions take the 
 `workflow/{workflowId}/suspended` and `workflow/{workflowId}/activated`. On Kafka they are the
 messages `userTaskSuspended` (4), `userTaskActivated` (5), `workflowSuspended` (18) and
 `workflowActivated` (19) of `BcEvent`. Each report carries an id, the id of the record, a timestamp
-and optionally an initiator, a source and a comment. In version 1.1 and on Kafka a report also
-carries `suspendedBy`, the person who suspended or activated the instance, where the BPMS says so.
-The cockpit marks the record with `suspendedAt` and `suspendedBy` in the GUI API and keeps it in
+and optionally an initiator, a source and a comment. The initiator is the person who suspended or
+activated the instance, left out where the BPMS does not say. The cockpit stores it as
+`suspendedBy`. It marks the record with `suspendedAt` and `suspendedBy` in the GUI API and keeps it in
 every list. It orders the reports by their timestamps. Only these reports change the suspension: a
 creation, a change or an end leaves it as it is. A report
 about a record the cockpit does not know is answered with `200` and changes nothing, because it says

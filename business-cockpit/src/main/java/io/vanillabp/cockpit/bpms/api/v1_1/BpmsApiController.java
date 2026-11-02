@@ -218,7 +218,7 @@ public class BpmsApiController implements BpmsApi {
         userTaskService.reportSuspendedUserTask(
             userTaskId,
             userTaskSuspendedEvent.getTimestamp(),
-            userTaskSuspendedEvent.getSuspendedBy()));
+            userTaskSuspendedEvent.getInitiator()));
 
   }
 
@@ -235,7 +235,7 @@ public class BpmsApiController implements BpmsApi {
         userTaskService.reportActivatedUserTask(
             userTaskId,
             userTaskActivatedEvent.getTimestamp(),
-            userTaskActivatedEvent.getSuspendedBy()));
+            userTaskActivatedEvent.getInitiator()));
 
   }
 
@@ -256,7 +256,7 @@ public class BpmsApiController implements BpmsApi {
         workflowlistService.reportSuspendedWorkflow(
             workflowId,
             workflowSuspendedEvent.getTimestamp(),
-            workflowSuspendedEvent.getSuspendedBy()));
+            workflowSuspendedEvent.getInitiator()));
 
   }
 
@@ -273,7 +273,7 @@ public class BpmsApiController implements BpmsApi {
         workflowlistService.reportActivatedWorkflow(
             workflowId,
             workflowActivatedEvent.getTimestamp(),
-            workflowActivatedEvent.getSuspendedBy()));
+            workflowActivatedEvent.getInitiator()));
 
   }
 

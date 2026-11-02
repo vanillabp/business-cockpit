@@ -89,7 +89,8 @@ public interface BusinessCockpitEventPublisher {
    * @param bpmsEventId The BPMS' own identifier of this event, see {@link #publishUserTaskEvent}
    * @param timestamp When the BPMS says the instance was suspended or activated
    * @param suspendedBy Who suspended or activated the instance, or <code>null</code> where the
-   *          BPMS does not say
+   *          BPMS does not say. It is sent as the initiator of the report, and the cockpit stores
+   *          it as <code>suspendedBy</code>
    * @param transaction Which transaction the entry is written in
    * @return Whether an entry was written, as for {@link #publishUserTaskEvent}
    * @throws IllegalArgumentException If the kind is neither of the two
@@ -115,7 +116,8 @@ public interface BusinessCockpitEventPublisher {
    * @param bpmsEventId The BPMS' own identifier of this event
    * @param timestamp When the BPMS says the instance was suspended or activated
    * @param suspendedBy Who suspended or activated the instance, or <code>null</code> where the
-   *          BPMS does not say
+   *          BPMS does not say. It is sent as the initiator of the report, and the cockpit stores
+   *          it as <code>suspendedBy</code>
    * @param transaction Which transaction the entry is written in
    * @return Whether an entry was written, as for {@link #publishWorkflowEvent}
    * @throws IllegalArgumentException If the kind is neither of the two

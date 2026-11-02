@@ -268,7 +268,7 @@ public class BpmsApiV1_1Controller implements BpmsApi {
       final UserTaskSuspendedEvent event) {
 
     log.info("Received UserTaskSuspendedEvent v1.1: {}", event);
-    taskService.changeSuspension(userTaskId, event.getTimestamp(), event.getSuspendedBy());
+    taskService.changeSuspension(userTaskId, event.getTimestamp(), event.getInitiator());
     return ResponseEntity.ok().build();
 
   }
@@ -286,7 +286,7 @@ public class BpmsApiV1_1Controller implements BpmsApi {
       final UserTaskActivatedEvent event) {
 
     log.info("Received UserTaskActivatedEvent v1.1: {}", event);
-    taskService.changeSuspension(userTaskId, null, event.getSuspendedBy());
+    taskService.changeSuspension(userTaskId, null, event.getInitiator());
     return ResponseEntity.ok().build();
 
   }
@@ -304,7 +304,7 @@ public class BpmsApiV1_1Controller implements BpmsApi {
       final WorkflowSuspendedEvent event) {
 
     log.info("Received WorkflowSuspendedEvent v1.1: {}", event);
-    workflowService.changeSuspension(workflowId, event.getTimestamp(), event.getSuspendedBy());
+    workflowService.changeSuspension(workflowId, event.getTimestamp(), event.getInitiator());
     return ResponseEntity.ok().build();
 
   }
@@ -322,7 +322,7 @@ public class BpmsApiV1_1Controller implements BpmsApi {
       final WorkflowActivatedEvent event) {
 
     log.info("Received WorkflowActivatedEvent v1.1: {}", event);
-    workflowService.changeSuspension(workflowId, null, event.getSuspendedBy());
+    workflowService.changeSuspension(workflowId, null, event.getInitiator());
     return ResponseEntity.ok().build();
 
   }

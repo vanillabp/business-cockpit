@@ -219,8 +219,7 @@ public class BpmsApiController implements BpmsApi {
         userTaskService.reportSuspendedUserTask(
             userTaskId,
             userTaskSuspendedEvent.getTimestamp(),
-            // version 1 cannot name the person
-            null));
+            userTaskSuspendedEvent.getInitiator()));
 
   }
 
@@ -237,8 +236,7 @@ public class BpmsApiController implements BpmsApi {
         userTaskService.reportActivatedUserTask(
             userTaskId,
             userTaskActivatedEvent.getTimestamp(),
-            // version 1 cannot name the person
-            null));
+            userTaskActivatedEvent.getInitiator()));
 
   }
 

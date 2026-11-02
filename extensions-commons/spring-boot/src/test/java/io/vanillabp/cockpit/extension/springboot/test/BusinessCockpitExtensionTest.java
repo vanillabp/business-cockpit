@@ -433,7 +433,7 @@ public class BusinessCockpitExtensionTest {
     final var request = CockpitServer
         .awaitRequest("/usertask/task-1/suspended", "bpms-event-suspended");
     assertFalse(request.body().contains("\"customer\":\"Anna\""), request.body());
-    assertTrue(request.body().contains("\"suspendedBy\":\"olivia\""), request.body());
+    assertTrue(request.body().contains("\"initiator\":\"olivia\""), request.body());
     // neither the BPMS half nor the details provider was asked
     assertEquals(0, bridge.taskReads());
 
@@ -498,7 +498,7 @@ public class BusinessCockpitExtensionTest {
     final var suspended = CockpitServer
         .awaitRequest("/workflow/workflow-1/suspended", "bpms-event-workflow-suspended");
     assertFalse(suspended.body().contains("workflow of Anna"), suspended.body());
-    assertTrue(suspended.body().contains("\"suspendedBy\":\"olivia\""), suspended.body());
+    assertTrue(suspended.body().contains("\"initiator\":\"olivia\""), suspended.body());
     CockpitServer.awaitRequest("/workflow/workflow-1/activated", "bpms-event-workflow-activated");
 
   }

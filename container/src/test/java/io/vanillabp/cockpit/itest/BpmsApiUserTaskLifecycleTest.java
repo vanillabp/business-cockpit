@@ -526,7 +526,7 @@ class BpmsApiUserTaskLifecycleTest extends ItestBase {
               "id": "%s",
               "userTaskId": "%s",
               "timestamp": "%s",
-              "suspendedBy": "olivia"
+              "initiator": "olivia"
             }
             """.formatted(unique("event"), userTaskId, suspendedAt));
     assertThat(suspended.statusCode()).isEqualTo(200);
@@ -547,7 +547,7 @@ class BpmsApiUserTaskLifecycleTest extends ItestBase {
               "id": "%s",
               "userTaskId": "%s",
               "timestamp": "2026-11-01T10:00:00Z",
-              "suspendedBy": "sam"
+              "initiator": "sam"
             }
             """.formatted(unique("event"), userTaskId));
     assertThat(activated.statusCode()).isEqualTo(200);

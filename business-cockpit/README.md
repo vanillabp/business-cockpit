@@ -122,10 +122,10 @@ The cockpit learns about it from the reports `suspended` and `activated` of the 
 [its README](../apis/bpms-api/README.md). `SuspensionOfARecord` holds the rules, the same for a
 user task and a workflow:
 
-- A suspension sets `suspendedAt` to the moment of the report and `suspendedBy` to the person it
-  names. A record which is suspended already keeps the moment and the person of its first
-  suspension. An activation removes `suspendedAt` and sets `suspendedBy` to the person who
-  activated.
+- A suspension sets `suspendedAt` to the moment of the report and `suspendedBy` to its
+  `initiator`. A record which is suspended already keeps the moment and the person of its first
+  suspension. An activation removes `suspendedAt` and sets `suspendedBy` to its `initiator`,
+  the person who activated.
 - The reports overtake each other, so the cockpit orders them by their timestamps. The record keeps
   `suspensionChangedAt`, the moment of the last report which changed the suspension. An older
   report changes nothing.

@@ -107,12 +107,14 @@ paths:
       description: >-
         The process instance of the user task was suspended, so the task cannot be worked on until
         it is activated again. The cockpit sets 'suspendedAt' of the task to the timestamp of this
-        report and removes 'suspendedBy', because a report of version 1 cannot name the person, and
-        the task stays in every list. A task which is suspended already keeps the moment and the
-        person of its first suspension. Only this report and the activation change the suspension: a
-        creation, a change or an end leaves it as it is. The report changes nothing where the
-        cockpit holds a younger suspension or activation of the task, or where the cockpit does not
-        know the task. The answer is 200 in each of these cases, so do not send the report again.
+        report and 'suspendedBy' to its 'initiator', and the task stays in every list. A task which
+        is suspended already keeps the moment and the person of its first suspension. Only this
+        report and the activation change the suspension: a creation, a change or an end leaves it as
+        it is. Name the person who suspended or activated the instance in 'initiator', and leave it
+        out where the workflow system does not say, for example for a timer or a call without a
+        signed-in user. The report changes nothing where the cockpit holds a younger suspension or
+        activation of the task, or where the cockpit does not know the task. The answer is 200 in
+        each of these cases, so do not send the report again.
       operationId: userTaskSuspendedEvent
       parameters:
         - in: path
@@ -148,10 +150,10 @@ paths:
       summary: processes a user task ACTIVATED event
       description: >-
         The process instance of the user task was activated again after a suspension. The cockpit
-        removes 'suspendedAt' from the task and removes 'suspendedBy', because a report of version 1
-        cannot name the person. The report changes nothing where the cockpit holds a younger
-        suspension or activation of the task, or where the cockpit does not know the task. The
-        answer is 200 in each of these cases, so do not send the report again.
+        removes 'suspendedAt' from the task and sets 'suspendedBy' to the 'initiator' of this
+        report, the person who activated the instance. The report changes nothing where the cockpit
+        holds a younger suspension or activation of the task, or where the cockpit does not know the
+        task. The answer is 200 in each of these cases, so do not send the report again.
       operationId: userTaskActivatedEvent
       parameters:
         - in: path

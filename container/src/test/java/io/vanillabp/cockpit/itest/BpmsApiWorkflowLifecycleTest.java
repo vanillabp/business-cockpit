@@ -115,7 +115,7 @@ class BpmsApiWorkflowLifecycleTest extends ItestBase {
               "id": "%s",
               "workflowId": "%s",
               "timestamp": "%s",
-              "suspendedBy": "olivia"
+              "initiator": "olivia"
             }
             """.formatted(unique("event"), workflowId, suspendedAt));
     assertThat(suspended.statusCode()).isEqualTo(200);
@@ -135,7 +135,7 @@ class BpmsApiWorkflowLifecycleTest extends ItestBase {
               "id": "%s",
               "workflowId": "%s",
               "timestamp": "2026-11-01T10:00:00Z",
-              "suspendedBy": "sam"
+              "initiator": "sam"
             }
             """.formatted(unique("event"), workflowId));
     assertThat(activated.statusCode()).isEqualTo(200);

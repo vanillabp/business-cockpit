@@ -260,7 +260,7 @@ public class BpmsApiV1Controller implements BpmsApi {
       final UserTaskSuspendedEvent event) {
 
     log.info("Received UserTaskSuspendedEvent v1: {}", event);
-    taskService.changeSuspension(userTaskId, event.getTimestamp(), null);
+    taskService.changeSuspension(userTaskId, event.getTimestamp(), event.getInitiator());
     return ResponseEntity.ok().build();
 
   }
@@ -278,7 +278,7 @@ public class BpmsApiV1Controller implements BpmsApi {
       final UserTaskActivatedEvent event) {
 
     log.info("Received UserTaskActivatedEvent v1: {}", event);
-    taskService.changeSuspension(userTaskId, null, null);
+    taskService.changeSuspension(userTaskId, null, event.getInitiator());
     return ResponseEntity.ok().build();
 
   }

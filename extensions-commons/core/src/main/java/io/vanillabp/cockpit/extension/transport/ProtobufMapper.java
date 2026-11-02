@@ -30,7 +30,8 @@ import io.vanillabp.cockpit.extension.spi.WorkflowEventKind;
  * server still reading them keeps working. The message inside is the same for all four kinds of
  * user-task event, which is why one mapper serves them all. What differs is the slot and the
  * <code>updated</code> flag. A suspension and an activation have messages of their own, which
- * carry the identifiers, the moment and the person who suspended or activated the instance.
+ * carry the identifiers, the moment and, as the initiator, the person who suspended or activated
+ * the instance.
  * <p>
  * Every field is set through {@link Optional}, because a protobuf setter refuses
  * <code>null</code> while nearly everything a workflow module reports is optional.
@@ -149,7 +150,6 @@ public final class ProtobufMapper {
     Optional.ofNullable(event.getInitiator()).ifPresent(builder::setInitiator);
     Optional.ofNullable(event.getSource()).ifPresent(builder::setSource);
     Optional.ofNullable(event.getComment()).ifPresent(builder::setComment);
-    Optional.ofNullable(event.getSuspendedBy()).ifPresent(builder::setSuspendedBy);
     return builder.build();
 
   }
@@ -165,7 +165,6 @@ public final class ProtobufMapper {
     Optional.ofNullable(event.getInitiator()).ifPresent(builder::setInitiator);
     Optional.ofNullable(event.getSource()).ifPresent(builder::setSource);
     Optional.ofNullable(event.getComment()).ifPresent(builder::setComment);
-    Optional.ofNullable(event.getSuspendedBy()).ifPresent(builder::setSuspendedBy);
     return builder.build();
 
   }
@@ -181,7 +180,6 @@ public final class ProtobufMapper {
     Optional.ofNullable(event.getInitiator()).ifPresent(builder::setInitiator);
     Optional.ofNullable(event.getSource()).ifPresent(builder::setSource);
     Optional.ofNullable(event.getComment()).ifPresent(builder::setComment);
-    Optional.ofNullable(event.getSuspendedBy()).ifPresent(builder::setSuspendedBy);
     return builder.build();
 
   }
@@ -197,7 +195,6 @@ public final class ProtobufMapper {
     Optional.ofNullable(event.getInitiator()).ifPresent(builder::setInitiator);
     Optional.ofNullable(event.getSource()).ifPresent(builder::setSource);
     Optional.ofNullable(event.getComment()).ifPresent(builder::setComment);
-    Optional.ofNullable(event.getSuspendedBy()).ifPresent(builder::setSuspendedBy);
     return builder.build();
 
   }

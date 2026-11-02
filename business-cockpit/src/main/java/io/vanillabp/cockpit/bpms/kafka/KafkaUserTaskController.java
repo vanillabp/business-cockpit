@@ -230,7 +230,7 @@ public class KafkaUserTaskController {
     final var outcome = userTaskService.reportSuspendedUserTask(
         userTaskSuspended.getUserTaskId(),
         ProtobufHelper.map(userTaskSuspended.getTimestamp()),
-        userTaskSuspended.hasSuspendedBy() ? userTaskSuspended.getSuspendedBy() : null);
+        userTaskSuspended.hasInitiator() ? userTaskSuspended.getInitiator() : null);
     RepeatUntilStored.storedOrThrow(outcome);
 
   }
@@ -242,7 +242,7 @@ public class KafkaUserTaskController {
     final var outcome = userTaskService.reportActivatedUserTask(
         userTaskActivated.getUserTaskId(),
         ProtobufHelper.map(userTaskActivated.getTimestamp()),
-        userTaskActivated.hasSuspendedBy() ? userTaskActivated.getSuspendedBy() : null);
+        userTaskActivated.hasInitiator() ? userTaskActivated.getInitiator() : null);
     RepeatUntilStored.storedOrThrow(outcome);
 
   }
