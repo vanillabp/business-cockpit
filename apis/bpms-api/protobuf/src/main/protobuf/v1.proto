@@ -52,6 +52,8 @@ message BcEvent {
     WorkflowCreatedOrUpdatedEvent workflowUpdatedV1_1 = 15;
     WorkflowCreatedOrUpdatedEvent workflowCompletedV1_1 = 16;
     WorkflowCreatedOrUpdatedEvent workflowCancelledV1_1 = 17;
+    WorkflowSuspendedEvent workflowSuspended = 18;
+    WorkflowActivatedEvent workflowActivated = 19;
   }
 }
 
@@ -137,6 +139,11 @@ message UserTaskCancelledEvent {
   optional google.protobuf.Timestamp created_at = 8;
 }
 
+// the process instance of the user task was suspended. The cockpit marks the task as suspended
+// and keeps it in every list. Only this message and UserTaskActivatedEvent change the mark. It
+// changes nothing where the cockpit holds a younger suspension or activation of the task, or where
+// it does not know the task. The cockpit stores the initiator as the person who suspended the
+// instance, so leave it out where the workflow system does not say
 message UserTaskSuspendedEvent {
   string id = 1;
   string api_version = 2;
@@ -147,6 +154,10 @@ message UserTaskSuspendedEvent {
   optional string comment = 7;
 }
 
+// the process instance of the user task was activated again. The cockpit removes the mark of
+// the suspension. It changes nothing where it holds a younger suspension or activation of the
+// task, or where it does not know the task. The cockpit stores the initiator as the person who
+// activated the instance
 message UserTaskActivatedEvent {
   string id = 1;
   string api_version = 2;
@@ -211,6 +222,31 @@ message WorkflowCancelledEvent {
   // when the workflow was started. Read only from an end which is the first report about the
   // workflow the cockpit gets. Without it the workflow starts at the timestamp of the end
   optional google.protobuf.Timestamp created_at = 10;
+}
+
+// the process instance which is the workflow was suspended, the counterpart of
+// UserTaskSuspendedEvent. A suspended called process does not make its workflow suspended. The
+// initiator is the person who suspended the instance
+message WorkflowSuspendedEvent {
+  string id = 1;
+  string api_version = 2;
+  string workflow_id = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  optional string initiator = 5;
+  optional string source = 6;
+  optional string comment = 7;
+}
+
+// the process instance which is the workflow was activated again, the counterpart of
+// UserTaskActivatedEvent. The initiator is the person who activated the instance
+message WorkflowActivatedEvent {
+  string id = 1;
+  string api_version = 2;
+  string workflow_id = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  optional string initiator = 5;
+  optional string source = 6;
+  optional string comment = 7;
 }
 
 message RegisterWorkflowModuleEvent {

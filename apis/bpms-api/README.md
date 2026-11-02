@@ -10,10 +10,21 @@ Both specifications, `openapi/v1.yaml` and `openapi/v1_1.yaml`, say what the coc
 report does not go through, and what the sender does about it. A `400` means: change the report
 first, because the same report is refused again. A `422` means: the cockpit understood the report
 but can never store it, so do not send it again as it is. A `500` or a `503` means: send the same
-report again later. A `501` is the answer to a report that a user task was suspended or activated
-again. The cockpit does nothing with those two reports, and no integration of the cockpit sends
-them, so do not send them again. The answers are described in words only, because a `content` for
-one of them would change the Accept header the client sends.
+report again later. The answers are described in words only, because a `content` for one of them
+would change the Accept header the client sends.
+
+A process instance can be suspended and activated again. Both versions take the reports
+`usertask/{userTaskId}/suspended` and `usertask/{userTaskId}/activated`. Version 1.1 adds
+`workflow/{workflowId}/suspended` and `workflow/{workflowId}/activated`. On Kafka they are the
+messages `userTaskSuspended` (4), `userTaskActivated` (5), `workflowSuspended` (18) and
+`workflowActivated` (19) of `BcEvent`. Each report carries an id, the id of the record, a timestamp
+and optionally an initiator, a source and a comment. The initiator is the person who suspended or
+activated the instance, left out where the BPMS does not say. The cockpit stores it as
+`suspendedBy`. It marks the record with `suspendedAt` and `suspendedBy` in the GUI API and keeps it in
+every list. It orders the reports by their timestamps. Only these reports change the suspension: a
+creation, a change or an end leaves it as it is. A report
+about a record the cockpit does not know is answered with `200` and changes nothing, because it says
+too little to create the record. The descriptions in both specifications have the details.
 
 A key of `details` may contain a dot, like `order.id`. MongoDB reads a dot as a step into a nested
 document, so the cockpit stores such a key only if `business-cockpit.mongodb.map-key-dot-replacement`

@@ -201,6 +201,82 @@ public class BpmsApiController implements BpmsApi {
 
   }
 
+  /**
+   * The process instance of the task was suspended. The task stays in every list, marked with the
+   * moment of the suspension. The report names only that moment and a person, so a task the cockpit
+   * does not hold is not created by it.
+   */
+  @Override
+  public ResponseEntity<Void> userTaskSuspendedEvent(
+      final String userTaskId,
+      final @Valid UserTaskSuspendedEvent userTaskSuspendedEvent) {
+
+    if (!PathAndBody.nameTheSameRecord("user task", userTaskId, userTaskSuspendedEvent.getUserTaskId())) {
+      return AnswerToAReport.refused();
+    }
+    return AnswerToAReport.afterStoring(
+        userTaskService.reportSuspendedUserTask(
+            userTaskId,
+            userTaskSuspendedEvent.getTimestamp(),
+            userTaskSuspendedEvent.getInitiator()));
+
+  }
+
+  /** @see #userTaskSuspendedEvent(String, UserTaskSuspendedEvent) */
+  @Override
+  public ResponseEntity<Void> userTaskActivatedEvent(
+      final String userTaskId,
+      final @Valid UserTaskActivatedEvent userTaskActivatedEvent) {
+
+    if (!PathAndBody.nameTheSameRecord("user task", userTaskId, userTaskActivatedEvent.getUserTaskId())) {
+      return AnswerToAReport.refused();
+    }
+    return AnswerToAReport.afterStoring(
+        userTaskService.reportActivatedUserTask(
+            userTaskId,
+            userTaskActivatedEvent.getTimestamp(),
+            userTaskActivatedEvent.getInitiator()));
+
+  }
+
+  /**
+   * The process instance which is the workflow was suspended. The case stays in every list, marked
+   * with the moment of the suspension. The report names only that moment and a person, so a case
+   * the cockpit does not hold is not created by it.
+   */
+  @Override
+  public ResponseEntity<Void> workflowSuspendedEvent(
+      final String workflowId,
+      final @Valid WorkflowSuspendedEvent workflowSuspendedEvent) {
+
+    if (!PathAndBody.nameTheSameRecord("workflow", workflowId, workflowSuspendedEvent.getWorkflowId())) {
+      return AnswerToAReport.refused();
+    }
+    return AnswerToAReport.afterStoring(
+        workflowlistService.reportSuspendedWorkflow(
+            workflowId,
+            workflowSuspendedEvent.getTimestamp(),
+            workflowSuspendedEvent.getInitiator()));
+
+  }
+
+  /** @see #workflowSuspendedEvent(String, WorkflowSuspendedEvent) */
+  @Override
+  public ResponseEntity<Void> workflowActivatedEvent(
+      final String workflowId,
+      final @Valid WorkflowActivatedEvent workflowActivatedEvent) {
+
+    if (!PathAndBody.nameTheSameRecord("workflow", workflowId, workflowActivatedEvent.getWorkflowId())) {
+      return AnswerToAReport.refused();
+    }
+    return AnswerToAReport.afterStoring(
+        workflowlistService.reportActivatedWorkflow(
+            workflowId,
+            workflowActivatedEvent.getTimestamp(),
+            workflowActivatedEvent.getInitiator()));
+
+  }
+
   @Override
   public ResponseEntity<Void> registerWorkflowModule(
       final String id,

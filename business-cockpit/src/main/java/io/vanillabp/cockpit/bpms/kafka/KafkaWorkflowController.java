@@ -9,9 +9,11 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 import io.vanillabp.cockpit.bpms.BpmsApiProperties;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
+import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowActivatedEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCancelledEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCreatedOrUpdatedEvent;
+import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowSuspendedEvent;
 import io.vanillabp.cockpit.util.protobuf.ProtobufHelper;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowlist.model.WorkflowEndReason;
@@ -99,6 +101,14 @@ public class KafkaWorkflowController {
       } else if (event.hasWorkflowCancelledV11()) {
 
         this.handleWorkflowCancelledEventV1_1(event.getWorkflowCancelledV11());
+
+      } else if (event.hasWorkflowSuspended()) {
+
+        this.handleWorkflowSuspendedEvent(event.getWorkflowSuspended());
+
+      } else if (event.hasWorkflowActivated()) {
+
+        this.handleWorkflowActivatedEvent(event.getWorkflowActivated());
 
       } else {
         throw new RuntimeException(
@@ -194,6 +204,33 @@ public class KafkaWorkflowController {
         WorkflowEndReason.CANCELLED,
         workflowCancelledEvent.hasCreatedAt() ? ProtobufHelper.map(workflowCancelledEvent.getCreatedAt()) : null,
         workflow -> workflowMapper.toEndedWorkflow(workflowCancelledEvent, workflow));
+    RepeatUntilStored.storedOrThrow(outcome);
+
+  }
+
+  /**
+   * The report names only the moment and a person, so a case the cockpit does not hold is not
+   * created by it.
+   */
+  private void handleWorkflowSuspendedEvent(
+      WorkflowSuspendedEvent workflowSuspended) {
+
+    final var outcome = workflowlistService.reportSuspendedWorkflow(
+        workflowSuspended.getWorkflowId(),
+        ProtobufHelper.map(workflowSuspended.getTimestamp()),
+        workflowSuspended.hasInitiator() ? workflowSuspended.getInitiator() : null);
+    RepeatUntilStored.storedOrThrow(outcome);
+
+  }
+
+  /** @see #handleWorkflowSuspendedEvent(WorkflowSuspendedEvent) */
+  private void handleWorkflowActivatedEvent(
+      WorkflowActivatedEvent workflowActivated) {
+
+    final var outcome = workflowlistService.reportActivatedWorkflow(
+        workflowActivated.getWorkflowId(),
+        ProtobufHelper.map(workflowActivated.getTimestamp()),
+        workflowActivated.hasInitiator() ? workflowActivated.getInitiator() : null);
     RepeatUntilStored.storedOrThrow(outcome);
 
   }

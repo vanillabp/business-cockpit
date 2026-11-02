@@ -53,6 +53,21 @@ public class Workflow {
   @Column(name = "ENDED_AT", columnDefinition = "TIMESTAMP WITH TIME ZONE")
   private OffsetDateTime endedAt;
 
+  /**
+   * When the process instance of the workflow was suspended, or {@code null} while it is not. The
+   * simulator takes the latest report as it comes and does not order the reports by their time
+   * like the cockpit does.
+   */
+  @Column(name = "SUSPENDED_AT", columnDefinition = "TIMESTAMP WITH TIME ZONE")
+  private OffsetDateTime suspendedAt;
+
+  /**
+   * Who suspended or activated the process instance of the workflow the last time, if anybody is
+   * named.
+   */
+  @Column(name = "SUSPENDED_BY")
+  private String suspendedBy;
+
   /** Why it ended, set by the report of the end. The cockpit keeps it the same way. */
   @Enumerated(EnumType.STRING)
   @Column(name = "END_REASON")

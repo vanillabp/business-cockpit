@@ -42,6 +42,8 @@ import com.mongodb.client.model.changestream.ChangeStreamDocument;
 
 import io.vanillabp.cockpit.bpms.OrderOfReports;
 import io.vanillabp.cockpit.bpms.OutcomeOfStoring;
+import io.vanillabp.cockpit.bpms.SuspensionOfARecord;
+import io.vanillabp.cockpit.bpms.SuspensionRule;
 import io.vanillabp.cockpit.bpms.WhatAnEndReports;
 import io.vanillabp.cockpit.bpms.WhoSeesAUserTask;
 import io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException;
@@ -125,7 +127,7 @@ public class UserTaskService {
       "comment", "bpmnProcessId", "bpmnProcessVersion", "workflowTitle", "workflowId",
       "businessId", "title", "bpmnTaskId", "taskDefinition", "taskDefinitionTitle", "uiUriType",
       "assignee", "candidateUsers", "candidateGroups", PROPERTY_DUEDATE, "followUpDate",
-      "detailsFulltextSearch", "endReason", "note");
+      "detailsFulltextSearch", "endReason", "note", "suspendedAt", "suspendedBy");
 
   @Autowired
   private Logger logger;
@@ -1289,6 +1291,85 @@ public class UserTaskService {
     }
     endUserTask(stored, eventTimestamp, endReason);
     return save(stored);
+
+  }
+
+  /**
+   * Stores that the process instance of a user task was suspended. The task stays in every list
+   * and carries the moment of the suspension in {@code suspendedAt}, see
+   * {@link SuspensionOfARecord} for the rules.
+   * <p>
+   * A suspension of a task the cockpit does not hold is left out. The report names nothing but the
+   * moment and a person, so it cannot create the task. The creation brings the task, and the next
+   * report about the suspension marks it.
+   *
+   * @param userTaskId The task the report is about
+   * @param eventTimestamp When the process instance was suspended, by the workflow module's clock
+   * @param suspendedBy Who suspended the process instance, or {@code null} where nobody is named
+   * @return Whether the cockpit is up to date about the task, and if not, whether the same
+   *         report can go through when it comes again
+   */
+  public OutcomeOfStoring reportSuspendedUserTask(
+      final String userTaskId,
+      final OffsetDateTime eventTimestamp,
+      final String suspendedBy) {
+
+    return reportSuspension(
+        userTaskId, "suspension", eventTimestamp, suspendedBy, SuspensionOfARecord::suspend);
+
+  }
+
+  /**
+   * Stores that the process instance of a user task was activated again after a suspension. It is
+   * the counterpart of {@link #reportSuspendedUserTask(String, OffsetDateTime, String)}.
+   *
+   * @param userTaskId The task the report is about
+   * @param eventTimestamp When the process instance was activated, by the workflow module's clock
+   * @param suspendedBy Who activated the process instance, or {@code null} where nobody is named
+   * @return Whether the cockpit is up to date about the task, and if not, whether the same
+   *         report can go through when it comes again
+   */
+  public OutcomeOfStoring reportActivatedUserTask(
+      final String userTaskId,
+      final OffsetDateTime eventTimestamp,
+      final String suspendedBy) {
+
+    return reportSuspension(
+        userTaskId, "activation", eventTimestamp, suspendedBy, SuspensionOfARecord::activate);
+
+  }
+
+  private OutcomeOfStoring reportSuspension(
+      final String userTaskId,
+      final String kindOfReport,
+      final OffsetDateTime eventTimestamp,
+      final String suspendedBy,
+      final SuspensionRule<UserTask> rule) {
+
+    final var stored = getUserTask(userTaskId);
+    if (stored == null) {
+      logger.info(
+          "Leaving out the reported {} of user task '{}' at {}: the cockpit does not know the task. "
+              + "Its creation brings it, and the next report about its suspension marks it.",
+          kindOfReport,
+          userTaskId,
+          eventTimestamp);
+      return OutcomeOfStoring.upToDate();
+    }
+
+    final var outcome = rule.apply(stored, eventTimestamp, suspendedBy);
+    if (outcome == SuspensionOfARecord.Outcome.CHANGED) {
+      return save(stored);
+    }
+    if (outcome != SuspensionOfARecord.Outcome.REPEATED) {
+      logger.info(
+          "Keeping user task '{}' as it is: the reported {} happened at {}, and what is stored is about {}",
+          userTaskId,
+          kindOfReport,
+          eventTimestamp,
+          "a younger suspension or activation");
+    }
+    return OutcomeOfStoring.upToDate();
 
   }
 

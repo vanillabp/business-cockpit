@@ -6,9 +6,11 @@ import java.util.List;
 import java.util.Map;
 
 import io.vanillabp.cockpit.bpms.api.v1_1.NotificationDelivery;
+import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskActivatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCancelledEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCreatedEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskSuspendedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskUpdatedEvent;
 import io.vanillabp.cockpit.extension.event.UserTaskEvent;
 
@@ -204,6 +206,48 @@ public final class UserTaskRestMapper {
     dto.setDetailsFulltextSearch(event.getDetailsFulltextSearch());
     dto.setNotificationDelivery(notificationDeliveryOf(event.getNotificationDelivery()));
     dto.setUpdated(true);
+    return dto;
+
+  }
+
+  /**
+   * Turns a user-task event into the body the cockpit server gets for a suspension. It carries
+   * the identifiers, the moment and, as the initiator, the person.
+   *
+   * @param event The Suspended event
+   * @return What the cockpit's API is sent
+   */
+  public static UserTaskSuspendedEvent mapSuspended(
+      final UserTaskEvent event) {
+
+    final var dto = new UserTaskSuspendedEvent();
+    dto.setId(event.getEventId());
+    dto.setUserTaskId(event.getUserTaskId());
+    dto.setInitiator(event.getInitiator());
+    dto.setTimestamp(event.getTimestamp());
+    dto.setSource(event.getSource());
+    dto.setComment(event.getComment());
+    return dto;
+
+  }
+
+  /**
+   * Turns a user-task event into the body the cockpit server gets for an activation. It carries
+   * the identifiers, the moment and, as the initiator, the person.
+   *
+   * @param event The Activated event
+   * @return What the cockpit's API is sent
+   */
+  public static UserTaskActivatedEvent mapActivated(
+      final UserTaskEvent event) {
+
+    final var dto = new UserTaskActivatedEvent();
+    dto.setId(event.getEventId());
+    dto.setUserTaskId(event.getUserTaskId());
+    dto.setInitiator(event.getInitiator());
+    dto.setTimestamp(event.getTimestamp());
+    dto.setSource(event.getSource());
+    dto.setComment(event.getComment());
     return dto;
 
   }

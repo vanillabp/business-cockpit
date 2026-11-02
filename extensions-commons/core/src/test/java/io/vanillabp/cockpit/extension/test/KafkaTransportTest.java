@@ -136,6 +136,45 @@ public class KafkaTransportTest {
   }
 
   @Test
+  @DisplayName("A suspension and an activation use slots of their own and carry the moment")
+  public void aSuspensionAndAnActivationHaveTheirSlots() throws Exception {
+
+    final var suspended = EventFixture.userTask(UserTaskEventKind.SUSPENDED);
+    suspended.setInitiator("olivia");
+    transport.publishUserTaskEvent(suspended);
+    final var taskSuspended = BcEvent.parseFrom(producer.history().getFirst().value());
+    assertTrue(taskSuspended.hasUserTaskSuspended());
+    assertEquals("task-1", taskSuspended.getUserTaskSuspended().getUserTaskId());
+    assertEquals(
+        suspended.getTimestamp().toEpochSecond(),
+        taskSuspended.getUserTaskSuspended().getTimestamp().getSeconds());
+    assertEquals("olivia", taskSuspended.getUserTaskSuspended().getInitiator());
+    producer.clear();
+
+    // an activation which names nobody leaves the field out
+    final var activated = EventFixture.userTask(UserTaskEventKind.ACTIVATED);
+    activated.setInitiator(null);
+    transport.publishUserTaskEvent(activated);
+    final var taskActivated = BcEvent.parseFrom(producer.history().getFirst().value());
+    assertTrue(taskActivated.hasUserTaskActivated());
+    assertFalse(taskActivated.getUserTaskActivated().hasInitiator());
+    producer.clear();
+
+    final var caseSuspended = EventFixture.workflow(WorkflowEventKind.SUSPENDED);
+    caseSuspended.setInitiator("olivia");
+    transport.publishWorkflowEvent(caseSuspended);
+    final var workflowSuspended = BcEvent.parseFrom(producer.history().getFirst().value());
+    assertTrue(workflowSuspended.hasWorkflowSuspended());
+    assertEquals("workflow-1", workflowSuspended.getWorkflowSuspended().getWorkflowId());
+    assertEquals("olivia", workflowSuspended.getWorkflowSuspended().getInitiator());
+    producer.clear();
+
+    transport.publishWorkflowEvent(EventFixture.workflow(WorkflowEventKind.ACTIVATED));
+    assertTrue(BcEvent.parseFrom(producer.history().getFirst().value()).hasWorkflowActivated());
+
+  }
+
+  @Test
   @DisplayName("A completed task carries the business data it was completed with")
   public void aCompletionCarriesItsBusinessData() throws Exception {
 

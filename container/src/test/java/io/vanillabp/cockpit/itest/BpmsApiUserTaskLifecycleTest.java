@@ -506,34 +506,81 @@ class BpmsApiUserTaskLifecycleTest extends ItestBase {
   }
 
   /**
-   * The v1.1 API declares endpoints to suspend and to activate, but the container does not
-   * implement them. The generated fallback answers 501. This test pins the current behavior down,
-   * so that nobody changes it without noticing.
+   * A suspended task stays in the list of open tasks and carries the moment of its suspension. An
+   * activation removes it again. A user interface reads it to show the task differently and to
+   * let nobody work on it.
    */
   @Test
-  void suspendAndActivateAreNotImplemented() {
+  void aSuspendedTaskStaysInTheListAndCarriesTheMomentOfItsSuspension() {
 
     final var userTaskId = unique("task");
-    bpmsV1_1("/usertask/created", userTaskCreatedPayload(userTaskId, isoNow(), """
+    bpmsV1_1("/usertask/created", userTaskCreatedPayload(userTaskId, "2026-11-01T08:00:00Z", """
         "assignee": "martin"
         """));
+    final var suspendedAt = OffsetDateTime.parse("2026-11-01T09:00:00Z");
 
-    final var lifecycleEvent = """
-        {
-          "id": "%s",
-          "userTaskId": "%s",
-          "timestamp": "%s"
-        }
-        """.formatted(unique("event"), userTaskId, isoNow());
+    final var suspended = bpmsV1_1("/usertask/"
+        + userTaskId
+        + "/suspended", """
+            {
+              "id": "%s",
+              "userTaskId": "%s",
+              "timestamp": "%s",
+              "initiator": "olivia"
+            }
+            """.formatted(unique("event"), userTaskId, suspendedAt));
+    assertThat(suspended.statusCode()).isEqualTo(200);
 
-    assertThat(bpmsV1_1("/usertask/"
+    assertThat(userTaskList(cookie, token, "OpenTasksWithFollowUp")
+        .read("$.userTasks[*].id", List.class)).containsExactly(userTaskId);
+    final var task = json(guiGet(cookie, "/usertask/"
+        + userTaskId));
+    assertThat(OffsetDateTime.parse(task.read("$.suspendedAt", String.class)).toInstant())
+        .isEqualTo(suspendedAt.toInstant());
+    assertThat(task.read("$.suspendedBy", String.class)).isEqualTo("olivia");
+    assertThat(task.read("$.endedAt", String.class)).isNull();
+
+    final var activated = bpmsV1_1("/usertask/"
         + userTaskId
-        + "/suspended", lifecycleEvent).statusCode())
-        .isEqualTo(501);
-    assertThat(bpmsV1_1("/usertask/"
+        + "/activated", """
+            {
+              "id": "%s",
+              "userTaskId": "%s",
+              "timestamp": "2026-11-01T10:00:00Z",
+              "initiator": "sam"
+            }
+            """.formatted(unique("event"), userTaskId));
+    assertThat(activated.statusCode()).isEqualTo(200);
+
+    final var taskAfterwards = json(guiGet(cookie, "/usertask/"
+        + userTaskId));
+    assertThat(taskAfterwards.read("$.suspendedAt", String.class)).isNull();
+    assertThat(taskAfterwards.read("$.suspendedBy", String.class)).isEqualTo("sam");
+
+  }
+
+  /**
+   * The report says nothing besides the moment, so it cannot create the task. The sender gets 200
+   * anyway, because sending it again would not change the answer.
+   */
+  @Test
+  void aSuspensionOfATaskTheCockpitDoesNotKnowIsAnsweredWith200() {
+
+    final var userTaskId = unique("task");
+
+    final var suspended = bpmsV1_1("/usertask/"
         + userTaskId
-        + "/activated", lifecycleEvent).statusCode())
-        .isEqualTo(501);
+        + "/suspended", """
+            {
+              "id": "%s",
+              "userTaskId": "%s",
+              "timestamp": "%s"
+            }
+            """.formatted(unique("event"), userTaskId, isoNow()));
+
+    assertThat(suspended.statusCode()).isEqualTo(200);
+    assertThat(guiGet(cookie, "/usertask/"
+        + userTaskId).statusCode()).isEqualTo(404);
 
   }
 

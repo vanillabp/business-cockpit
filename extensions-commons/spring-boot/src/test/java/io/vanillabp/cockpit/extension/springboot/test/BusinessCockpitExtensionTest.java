@@ -418,6 +418,92 @@ public class BusinessCockpitExtensionTest {
   }
 
   @Test
+  @DisplayName("A suspension of a task is reported with its identifiers alone")
+  public void aSuspensionOfATaskCarriesNoBusinessData() {
+
+    final var aggregate = aStartedWorkflow();
+    bridge.forgetLookups();
+
+    transactions
+        .executeWithoutResult(status -> publisher
+            .publishUserTaskSuspension(
+                userTaskOf(aggregate, "approve"), UserTaskEventKind.SUSPENDED, "bpms-event-suspended",
+                OffsetDateTime.now(), "olivia", EventTransaction.CURRENT));
+
+    final var request = CockpitServer
+        .awaitRequest("/usertask/task-1/suspended", "bpms-event-suspended");
+    assertFalse(request.body().contains("\"customer\":\"Anna\""), request.body());
+    assertTrue(request.body().contains("\"initiator\":\"olivia\""), request.body());
+    // neither the BPMS half nor the details provider was asked
+    assertEquals(0, bridge.taskReads());
+
+  }
+
+  @Test
+  @DisplayName("A suspension is reported only with the kinds of a suspension")
+  public void aSuspensionNeedsTheKindOfASuspension() {
+
+    final var aggregate = aStartedWorkflow();
+
+    final var refused = assertThrows(
+        IllegalArgumentException.class,
+        () -> transactions
+            .executeWithoutResult(status -> publisher
+                .publishUserTaskSuspension(
+                    userTaskOf(aggregate, "approve"), UserTaskEventKind.UPDATED, "bpms-event-updated",
+                    OffsetDateTime.now(), "olivia", EventTransaction.CURRENT)));
+    assertTrue(refused.getMessage().contains("publishUserTaskEvent"), refused.getMessage());
+
+  }
+
+  @Test
+  @DisplayName("An activation of a task is reported with its identifiers alone")
+  public void anActivationOfATaskCarriesNoBusinessData() {
+
+    final var aggregate = aStartedWorkflow();
+
+    transactions
+        .executeWithoutResult(status -> publisher
+            .publishUserTaskEvent(
+                userTaskOf(aggregate, "approve"), UserTaskEventKind.ACTIVATED, "bpms-event-activated",
+                OffsetDateTime.now(), EventTransaction.CURRENT));
+
+    final var request = CockpitServer
+        .awaitRequest("/usertask/task-1/activated", "bpms-event-activated");
+    assertFalse(request.body().contains("\"customer\":\"Anna\""), request.body());
+
+  }
+
+  @Test
+  @DisplayName("A suspension and an activation of a workflow reach the cockpit")
+  public void aSuspensionOfAWorkflowReachesTheCockpit() {
+
+    final var aggregate = aStartedWorkflow();
+    final var workflow = new WorkflowReference(
+        RecordingBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, "1", aggregate
+            .getId()
+            .toString(), RecordingBpmsBridge.WORKFLOW_ID);
+
+    transactions
+        .executeWithoutResult(status -> publisher
+            .publishWorkflowSuspension(
+                workflow, WorkflowEventKind.SUSPENDED, "bpms-event-workflow-suspended",
+                OffsetDateTime.now(), "olivia", EventTransaction.CURRENT));
+    transactions
+        .executeWithoutResult(status -> publisher
+            .publishWorkflowEvent(
+                workflow, WorkflowEventKind.ACTIVATED, "bpms-event-workflow-activated",
+                OffsetDateTime.now(), EventTransaction.CURRENT));
+
+    final var suspended = CockpitServer
+        .awaitRequest("/workflow/workflow-1/suspended", "bpms-event-workflow-suspended");
+    assertFalse(suspended.body().contains("workflow of Anna"), suspended.body());
+    assertTrue(suspended.body().contains("\"initiator\":\"olivia\""), suspended.body());
+    CockpitServer.awaitRequest("/workflow/workflow-1/activated", "bpms-event-workflow-activated");
+
+  }
+
+  @Test
   @DisplayName("A completed task the BPMS has forgotten is reported without details")
   public void aForgottenCompletionIsStillReported() {
 

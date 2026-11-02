@@ -43,6 +43,20 @@ public class UserTaskEvent implements PrefilledUserTaskDetails, UserTask {
    */
   private OffsetDateTime createdAt;
 
+  /**
+   * When the process instance was suspended, as the BPMS half prefilled it for the details
+   * provider. No mapper sends it: the cockpit learns about a suspension only from the report of
+   * the suspension.
+   */
+  private OffsetDateTime suspendedAt;
+
+  /**
+   * Who suspended or activated the process instance the last time, as the BPMS half prefilled it
+   * for the details provider. No mapper sends it: the report of a suspension names the person as
+   * its initiator.
+   */
+  private String suspendedBy;
+
   private String source;
 
   private String workflowModuleId;
@@ -268,6 +282,46 @@ public class UserTaskEvent implements PrefilledUserTaskDetails, UserTask {
       final OffsetDateTime createdAt) {
 
     this.createdAt = createdAt;
+
+  }
+
+  @Override
+  public OffsetDateTime getSuspendedAt() {
+
+    return suspendedAt;
+
+  }
+
+  /**
+   * When the process instance was suspended. It is not part of the interface a details provider
+   * sees, so a provider cannot change it.
+   *
+   * @param suspendedAt The moment, or <code>null</code> while the instance is active
+   */
+  public void setSuspendedAt(
+      final OffsetDateTime suspendedAt) {
+
+    this.suspendedAt = suspendedAt;
+
+  }
+
+  @Override
+  public String getSuspendedBy() {
+
+    return suspendedBy;
+
+  }
+
+  /**
+   * Who suspended or activated the process instance the last time. It is not part of the
+   * interface a details provider sees, so a provider cannot change it.
+   *
+   * @param suspendedBy The id of the person, or <code>null</code> where the BPMS does not say
+   */
+  public void setSuspendedBy(
+      final String suspendedBy) {
+
+    this.suspendedBy = suspendedBy;
 
   }
 

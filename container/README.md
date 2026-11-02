@@ -21,6 +21,7 @@ This file is about the module.
 3. [Why its own tests cannot prove the wiring](#why-its-own-tests-cannot-prove-the-wiring)
 4. [Running it from a build](#running-it-from-a-build)
 5. [Why it is not reactive](#why-it-is-not-reactive)
+6. [A suspended task or case](#a-suspended-task-or-case)
 
 ## What is here
 
@@ -112,3 +113,15 @@ proxied request.
 
 Workflow modules are separate applications and pick their own web stack, so none of this applies to
 them.
+
+## A suspended task or case
+
+A workflow module reports that a process instance was suspended or activated again, by REST or by
+Kafka. The cockpit keeps such a task or case in every list and marks it with `suspendedAt` in the
+GUI API, together with `suspendedBy`, the initiator of the report: the person who suspended it. Only an activation removes the
+mark, and it then names the person who activated. The
+[library's README](../business-cockpit/README.md#a-suspended-task-or-case) has the rules, and
+[the BPMS API's README](../apis/bpms-api/README.md) the reports. `BpmsApiUserTaskLifecycleTest` and
+`BpmsApiWorkflowLifecycleTest` send the reports over HTTP and read the result through the GUI API,
+the way a user interface sees it.
+

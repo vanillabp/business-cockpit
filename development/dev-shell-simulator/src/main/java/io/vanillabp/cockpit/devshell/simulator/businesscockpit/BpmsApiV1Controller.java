@@ -9,9 +9,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
 import io.vanillabp.cockpit.bpms.api.v1.RegisterWorkflowModuleEvent;
+import io.vanillabp.cockpit.bpms.api.v1.UserTaskActivatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskCancelledEvent;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedOrUpdatedEvent;
+import io.vanillabp.cockpit.bpms.api.v1.UserTaskSuspendedEvent;
 import io.vanillabp.cockpit.bpms.api.v1.WorkflowCancelledEvent;
 import io.vanillabp.cockpit.bpms.api.v1.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.v1.WorkflowCreatedOrUpdatedEvent;
@@ -241,6 +243,42 @@ public class BpmsApiV1Controller implements BpmsApi {
 
     workflowService.completeWorkflow(workflowId, workflow -> mapper.ontoModel(workflow, event));
 
+    return ResponseEntity.ok().build();
+
+  }
+
+  /**
+   * Marks the user task as suspended. The simulator keeps the latest report as it comes.
+   *
+   * @param userTaskId (required)
+   * @param event (required)
+   * @return Returns the fitting response code.
+   */
+  @Override
+  public ResponseEntity<Void> userTaskSuspendedEvent(
+      final String userTaskId,
+      final UserTaskSuspendedEvent event) {
+
+    log.info("Received UserTaskSuspendedEvent v1: {}", event);
+    taskService.changeSuspension(userTaskId, event.getTimestamp(), event.getInitiator());
+    return ResponseEntity.ok().build();
+
+  }
+
+  /**
+   * Removes the mark of a suspension from the user task.
+   *
+   * @param userTaskId (required)
+   * @param event (required)
+   * @return Returns the fitting response code.
+   */
+  @Override
+  public ResponseEntity<Void> userTaskActivatedEvent(
+      final String userTaskId,
+      final UserTaskActivatedEvent event) {
+
+    log.info("Received UserTaskActivatedEvent v1: {}", event);
+    taskService.changeSuspension(userTaskId, null, event.getInitiator());
     return ResponseEntity.ok().build();
 
   }

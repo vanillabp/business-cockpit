@@ -8,6 +8,11 @@ package io.vanillabp.cockpit.extension.spi;
  * The cockpit's REST endpoint is <code>/workflow/{id}/cancelled</code>, and the SPI enum a
  * details provider receives says <code>CANCELED</code>. Renaming either of them would break an
  * application or a running cockpit server for the sake of tidiness.
+ * <p>
+ * {@link #SUSPENDED} and {@link #ACTIVATED} say only that the process instance which is the
+ * workflow was suspended or activated again, and when. They carry no business data, so no details
+ * provider is asked for them. A suspended called process does not make its workflow suspended, so
+ * they are reported for the workflow's own process instance only.
  */
 public enum WorkflowEventKind {
 
@@ -21,6 +26,12 @@ public enum WorkflowEventKind {
   COMPLETED,
 
   /** The workflow was terminated before reaching an end state. */
-  CANCELLED
+  CANCELLED,
+
+  /** The process instance which is the workflow was suspended. */
+  SUSPENDED,
+
+  /** The process instance which is the workflow was activated again after a suspension. */
+  ACTIVATED
 
 }

@@ -50,6 +50,13 @@ import io.vanillabp.integration.extension.spi.handler.HandlerMultiInstance;
  *          where the cockpit needs it if the end arrives before the creation. Leave it empty
  *          where the BPMS could tell it only by being asked, and the cockpit then takes the time
  *          of the end instead
+ * @param suspendedAt When the process instance of the task was suspended, where the BPMS tells it
+ *          with the event at hand, and empty while the instance is active. A details provider
+ *          reads it. The cockpit does not: only the reports of a suspension and an activation
+ *          change what it shows
+ * @param suspendedBy Who suspended or activated the process instance of the task the last time,
+ *          where the BPMS tells it with the event at hand. Read the same way as
+ *          <code>suspendedAt</code>
  */
 public record UserTaskDetailsPrefill(
                                      String bpmnProcessVersion,
@@ -66,7 +73,51 @@ public record UserTaskDetailsPrefill(
                                      OffsetDateTime followUpDate,
                                      Map<String, Object> variables,
                                      Map<String, HandlerMultiInstance> multiInstances,
-                                     OffsetDateTime createdAt) {
+                                     OffsetDateTime createdAt,
+                                     OffsetDateTime suspendedAt,
+                                     String suspendedBy) {
+
+  /**
+   * The values without the suspension of the process instance, which is how a BPMS half built
+   * them before the suspension was asked for. Both values are then empty.
+   *
+   * @param bpmnProcessVersion See the record
+   * @param workflowId See the record
+   * @param subWorkflowId See the record
+   * @param businessId See the record
+   * @param bpmnTaskName See the record
+   * @param bpmnProcessName See the record
+   * @param initiator See the record
+   * @param assignee See the record
+   * @param candidateUsers See the record
+   * @param candidateGroups See the record
+   * @param dueDate See the record
+   * @param followUpDate See the record
+   * @param variables See the record
+   * @param multiInstances See the record
+   * @param createdAt See the record
+   */
+  public UserTaskDetailsPrefill(
+      final String bpmnProcessVersion,
+      final String workflowId,
+      final String subWorkflowId,
+      final String businessId,
+      final String bpmnTaskName,
+      final String bpmnProcessName,
+      final String initiator,
+      final String assignee,
+      final List<String> candidateUsers,
+      final List<String> candidateGroups,
+      final OffsetDateTime dueDate,
+      final OffsetDateTime followUpDate,
+      final Map<String, Object> variables,
+      final Map<String, HandlerMultiInstance> multiInstances,
+      final OffsetDateTime createdAt) {
+
+    this(
+        bpmnProcessVersion, workflowId, subWorkflowId, businessId, bpmnTaskName, bpmnProcessName, initiator, assignee, candidateUsers, candidateGroups, dueDate, followUpDate, variables, multiInstances, createdAt, null, null);
+
+  }
 
   /**
    * The values without the time the task was created, which is how a BPMS half built them before
@@ -167,6 +218,10 @@ public record UserTaskDetailsPrefill(
     private Map<String, HandlerMultiInstance> multiInstances;
 
     private OffsetDateTime createdAt;
+
+    private OffsetDateTime suspendedAt;
+
+    private String suspendedBy;
 
     private Builder() {
     }
@@ -384,6 +439,34 @@ public record UserTaskDetailsPrefill(
     }
 
     /**
+     * Sets when the process instance of the task was suspended.
+     *
+     * @param suspendedAt The moment, or <code>null</code> while the instance is active
+     * @return The builder
+     */
+    public Builder suspendedAt(
+        final OffsetDateTime suspendedAt) {
+
+      this.suspendedAt = suspendedAt;
+      return this;
+
+    }
+
+    /**
+     * Sets who suspended or activated the process instance of the task the last time.
+     *
+     * @param suspendedBy The id of the person, or <code>null</code> where the BPMS does not say
+     * @return The builder
+     */
+    public Builder suspendedBy(
+        final String suspendedBy) {
+
+      this.suspendedBy = suspendedBy;
+      return this;
+
+    }
+
+    /**
      * Builds the prefill. Fields which were not set stay empty.
      *
      * @return The prefill
@@ -391,7 +474,7 @@ public record UserTaskDetailsPrefill(
     public UserTaskDetailsPrefill build() {
 
       return new UserTaskDetailsPrefill(
-          bpmnProcessVersion, workflowId, subWorkflowId, businessId, bpmnTaskName, bpmnProcessName, initiator, assignee, candidateUsers, candidateGroups, dueDate, followUpDate, variables, multiInstances, createdAt);
+          bpmnProcessVersion, workflowId, subWorkflowId, businessId, bpmnTaskName, bpmnProcessName, initiator, assignee, candidateUsers, candidateGroups, dueDate, followUpDate, variables, multiInstances, createdAt, suspendedAt, suspendedBy);
 
     }
 
