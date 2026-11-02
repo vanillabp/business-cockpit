@@ -3155,6 +3155,11 @@ Nothing at once. A second open tab reads the setting again the next time it star
 The update stream has no event for settings. Settings change rarely, and an event
 would make the stream larger for little gain.
 
+#### Addendum: the reason for the key rule moved
+
+The rule about keys inside a value still holds, but the reason given above is gone: no code saves
+the whole notification configuration any more. Decision 77 gives the reason the rule is kept.
+
 ### 75. A note belongs to the cockpit, is one text per entry, and everybody who sees the entry may change it
 
 A user task and a case each carry one note, the field `note`: a text the users keep about the
@@ -3306,9 +3311,9 @@ That save is gone. Measured against MongoDB: a setting with such a key is stored
 through the update, and the notification configuration and the recipient configuration are written
 next to it.
 
-The rule stays for now. One such key would make any later save of a whole user document fail for
-that user, and such a save is easy to add again without noticing. Whether the rule can go is still
-open. Until that is answered, it stays.
+The rule stays. One such key would make any later save of a whole user document fail for that
+user, and such a save is easy to add again without noticing. A rule which costs an application
+some freedom in naming its keys is cheaper than a user whose settings can no longer be saved.
 
 ### 78. A suspended user task or case stays in every list, and the cockpit orders the reports of a suspension by their time
 
