@@ -72,4 +72,26 @@ public class UserTaskDetailsPrefillTest {
 
   }
 
+  @Test
+  @DisplayName("A BPMS half which builds the values the way it did before says nothing about a suspension")
+  public void theValuesOfBeforeLeaveTheSuspensionEmpty() {
+
+    final var prefill = new UserTaskDetailsPrefill(
+        "1", "workflow-1", null, "4711", "Approve", "Order handling", null, "anna", null, null, null, null, null, null, null);
+    final var workflow = new WorkflowDetailsPrefill("1", "4711", "Order handling", null, null);
+
+    assertNull(prefill.suspendedAt());
+    assertNull(prefill.suspendedBy());
+    assertNull(workflow.suspendedAt());
+    assertNull(workflow.suspendedBy());
+    final var suspended = UserTaskDetailsPrefill
+        .builder()
+        .suspendedAt(OffsetDateTime.parse("2026-11-02T08:00:00Z"))
+        .suspendedBy("olivia")
+        .build();
+    assertEquals(OffsetDateTime.parse("2026-11-02T08:00:00Z"), suspended.suspendedAt());
+    assertEquals("olivia", suspended.suspendedBy());
+
+  }
+
 }

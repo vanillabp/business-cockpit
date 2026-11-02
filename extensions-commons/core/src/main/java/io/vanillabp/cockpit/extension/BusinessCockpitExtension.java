@@ -412,6 +412,38 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       final EventTransaction transaction,
       final Class<?> workflowAggregateClass) {
 
+    return publishUserTaskEvent(userTask, kind, bpmsEventId, timestamp, null, transaction, workflowAggregateClass);
+
+  }
+
+  @Override
+  public boolean publishUserTaskSuspension(
+      final UserTaskReference userTask,
+      final UserTaskEventKind kind,
+      final String bpmsEventId,
+      final OffsetDateTime timestamp,
+      final String suspendedBy,
+      final EventTransaction transaction) {
+
+    if (!changesTheSuspension(kind)) {
+      throw new IllegalArgumentException(
+          ("A suspension of a user task is reported with %s or %s, not with %s. Report every other "
+              + "kind with publishUserTaskEvent, which asks the details provider.")
+              .formatted(UserTaskEventKind.SUSPENDED, UserTaskEventKind.ACTIVATED, kind));
+    }
+    return publishUserTaskEvent(userTask, kind, bpmsEventId, timestamp, suspendedBy, transaction, null);
+
+  }
+
+  private boolean publishUserTaskEvent(
+      final UserTaskReference userTask,
+      final UserTaskEventKind kind,
+      final String bpmsEventId,
+      final OffsetDateTime timestamp,
+      final String suspendedBy,
+      final EventTransaction transaction,
+      final Class<?> workflowAggregateClass) {
+
     if (!configuration.isUserTasksEnabled()) {
       return false;
     }
@@ -432,7 +464,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
         new ReportBeingPlanned(
             BusinessCockpitOperations.PUBLISH_USER_TASK_EVENT, userTask.workflowModuleId(), userTask
                 .bpmnProcessId(), userTask.adapterId(), workflowAggregateClass, () -> userTaskCall(userTask, kind, args,
-                    eventId, eventTimestamp)),
+                    eventId, eventTimestamp, suspendedBy)),
         transaction);
 
   }
@@ -472,6 +504,38 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       final EventTransaction transaction,
       final Class<?> workflowAggregateClass) {
 
+    return publishWorkflowEvent(workflow, kind, bpmsEventId, timestamp, null, transaction, workflowAggregateClass);
+
+  }
+
+  @Override
+  public boolean publishWorkflowSuspension(
+      final WorkflowReference workflow,
+      final WorkflowEventKind kind,
+      final String bpmsEventId,
+      final OffsetDateTime timestamp,
+      final String suspendedBy,
+      final EventTransaction transaction) {
+
+    if (!changesTheSuspension(kind)) {
+      throw new IllegalArgumentException(
+          ("A suspension of a workflow is reported with %s or %s, not with %s. Report every other "
+              + "kind with publishWorkflowEvent, which asks the details provider.")
+              .formatted(WorkflowEventKind.SUSPENDED, WorkflowEventKind.ACTIVATED, kind));
+    }
+    return publishWorkflowEvent(workflow, kind, bpmsEventId, timestamp, suspendedBy, transaction, null);
+
+  }
+
+  private boolean publishWorkflowEvent(
+      final WorkflowReference workflow,
+      final WorkflowEventKind kind,
+      final String bpmsEventId,
+      final OffsetDateTime timestamp,
+      final String suspendedBy,
+      final EventTransaction transaction,
+      final Class<?> workflowAggregateClass) {
+
     if (!configuration.isWorkflowListEnabled()) {
       return false;
     }
@@ -489,7 +553,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
         new ReportBeingPlanned(
             BusinessCockpitOperations.PUBLISH_WORKFLOW_EVENT, workflow.workflowModuleId(), workflow
                 .bpmnProcessId(), workflow.adapterId(), workflowAggregateClass, () -> workflowCall(workflow, kind, args,
-                    eventId, eventTimestamp)),
+                    eventId, eventTimestamp, suspendedBy)),
         transaction);
 
   }
@@ -931,7 +995,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       final UserTaskEventKind kind,
       final Map<String, String> args,
       final String eventId,
-      final OffsetDateTime timestamp) {
+      final OffsetDateTime timestamp,
+      final String suspendedBy) {
 
     if (changesTheSuspension(kind)) {
       // a suspension carries no business data, so neither the BPMS half nor the details provider
@@ -944,7 +1009,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
               userTask.workflowAggregateId(),
               userTask.adapterId(),
               args,
-              ReportPayload.of(buildUserTaskEvent(userTask, kind, eventId, timestamp)))
+              ReportPayload.of(suspensionReport(buildUserTaskEvent(userTask, kind, eventId, timestamp), suspendedBy)))
           .replacingWhatIsStillWaiting();
     }
     final var prefill = prefilledUserTaskDetails(userTask);
@@ -1009,7 +1074,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       final WorkflowEventKind kind,
       final Map<String, String> args,
       final String eventId,
-      final OffsetDateTime timestamp) {
+      final OffsetDateTime timestamp,
+      final String suspendedBy) {
 
     if (changesTheSuspension(kind)) {
       // see userTaskCall
@@ -1021,7 +1087,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
               workflow.workflowAggregateId(),
               workflow.adapterId(),
               args,
-              ReportPayload.of(buildWorkflowEvent(workflow, kind, eventId, timestamp)))
+              ReportPayload.of(suspensionReport(buildWorkflowEvent(workflow, kind, eventId, timestamp), suspendedBy)))
           .replacingWhatIsStillWaiting();
     }
     final var prefill = prefilledWorkflowDetails(workflow);
@@ -1069,6 +1135,10 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     event.setBusinessId(prefill.get().businessId());
     event.setCreatedAt(prefill.get().createdAt());
     event.setInitiator(prefill.get().initiator());
+    // for the details provider to read: the suspension itself reaches the cockpit only through
+    // the reports of SUSPENDED and ACTIVATED
+    event.setSuspendedAt(prefill.get().suspendedAt());
+    event.setSuspendedBy(prefill.get().suspendedBy());
     handlers
         .invoke(
             HandlerCall
@@ -1717,6 +1787,10 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     event.setDueDate(prefill.dueDate());
     event.setFollowUpDate(prefill.followUpDate());
     event.setCreatedAt(prefill.createdAt());
+    // for the details provider to read: the suspension itself reaches the cockpit only through
+    // the reports of SUSPENDED and ACTIVATED
+    event.setSuspendedAt(prefill.suspendedAt());
+    event.setSuspendedBy(prefill.suspendedBy());
     if (prefill.workflowId() != null) {
       event.setWorkflowId(prefill.workflowId());
     }
@@ -2155,6 +2229,29 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       final WorkflowEventKind kind) {
 
     return (kind == WorkflowEventKind.COMPLETED) || (kind == WorkflowEventKind.CANCELLED);
+
+  }
+
+  /**
+   * Names the person on the report of a suspension or an activation. It is the only thing such a
+   * report carries besides the identifiers and the moment.
+   */
+  private static UserTaskEvent suspensionReport(
+      final UserTaskEvent event,
+      final String suspendedBy) {
+
+    event.setSuspendedBy(suspendedBy);
+    return event;
+
+  }
+
+  /** @see #suspensionReport(UserTaskEvent, String) */
+  private static WorkflowEvent suspensionReport(
+      final WorkflowEvent event,
+      final String suspendedBy) {
+
+    event.setSuspendedBy(suspendedBy);
+    return event;
 
   }
 

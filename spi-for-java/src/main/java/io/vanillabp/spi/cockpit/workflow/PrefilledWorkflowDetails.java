@@ -46,6 +46,26 @@ public interface PrefilledWorkflowDetails extends WorkflowDetails {
   String getBpmnProcessVersion();
 
   /**
+   * When the process instance which is the workflow was suspended, as far as the BPMS said so when this report was built. A
+   * suspended instance cannot be worked on until it is activated again.
+   *
+   * <p>It is there to be read. Only the BPMS suspends and activates an instance, and the cockpit
+   * learns about it from reports of their own, so no method of a details provider can change it.
+   *
+   * @return The moment of the suspension, or <code>null</code> where the instance is active or the
+   *         BPMS does not say
+   */
+  OffsetDateTime getSuspendedAt();
+
+  /**
+   * Who suspended or activated the process instance which is the workflow the last time, as far as the BPMS said so when this
+   * report was built. It is there to be read, like {@link #getSuspendedAt()}.
+   *
+   * @return The id of the person, or <code>null</code> where the BPMS does not say
+   */
+  String getSuspendedBy();
+
+  /**
    * Names the user who caused this report.
    *
    * <p>This is mandatory, and your workflow module is the only one who can answer it. No

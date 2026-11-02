@@ -69,6 +69,7 @@ public abstract class WorkflowMapper {
   // the event's timestamp, stamped where reports are weighed against each other:
   @Mapping(target = "latestEventAt", ignore = true)
   @Mapping(target = "suspendedAt", ignore = true)
+  @Mapping(target = "suspendedBy", ignore = true)
   @Mapping(target = "suspensionChangedAt", ignore = true)
   @Mapping(target = "createdAt", source = "timestamp")
   @Mapping(target = "knownFromItsEndAlone", ignore = true)
@@ -100,6 +101,7 @@ public abstract class WorkflowMapper {
   // the event's timestamp, stamped where reports are weighed against each other:
   @Mapping(target = "latestEventAt", ignore = true)
   @Mapping(target = "suspendedAt", ignore = true)
+  @Mapping(target = "suspendedBy", ignore = true)
   @Mapping(target = "suspensionChangedAt", ignore = true)
   @Mapping(target = "createdAt", ignore = true)
   @Mapping(target = "knownFromItsEndAlone", ignore = true)

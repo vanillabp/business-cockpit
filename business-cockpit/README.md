@@ -122,22 +122,23 @@ The cockpit learns about it from the reports `suspended` and `activated` of the 
 [its README](../apis/bpms-api/README.md). `SuspensionOfARecord` holds the rules, the same for a
 user task and a workflow:
 
-- A suspension sets `suspendedAt` to the moment of the report. A record which is suspended already
-  keeps the moment of its first suspension. An activation removes `suspendedAt`.
+- A suspension sets `suspendedAt` to the moment of the report and `suspendedBy` to the person it
+  names. A record which is suspended already keeps the moment and the person of its first
+  suspension. An activation removes `suspendedAt` and sets `suspendedBy` to the person who
+  activated.
 - The reports overtake each other, so the cockpit orders them by their timestamps. The record keeps
   `suspensionChangedAt`, the moment of the last report which changed the suspension. An older
-  report changes nothing, and so does a suspension which is older than the latest change of the
-  record.
-- Only a running process instance reports a change. So a change which is younger than the
-  suspension removes `suspendedAt`. This heals an activation which was never reported, for example
-  because the application did not run at that moment.
-- An end always removes `suspendedAt`, and an ended record takes no suspension.
+  report changes nothing.
+- Only these two reports change the suspension. A task is created and completed by a running
+  process instance, so a creation, a change, a change of the aggregate and an end leave
+  `suspendedAt` and `suspendedBy` as they are. A record which was cancelled while it was suspended
+  keeps `suspendedAt` after its end.
 - A report about a record the cockpit does not know is answered with 200 and logged. The creation
   brings the record, and the next report about the suspension marks it.
 - Neither report changes `latestEventAt`, so they never make a change look old.
 
 A suspended record stays in every list. Removing it would look like an error to a user who saw it
-before. The GUI API carries `suspendedAt`, and a list can be sorted and filtered by it like by any
+before. The GUI API carries `suspendedAt` and `suspendedBy`, and a list can be sorted and filtered by it like by any
 other field. There is no mode of its own for suspended entries. The cockpit's own actions, like
 claiming or a note, stay allowed, because they change cockpit data and do not ask the BPMS. A
 missing field means "not suspended", so the records stored before need no changeset.

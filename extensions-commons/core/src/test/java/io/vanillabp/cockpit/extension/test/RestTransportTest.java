@@ -196,7 +196,9 @@ public class RestTransportTest {
   @DisplayName("A suspension and an activation go to their own endpoints and carry no business data")
   public void aSuspensionAndAnActivationGoToTheirOwnEndpoints() {
 
-    transport.publishUserTaskEvent(EventFixture.userTask(UserTaskEventKind.SUSPENDED));
+    final var suspended = EventFixture.userTask(UserTaskEventKind.SUSPENDED);
+    suspended.setSuspendedBy("olivia");
+    transport.publishUserTaskEvent(suspended);
     transport.publishUserTaskEvent(EventFixture.userTask(UserTaskEventKind.ACTIVATED));
     transport.publishWorkflowEvent(EventFixture.workflow(WorkflowEventKind.SUSPENDED));
     transport.publishWorkflowEvent(EventFixture.workflow(WorkflowEventKind.ACTIVATED));
@@ -212,6 +214,7 @@ public class RestTransportTest {
     final var suspension = received.getFirst().body();
     assertTrue(suspension.contains("\"userTaskId\":\"task-1\""), suspension);
     assertTrue(suspension.contains("\"timestamp\""), suspension);
+    assertTrue(suspension.contains("\"suspendedBy\":\"olivia\""), suspension);
     assertFalse(suspension.contains("\"details\""), suspension);
     assertFalse(suspension.contains("\"title\""), suspension);
 

@@ -41,8 +41,10 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * What the cockpit stores when a workflow module reports that a process instance was suspended or
  * activated again.
  * <p>
- * A suspended user task or case stays in every list and carries the moment of the suspension. The
- * reports overtake each other like all reports, so the cockpit orders them by their timestamps.
+ * A suspended user task or case stays in every list and carries the moment of the suspension and
+ * the person who suspended it. Only the reports of a suspension and an activation change that: a
+ * creation, a change or an end leaves it as it is. The reports overtake each other like all
+ * reports, so the cockpit orders them by their timestamps.
  * Every test drives the REST way in of the current API version, and one drives version 1, which
  * knows the two reports about a user task as well.
  */
@@ -55,6 +57,8 @@ class SuspendedAndActivatedTest {
   private static final OffsetDateTime ACTIVATED_AT = OffsetDateTime.parse("2026-11-01T10:00:00Z");
   private static final OffsetDateTime SUSPENDED_AGAIN_AT = OffsetDateTime.parse("2026-11-01T11:00:00Z");
   private static final OffsetDateTime ENDED_AT = OffsetDateTime.parse("2026-11-01T12:00:00Z");
+  private static final String OPERATOR = "olivia";
+  private static final String SUPERVISOR = "sam";
 
   /**
    * One cockpit server, with its two lists held in memory instead of in MongoDB. The mappers are the
@@ -234,7 +238,8 @@ class SuspendedAndActivatedTest {
         .id("event-suspended-"
             + timestamp)
         .userTaskId("task-1")
-        .timestamp(timestamp);
+        .timestamp(timestamp)
+        .suspendedBy(OPERATOR);
 
   }
 
@@ -245,7 +250,24 @@ class SuspendedAndActivatedTest {
         .id("event-activated-"
             + timestamp)
         .userTaskId("task-1")
-        .timestamp(timestamp);
+        .timestamp(timestamp)
+        .suspendedBy(SUPERVISOR);
+
+  }
+
+  private static UserTaskCancelledEvent taskCancelled() {
+
+    return new UserTaskCancelledEvent()
+        .id("event-cancelled")
+        .userTaskId("task-1")
+        .timestamp(ENDED_AT)
+        .workflowModuleId("taxi-ride")
+        .bpmnProcessId("ride")
+        .workflowId("workflow-1")
+        .taskDefinition("assign-driver")
+        .title(Map.of("en", "Assign a driver"))
+        .uiUriPath("/ui")
+        .uiUriType("WEBPACK_MF_REACT");
 
   }
 
@@ -300,7 +322,8 @@ class SuspendedAndActivatedTest {
         .id("event-suspended-"
             + timestamp)
         .workflowId("workflow-1")
-        .timestamp(timestamp);
+        .timestamp(timestamp)
+        .suspendedBy(OPERATOR);
 
   }
 
@@ -311,14 +334,15 @@ class SuspendedAndActivatedTest {
         .id("event-activated-"
             + timestamp)
         .workflowId("workflow-1")
-        .timestamp(timestamp);
+        .timestamp(timestamp)
+        .suspendedBy(SUPERVISOR);
 
   }
 
   // --- user tasks ---------------------------------------------------------------------------
 
   @Test
-  void aSuspendedTaskStaysOpenAndCarriesTheMomentOfItsSuspension() {
+  void aSuspendedTaskStaysOpenAndCarriesTheMomentAndThePersonOfItsSuspension() {
 
     final var cockpit = new Cockpit();
     cockpit.bpmsApi.userTaskCreatedEvent(taskCreated());
@@ -328,6 +352,7 @@ class SuspendedAndActivatedTest {
     assertEquals(HttpStatus.OK, answer.getStatusCode());
     final var stored = cockpit.storedTask();
     assertEquals(SUSPENDED_AT, stored.getSuspendedAt());
+    assertEquals(OPERATOR, stored.getSuspendedBy());
     assertNull(stored.getEndedAt(), "a suspended task is still open");
     // a suspension says nothing about the data of the task, so it never makes a change look old
     assertEquals(CREATED_AT, stored.getLatestEventAt());
@@ -335,7 +360,7 @@ class SuspendedAndActivatedTest {
   }
 
   @Test
-  void anActivationRemovesTheMark() {
+  void anActivationRemovesTheMarkAndNamesWhoActivated() {
 
     final var cockpit = new Cockpit();
     cockpit.bpmsApi.userTaskCreatedEvent(taskCreated());
@@ -345,28 +370,30 @@ class SuspendedAndActivatedTest {
 
     assertEquals(HttpStatus.OK, answer.getStatusCode());
     assertNull(cockpit.storedTask().getSuspendedAt());
+    assertEquals(SUPERVISOR, cockpit.storedTask().getSuspendedBy());
 
   }
 
   @Test
-  void aRepeatedSuspensionKeepsTheMomentOfTheFirstOne() {
+  void aRepeatedSuspensionKeepsTheMomentAndThePersonOfTheFirstOne() {
 
     final var cockpit = cockpitWhichWasSent(api -> {
       api.userTaskCreatedEvent(taskCreated());
       api.userTaskSuspendedEvent("task-1", taskSuspended(SUSPENDED_AT));
       // a second node of the application reports the same suspension
       api.userTaskSuspendedEvent("task-1", taskSuspended(SUSPENDED_AT));
-      api.userTaskSuspendedEvent("task-1", taskSuspended(SUSPENDED_AGAIN_AT));
+      api.userTaskSuspendedEvent("task-1", taskSuspended(SUSPENDED_AGAIN_AT).suspendedBy("otto"));
     });
 
     assertEquals(SUSPENDED_AT, cockpit.storedTask().getSuspendedAt());
+    assertEquals(OPERATOR, cockpit.storedTask().getSuspendedBy());
     // the creation, the first suspension and the later one were stored. The repeat was not
     verify(cockpit.userTaskRepository, times(3)).save(any(UserTask.class));
 
   }
 
   @Test
-  void anActivationWhichOvertookItsSuspensionStillWins() {
+  void anOlderSuspensionWhichArrivesAfterANewerActivationChangesNothing() {
 
     final var cockpit = cockpitWhichWasSent(api -> {
       api.userTaskCreatedEvent(taskCreated());
@@ -375,12 +402,13 @@ class SuspendedAndActivatedTest {
     });
 
     assertNull(cockpit.storedTask().getSuspendedAt());
+    assertEquals(SUPERVISOR, cockpit.storedTask().getSuspendedBy());
     verify(cockpit.logger).info(
         contains("Keeping user task"),
         eq("task-1"),
         eq("suspension"),
         eq(SUSPENDED_AT),
-        eq("a younger event"));
+        eq("a younger suspension or activation"));
 
   }
 
@@ -399,68 +427,104 @@ class SuspendedAndActivatedTest {
   }
 
   @Test
-  void aSuspensionOlderThanAChangeOfTheTaskChangesNothing() {
+  void aChangeDuringTheSuspensionKeepsTheMark() {
 
-    // only a running process instance reports a change, so it was not suspended any more
-    final var cockpit = cockpitWhichWasSent(api -> {
-      api.userTaskCreatedEvent(taskCreated());
-      api.userTaskUpdatedEvent("task-1", taskChanged(CHANGED_AT));
-      api.userTaskSuspendedEvent("task-1", taskSuspended(SUSPENDED_AT));
-    });
-
-    assertNull(cockpit.storedTask().getSuspendedAt());
-
-  }
-
-  @Test
-  void aChangeYoungerThanTheSuspensionRemovesTheMark() {
-
-    // the activation was never reported, for example because the application was not running
     final var cockpit = cockpitWhichWasSent(api -> {
       api.userTaskCreatedEvent(taskCreated());
       api.userTaskSuspendedEvent("task-1", taskSuspended(SUSPENDED_AT));
       api.userTaskUpdatedEvent("task-1", taskChanged(CHANGED_AT));
     });
 
-    assertNull(cockpit.storedTask().getSuspendedAt());
-    assertEquals(CHANGED_AT, cockpit.storedTask().getLatestEventAt());
+    assertEquals(SUSPENDED_AT, cockpit.storedTask().getSuspendedAt());
+    assertEquals(OPERATOR, cockpit.storedTask().getSuspendedBy());
+    assertEquals(CHANGED_AT, cockpit.storedTask().getLatestEventAt(), "the change itself is stored");
 
   }
 
   @Test
-  void aChangeOlderThanTheSuspensionKeepsTheMark() {
+  void aChangeOfTheAggregateDuringTheSuspensionKeepsTheMark() {
 
+    // BusinessCockpitService.aggregateChanged reports the case and its open tasks as changed. The
+    // application may call it while the instance is suspended
     final var cockpit = cockpitWhichWasSent(api -> {
       api.userTaskCreatedEvent(taskCreated());
-      api.userTaskSuspendedEvent("task-1", taskSuspended(CHANGED_AT));
-      api.userTaskUpdatedEvent("task-1", taskChanged(SUSPENDED_AT));
+      api.workflowCreatedEvent(workflowCreated());
+      api.userTaskSuspendedEvent("task-1", taskSuspended(SUSPENDED_AT));
+      api.workflowSuspendedEvent("workflow-1", workflowSuspended(SUSPENDED_AT));
+      api.workflowUpdatedEvent("workflow-1", workflowChanged(CHANGED_AT).initiator("anna"));
+      api.userTaskUpdatedEvent("task-1", taskChanged(CHANGED_AT).initiator("anna"));
     });
 
-    assertEquals(CHANGED_AT, cockpit.storedTask().getSuspendedAt());
+    assertEquals(SUSPENDED_AT, cockpit.storedTask().getSuspendedAt());
+    assertEquals(SUSPENDED_AT, cockpit.storedWorkflow().getSuspendedAt());
+    assertEquals(OPERATOR, cockpit.storedWorkflow().getSuspendedBy());
+
+    // and the suspension which arrives after such a change still counts
+    final var later = cockpitWhichWasSent(api -> {
+      api.userTaskCreatedEvent(taskCreated());
+      api.userTaskUpdatedEvent("task-1", taskChanged(CHANGED_AT).initiator("anna"));
+      api.userTaskSuspendedEvent("task-1", taskSuspended(SUSPENDED_AT));
+    });
+    assertEquals(SUSPENDED_AT, later.storedTask().getSuspendedAt());
 
   }
 
   @Test
-  void anEndRemovesTheMarkAndALaterSuspensionChangesNothing() {
+  void aCreationWhichArrivesAfterTheSuspensionLeavesTheMarkAlone() {
 
     final var cockpit = cockpitWhichWasSent(api -> {
       api.userTaskCreatedEvent(taskCreated());
       api.userTaskSuspendedEvent("task-1", taskSuspended(SUSPENDED_AT));
+      // the creation is repeated, for example by a second node of the application
+      api.userTaskCreatedEvent(taskCreated());
+    });
+
+    assertEquals(SUSPENDED_AT, cockpit.storedTask().getSuspendedAt());
+
+  }
+
+  @Test
+  void anEndLeavesTheMarkAlone() {
+
+    // a cancelled process instance may have been suspended. Only the end says that the task is over
+    final var cockpit = cockpitWhichWasSent(api -> {
+      api.userTaskCreatedEvent(taskCreated());
+      api.userTaskSuspendedEvent("task-1", taskSuspended(SUSPENDED_AT));
+      api.userTaskCancelledEvent("task-1", taskCancelled());
+    });
+
+    assertNotNull(cockpit.storedTask().getEndedAt());
+    assertEquals(SUSPENDED_AT, cockpit.storedTask().getSuspendedAt());
+
+  }
+
+  @Test
+  void aSuspensionWhichArrivesAfterTheEndIsStoredAsWell() {
+
+    // the reports overtake each other, so the same story must give the same record
+    final var cockpit = cockpitWhichWasSent(api -> {
+      api.userTaskCreatedEvent(taskCreated());
+      api.userTaskCancelledEvent("task-1", taskCancelled());
+      api.userTaskSuspendedEvent("task-1", taskSuspended(SUSPENDED_AT));
+    });
+
+    assertNotNull(cockpit.storedTask().getEndedAt());
+    assertEquals(SUSPENDED_AT, cockpit.storedTask().getSuspendedAt());
+
+  }
+
+  @Test
+  void aCompletionKeepsWhoActivated() {
+
+    final var cockpit = cockpitWhichWasSent(api -> {
+      api.userTaskCreatedEvent(taskCreated());
+      api.userTaskSuspendedEvent("task-1", taskSuspended(SUSPENDED_AT));
+      api.userTaskActivatedEvent("task-1", taskActivated(ACTIVATED_AT));
       api.userTaskCompletedEvent("task-1", taskCompleted());
     });
-    assertNull(cockpit.storedTask().getSuspendedAt(), "an ended task is never shown as suspended");
 
-    final var answer = cockpit.bpmsApi
-        .userTaskSuspendedEvent("task-1", taskSuspended(ENDED_AT.plusMinutes(1)));
-
-    assertEquals(HttpStatus.OK, answer.getStatusCode());
     assertNull(cockpit.storedTask().getSuspendedAt());
-    verify(cockpit.logger).info(
-        contains("Keeping user task"),
-        eq("task-1"),
-        eq("suspension"),
-        eq(ENDED_AT.plusMinutes(1)),
-        eq("the end of the task"));
+    assertEquals(SUPERVISOR, cockpit.storedTask().getSuspendedBy());
 
   }
 
@@ -508,6 +572,7 @@ class SuspendedAndActivatedTest {
             .timestamp(SUSPENDED_AT));
     assertEquals(HttpStatus.OK, suspended.getStatusCode());
     assertEquals(SUSPENDED_AT, cockpit.storedTask().getSuspendedAt());
+    assertNull(cockpit.storedTask().getSuspendedBy(), "version 1 cannot name the person");
 
     final var activated = cockpit.bpmsApiV1.userTaskActivatedEvent(
         "task-1",
@@ -534,12 +599,14 @@ class SuspendedAndActivatedTest {
     assertEquals(HttpStatus.OK, answer.getStatusCode());
     final var stored = cockpit.storedWorkflow();
     assertEquals(SUSPENDED_AT, stored.getSuspendedAt());
+    assertEquals(OPERATOR, stored.getSuspendedBy());
     assertNull(stored.getEndedAt());
     assertEquals(CREATED_AT, stored.getLatestEventAt());
 
     cockpit.bpmsApi.workflowActivatedEvent("workflow-1", workflowActivated(ACTIVATED_AT));
 
     assertNull(cockpit.storedWorkflow().getSuspendedAt());
+    assertEquals(SUPERVISOR, cockpit.storedWorkflow().getSuspendedBy());
 
   }
 
@@ -557,7 +624,7 @@ class SuspendedAndActivatedTest {
   }
 
   @Test
-  void aChangeOfTheCaseYoungerThanTheSuspensionRemovesTheMark() {
+  void aChangeOfTheCaseDuringTheSuspensionKeepsTheMark() {
 
     final var cockpit = cockpitWhichWasSent(api -> {
       api.workflowCreatedEvent(workflowCreated());
@@ -565,22 +632,23 @@ class SuspendedAndActivatedTest {
       api.workflowUpdatedEvent("workflow-1", workflowChanged(CHANGED_AT));
     });
 
-    assertNull(cockpit.storedWorkflow().getSuspendedAt());
+    assertEquals(SUSPENDED_AT, cockpit.storedWorkflow().getSuspendedAt());
 
   }
 
   @Test
-  void anEndOfTheCaseRemovesTheMark() {
+  void anEndOfTheCaseLeavesTheMarkAlone() {
 
     final var cockpit = cockpitWhichWasSent(api -> {
       api.workflowCreatedEvent(workflowCreated());
       api.workflowSuspendedEvent("workflow-1", workflowSuspended(SUSPENDED_AT));
+      api.workflowActivatedEvent("workflow-1", workflowActivated(ACTIVATED_AT));
       api.workflowCompletedEvent("workflow-1", workflowCompleted());
-      api.workflowSuspendedEvent("workflow-1", workflowSuspended(ENDED_AT.plusMinutes(1)));
     });
 
     assertNotNull(cockpit.storedWorkflow().getEndedAt());
     assertNull(cockpit.storedWorkflow().getSuspendedAt());
+    assertEquals(SUPERVISOR, cockpit.storedWorkflow().getSuspendedBy());
 
   }
 

@@ -1039,12 +1039,20 @@ components:
           format: date-time
           description: >-
             When the user task was suspended, by the clock of the reporting system. It is there
-            while the user task is suspended and missing otherwise, like 'endedAt' is missing while
-            the user task is open. An ended user task never carries it. The BPMS suspended the
-            process instance of the task, so the task cannot be worked on until it is activated
-            again. The BPMS refuses to complete it in the meantime. The user task stays in every
-            list. A list can be sorted and filtered by this field like by any other.
+            while the user task is suspended and missing otherwise. The BPMS suspended the process
+            instance of the task, so the task cannot be worked on until it is activated again. The
+            BPMS refuses to complete it in the meantime. Only a report of the suspension or of the
+            activation changes this field. A task whose process instance was cancelled while it was
+            suspended keeps it after its end, so 'endedAt' says first whether the task is over.
+            The user task stays in every list. A list can be sorted and filtered by this field like
+            by any other.
           example: 2019-05-21T13:30:26.202Z
+        suspendedBy:
+          type: string
+          description: >-
+            Who suspended or activated the process instance of the user task the last time, as the
+            reporting system named the person. It stays after an activation, so while 'suspendedAt'
+            is missing it names who activated the instance. Missing where the BPMS does not say.
         note:
           type: string
           description: >-
@@ -1197,12 +1205,20 @@ components:
           format: date-time
           description: >-
             When the workflow was suspended, by the clock of the reporting system. It is there while
-            the workflow is suspended and missing otherwise, like 'endedAt' is missing while the
-            workflow is open. An ended workflow never carries it. The BPMS suspended the process
-            instance which is the workflow. A suspended called process does not make its workflow
-            suspended. The workflow stays in every list. A list can be sorted and filtered by this
-            field like by any other.
+            the workflow is suspended and missing otherwise. The BPMS suspended the process instance
+            which is the workflow. A suspended called process does not make its workflow suspended.
+            Only a report of the suspension or of the activation changes this field. A workflow which
+            was cancelled while it was suspended keeps it after its end, so 'endedAt' says first
+            whether the workflow is over. The workflow stays in every list. A list can be sorted and
+            filtered by this field like by any other.
           example: 2019-05-21T13:30:26.202Z
+        suspendedBy:
+          type: string
+          description: >-
+            Who suspended or activated the process instance which is the workflow the last time, as
+            the reporting system named the person. It stays after an activation, so while
+            'suspendedAt' is missing it names who activated the instance. Missing where the BPMS does
+            not say.
         note:
           type: string
           description: >-

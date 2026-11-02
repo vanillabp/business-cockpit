@@ -525,7 +525,8 @@ class BpmsApiUserTaskLifecycleTest extends ItestBase {
             {
               "id": "%s",
               "userTaskId": "%s",
-              "timestamp": "%s"
+              "timestamp": "%s",
+              "suspendedBy": "olivia"
             }
             """.formatted(unique("event"), userTaskId, suspendedAt));
     assertThat(suspended.statusCode()).isEqualTo(200);
@@ -536,6 +537,7 @@ class BpmsApiUserTaskLifecycleTest extends ItestBase {
         + userTaskId));
     assertThat(OffsetDateTime.parse(task.read("$.suspendedAt", String.class)).toInstant())
         .isEqualTo(suspendedAt.toInstant());
+    assertThat(task.read("$.suspendedBy", String.class)).isEqualTo("olivia");
     assertThat(task.read("$.endedAt", String.class)).isNull();
 
     final var activated = bpmsV1_1("/usertask/"
@@ -544,7 +546,8 @@ class BpmsApiUserTaskLifecycleTest extends ItestBase {
             {
               "id": "%s",
               "userTaskId": "%s",
-              "timestamp": "2026-11-01T10:00:00Z"
+              "timestamp": "2026-11-01T10:00:00Z",
+              "suspendedBy": "sam"
             }
             """.formatted(unique("event"), userTaskId));
     assertThat(activated.statusCode()).isEqualTo(200);
@@ -552,6 +555,7 @@ class BpmsApiUserTaskLifecycleTest extends ItestBase {
     final var taskAfterwards = json(guiGet(cookie, "/usertask/"
         + userTaskId));
     assertThat(taskAfterwards.read("$.suspendedAt", String.class)).isNull();
+    assertThat(taskAfterwards.read("$.suspendedBy", String.class)).isEqualTo("sam");
 
   }
 

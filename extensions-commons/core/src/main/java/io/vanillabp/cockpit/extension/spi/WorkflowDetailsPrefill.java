@@ -18,13 +18,42 @@ import java.time.OffsetDateTime;
  *          where the cockpit needs it if the end arrives before the creation. Leave it empty
  *          where the BPMS could tell it only by being asked, and the cockpit then takes the time
  *          of the end instead
+ * @param suspendedAt When the process instance which is the workflow was suspended, where the
+ *          BPMS tells it with the event at hand, and empty while the instance is active. A details
+ *          provider reads it. The cockpit does not: only the reports of a suspension and an
+ *          activation change what it shows
+ * @param suspendedBy Who suspended or activated the process instance the last time, where the
+ *          BPMS tells it with the event at hand. Read the same way as <code>suspendedAt</code>
  */
 public record WorkflowDetailsPrefill(
                                      String bpmnProcessVersion,
                                      String businessId,
                                      String bpmnProcessName,
                                      String initiator,
-                                     OffsetDateTime createdAt) {
+                                     OffsetDateTime createdAt,
+                                     OffsetDateTime suspendedAt,
+                                     String suspendedBy) {
+
+  /**
+   * The values without the suspension of the process instance, which is how a BPMS half built
+   * them before the suspension was asked for. Both values are then empty.
+   *
+   * @param bpmnProcessVersion See the record
+   * @param businessId See the record
+   * @param bpmnProcessName See the record
+   * @param initiator See the record
+   * @param createdAt See the record
+   */
+  public WorkflowDetailsPrefill(
+      final String bpmnProcessVersion,
+      final String businessId,
+      final String bpmnProcessName,
+      final String initiator,
+      final OffsetDateTime createdAt) {
+
+    this(bpmnProcessVersion, businessId, bpmnProcessName, initiator, createdAt, null, null);
+
+  }
 
   /**
    * The values without the time the workflow was started, which is how a BPMS half built them

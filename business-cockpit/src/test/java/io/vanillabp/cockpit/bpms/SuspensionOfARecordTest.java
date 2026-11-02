@@ -14,8 +14,8 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * The edges of the rules about a suspension which no report of a running application reaches: a
- * report without a timestamp, a time read back from MongoDB in another offset, and a change at the
- * very moment of the suspension. The ordinary cases are tested through the ways in.
+ * report without a timestamp, a time read back from MongoDB in another offset, and an activation
+ * which names nobody. The ordinary cases are tested through the ways in.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class SuspensionOfARecordTest {
@@ -26,6 +26,7 @@ class SuspensionOfARecordTest {
 
     final var task = new UserTask();
     task.setSuspendedAt(SUSPENDED_AT);
+    task.setSuspendedBy("olivia");
     task.setSuspensionChangedAt(SUSPENDED_AT);
     return task;
 
@@ -37,7 +38,7 @@ class SuspensionOfARecordTest {
     final var task = suspendedTask();
 
     final var outcome = SuspensionOfARecord.suspend(
-        task, SUSPENDED_AT.withOffsetSameInstant(ZoneOffset.ofHours(2)));
+        task, SUSPENDED_AT.withOffsetSameInstant(ZoneOffset.ofHours(2)), "olivia");
 
     assertEquals(SuspensionOfARecord.Outcome.REPEATED, outcome, "nothing has to be saved");
 
@@ -48,7 +49,7 @@ class SuspensionOfARecordTest {
 
     final var task = suspendedTask();
 
-    final var outcome = SuspensionOfARecord.activate(task, null);
+    final var outcome = SuspensionOfARecord.activate(task, null, "sam");
 
     assertEquals(SuspensionOfARecord.Outcome.CHANGED, outcome);
     assertNull(task.getSuspendedAt());
@@ -57,37 +58,28 @@ class SuspensionOfARecordTest {
   }
 
   @Test
-  void aChangeAtTheMomentOfTheSuspensionKeepsTheMark() {
+  void anActivationWhichNamesNobodyRemovesThePersonOfTheSuspension() {
 
-    // it may be the suspension itself, which some engines also report as a change
+    // the person who suspended did not activate, and the cockpit must not say so
     final var task = suspendedTask();
 
-    SuspensionOfARecord.activatedByAYoungerChange(task, SUSPENDED_AT);
+    final var outcome = SuspensionOfARecord.activate(task, SUSPENDED_AT.plusHours(1), null);
 
-    assertEquals(SUSPENDED_AT, task.getSuspendedAt());
-
-  }
-
-  @Test
-  void aChangeWithoutATimestampKeepsTheMark() {
-
-    final var task = suspendedTask();
-
-    SuspensionOfARecord.activatedByAYoungerChange(task, null);
-
-    assertEquals(SUSPENDED_AT, task.getSuspendedAt());
-
-  }
-
-  @Test
-  void aChangeOfARecordWhichNoSuspensionReachedYetChangesNothing() {
-
-    final var task = new UserTask();
-
-    SuspensionOfARecord.activatedByAYoungerChange(task, SUSPENDED_AT);
-
+    assertEquals(SuspensionOfARecord.Outcome.CHANGED, outcome);
     assertNull(task.getSuspendedAt());
-    assertNull(task.getSuspensionChangedAt());
+    assertNull(task.getSuspendedBy());
+
+  }
+
+  @Test
+  void aRepeatedActivationIsARepeat() {
+
+    final var task = suspendedTask();
+    SuspensionOfARecord.activate(task, SUSPENDED_AT.plusHours(1), "sam");
+
+    final var outcome = SuspensionOfARecord.activate(task, SUSPENDED_AT.plusHours(1), "sam");
+
+    assertEquals(SuspensionOfARecord.Outcome.REPEATED, outcome);
 
   }
 

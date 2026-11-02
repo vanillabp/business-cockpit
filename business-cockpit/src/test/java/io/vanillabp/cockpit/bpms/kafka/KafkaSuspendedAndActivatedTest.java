@@ -170,10 +170,12 @@ class KafkaSuspendedAndActivatedTest {
             .setId("event-suspended")
             .setApiVersion("1.0")
             .setUserTaskId("task-1")
-            .setTimestamp(protobuf(SUSPENDED_AT)))
+            .setTimestamp(protobuf(SUSPENDED_AT))
+            .setSuspendedBy("olivia"))
         .build()));
 
     assertSameMoment(SUSPENDED_AT, storedTasks.get("task-1").getSuspendedAt());
+    assertEquals("olivia", storedTasks.get("task-1").getSuspendedBy());
 
     userTasks.consumeUserTaskEvent(record(BcEvent
         .newBuilder()
@@ -182,10 +184,12 @@ class KafkaSuspendedAndActivatedTest {
             .setId("event-activated")
             .setApiVersion("1.0")
             .setUserTaskId("task-1")
-            .setTimestamp(protobuf(ACTIVATED_AT)))
+            .setTimestamp(protobuf(ACTIVATED_AT))
+            .setSuspendedBy("sam"))
         .build()));
 
     assertNull(storedTasks.get("task-1").getSuspendedAt());
+    assertEquals("sam", storedTasks.get("task-1").getSuspendedBy());
 
   }
 
@@ -230,10 +234,12 @@ class KafkaSuspendedAndActivatedTest {
             .setId("event-suspended")
             .setApiVersion("1.0")
             .setWorkflowId("workflow-1")
-            .setTimestamp(protobuf(SUSPENDED_AT)))
+            .setTimestamp(protobuf(SUSPENDED_AT))
+            .setSuspendedBy("olivia"))
         .build()));
 
     assertSameMoment(SUSPENDED_AT, storedWorkflows.get("workflow-1").getSuspendedAt());
+    assertEquals("olivia", storedWorkflows.get("workflow-1").getSuspendedBy());
 
     workflows.consumeWorkflowEvent(record(BcEvent
         .newBuilder()
@@ -242,10 +248,12 @@ class KafkaSuspendedAndActivatedTest {
             .setId("event-activated")
             .setApiVersion("1.0")
             .setWorkflowId("workflow-1")
-            .setTimestamp(protobuf(ACTIVATED_AT)))
+            .setTimestamp(protobuf(ACTIVATED_AT))
+            .setSuspendedBy("sam"))
         .build()));
 
     assertNull(storedWorkflows.get("workflow-1").getSuspendedAt());
+    assertEquals("sam", storedWorkflows.get("workflow-1").getSuspendedBy());
 
   }
 

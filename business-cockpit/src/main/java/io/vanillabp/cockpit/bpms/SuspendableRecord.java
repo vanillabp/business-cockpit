@@ -45,17 +45,19 @@ public interface SuspendableRecord {
       OffsetDateTime suspensionChangedAt);
 
   /**
-   * When the record ended.
+   * Who suspended or activated the process instance of the record the last time, as the workflow
+   * module reported it.
    *
-   * @return The time of the end, or {@code null} while the record is open
+   * @return The id of the person, or {@code null} where the workflow system does not say
    */
-  OffsetDateTime getEndedAt();
+  String getSuspendedBy();
 
   /**
-   * When the event behind the latest change the cockpit stored about the record happened.
+   * Sets who suspended or activated the process instance of the record the last time.
    *
-   * @return The moment, or {@code null} where the cockpit does not know
+   * @param suspendedBy The id of the person, or {@code null} where the workflow system does not say
    */
-  OffsetDateTime getLatestEventAt();
+  void setSuspendedBy(
+      String suspendedBy);
 
 }

@@ -114,7 +114,8 @@ class BpmsApiWorkflowLifecycleTest extends ItestBase {
             {
               "id": "%s",
               "workflowId": "%s",
-              "timestamp": "%s"
+              "timestamp": "%s",
+              "suspendedBy": "olivia"
             }
             """.formatted(unique("event"), workflowId, suspendedAt));
     assertThat(suspended.statusCode()).isEqualTo(200);
@@ -125,6 +126,7 @@ class BpmsApiWorkflowLifecycleTest extends ItestBase {
         + workflowId));
     assertThat(OffsetDateTime.parse(workflow.read("$.suspendedAt", String.class)).toInstant())
         .isEqualTo(suspendedAt.toInstant());
+    assertThat(workflow.read("$.suspendedBy", String.class)).isEqualTo("olivia");
 
     final var activated = bpmsV1_1("/workflow/"
         + workflowId
@@ -132,7 +134,8 @@ class BpmsApiWorkflowLifecycleTest extends ItestBase {
             {
               "id": "%s",
               "workflowId": "%s",
-              "timestamp": "2026-11-01T10:00:00Z"
+              "timestamp": "2026-11-01T10:00:00Z",
+              "suspendedBy": "sam"
             }
             """.formatted(unique("event"), workflowId));
     assertThat(activated.statusCode()).isEqualTo(200);

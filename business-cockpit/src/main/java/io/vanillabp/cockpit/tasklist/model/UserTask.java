@@ -122,6 +122,13 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware,
    */
   private OffsetDateTime suspensionChangedAt;
 
+  /**
+   * Who suspended or activated the process instance of this user task the last time, or
+   * {@code null} where the workflow system did not say. It stays after an activation, so it names
+   * the person who activated the instance.
+   */
+  private String suspendedBy;
+
   private String source;
 
   private String workflowModuleId;
@@ -665,6 +672,17 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware,
   public void setSuspendedAt(
       final OffsetDateTime suspendedAt) {
     this.suspendedAt = suspendedAt;
+  }
+
+  @Override
+  public String getSuspendedBy() {
+    return suspendedBy;
+  }
+
+  @Override
+  public void setSuspendedBy(
+      final String suspendedBy) {
+    this.suspendedBy = suspendedBy;
   }
 
   @Override

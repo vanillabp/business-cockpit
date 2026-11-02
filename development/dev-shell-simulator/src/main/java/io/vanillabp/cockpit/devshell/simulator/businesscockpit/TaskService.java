@@ -352,22 +352,25 @@ public class TaskService {
   }
 
   /**
-   * Marks a user task as suspended, or removes the mark. A user task the simulator does not hold, and one
-   * which has ended, stay as they are, like in the cockpit.
+   * Marks a user task as suspended, or removes the mark. A user task the simulator does not hold stays
+   * unknown, like in the cockpit. An ended one takes the report as well, because only the reports
+   * of a suspension and an activation change the mark.
    *
    * @param userTaskId The id
    * @param suspendedAt When the process instance was suspended, or {@code null} where it was
    *        activated again
+   * @param suspendedBy Who suspended or activated it, or {@code null} where nobody is named
    */
   public void changeSuspension(
       final String userTaskId,
-      final OffsetDateTime suspendedAt) {
+      final OffsetDateTime suspendedAt,
+      final String suspendedBy) {
 
     userTasks
         .findById(userTaskId)
-        .filter(found -> found.getEndedAt() == null)
         .ifPresent(found -> {
           found.setSuspendedAt(suspendedAt);
+          found.setSuspendedBy(suspendedBy);
           userTasks.save(found);
         });
 

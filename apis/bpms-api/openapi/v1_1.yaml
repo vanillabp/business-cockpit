@@ -107,11 +107,12 @@ paths:
       description: >-
         The process instance of the user task was suspended, so the task cannot be worked on until
         it is activated again. The cockpit sets 'suspendedAt' of the task to the timestamp of this
-        report, and the task stays in every list. A task which is suspended already keeps the moment
-        it was suspended first. The report changes nothing where the cockpit holds a younger
-        suspension, activation or change of the task, where the task has ended, or where the cockpit
-        does not know the task. The answer is 200 in each of these cases, so do not send the report
-        again.
+        report and 'suspendedBy' to the person the report names, and the task stays in every list. A
+        task which is suspended already keeps the moment and the person of its first suspension.
+        Only this report and the activation change the suspension: a creation, a change or an end
+        leaves it as it is. The report changes nothing where the cockpit holds a younger suspension
+        or activation of the task, or where the cockpit does not know the task. The answer is 200 in
+        each of these cases, so do not send the report again.
       operationId: userTaskSuspendedEvent
       parameters:
         - in: path
@@ -147,11 +148,10 @@ paths:
       summary: processes a user task ACTIVATED event
       description: >-
         The process instance of the user task was activated again after a suspension. The cockpit
-        removes 'suspendedAt' from the task. The report changes nothing where the cockpit holds a
-        younger suspension or activation of the task, where the task has ended, or where the cockpit
-        does not know the task. The answer is 200 in each of these cases, so do not send the report
-        again. Any change or end of the task which is younger than the suspension removes
-        'suspendedAt' as well.
+        removes 'suspendedAt' from the task and sets 'suspendedBy' to the person the report names,
+        who activated the instance. The report changes nothing where the cockpit holds a younger
+        suspension or activation of the task, or where the cockpit does not know the task. The
+        answer is 200 in each of these cases, so do not send the report again.
       operationId: userTaskActivatedEvent
       parameters:
         - in: path
@@ -382,13 +382,14 @@ paths:
       summary: processes a workflow SUSPENDED event
       description: >-
         The process instance which is the workflow was suspended. The cockpit sets 'suspendedAt' of
-        the workflow to the timestamp of this report, and the workflow stays in every list. A
-        workflow which is suspended already keeps the moment it was suspended first. A called
-        process which is suspended does not make its workflow suspended, so report it only for the
-        workflow's own process instance. The report changes nothing where the cockpit holds a
-        younger suspension, activation or change of the workflow, where the workflow has ended, or
-        where the cockpit does not know the workflow. The answer is 200 in each of these cases, so
-        do not send the report again.
+        the workflow to the timestamp of this report and 'suspendedBy' to the person the report
+        names, and the workflow stays in every list. A workflow which is suspended already keeps the
+        moment and the person of its first suspension. A called process which is suspended does not
+        make its workflow suspended, so report it only for the workflow's own process instance. Only
+        this report and the activation change the suspension: a creation, a change or an end leaves
+        it as it is. The report changes nothing where the cockpit holds a younger suspension or
+        activation of the workflow, or where the cockpit does not know the workflow. The answer is
+        200 in each of these cases, so do not send the report again.
       operationId: workflowSuspendedEvent
       parameters:
         - in: path
@@ -424,11 +425,10 @@ paths:
       summary: processes a workflow ACTIVATED event
       description: >-
         The process instance which is the workflow was activated again after a suspension. The
-        cockpit removes 'suspendedAt' from the workflow. The report changes nothing where the
-        cockpit holds a younger suspension or activation of the workflow, where the workflow has
-        ended, or where the cockpit does not know the workflow. The answer is 200 in each of these
-        cases, so do not send the report again. Any change or end of the workflow which is younger
-        than the suspension removes 'suspendedAt' as well.
+        cockpit removes 'suspendedAt' from the workflow and sets 'suspendedBy' to the person the
+        report names, who activated the instance. The report changes nothing where the cockpit holds
+        a younger suspension or activation of the workflow, or where the cockpit does not know the
+        workflow. The answer is 200 in each of these cases, so do not send the report again.
       operationId: workflowActivatedEvent
       parameters:
         - in: path
@@ -752,9 +752,27 @@ components:
     UserTaskSuspendedEvent:
       allOf:
         - $ref: "#/components/schemas/UserTaskLifecycleEvent"
+        - type: object
+          properties:
+            suspendedBy:
+              type: string
+              description: >-
+                Who suspended the process instance, as the workflow system names the person. Leave
+                it out where the workflow system does not say, for example because the suspension
+                came from a timer or from a call without a signed-in user. The cockpit shows it as
+                the person who suspended or activated the user task the last time.
     UserTaskActivatedEvent:
       allOf:
         - $ref: "#/components/schemas/UserTaskLifecycleEvent"
+        - type: object
+          properties:
+            suspendedBy:
+              type: string
+              description: >-
+                Who activated the process instance, as the workflow system names the person. Leave
+                it out where the workflow system does not say, for example because the activation
+                came from a timer or from a call without a signed-in user. The cockpit shows it as
+                the person who suspended or activated the user task the last time.
     WorkflowUpdatedEvent:
       type: object
       required:
@@ -926,9 +944,27 @@ components:
     WorkflowSuspendedEvent:
       allOf:
         - $ref: "#/components/schemas/WorkflowLifecycleEvent"
+        - type: object
+          properties:
+            suspendedBy:
+              type: string
+              description: >-
+                Who suspended the process instance, as the workflow system names the person. Leave
+                it out where the workflow system does not say, for example because the suspension
+                came from a timer or from a call without a signed-in user. The cockpit shows it as
+                the person who suspended or activated the workflow the last time.
     WorkflowActivatedEvent:
       allOf:
         - $ref: "#/components/schemas/WorkflowLifecycleEvent"
+        - type: object
+          properties:
+            suspendedBy:
+              type: string
+              description: >-
+                Who activated the process instance, as the workflow system names the person. Leave
+                it out where the workflow system does not say, for example because the activation
+                came from a timer or from a call without a signed-in user. The cockpit shows it as
+                the person who suspended or activated the workflow the last time.
     RegisterWorkflowModuleEvent:
       type: object
       required:

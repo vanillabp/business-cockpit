@@ -90,6 +90,7 @@ public abstract class UserTaskMapper {
   // the event's timestamp, stamped where reports are weighed against each other:
   @Mapping(target = "latestEventAt", ignore = true)
   @Mapping(target = "suspendedAt", ignore = true)
+  @Mapping(target = "suspendedBy", ignore = true)
   @Mapping(target = "suspensionChangedAt", ignore = true)
   @Mapping(target = "candidateUsersSince", ignore = true)
   @Mapping(target = "createdAt", source = "timestamp")
@@ -127,6 +128,7 @@ public abstract class UserTaskMapper {
   // the event's timestamp, stamped where reports are weighed against each other:
   @Mapping(target = "latestEventAt", ignore = true)
   @Mapping(target = "suspendedAt", ignore = true)
+  @Mapping(target = "suspendedBy", ignore = true)
   @Mapping(target = "suspensionChangedAt", ignore = true)
   @Mapping(target = "candidateUsersSince", ignore = true)
   @Mapping(target = "createdAt", source = "timestamp")
@@ -166,6 +168,7 @@ public abstract class UserTaskMapper {
   // the event's timestamp, stamped where reports are weighed against each other:
   @Mapping(target = "latestEventAt", ignore = true)
   @Mapping(target = "suspendedAt", ignore = true)
+  @Mapping(target = "suspendedBy", ignore = true)
   @Mapping(target = "suspensionChangedAt", ignore = true)
   @Mapping(target = "candidateUsersSince", ignore = true)
   @Mapping(target = "createdAt", ignore = true)
@@ -217,6 +220,7 @@ public abstract class UserTaskMapper {
   // the event's timestamp, stamped where reports are weighed against each other:
   @Mapping(target = "latestEventAt", ignore = true)
   @Mapping(target = "suspendedAt", ignore = true)
+  @Mapping(target = "suspendedBy", ignore = true)
   @Mapping(target = "suspensionChangedAt", ignore = true)
   // an end does not say when the task began. Guessing it would make the same task look
   // different, depending on which of the two reports arrived first:
@@ -276,6 +280,7 @@ public abstract class UserTaskMapper {
   // the event's timestamp, stamped where reports are weighed against each other:
   @Mapping(target = "latestEventAt", ignore = true)
   @Mapping(target = "suspendedAt", ignore = true)
+  @Mapping(target = "suspendedBy", ignore = true)
   @Mapping(target = "suspensionChangedAt", ignore = true)
   // an end does not say when the task began. Guessing it would make the same task look
   // different, depending on which of the two reports arrived first:

@@ -222,14 +222,15 @@ public class KafkaUserTaskController {
 
   /**
    * The message is the same for both versions of the API, so one handler serves both. The report
-   * says nothing besides the moment, so a task the cockpit does not hold is not created by it.
+   * names only the moment and a person, so a task the cockpit does not hold is not created by it.
    */
   private void handleUserTaskSuspendedEvent(
       UserTaskSuspendedEvent userTaskSuspended) {
 
     final var outcome = userTaskService.reportSuspendedUserTask(
         userTaskSuspended.getUserTaskId(),
-        ProtobufHelper.map(userTaskSuspended.getTimestamp()));
+        ProtobufHelper.map(userTaskSuspended.getTimestamp()),
+        userTaskSuspended.hasSuspendedBy() ? userTaskSuspended.getSuspendedBy() : null);
     RepeatUntilStored.storedOrThrow(outcome);
 
   }
@@ -240,7 +241,8 @@ public class KafkaUserTaskController {
 
     final var outcome = userTaskService.reportActivatedUserTask(
         userTaskActivated.getUserTaskId(),
-        ProtobufHelper.map(userTaskActivated.getTimestamp()));
+        ProtobufHelper.map(userTaskActivated.getTimestamp()),
+        userTaskActivated.hasSuspendedBy() ? userTaskActivated.getSuspendedBy() : null);
     RepeatUntilStored.storedOrThrow(outcome);
 
   }

@@ -160,8 +160,12 @@ BPMS half calls it when its engine reported something, saying which transaction 
 new one for a remote engine's worker thread.
 
 A half reports a suspension of a process instance with the kinds `SUSPENDED` and `ACTIVATED`, of
-`UserTaskEventKind` and of `WorkflowEventKind`. Such a report carries the identifiers and the moment,
-and nothing else. The publisher asks neither the half's `prefilled…` questions nor a details
+`UserTaskEventKind` and of `WorkflowEventKind`, through `publishUserTaskSuspension` and
+`publishWorkflowSuspension`. Such a report carries the identifiers, the moment and `suspendedBy`, the
+person who suspended or activated the instance where the BPMS says so, and nothing else. Only these
+reports change the suspension in the cockpit. A details provider reads `getSuspendedAt()` and
+`getSuspendedBy()` of the prefilled details, which a half fills with `suspendedAt` and `suspendedBy`
+of its prefill where it knows them, and cannot change them. The publisher asks neither the half's `prefilled…` questions nor a details
 provider for it. A BPMS suspends a process instance and never a single task, so the half reports
 `SUSPENDED` for every open task of the instance it saw suspended, and `SUSPENDED` of the workflow
 where that instance is the case. A called process instance is not suspended with its caller, so its

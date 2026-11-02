@@ -31,6 +31,7 @@ public abstract class OfficialWorkflowlistApiMapper {
   @Mapping(target = "endedAt", ignore = true)
   @Mapping(target = "endReason", ignore = true)
   @Mapping(target = "suspendedAt", ignore = true)
+  @Mapping(target = "suspendedBy", ignore = true)
   @Mapping(target = "note", ignore = true)
   @Mapping(target = "version", constant = "1")
   @Mapping(target = "uiUri", expression = "java(proxiedUiUri(event))")

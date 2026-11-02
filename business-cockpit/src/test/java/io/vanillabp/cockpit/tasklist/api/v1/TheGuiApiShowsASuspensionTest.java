@@ -46,9 +46,11 @@ class TheGuiApiShowsASuspensionTest {
     final var task = new UserTask();
     task.setId("task-1");
     task.setSuspendedAt(SUSPENDED_AT);
+    task.setSuspendedBy("olivia");
     task.setSuspensionChangedAt(SUSPENDED_AT);
 
     assertThat(mapper.toApi(task, "anna").getSuspendedAt()).isEqualTo(SUSPENDED_AT);
+    assertThat(mapper.toApi(task, "anna").getSuspendedBy()).isEqualTo("olivia");
 
   }
 
@@ -58,10 +60,13 @@ class TheGuiApiShowsASuspensionTest {
     final var mapper = withPersons(new TasklistGuiApiMapperImpl(), GuiApiMapper.class);
     final var task = new UserTask();
     task.setId("task-1");
-    // an activation leaves the moment it happened, which the user interface never needs
+    // an activation leaves the moment it happened, which the user interface never needs, and
+    // the person who activated, which it shows
     task.setSuspensionChangedAt(SUSPENDED_AT);
+    task.setSuspendedBy("sam");
 
     assertThat(mapper.toApi(task, "anna").getSuspendedAt()).isNull();
+    assertThat(mapper.toApi(task, "anna").getSuspendedBy()).isEqualTo("sam");
 
   }
 
@@ -74,8 +79,10 @@ class TheGuiApiShowsASuspensionTest {
     final var workflow = new Workflow();
     workflow.setId("workflow-1");
     workflow.setSuspendedAt(SUSPENDED_AT);
+    workflow.setSuspendedBy("olivia");
 
     assertThat(mapper.toApi(workflow).getSuspendedAt()).isEqualTo(SUSPENDED_AT);
+    assertThat(mapper.toApi(workflow).getSuspendedBy()).isEqualTo("olivia");
 
   }
 
@@ -84,6 +91,8 @@ class TheGuiApiShowsASuspensionTest {
 
     assertThat(UserTaskService.FIELDS_OF_THE_LIST).contains("suspendedAt");
     assertThat(WorkflowlistService.FIELDS_OF_THE_LIST).contains("suspendedAt");
+    assertThat(UserTaskService.FIELDS_OF_THE_LIST).contains("suspendedBy");
+    assertThat(WorkflowlistService.FIELDS_OF_THE_LIST).contains("suspendedBy");
     // the cockpit's own mark of the last report stays inside the cockpit
     assertThat(UserTaskService.FIELDS_OF_THE_LIST).doesNotContain("suspensionChangedAt");
     assertThat(WorkflowlistService.FIELDS_OF_THE_LIST).doesNotContain("suspensionChangedAt");

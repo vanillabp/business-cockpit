@@ -20,7 +20,8 @@ import java.util.List;
  * the engine's own work fails with it.
  * A suspension and an activation ({@link UserTaskEventKind#SUSPENDED},
  * {@link UserTaskEventKind#ACTIVATED} and the same pair of {@link WorkflowEventKind}) are built
- * from the identifiers alone. Neither the half nor the details provider is asked for them.
+ * from the identifiers alone and the person {@link #publishUserTaskSuspension} names. Neither
+ * the half nor the details provider is asked for them.
  * <p>
  * <b>Repetitions are free.</b> The entries carry an idempotency key, and a second report about
  * the same task and the same kind of event takes the place of the one which is still waiting.
@@ -74,6 +75,62 @@ public interface BusinessCockpitEventPublisher {
       String bpmsEventId,
       OffsetDateTime timestamp,
       EventTransaction transaction);
+
+  /**
+   * Reports that the process instance of one user task was suspended or activated again, and who
+   * did it. It is {@link #publishUserTaskEvent} with the person on top. Only these two reports
+   * change what the cockpit shows about a suspension.
+   * <p>
+   * The default reports without the person, for a publisher written before the person was
+   * asked for, such as the recording double of a test. VanillaBP's own publisher sends it.
+   *
+   * @param userTask The task the event is about
+   * @param kind {@link UserTaskEventKind#SUSPENDED} or {@link UserTaskEventKind#ACTIVATED}
+   * @param bpmsEventId The BPMS' own identifier of this event, see {@link #publishUserTaskEvent}
+   * @param timestamp When the BPMS says the instance was suspended or activated
+   * @param suspendedBy Who suspended or activated the instance, or <code>null</code> where the
+   *          BPMS does not say
+   * @param transaction Which transaction the entry is written in
+   * @return Whether an entry was written, as for {@link #publishUserTaskEvent}
+   * @throws IllegalArgumentException If the kind is neither of the two
+   */
+  default boolean publishUserTaskSuspension(
+      final UserTaskReference userTask,
+      final UserTaskEventKind kind,
+      final String bpmsEventId,
+      final OffsetDateTime timestamp,
+      final String suspendedBy,
+      final EventTransaction transaction) {
+
+    return publishUserTaskEvent(userTask, kind, bpmsEventId, timestamp, transaction);
+
+  }
+
+  /**
+   * Reports that the process instance which is one workflow was suspended or activated again, and
+   * who did it. It is the counterpart of {@link #publishUserTaskSuspension} for a workflow.
+   *
+   * @param workflow The workflow the event is about
+   * @param kind {@link WorkflowEventKind#SUSPENDED} or {@link WorkflowEventKind#ACTIVATED}
+   * @param bpmsEventId The BPMS' own identifier of this event
+   * @param timestamp When the BPMS says the instance was suspended or activated
+   * @param suspendedBy Who suspended or activated the instance, or <code>null</code> where the
+   *          BPMS does not say
+   * @param transaction Which transaction the entry is written in
+   * @return Whether an entry was written, as for {@link #publishWorkflowEvent}
+   * @throws IllegalArgumentException If the kind is neither of the two
+   */
+  default boolean publishWorkflowSuspension(
+      final WorkflowReference workflow,
+      final WorkflowEventKind kind,
+      final String bpmsEventId,
+      final OffsetDateTime timestamp,
+      final String suspendedBy,
+      final EventTransaction transaction) {
+
+    return publishWorkflowEvent(workflow, kind, bpmsEventId, timestamp, transaction);
+
+  }
 
 
   /**

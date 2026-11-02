@@ -203,7 +203,7 @@ public class BpmsApiController implements BpmsApi {
 
   /**
    * The process instance of the task was suspended. The task stays in every list, marked with the
-   * moment of the suspension. The report says nothing besides that moment, so a task the cockpit
+   * moment of the suspension. The report names only that moment and a person, so a task the cockpit
    * does not hold is not created by it.
    */
   @Override
@@ -217,7 +217,8 @@ public class BpmsApiController implements BpmsApi {
     return AnswerToAReport.afterStoring(
         userTaskService.reportSuspendedUserTask(
             userTaskId,
-            userTaskSuspendedEvent.getTimestamp()));
+            userTaskSuspendedEvent.getTimestamp(),
+            userTaskSuspendedEvent.getSuspendedBy()));
 
   }
 
@@ -233,14 +234,15 @@ public class BpmsApiController implements BpmsApi {
     return AnswerToAReport.afterStoring(
         userTaskService.reportActivatedUserTask(
             userTaskId,
-            userTaskActivatedEvent.getTimestamp()));
+            userTaskActivatedEvent.getTimestamp(),
+            userTaskActivatedEvent.getSuspendedBy()));
 
   }
 
   /**
    * The process instance which is the workflow was suspended. The case stays in every list, marked
-   * with the moment of the suspension. The report says nothing besides that moment, so a case the
-   * cockpit does not hold is not created by it.
+   * with the moment of the suspension. The report names only that moment and a person, so a case
+   * the cockpit does not hold is not created by it.
    */
   @Override
   public ResponseEntity<Void> workflowSuspendedEvent(
@@ -253,7 +255,8 @@ public class BpmsApiController implements BpmsApi {
     return AnswerToAReport.afterStoring(
         workflowlistService.reportSuspendedWorkflow(
             workflowId,
-            workflowSuspendedEvent.getTimestamp()));
+            workflowSuspendedEvent.getTimestamp(),
+            workflowSuspendedEvent.getSuspendedBy()));
 
   }
 
@@ -269,7 +272,8 @@ public class BpmsApiController implements BpmsApi {
     return AnswerToAReport.afterStoring(
         workflowlistService.reportActivatedWorkflow(
             workflowId,
-            workflowActivatedEvent.getTimestamp()));
+            workflowActivatedEvent.getTimestamp(),
+            workflowActivatedEvent.getSuspendedBy()));
 
   }
 

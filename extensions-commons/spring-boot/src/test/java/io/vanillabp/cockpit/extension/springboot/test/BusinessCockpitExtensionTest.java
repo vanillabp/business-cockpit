@@ -426,15 +426,33 @@ public class BusinessCockpitExtensionTest {
 
     transactions
         .executeWithoutResult(status -> publisher
-            .publishUserTaskEvent(
+            .publishUserTaskSuspension(
                 userTaskOf(aggregate, "approve"), UserTaskEventKind.SUSPENDED, "bpms-event-suspended",
-                OffsetDateTime.now(), EventTransaction.CURRENT));
+                OffsetDateTime.now(), "olivia", EventTransaction.CURRENT));
 
     final var request = CockpitServer
         .awaitRequest("/usertask/task-1/suspended", "bpms-event-suspended");
     assertFalse(request.body().contains("\"customer\":\"Anna\""), request.body());
+    assertTrue(request.body().contains("\"suspendedBy\":\"olivia\""), request.body());
     // neither the BPMS half nor the details provider was asked
     assertEquals(0, bridge.taskReads());
+
+  }
+
+  @Test
+  @DisplayName("A suspension is reported only with the kinds of a suspension")
+  public void aSuspensionNeedsTheKindOfASuspension() {
+
+    final var aggregate = aStartedWorkflow();
+
+    final var refused = assertThrows(
+        IllegalArgumentException.class,
+        () -> transactions
+            .executeWithoutResult(status -> publisher
+                .publishUserTaskSuspension(
+                    userTaskOf(aggregate, "approve"), UserTaskEventKind.UPDATED, "bpms-event-updated",
+                    OffsetDateTime.now(), "olivia", EventTransaction.CURRENT)));
+    assertTrue(refused.getMessage().contains("publishUserTaskEvent"), refused.getMessage());
 
   }
 
@@ -468,9 +486,9 @@ public class BusinessCockpitExtensionTest {
 
     transactions
         .executeWithoutResult(status -> publisher
-            .publishWorkflowEvent(
+            .publishWorkflowSuspension(
                 workflow, WorkflowEventKind.SUSPENDED, "bpms-event-workflow-suspended",
-                OffsetDateTime.now(), EventTransaction.CURRENT));
+                OffsetDateTime.now(), "olivia", EventTransaction.CURRENT));
     transactions
         .executeWithoutResult(status -> publisher
             .publishWorkflowEvent(
@@ -480,6 +498,7 @@ public class BusinessCockpitExtensionTest {
     final var suspended = CockpitServer
         .awaitRequest("/workflow/workflow-1/suspended", "bpms-event-workflow-suspended");
     assertFalse(suspended.body().contains("workflow of Anna"), suspended.body());
+    assertTrue(suspended.body().contains("\"suspendedBy\":\"olivia\""), suspended.body());
     CockpitServer.awaitRequest("/workflow/workflow-1/activated", "bpms-event-workflow-activated");
 
   }

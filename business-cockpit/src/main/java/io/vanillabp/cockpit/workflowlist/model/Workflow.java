@@ -98,6 +98,13 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware,
    */
   private OffsetDateTime suspensionChangedAt;
 
+  /**
+   * Who suspended or activated the process instance of this workflow the last time, or {@code null}
+   * where the workflow system did not say. It stays after an activation, so it names the person
+   * who activated the instance.
+   */
+  private String suspendedBy;
+
   /** Why the case ended, and {@code null} while it is running. */
   private WorkflowEndReason endReason;
 
@@ -427,6 +434,17 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware,
   public void setSuspendedAt(
       final OffsetDateTime suspendedAt) {
     this.suspendedAt = suspendedAt;
+  }
+
+  @Override
+  public String getSuspendedBy() {
+    return suspendedBy;
+  }
+
+  @Override
+  public void setSuspendedBy(
+      final String suspendedBy) {
+    this.suspendedBy = suspendedBy;
   }
 
   @Override

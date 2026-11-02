@@ -212,7 +212,7 @@ public final class UserTaskRestMapper {
 
   /**
    * Turns a user-task event into the body the cockpit server gets for a suspension. It carries
-   * the identifiers and the moment, and no business data.
+   * the identifiers, the moment and the person, and no business data.
    *
    * @param event The Suspended event
    * @return What the cockpit's API is sent
@@ -227,13 +227,14 @@ public final class UserTaskRestMapper {
     dto.setTimestamp(event.getTimestamp());
     dto.setSource(event.getSource());
     dto.setComment(event.getComment());
+    dto.setSuspendedBy(event.getSuspendedBy());
     return dto;
 
   }
 
   /**
    * Turns a user-task event into the body the cockpit server gets for an activation. It carries
-   * the identifiers and the moment, and no business data.
+   * the identifiers, the moment and the person, and no business data.
    *
    * @param event The Activated event
    * @return What the cockpit's API is sent
@@ -248,6 +249,7 @@ public final class UserTaskRestMapper {
     dto.setTimestamp(event.getTimestamp());
     dto.setSource(event.getSource());
     dto.setComment(event.getComment());
+    dto.setSuspendedBy(event.getSuspendedBy());
     return dto;
 
   }

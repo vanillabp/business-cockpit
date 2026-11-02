@@ -209,15 +209,16 @@ public class KafkaWorkflowController {
   }
 
   /**
-   * The report says nothing besides the moment, so a case the cockpit does not hold is not created
-   * by it.
+   * The report names only the moment and a person, so a case the cockpit does not hold is not
+   * created by it.
    */
   private void handleWorkflowSuspendedEvent(
       WorkflowSuspendedEvent workflowSuspended) {
 
     final var outcome = workflowlistService.reportSuspendedWorkflow(
         workflowSuspended.getWorkflowId(),
-        ProtobufHelper.map(workflowSuspended.getTimestamp()));
+        ProtobufHelper.map(workflowSuspended.getTimestamp()),
+        workflowSuspended.hasSuspendedBy() ? workflowSuspended.getSuspendedBy() : null);
     RepeatUntilStored.storedOrThrow(outcome);
 
   }
@@ -228,7 +229,8 @@ public class KafkaWorkflowController {
 
     final var outcome = workflowlistService.reportActivatedWorkflow(
         workflowActivated.getWorkflowId(),
-        ProtobufHelper.map(workflowActivated.getTimestamp()));
+        ProtobufHelper.map(workflowActivated.getTimestamp()),
+        workflowActivated.hasSuspendedBy() ? workflowActivated.getSuspendedBy() : null);
     RepeatUntilStored.storedOrThrow(outcome);
 
   }

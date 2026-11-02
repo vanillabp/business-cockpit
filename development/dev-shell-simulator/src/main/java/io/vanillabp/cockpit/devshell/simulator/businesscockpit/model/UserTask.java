@@ -62,6 +62,13 @@ public class UserTask {
   @Column(name = "SUSPENDED_AT", columnDefinition = "TIMESTAMP WITH TIME ZONE")
   private OffsetDateTime suspendedAt;
 
+  /**
+   * Who suspended or activated the process instance of the user task the last time, if anybody is
+   * named.
+   */
+  @Column(name = "SUSPENDED_BY")
+  private String suspendedBy;
+
   /** Why it ended, set by the report of the end. The cockpit keeps it the same way. */
   @Enumerated(EnumType.STRING)
   @Column(name = "END_REASON")

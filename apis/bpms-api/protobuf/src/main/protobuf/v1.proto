@@ -140,9 +140,10 @@ message UserTaskCancelledEvent {
 }
 
 // the process instance of the user task was suspended. The cockpit marks the task as suspended
-// and keeps it in every list. It changes nothing where it holds a younger report about the
-// suspension or a younger change of the task, where the task has ended, or where it does not know
-// the task
+// and keeps it in every list. Only this message and UserTaskActivatedEvent change the mark. It
+// changes nothing where the cockpit holds a younger suspension or activation of the task, or where
+// it does not know the task. suspended_by names who suspended the instance, empty where the
+// workflow system does not say
 message UserTaskSuspendedEvent {
   string id = 1;
   string api_version = 2;
@@ -151,11 +152,13 @@ message UserTaskSuspendedEvent {
   optional string initiator = 5;
   optional string source = 6;
   optional string comment = 7;
+  optional string suspended_by = 8;
 }
 
 // the process instance of the user task was activated again. The cockpit removes the mark of
-// the suspension. It changes nothing where it holds a younger report about the suspension, where
-// the task has ended, or where it does not know the task
+// the suspension. It changes nothing where it holds a younger suspension or activation of the
+// task, or where it does not know the task. suspended_by names who activated the instance, empty
+// where the workflow system does not say
 message UserTaskActivatedEvent {
   string id = 1;
   string api_version = 2;
@@ -164,6 +167,7 @@ message UserTaskActivatedEvent {
   optional string initiator = 5;
   optional string source = 6;
   optional string comment = 7;
+  optional string suspended_by = 8;
 }
 
 message WorkflowCreatedOrUpdatedEvent {
@@ -223,7 +227,8 @@ message WorkflowCancelledEvent {
 }
 
 // the process instance which is the workflow was suspended, the counterpart of
-// UserTaskSuspendedEvent. A suspended called process does not make its workflow suspended
+// UserTaskSuspendedEvent. A suspended called process does not make its workflow suspended.
+// suspended_by names who suspended the instance
 message WorkflowSuspendedEvent {
   string id = 1;
   string api_version = 2;
@@ -232,10 +237,11 @@ message WorkflowSuspendedEvent {
   optional string initiator = 5;
   optional string source = 6;
   optional string comment = 7;
+  optional string suspended_by = 8;
 }
 
 // the process instance which is the workflow was activated again, the counterpart of
-// UserTaskActivatedEvent
+// UserTaskActivatedEvent. suspended_by names who activated the instance
 message WorkflowActivatedEvent {
   string id = 1;
   string api_version = 2;
@@ -244,6 +250,7 @@ message WorkflowActivatedEvent {
   optional string initiator = 5;
   optional string source = 6;
   optional string comment = 7;
+  optional string suspended_by = 8;
 }
 
 message RegisterWorkflowModuleEvent {

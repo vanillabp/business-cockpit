@@ -140,6 +140,7 @@ public class KafkaTransportTest {
   public void aSuspensionAndAnActivationHaveTheirSlots() throws Exception {
 
     final var suspended = EventFixture.userTask(UserTaskEventKind.SUSPENDED);
+    suspended.setSuspendedBy("olivia");
     transport.publishUserTaskEvent(suspended);
     final var taskSuspended = BcEvent.parseFrom(producer.history().getFirst().value());
     assertTrue(taskSuspended.hasUserTaskSuspended());
@@ -147,16 +148,23 @@ public class KafkaTransportTest {
     assertEquals(
         suspended.getTimestamp().toEpochSecond(),
         taskSuspended.getUserTaskSuspended().getTimestamp().getSeconds());
+    assertEquals("olivia", taskSuspended.getUserTaskSuspended().getSuspendedBy());
     producer.clear();
 
+    // an activation which names nobody leaves the field out
     transport.publishUserTaskEvent(EventFixture.userTask(UserTaskEventKind.ACTIVATED));
-    assertTrue(BcEvent.parseFrom(producer.history().getFirst().value()).hasUserTaskActivated());
+    final var taskActivated = BcEvent.parseFrom(producer.history().getFirst().value());
+    assertTrue(taskActivated.hasUserTaskActivated());
+    assertFalse(taskActivated.getUserTaskActivated().hasSuspendedBy());
     producer.clear();
 
-    transport.publishWorkflowEvent(EventFixture.workflow(WorkflowEventKind.SUSPENDED));
+    final var caseSuspended = EventFixture.workflow(WorkflowEventKind.SUSPENDED);
+    caseSuspended.setSuspendedBy("olivia");
+    transport.publishWorkflowEvent(caseSuspended);
     final var workflowSuspended = BcEvent.parseFrom(producer.history().getFirst().value());
     assertTrue(workflowSuspended.hasWorkflowSuspended());
     assertEquals("workflow-1", workflowSuspended.getWorkflowSuspended().getWorkflowId());
+    assertEquals("olivia", workflowSuspended.getWorkflowSuspended().getSuspendedBy());
     producer.clear();
 
     transport.publishWorkflowEvent(EventFixture.workflow(WorkflowEventKind.ACTIVATED));
