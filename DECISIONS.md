@@ -1696,7 +1696,7 @@ way in repeats a report the cockpit could not store, and which records it skips.
 of a save come back every time, how REST and Kafka give such a report up, and that each failed
 attempt logs one error.
 
-### 42. A report answered with 501 is given up, and suspended and activated say that they answer it
+### 42. A report answered with 501 is given up, and suspended and activated say that they answer it - suspended and activated superseded by decision 78
 
 Decided on 2026-10-04 for story 1438. Before, the sender repeated a report answered with 501, and
 the BPMS API did not say that two of its operations answer it.
@@ -3032,3 +3032,384 @@ future.
 
 `$facet` was not measured. One `count` per filter takes 1 to 4 ms here, and the parts of a `$facet`
 use no index, so it could not beat that.
+
+### 73. The end of a task and of a case is a stored reason, and the old rule lives only in a changeset
+
+A user task and a case store why they ended, in `endReason`: `COMPLETED` or `CANCELLED`, and
+nothing while they are open. The GUI API shows it with the shared schema `EndReason`. A workflow
+module already reports a completion and a cancellation as two different reports, in version 1,
+in version 1.1 and over Kafka. The cockpit used to keep the difference for a user task only, for
+the notification poller, and it dropped it for a case.
+
+The field is filled by the report of the end and by nothing else. A change never touches it, and a
+late creation keeps it the way it keeps `endedAt`. The task and the case have one enum each,
+`UserTaskEndReason` and `WorkflowEndReason`, because `tasklist` and `workflowlist` share no types.
+
+#### Why a field and not a rule
+
+The difference could also be read from the other fields: an ended entry with a `comment` counts as
+cancelled. That rule is not reliable. In version 1.1 a completion and every change can carry a
+`comment` too, and the mapper stores it for both ends. A completed case with a comment would show
+as cancelled. A field set by the report of the end has no such gap.
+
+#### Where the old rule still counts
+
+Entries which ended before the field existed have no reason. Two changesets give them one, and
+this is the only place where the rule still lives:
+
+- user tasks, `tasklist` `V000003`, order 17. Tasks have had `endReason` since 0.4.0, so only
+  tasks which ended before are concerned. A task which has a reason keeps it.
+- workflows, `workflowlist` `V000003`, order 1016.
+
+The rule: an entry with `endedAt` and without `endReason` is `CANCELLED` if its `comment` has at
+least one character which is not a space, and `COMPLETED` otherwise. A comment of spaces counts as
+empty. The changesets leave `updatedAt` alone. The notification poller reads the tasks changed
+since its last run by `updatedAt`, so an old task does not look like a task which has just ended,
+and nobody gets a notification for it.
+
+#### What the old code base shows
+
+The rule is the one trace the old code left. Every release from 0.0.3 to 0.4.3 stored a
+cancellation the same way: `cancelWorkflow` and `cancelUserTask` set `endedAt` and wrote the reason
+of the cancellation into `comment`, in
+`container/src/main/java/io/vanillabp/cockpit/workflowlist/WorkflowlistService.java` and
+`.../tasklist/UserTaskService.java`. A completion set `endedAt` only. From 0.4.0 the task
+additionally got `endReason`. So a cancelled entry has a comment if the workflow module sent a
+reason. A completed one has a comment only if an earlier report or, over Kafka in version 1.1, the
+completion itself carried one.
+
+No user interface ever told the two apart. The React user interface of those releases
+(`ui/bc-ui`, `container/src/main/webapp`) and the Angular user interface mark an entry as ended by
+`endedAt` alone, and neither reads `comment` or `endReason`.
+
+So the rule can be wrong in two ways: a cancellation without a reason becomes `COMPLETED`, and a
+completion with a comment becomes `CANCELLED`. Nothing in the stored data tells those cases apart.
+Whoever knows better corrects the data by hand after the first start, as `UPGRADE.md` says.
+
+### 74. The settings of a user live at the cockpit, one key at a time
+
+A user interface keeps settings for the user: the filter picked last, the columns and the order of
+a list, the language, a "don't ask again". They live in the field `customSettings` of the user's
+document in the collection `users`, and never in the browser. The user interface reads and writes
+them through the cockpit's own GUI API:
+
+- `GET /gui/api/v1/app/current-user/settings/{key}` reads one setting. It answers 404 if there is
+  none.
+- `PUT` on the same path writes one. The body is the value.
+- `DELETE` on the same path removes one. Removing a setting which is not there answers 204 as
+  well.
+
+#### Why at the cockpit
+
+A setting in the browser stays in that browser. The user who opens the cockpit on a second
+computer starts again from nothing. In the user's document, a setting follows the user everywhere.
+
+The paths are in the cockpit's own OpenAPI file, `business-cockpit/src/main/resources/api/gui/v1.yaml`,
+under the tag `userSettings`. They are not in `apis/official-gui-api`. That file holds what the
+dev-shell simulator plays to fake a cockpit, and the simulator knows no user signed in and no
+settings. A user interface in the dev shell keeps its settings in memory.
+
+#### A value is any JSON
+
+`customSettings` is a `Map<String, Object>`. A value is a number, a text, a boolean, an object or a
+list. A list of columns is a list, so the user interface does not have to pack it into a text. The
+cockpit does not look into the value.
+
+`PUT` with `null`, or without a body, answers 400. `DELETE` removes a setting. A stored `null` would
+be a third state next to "set" and "not there", and the user interface would have to tell the two
+apart.
+
+#### One key at a time
+
+Each write is one atomic update of `customSettings.<key>`: `$set` for `PUT`, `$unset` for `DELETE`.
+It creates the document if the user has none yet. Reading the whole document, changing it and
+saving it again would let two tabs overwrite each other, and the notification configuration with
+them.
+
+The update also raises `version`, the way a note does it. A save of the whole document which read
+it before a setting was written then fails the version check, so it cannot wipe out the new
+setting. The notification configuration and the recipient configuration are written by an update of
+their own field as well.
+
+#### Which keys
+
+A key becomes the name of a field in MongoDB. MongoDB reads a dot as a step into a nested document
+and a leading `$` as an operator. So a key holds letters, digits, `-`, `_` and `:`, at most 200 of
+them. Anything else answers 400.
+
+An object inside a value has the same problem. MongoDB stores a key with a dot when it comes in by
+an update. But Spring Data refuses such a key when it writes a map, unless
+`business-cockpit.mongodb.map-key-dot-replacement` is set (decision 44). One such key in a setting
+would break every later save of the user's whole document. A key with a dot or a leading `$`
+anywhere inside the value answers 400 as well.
+
+#### Which limits
+
+The cockpit has no limit of its own. All settings of a user share one document with the
+notification configuration, and MongoDB takes 16 MB per document. A write which would make the
+document larger answers 413 with a text which names the limit.
+
+#### What other tabs see
+
+Nothing at once. A second open tab reads the setting again the next time it starts or asks for it.
+The update stream has no event for settings. Settings change rarely, and an event
+would make the stream larger for little gain.
+
+### 75. A note belongs to the cockpit, is one text per entry, and everybody who sees the entry may change it
+
+A user task and a case each carry one note, the field `note`: a text the users keep about the
+entry, for what is not in the business data. "Customer calls back on Monday" is the kind of thing
+it holds. It is one text, not a list. Whoever writes it overwrites what was there. Who changed it
+and when is a question for a history of changes, which would be a collection of its own and is not
+part of this.
+
+#### Where it lives and whom it belongs to
+
+The note is a field of the document, next to the business data, so a list shows it without a
+second request. The note belongs to the cockpit. No report of a workflow module carries it, and
+every mapper of the BPMS API leaves it out. A late creation, which replaces the stored document,
+copies it from the stored one, the same way as `readBy`.
+
+A report is stored by reading the document, laying the report onto it and saving it whole. A note
+written the same way would get lost when a report arrives in between. So the note is written by an
+update of its own, which sets or removes `note` and raises `version` (`NotesOfTheCockpit`). A report
+which read the document before then fails the version check, and the workflow module sends it again
+later. The update also sets `updatedAt` and `updatedBy`, so the change stream reports it, and the
+other tabs load the entry again.
+
+#### Who may change it
+
+Everybody who sees the entry may set, change and clear its note. There is nobody who owns it. An
+entry the user may not see answers 404, as everywhere in the GUI API.
+
+An ended entry is documentation, like an ended task in decision 71. Its note can still be read, and
+writing it answers 409. For a case the same rule is new: `WorkflowAlreadyEndedException` is the
+counterpart of `UserTaskAlreadyCompletedException`. The update itself also requires that the entry
+has not ended, so an end which arrives between the check and the write does not let the note
+through. The form for several entries changes none of them if one of them has ended, as the other
+forms for several tasks do.
+
+#### The full-text search
+
+A filter without a path searched the words the workflow module reported, `detailsFulltextSearch`.
+It now asks for those words or the note (`SearchCriteriaHelper`). The query is still a regular
+expression, as before. The suggestions of KWIC (keyword in context) still come from the reported
+words only.
+
+MongoDB answers an "or" from indexes only if every part has one. The cases have had an index on
+`detailsFulltextSearch` since changeset 1004, so a new changeset, `workflowlist` `V000003`, order
+1017, adds one on `note`. The user tasks have no index on the reported words, so their note gets
+none either.
+
+A later change of how the cockpit searches in MongoDB, an anchored prefix search on a normalised
+field for example, has to treat the note like the reported words: either both go into the field
+it searches, or the "or" stays.
+
+### 76. The library brings no login, and the module `container` is the reference for one
+
+The library `business-cockpit` protects neither the GUI API nor the BPMS API. It has no security
+chain, no users and no bean `userDetailsProvider`. The module `container` has all of them:
+`GuiSecurityConfiguration` with the chain `guiHttpSecurity`, its users and `userDetailsProvider`,
+and `BpmsApiSecurityConfiguration` with the chain `bpmsApiHttpSecurity` and its user. Bean names
+and orders stayed the same, so the runnable jar behaves as before. Two values without a sensible
+default for every cockpit moved as well, see the section near the end.
+
+#### Why
+
+A login belongs to the example. The library brought HTTP basic with the password `test` for
+every user. Every application built on the library had that login, and nothing told it so. Which
+login fits is the application's choice: basic, an identity provider, or something else. The
+library cannot know, so it does not guess.
+
+#### What the library does without a chain
+
+It starts, and it does not add a chain of its own. A chain which answers 401 to everything was
+considered and rejected. It would be a second login nobody asked for.
+
+- Without any chain in the application, Spring Boot adds its default chain. It asks for a login on
+  every path, with a password it generates. So an application which forgot its chains stays closed.
+  `AnApplicationWithoutChainsTest` shows it.
+- `StartupConfigurationCheck` warns on every start about each of the two bean names it does not
+  find, and names the wiki page `Security`. For `bpmsApiHttpSecurity` it lists the missing
+  `bpms-api.*` values, because `container` builds its chain from them.
+- Without `userDetailsProvider` the start stops with a failure report which shows the bean. The
+  start would fail anyway, but with a message about a parameter of a library bean.
+
+#### What stays in the library
+
+|                                                                           What                                                                            |                                                Why it stays                                                |
+|-----------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
+| The open paths `app/info`, `app/current-user`, `/assets/**`, `/static/**`, `/wm/**` and the matcher `updates`, as constants of `WebSecurityConfiguration` | Every chain needs them. The chain decides to open them.                                                    |
+| `jwtMapper` and `jwtSecurityContextRepository`                                                                                                            | The JWT cookie is how the library knows a user. Every chain stores its login there.                        |
+| `BpmsApiAuthority.BPMS_API_AUTHORITY` on the BPMS API controllers                                                                                         | It says who may report. How a caller gets it is the chain's business.                                      |
+| `bpms-api.realm-name`, `bpms-api.username`, `bpms-api.password` in `BpmsApiProperties`                                                                    | They share the prefix with the Kafka keys, and no key changes. The library reads none of them for a login. |
+| `BpmsApiIsConfigured`, `BpmsApiIsNotConfigured`                                                                                                           | `container` puts them on its chain. Another application can do the same.                                   |
+| `@EnableWebSecurity`, method security, `@Async`, `@Scheduled`, the login upsert, e-mail notification, the timings of the update streams and pollers       | They are functions of the cockpit, with values for running it, not values of an example.                   |
+
+#### Two values without a default
+
+Two more values leave the library. The library has no value for them, and `container` sets them in
+its `application.yaml`.
+
+- `application.spa-default-file` was `classpath:/static/index.html`. Without a value every path
+  which no API knows gets 404, and the startup check warns on every start. The start does not
+  stop: an application without a user interface of its own wants exactly the 404.
+- `business-cockpit.default-locale` was German, and `container` sets English now. Only the e-mail
+  notification reads it, for a user who has no locale of their own. Without a value it takes
+  `Locale.ROOT`, so the template without a language in its name is used. FreeMarker would otherwise
+  take the locale of the machine, and the same mail would read differently on another server. The
+  start does not stop, because nothing fails without the value. The startup check warns while
+  e-mail notifications are switched on.
+
+#### The passwords
+
+Every person logs in with `test`, in `container` and in the dev-shell simulator. Before, the
+simulator used `Secure_123`. The technical user of the BPMS API stays at `123` in the profile
+`local`, because no person logs in with it. Decision 69 already keeps the fixed password `test`.
+
+### 77. A change of the GUI API is never lost to a report or to another write at the same time
+
+The cockpit writes a user task, a case and a user's document from two sides. A report of a
+workflow module reads the document, lays the report onto it and saves it whole. The GUI API
+changes the same document for a user. Neither side may lose what the other one wrote, and the user
+gets no error for a change nobody else made.
+
+#### A change which is one update
+
+Giving a task back and writing a note are one atomic update each. The update raises `version`
+itself (`inc("version", 1)`). A report which read the document before the update then fails the
+version check, and the workflow module sends it again later. `MongoTemplate` raises the version of
+an update it is given with the entity class as well. The update says it anyway, so it stays raised
+however the update is sent.
+
+#### A change which reads the task and saves it whole
+
+Taking a task, adding or removing a candidate, marking a task as read or unread and setting a
+follow-up date read the task, change it and save it whole. The save raises `version` by itself. A
+report stored between the read and the save makes the save fail the version check. The change is
+then read and made again, up to two more times (`OptimisticLockingUtils`). Before, the user got an
+error 500.
+
+#### The user's document
+
+The notification configuration and the recipient configuration of a medium are written the way
+the settings are: one atomic update of their own field, `notificationConfiguration` and
+`recipientConfigurations.<medium>`, which raises `version` and creates the document if the user has
+none yet (`UserDocumentWrites`). Before, both read the whole document and saved it, and a setting
+written in between made the save answer 500. No code saves a user's document whole any more.
+
+#### The rule about keys inside a setting
+
+A setting may hold no key with a dot or a leading `$` anywhere inside its value. The reason was the
+whole save of the notification configuration, which Spring Data refuses for a map key with a dot.
+That save is gone. Measured against MongoDB: a setting with such a key is stored and read back
+through the update, and the notification configuration and the recipient configuration are written
+next to it.
+
+The rule stays for now. One such key would make any later save of a whole user document fail for
+that user, and such a save is easy to add again without noticing. Whether the rule can go is still
+open. Until that is answered, it stays.
+
+### 78. A suspended user task or case stays in every list, and the cockpit orders the reports of a suspension by their time
+
+This decision replaces the part of decision 42 about the two operations `suspended` and
+`activated`. The rest of decision 42 stays: `RestTransport` still gives up a report answered with
+501.
+
+A BPMS can now suspend a process instance on all the engines the cockpit supports, and users want
+to see that in the cockpit.
+
+#### What was found
+
+The BPMS API of version 1 and 1.1 had `usertask/{userTaskId}/suspended` and
+`usertask/{userTaskId}/activated`, and Kafka had the messages `userTaskSuspended` (4) and
+`userTaskActivated` (5). The cockpit answered both with 501 and threw on Kafka. There was nothing
+for a workflow.
+
+A BPMS suspends a process instance, never a single task. Every task of the instance is suspended
+with it. A called process instance is not suspended together with its caller. Camunda 8 tells no
+client about a suspension, so its adapter has to find it out by asking. Camunda 7 and its forks
+write a history event for it.
+
+#### What the cockpit does now
+
+Both operations answer 200 in both versions, and Kafka handles messages 4 and 5. Version 1.1 adds
+`workflow/{workflowId}/suspended` and `workflow/{workflowId}/activated` with a
+`WorkflowLifecycleEvent`, and Kafka adds `workflowSuspended` (18) and `workflowActivated` (19). Each
+report carries an id, the id of the record, a timestamp, and optionally an initiator, a source and a
+comment. The initiator of these reports is the person who suspended or activated the instance.
+Version 1 gets nothing for workflows.
+
+A suspended record stays in every list. A user who saw the entry before would take an entry which
+is suddenly gone for an error. The GUI API carries `suspendedAt` on `UserTask` and on `Workflow`,
+the moment of the suspension. It is there while the record is suspended and missing otherwise.
+Both also carry `suspendedBy`, the person who suspended or activated the instance the last time, or
+nothing where the BPMS does not say. `suspendedBy` is the `initiator` of the last suspension or
+activation the cockpit applied. A list can be sorted and filtered by it like by any other field. There
+is no list mode of its own.
+
+The reports overtake each other like all reports (decision 18). So the cockpit orders them by the
+timestamp of their event:
+
+- A suspension sets `suspendedAt` and `suspendedBy` (its `initiator`). A record which is suspended already keeps the
+  moment and the person of its first suspension, so a repeat from a second node of the application
+  writes nothing.
+- An activation removes `suspendedAt` and sets `suspendedBy` to its `initiator`, the person who
+  activated.
+- The record keeps `suspensionChangedAt`, the moment of the last report which changed the
+  suspension. A suspension or an activation which is older changes nothing.
+- No other report touches the suspension: not a creation, not a change, not a change the
+  application reports through `BusinessCockpitService.aggregateChanged`, not an end. See
+  the section "Only the two reports change the state" below.
+- Neither report changes `latestEventAt`, so they never make a change look old.
+
+A report about a record the cockpit does not hold is answered with 200, logged and dropped. It says
+nothing besides the moment, so it cannot create the record. The creation brings the record, and the
+next report about the suspension marks it.
+
+The cockpit's own actions on a suspended task stay allowed: claiming, assigning, the note, the
+follow-up date, the read marker. They change cockpit data and ask no BPMS. Notifications go out as
+before. The form of a task belongs to the workflow module. The cockpit cannot make it read only by
+itself, so it hands `suspendedAt` to the user interface, and the BPMS refuses to complete a task of
+a suspended instance.
+
+In `extensions-commons`, `UserTaskEventKind` and `WorkflowEventKind` have `SUSPENDED` and
+`ACTIVATED`. A BPMS half reports them with `publishUserTaskSuspension` and
+`publishWorkflowSuspension`, which take the person. Such a report is built from the identifiers and
+the person alone. Neither the BPMS half nor a details provider is asked. Both transports send it.
+`PrefilledUserTaskDetails` and `PrefilledWorkflowDetails` offer `getSuspendedAt()` and
+`getSuspendedBy()` to read, filled by the BPMS half where it knows them. A details provider has no
+way to change them, and the cockpit would not read them from its reports anyway.
+
+No changeset: a missing field means "not suspended".
+
+#### Why the order is the cockpit's job
+
+The outbox key of a report names the kind of event, so a waiting suspension and a waiting
+activation of one task are two entries and do not replace each other. But two suspensions with an
+activation between them do collapse into one entry, and the outbox dispatches its entries in no
+order. Only the timestamps can say which report is the younger one.
+
+#### Only the two reports change the state
+
+A change the application reports through `BusinessCockpitService.aggregateChanged` does not remove
+the mark of a suspension. Only the BPMS's reports of a suspension and an activation set or clear
+the state. A user task is
+opened by a running process instance and completed at a running process instance. Every report in
+between, and the creation and the end, leaves the state as it is. So neither a younger change nor
+an end removes the mark, and an activation the workflow module never reported is not made up by the
+cockpit. The adapters have to report every activation.
+
+An entry whose process instance was cancelled while it was suspended keeps `suspendedAt` after its
+end. `endedAt` says first whether the entry is over.
+
+Because only these two reports change the state, no change report needs a field which says who
+started it. Instead the two reports name the person, and the record shows it as `suspendedBy`,
+nullable, because not every BPMS says who it was. Camunda 7 and its forks know the signed-in user
+of the command, and Camunda 8.10 has it in its audit log for authenticated requests only. The field
+is in the GUI API anyway, because its surface cannot change after the release.
+
+The reports carry no field of their own for the person. They
+already have `initiator`, "the user who triggered the event", and that is the person. So
+`suspendedBy` is the `initiator` of the last suspension or activation the cockpit applied. This
+holds for version 1 of the REST API as well.
