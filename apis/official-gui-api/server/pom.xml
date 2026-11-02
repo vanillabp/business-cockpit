@@ -4,8 +4,9 @@
 
   <parent>
     <groupId>io.vanillabp.businesscockpit</groupId>
-    <artifactId>official-gui-api</artifactId>
+    <artifactId>business-cockpit-parent</artifactId>
     <version>0.9.0-SNAPSHOT</version>
+    <relativePath>../../../pom.xml</relativePath>
   </parent>
 
   <artifactId>official-gui-api-server</artifactId>
