@@ -36,10 +36,16 @@
   -->
   <modules>
     <module>commons</module>
-    <module>apis</module>
+    <module>apis/bpms-api/client</module>
+    <module>apis/bpms-api/server</module>
+    <module>apis/bpms-api/protobuf</module>
+    <module>apis/workflow-provider-api/client</module>
+    <module>apis/workflow-provider-api/server</module>
+    <module>apis/official-gui-api/server</module>
     <module>business-cockpit</module>
     <module>container</module>
-    <module>development</module>
+    <module>development/dev-shell-simulator</module>
+    <module>development/simulator</module>
     <module>spi-for-java</module>
     <module>extensions-commons</module>
     <!-- last: it aggregates and judges what all modules above produced -->
