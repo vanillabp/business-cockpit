@@ -641,6 +641,103 @@ browser out of memory at 10,360 cases, and the page could no longer be used. So:
   little is kept or asked again.
 - The loading sign shows on the first load, not when loading more.
 
+### Which pages load
+
+A request for a page is an event, not a state. Keep the requests in a queue or a stream of events,
+where none of them gets lost. A reactive value that keeps only its latest value, such as a signal
+or a field of a store, drops requests that come fast one after the other. An Angular cockpit lost
+pages this way, and some rows stayed placeholders for good.
+
+Load what the list really draws. After a scroll, take the first and the last row the virtual
+scroller has drawn. Load every page that overlaps this range, from the page of the first row to the
+page of the last row, both rounded down, plus the one page ahead above and below. Some scrollers
+hand over a range of their own in their lazy-loading event, and it may lie before the visible area
+instead of on it. Do not rely on that range alone.
+
+Wait for the scrolling to pause when the drawn range has left the window, after a jump or a drag of
+the scroll bar. Start a timer of about 100 milliseconds with each scroll event, and load the range
+drawn when it runs out. When the drawn range only moves on next to the window, as it does with the
+mouse wheel, load the page ahead at once, so no placeholder shows (`SRCH-016`). The first load, a
+new sort and a new search load at once too. Without the pause, the Angular cockpit sent more than
+100 requests for one drag to the end of the list. With the pause it sent 5. A browser opens only six
+connections per host over HTTP/1.1, so the pages at the end of the drag waited behind all the
+others: three to four seconds with one million entries.
+
+Ask for each page once. Keep a set of the pages on their way, each with a key made of page number,
+page size, sort, filters and `initialTimestamp`. Remove the key when the answer comes, and also
+when the request fails. Do not ask for a page that is on its way or already in the window. You may
+cancel an outdated request with an `AbortSignal`, but after the pause that is rarely needed.
+
+An answer starts no other request. A count asked again for every page that arrives multiplies the
+load. Counts follow the rules in [Counts](#counts).
+
+### What a page costs
+
+Adding a page to the list costs the same whether the list has 1,000 or 1,000,000 entries. So
+nothing as long as the total is copied or walked through for each page: no array with one slot per
+entry that is copied when a page comes, no set of known ids built from all entries, no search for
+the selection across all entries. Work over the window only. The Angular cockpit copied an array
+of one million slots for every page, 4 to 8 MB each time, and its derived values went through all
+of them.
+
+### The longest list (`Q-MAX-LIST-ENTRIES`)
+
+A list shows at most `Q-MAX-LIST-ENTRIES` entries, by default 100,000, in its current sort. The
+count next to it still shows the real total.
+
+There are two reasons. Browsers limit the height of an element: Chrome and WebKit to about 33.5
+million pixels, Firefox to about 17.9 million. With rows 46 pixels high, Firefox stops at about
+389,000 rows and Chrome at about 730,000. The scroller does not scale, so the rows below that are
+out of reach. And nobody reads through 100,000 entries. The user narrows the list down with search
+and filters instead.
+
+- The limit is a named constant of its own, filled from the interview, and not a number hidden in
+  the loading code. Divide Firefox's 17.9 million pixels by the row height of the theme. The result
+  must be larger than the limit.
+- The list is `min(totalElements, Q-MAX-LIST-ENTRIES)` rows long. The page that crosses the limit
+  is cut at the limit.
+- The count shows `totalElements` or the number of the count endpoint, never the length of the
+  list.
+- A live update may make a capped list a little longer than the limit. That is fine. The next page
+  that loads must not take it for an error and throw the list away.
+- A new sort shows other entries, the first ones of the new order. That is correct, and the notice
+  says so.
+
+The cap lives in the browser only, and the server still counts every row. A cap on the server would
+make counting cheaper, but then the real total is unknown. That is for later, if counting in the
+database gets too slow.
+
+A capped list shows that it is capped:
+
+- After the last entry comes one more row, the notice: "Only the first 100,000 entries in the
+  current sort order are listed. Please narrow down the list with more criteria." It spans all
+  columns and has the style of the theme for notes. It cannot be selected, and a click or a double
+  click on it opens nothing. It is not an entry in the data of the list. The list only gets a flag
+  that it is capped, and draws the row itself.
+- The same text shows on mouse-over of the count, and of every other count above the limit, for
+  example in the toggle of the header.
+
+The numbers in it are formatted for the language, see [Language and texts](#language-and-texts).
+
+### Memory that comes back
+
+A virtual scroller creates and destroys rows all the time. If anything keeps a reference to a
+destroyed row, the memory grows with the distance scrolled, not with the size of the window. The
+memory test below reads the heap once, at the end, and that does not catch it. So:
+
+- Scrolling, however long and however slowly, makes neither the heap nor the number of DOM nodes
+  grow. In the Angular cockpit, scrolling slowly down and up once through 2,000 entries took the
+  heap from 16 MB to 393 MB and the DOM from 3,000 to 355,000 nodes. A library component in each
+  row added a listener to a global service and never removed it, see
+  [rough-edges.md](rough-edges.md#a-component-library-keeps-destroyed-rows).
+- Leaving the list frees what it held. A service or store that lives longer than the list empties
+  its rows and its load options when the list closes. Opening the list again adds no second
+  subscription on top of the first.
+- A row draws as few components as it can. Each component in a row is created and destroyed
+  thousands of times while the user scrolls. A tooltip, a checkbox or a skeleton is cheap once and
+  expensive ten thousand times. Create such a component when it is needed, for example on
+  mouse-over.
+
 Two things are measured, and they pull in opposite directions. The memory must stay low, and the
 list must scroll smoothly. A larger window of loaded rows scrolls more smoothly, because the next
 rows are already there, but it costs more memory. Find the size of the window that passes both
@@ -676,6 +773,41 @@ A second end-to-end test proves the scrolling. It is mandatory too:
    one is replaced by its data soon after the scrolling stops.
 
 The CDP calls and `long-animation-frame` exist in Chromium only, so these tests run in Chromium.
+
+### Measuring a list
+
+Every list has a measurement that anyone can run again, a Playwright script in `e2e/` that talks
+to the Chrome DevTools Protocol. It goes through these steps:
+
+1. The list has loaded.
+2. Scroll slowly to the end and back up.
+3. Scroll fast to the end and back up.
+4. Jump to 37 %, 71 % and 12 % of the scroll bar.
+5. Open another screen and come back to the list.
+
+Before each value, force a garbage collection with `HeapProfiler.collectGarbage`. Then write down
+the heap (`Runtime.getHeapUsage`), the DOM nodes and event listeners (`Memory.getDOMCounters`), the
+number of page requests and which pages they asked for, and the number of empty rows right away and
+3 seconds later. The checklist items `SRCH-017` to `SRCH-021` read their values from it.
+
+When the memory grows, take a heap snapshot and look for the shortest path that keeps a detached
+DOM node alive. That path names the cause.
+
+A large total needs no large backend. Let Playwright answer the list requests with `page.route`:
+pass the request on, raise `totalElements` in the answer, for example to 1,000,000, and answer page
+`n` with the rows of page `n` modulo the real number of pages. So the test with one million entries
+(`SRCH-025`) runs against the 30,000 rows of the simulator.
+
+Unit tests cover the loading and the cap. They control the timers of the test framework, so a
+pause of 100 milliseconds takes no real time:
+
+- Several pages asked for fast, one after the other, all load.
+- A page that is on its way or in the window is not asked for again.
+- Fast scroll events load only the range drawn after the pause.
+- Opening the list twice adds no second subscription, and closing it frees its rows.
+- A capped list is not longer than the limit, shows the real total, cuts the page that crosses the
+  limit and keeps rows a live update added above the limit. Below the limit the count is exact.
+- The notice row shows only for a capped list, and only after the last row.
 
 ## Live updates
 
@@ -817,6 +949,12 @@ the cell, the title of a row, and every web component of a module, through the p
 Decide once what happens when a language is missing, and keep to it everywhere: take the default
 language, and if that is missing too, the first language there is. A header, a cell of type `i18n`
 and the title of a row behave the same.
+
+Numbers are formatted with `Intl.NumberFormat` for the chosen language: `1.000.000` in German,
+`1,000,000` in English. This holds for the counts and for the number in the notice of a capped list,
+see [The longest list](#the-longest-list-q-max-list-entries). Keep one formatter per language. A
+formatter of the framework that needs locale data registered at the start, or that does not follow
+a switch of the language at runtime, is not enough. Angular's `DecimalPipe` is one of them.
 
 The server has the key `business-cockpit.default-locale`. It does not set the language of the user
 interface.

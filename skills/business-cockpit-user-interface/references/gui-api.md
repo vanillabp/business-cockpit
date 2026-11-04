@@ -240,9 +240,16 @@ nothing, not even from 100000 rows in one request. A list never holds all its ro
 It holds a window of pages around the visible area and asks for each page with its `pageNumber`,
 see [behaviour.md](behaviour.md#paging-and-the-window-of-loaded-rows).
 
+The server answers as many requests as you send, but the browser does not send them all at once.
+Over HTTP/1.1 it opens six connections per host, and every other request waits. A drag of the scroll
+bar that asks for every page it passes queues dozens of requests, and the pages the user stops at
+come last. So ask only for the pages the list draws, each one once, see
+[behaviour.md](behaviour.md#which-pages-load).
+
 The answer carries a `page` with `number`, `size`, `totalPages` and `totalElements`.
 `totalElements` is counted exactly, in a second query over the same conditions. So the list knows
-its own total from every page. Every other number comes from the count endpoint, see
+its own total from every page. It shows this total also when it lists fewer rows because of
+`Q-MAX-LIST-ENTRIES`, see [behaviour.md](behaviour.md#the-longest-list-q-max-list-entries). Every other number comes from the count endpoint, see
 [Counting](#counting).
 
 `POST /workflow/{id}/usertasks` is the exception: there the page size is 100 by default.
