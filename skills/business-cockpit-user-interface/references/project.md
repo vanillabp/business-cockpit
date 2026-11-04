@@ -340,7 +340,9 @@ The UI repository needs no Java to build. Two things around it still run on Java
 `<scope>/bc-types` is what a workflow module installs to build its parts. It has no dependencies
 and no peer dependencies, and it depends on no loading library. It holds the types, the small
 helper that runs the event protocol and the script `bc-check-entries` a module runs in its build.
-[types.md](types.md) lists what goes into it.
+[types.md](types.md) lists what goes into it. It covers the module kit `@vanillabp/bc-module-kit`
+as its minimum, but it does not depend on the kit and does not bundle it, see
+[types.md](types.md#the-module-kit-is-the-minimum).
 
 It is published to the npm registry from the interview (`Q-NPM-SCOPE`). Its version follows the
 version of the user interface, because both sides of a contract change together.

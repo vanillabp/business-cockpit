@@ -15,6 +15,7 @@ For the Java side of a workflow module there is the types jar with the constants
 It is generated from the list in this library, by a Maven project of its own, see
 [project.md](project.md#the-types-jar).
 
+1. [The module kit is the minimum](#the-module-kit-is-the-minimum)
 1. [Data from the GUI API](#data-from-the-gui-api)
 1. [Translatable and Person](#translatable-and-person)
 1. [Column](#column)
@@ -23,6 +24,39 @@ It is generated from the list in this library, by a Maven project of its own, se
 1. [The event protocol](#the-event-protocol)
 1. [The extension points](#the-extension-points)
 1. [The manifest and its check](#the-manifest-and-its-check)
+
+## The module kit is the minimum
+
+There is one contract per cockpit, and this library is it. You generate it together with the user
+interface. Next to it there is the module kit, `@vanillabp/bc-module-kit`, from the repository
+`vanillabp/business-cockpit-module-kit`. The kit exists so that the Business Cockpit blueprints
+can show a workflow module without a generated cockpit. A module of the organisation builds
+against this library, not against the kit.
+
+The library does not take the kit in, neither as a dependency nor copied into its build. You write
+it from this description, like the rest of the user interface. But it covers everything the kit
+has, with the same names and the same behaviour, so a blueprint built against the kit loads in your
+cockpit too. The minimum is exactly what the kit has:
+
+- the four data entries `UserTaskList`, `WorkflowList`, `UserTaskForm` and `WorkflowPage`, and the
+  name of the function each one exports, see [The extension points](#the-extension-points),
+- the area `all`, the one web component which shows the whole page of a user task or a case,
+- the manifest `bc-manifest.json` and its check `bc-check-entries`, see
+  [The manifest and its check](#the-manifest-and-its-check),
+- the event protocol and `defineBcElement`, see [The event protocol](#the-event-protocol).
+
+Everything else differs from one organisation to the next and comes from the interview: the entry
+`Header`, the areas of a page like `body`, `information` and `actions`, the entry `Pages`, and any
+other extension point (`Q-EXTENSION-POINTS`, `Q-PAGE-AREAS`). The library adds these on top. It
+never drops or renames a part of the minimum.
+
+The kit has a second package, `@vanillabp/bc-module-host`. It is a small host for the tests of a
+module and is not part of any cockpit, see [The event protocol](#the-event-protocol). Phase 3 of the
+skill checks your cockpit with the example modules of the kit, see
+[`../SKILL.md`](../SKILL.md#a-module-built-against-the-kit-loads-in-your-cockpit).
+
+The two packages are not on npmjs.com yet. Until they are, the blueprints install them from a local
+Verdaccio registry which passes every other package through from npmjs.com.
 
 ## Data from the GUI API
 
@@ -200,11 +234,17 @@ into the objects above:
 
 | Web component               | Properties the host sets                                                          | What the module's component gets |
 |-----------------------------|-----------------------------------------------------------------------------------|----------------------------------|
-| an area of a user task page | `userTask`, `area`, `language`, `currentUser`                                     | `BcUserTask`, the area, the language, the user, `showNotification` |
-| an area of a case page      | `workflow`, `area`, `language`, `currentUser`                                     | `BcWorkflow`, the area, the language, the user, `showNotification` |
-| other visual parts          | `workflowModule`, `language`, `currentUser`, and what the extension point defines | the same, plus `showNotification`, `openDialog` |
+| an area of a user task page | `userTask`, `area`, `language`, `currentUser`                                     | `BcUserTask`, the area, the language, the user |
+| an area of a case page      | `workflow`, `area`, `language`, `currentUser`                                     | `BcWorkflow`, the area, the language, the user |
+| a dialog                    | `workflowModule`, `language`, `currentUser`, `data`                               | the same; `data` is what `openDialog` handed over |
+| other visual parts          | `workflowModule`, `language`, `currentUser`, and what the extension point defines | the same |
 
-The web component of an all-in-one form gets `area` as `all`.
+Every web component also gets the functions `showNotification`, `openDialog`, `closeDialog`,
+`sendTo`, `receiveMessage` and `request`. `request(action, args, timeoutMs)` is the way to any
+other action, for example one of an extension point of this cockpit. These are the properties of
+the kit's `BcElementProps`, and the library uses the same names.
+
+The web component of the area `all` gets `area` as `all`.
 
 `workflowModule` has the fields `GET /workflow-module` returns: `id`, `version`, `uri`.
 
@@ -215,32 +255,70 @@ changes. `currentUser` is the user from `GET /app/current-user`, with the groups
 
 The library holds the protocol of [module-loading.md](module-loading.md#the-event-protocol):
 
-- the event names `bc-request`, `bc-response` and `bc-message`, as constants,
-- the types of the request and the answer, the action names and the error codes,
+- the event names `REQUEST_EVENT`, `RESPONSE_EVENT` and `MESSAGE_EVENT` (`bc-request`,
+  `bc-response` and `bc-message`),
+- the types of the request and the answer, the action names as `ACTIONS` and the error codes as
+  `ERROR_CODES`,
+- `DEFAULT_TIMEOUT_MS`, 30 seconds, and `ACTIONS_WITHOUT_TIMEOUT`, which holds
+  `cockpit.openDialog`,
 - `requestFromCockpit(element, action, args, timeoutMs?)`, which dispatches the request, waits for
-  the answer with the same `requestId` and resolves or rejects,
+  the answer with the same `requestId` and resolves or rejects. Without `timeoutMs` it waits
+  `DEFAULT_TIMEOUT_MS`, or for ever for an action in `ACTIONS_WITHOUT_TIMEOUT`. A `timeoutMs` of
+  `0` means no timeout,
+- `rejectOpenRequests(element)`, which rejects every open request of the element with
+  `DISCONNECTED`. A web component calls it in `disconnectedCallback`,
+- `sendTo`, `receiveMessage`, `showNotification`, `openDialog` and `closeDialog`, each with the
+  element as its first argument,
 - `toBcUserTask(element, data)` and `toBcWorkflow(element, data)`, which add the functions to the
   plain data,
-- `defineBcElement(name, { mount, update, unmount })`, which builds a custom element with an open
-  shadow root, registers it under `name`, reads the properties, runs the protocol, carries the
-  messages between areas and calls the module's three functions.
+- `defineBcElement(name, { mount, update, unmount }, { properties })`, see below.
 
-The host side of the protocol is in the cockpit user interface, not in the library. A module never
-needs it.
+`defineBcElement` builds a custom element and registers it under `name`. It throws when the name is
+taken already. When the cockpit puts the element into the page, it attaches an open shadow root and
+calls `mount(root, props)`. A property the cockpit set before the element was defined is not lost.
+When the cockpit sets properties again, it calls `update(root, props)` once for all the changes of
+one task. When the element leaves the page, it calls `rejectOpenRequests`, ends every subscription
+of the part and calls `unmount(root)`. `props` holds the properties and functions of
+[What a part gets](#what-a-part-gets), plus `element`, the web component itself. The option
+`properties` names further properties an extension point of this cockpit sets.
+
+The request id comes from `crypto.randomUUID()`. That function exists only in a secure context, so
+a page served over plain http on a host other than `localhost` gets a counter with a random part
+instead. The id only has to be unique on one element.
+
+`receiveMessage` keeps the messages which come before the answer to `page.subscribe`. It hands them
+to the handler, in order, once it knows its `subscriptionId`, see
+[module-loading.md](module-loading.md#messages-between-areas).
+
+The host side of the protocol is in the cockpit user interface, not in this library. A module never
+needs it. For the tests of a module, the kit has a host of its own, in the separate package
+`@vanillabp/bc-module-host`. The library you generate ships no host.
 
 ## The extension points
 
 The library names every extension point of this cockpit: the four minimum ones and those from
 `Q-EXTENSION-POINTS`. For each one it exports the entry name, the type of the function the module
-exports, and the properties the host sets. For example:
+exports, and the properties the host sets. The four minimum ones, `EXPORT_NAMES`, `AREA_ALL` and
+the types of their functions are the same as in the kit. Here is an example for an organisation
+which chose `Header` and `Pages`:
 
 ```typescript
-export const USER_TASK_LIST = 'UserTaskList';   // exports: userTaskListColumns
-export const WORKFLOW_LIST = 'WorkflowList';    // exports: workflowListColumns
-export const USER_TASK_FORM = 'UserTaskForm';   // exports: userTaskForm
-export const WORKFLOW_PAGE = 'WorkflowPage';    // exports: workflowPage
-export const HEADER = 'Header';                 // exports: header; an extension point of this organisation
-export const PAGES = 'Pages';                   // exports: pages; an extension point of this organisation
+// The minimum, the same as in @vanillabp/bc-module-kit
+export const USER_TASK_LIST = 'UserTaskList';
+export const WORKFLOW_LIST = 'WorkflowList';
+export const USER_TASK_FORM = 'UserTaskForm';
+export const WORKFLOW_PAGE = 'WorkflowPage';
+export const EXPORT_NAMES = {
+  UserTaskList: 'userTaskListColumns',
+  WorkflowList: 'workflowListColumns',
+  UserTaskForm: 'userTaskForm',
+  WorkflowPage: 'workflowPage',
+} as const;
+export const AREA_ALL = 'all';
+
+// Extension points of this organisation, from the interview
+export const HEADER = 'Header';                 // exports: header
+export const PAGES = 'Pages';                   // exports: pages
 
 /** The entries that carry no framework; bc-check-entries checks their size and content. */
 export const DATA_ENTRIES = [USER_TASK_LIST, WORKFLOW_LIST, USER_TASK_FORM, WORKFLOW_PAGE, HEADER, PAGES] as const;
@@ -253,17 +331,21 @@ export interface BcElementRef {
 
 /**
  * The web components of the page of a user task or a case, and the visual entry that defines them.
- * A string as 'element' is the one web component of the all-in-one form; an object maps areas to
- * web components.
+ * A string as 'element' is the one web component of the area 'all'; an object maps areas to
+ * web components and may hold 'all' as well.
  */
 export interface BcPageParts {
   element: string | PageAreas;
   entry: string;
 }
 
-/** Area -> name of a web component. By convention 'body', 'information', 'actions'. */
+/**
+ * Area -> name of a web component. 'all' is the one every cockpit knows. This cockpit shows the
+ * areas it knows and ignores the others; when none of them is offered, it shows 'all'.
+ */
 export type PageAreas = { [area: string]: string };
 
+// Areas of this cockpit, from Q-PAGE-AREAS; none when the organisation chose none
 export const AREA_BODY = 'body';
 export const AREA_INFORMATION = 'information';
 export const AREA_ACTIONS = 'actions';
@@ -287,7 +369,14 @@ export type PagesFunction = (currentUser: CurrentUser) => BcPage[] | undefined;
 
 `CurrentUser` is the user the host hands every part as `currentUser`, see
 [What a part gets](#what-a-part-gets). All six are data entries. Their functions name web
-components, and `entry` says which visual entry of the same manifest defines them. `BcPageParts`
+components, and `entry` says which visual entry of the same manifest defines them.
+
+`DATA_ENTRIES` names the four minimum entries and the data entries from the interview, here
+`Header` and `Pages`. In the kit, `DATA_ENTRIES` has only the four. A blueprint module with a
+`Header` names it to `bc-check-entries` with `--data-entry Header`. Your cockpit asks `Header`
+only if it has that extension point. A cockpit ignores every entry and every area it does not
+know, without an error, so such a module still works there, only without that part, see
+[module-loading.md](module-loading.md#extension-points). `BcPageParts`
 has the same shape as `BcElementRef`, except that `element` may also name one web component per
 area. The cockpit then loads the visual entry and draws the web components in three steps, see
 [module-loading.md](module-loading.md#ask-load-draw). The routing by process and task definition
@@ -312,10 +401,30 @@ export interface BcManifest {
 }
 ```
 
+With it come the functions the kit has for the manifest: `checkManifest(manifest)` lists every rule
+a manifest breaks, `readManifest(source)` reads and checks one and throws a `BcManifestError`,
+`createManifest({ entries, buildVersion, buildTimestamp })` builds the one a module's build
+writes, and `entryUrl(manifest, entry, manifestUrl)` gives the address of an entry's file. The
+constants are `MANIFEST_FILE_NAME` and `MANIFEST_VERSION`. The rules for the files of the manifest
+are in [module-loading.md](module-loading.md#the-manifest).
+
 It also ships `bc-check-entries` as a `bin` script, plain Node.js without dependencies. A module
-runs it after its build, for example `bc-check-entries dist/bc-manifest.json --limit 32kb`. It
-reads the manifest, follows the relative imports of every data entry in `DATA_ENTRIES`, and fails
-when a file is missing, when a data entry is larger than the limit, or when it contains framework
-code, see [module-loading.md](module-loading.md#data-entries-carry-no-framework). The limit is
-`Q-DATA-ENTRY-LIMIT`, by default 32 KB before compression. It holds for the data entries only, not
-for the visual entries with the forms.
+runs it after its build:
+
+```bash
+npx bc-check-entries dist/bc-manifest.json --limit 32kb --metafile dist/meta.json --data-entry Header
+```
+
+It reads the manifest, follows the relative imports of every data entry in `DATA_ENTRIES` and of
+every entry named with `--data-entry`, and fails the build when
+
+- the manifest breaks a rule, or an entry it names has no file,
+- a data entry, together with every file it imports, is larger than the limit,
+- a data entry imports a bare name like `react`, or a file outside the folder of the manifest,
+- a data entry contains code of a framework.
+
+It follows static imports and dynamic imports with a fixed string. The details are in
+[module-loading.md](module-loading.md#data-entries-carry-no-framework). The limit is
+`Q-DATA-ENTRY-LIMIT`, by default 32 KB before compression, and a kilobyte is 1024 bytes. `--limit`
+takes `32kb`, `0.5mb` or a number of bytes. The limit holds for the data entries only, not for the
+visual entries with the forms. Visual entries are only checked for their file.
