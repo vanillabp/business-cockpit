@@ -55,7 +55,9 @@ The UI repository is a pure npm project. It produces:
   script builds it and uploads it with HTTP `PUT` into the company's Maven repository.
 - A types library for workflow modules, as an npm package. It says what a part of a module may
   expect from the cockpit, and it carries the small helper which turns a function call into an event
-  on the DOM element. It also lists the `ui-uri-type` values this user interface understands.
+  on the DOM element. It also lists the `ui-uri-type` values this user interface understands. It
+  is the one contract of this cockpit, and it covers the module kit `@vanillabp/bc-module-kit` as
+  its minimum, see [references/types.md](references/types.md#the-module-kit-is-the-minimum).
 - A dev shell for each framework the workflow modules use, as an npm package. It is the workbench on
   which somebody writes a user task form without starting a cockpit.
 - A `Dockerfile` that serves the user interface with nginx, for an organisation that deploys it
@@ -117,6 +119,51 @@ its id stays taken.
 
 Go through `CHECKLIST.md`, item by item. For each item, run its test or check it by hand, and write
 down the result. Then do what [How you know it is done](#how-you-know-it-is-done) says.
+
+### A module built against the kit loads in your cockpit
+
+The module kit `@vanillabp/bc-module-kit` is the minimum every cockpit keeps, see
+[references/types.md](references/types.md#the-module-kit-is-the-minimum). Its repository
+`vanillabp/business-cockpit-module-kit` has three example modules, the same module written in
+React, in Vue and in Angular, and a browser test for them. Run that test against your cockpit
+(`EXT-040`). It passes for a cockpit with areas and for one without, because the example modules
+offer both.
+
+1. Take the kit's repository at the version your types library covers. Run `npm ci`,
+   `npm run build:examples` and `npm run build:conformance`. This writes the folder
+   `dist/conformance`, which works on its own: the built modules below `wm/react-module/`,
+   `wm/vue-module/` and `wm/angular-module/`, a small web server `serve.mjs`, the test
+   `cockpit.test.js` and a `package.json` with its one dependency, `playwright`.
+2. In that folder run `npm install` and `npx playwright install chromium`, then start
+   `node serve.mjs`. It prints the address of each module, for example
+   `http://localhost:4173/wm/react-module`.
+3. Register the three modules in your cockpit, the way a workflow module registers itself: one
+   `POST /bpms/api/v1_1/workflow-module/{id}` per module, with the id `react-module`, `vue-module`
+   or `angular-module` and the printed address as `uri`. Give it `accessibleToGroups` the test user
+   has. Your cockpit then forwards `/wm/<id>/` to `serve.mjs`.
+4. Create one user task per module with `POST /bpms/api/v1_1/usertask/created`: the module's id as
+   `workflowModuleId`, `bpmnProcessId` `TaxiRide`, `taskDefinition` `confirmRide`, the ES module
+   value of `Q-UI-URI-TYPE` (by default `ES_MODULES`) as `uiUriType` and `/bc-manifest.json` as
+   `uiUriPath`, plus the other fields `UserTaskCreatedEvent` requires, such as `id`,
+   `workflowId` and `timestamp`. Make the test user a candidate. Write both steps into a setup
+   script of the end-to-end tests, with the credentials your cockpit asks for on the BPMS API, so
+   they run again for every test run.
+5. Run the test with the address of your cockpit and the path of the page of each user task:
+
+   ```bash
+   BC_COCKPIT_URL=http://localhost:8080 \
+   BC_USER_TASK_PAGES="react-module=/tasks/4711 vue-module=/tasks/4712 angular-module=/tasks/4713" \
+   BC_STORAGE_STATE=e2e/.auth/user.json \
+   node --test cockpit.test.js
+   ```
+
+   `BC_STORAGE_STATE` names a file with a logged-in session, as Playwright's `storageState` writes
+   it. Leave it out if your cockpit needs no login for the test.
+
+The test opens each page and works with the form the way a user does. It finds the form in an open
+shadow root, fills in a comment, claims the task and opens a dialog. A failure means that your
+cockpit breaks the minimum. A blueprint built against the kit would then fail in your cockpit too.
+Fix the cockpit, not the test.
 
 ### Upgrading a generated user interface
 
@@ -299,24 +346,30 @@ seeing anything.
 
 Run the generated user interface against a running cockpit with workflow modules. As workflow
 modules, use the Business Cockpit blueprints in the `vanillabp-blueprints` organisation. They do not
-wait for a generated cockpit. They are built against the module kit, a small npm package in plain
-JavaScript from its own repository (`vanillabp/business-cockpit-module-kit`). It holds the module's
-side of the contract: the manifest, `bc-check-entries`, the helper for events and the names of the
-data entries. It also holds a minimal host which loads a module part the way
-[references/module-loading.md](references/module-loading.md) describes, for its own tests and those
-of the blueprints. The types library you generate takes the module kit in when it is built, so it
-still ships without dependencies (`PKG-006`), and adds what only this user interface knows, such as
-its `ui-uri-type` values. So a blueprint which passes against the
-module kit loads in every generated cockpit. One of
-them shows user tasks, one shows a workflow details page, and one shows an extension of the header.
-If the organisation's cockpit has extension points that no blueprint offers, extend a blueprint, so
-that every extension point is tested by a real module.
+wait for a generated cockpit. They are built against the module kit `@vanillabp/bc-module-kit`, a
+small npm package in plain JavaScript from its own repository
+(`vanillabp/business-cockpit-module-kit`). It holds the minimum of the contract: the four data
+entries and their export names, the area `all`, the manifest, the event protocol,
+`defineBcElement` and `bc-check-entries`. The blueprints test their modules with the second package
+of that repository, `@vanillabp/bc-module-host`, a minimal host which loads a module part the way
+[references/module-loading.md](references/module-loading.md) describes. Both packages are not on
+npmjs.com yet; until they are, they come from a local Verdaccio registry.
+
+The types library you generate does not take the kit in. It is the one contract of this cockpit. It
+covers the kit as its minimum, with the same names, and adds what only this user interface knows,
+such as its `ui-uri-type` values, `Header` or the areas of a page (`PKG-027`). So a blueprint which
+passes against the kit loads in every generated cockpit. A blueprint that offers a `Header` or
+areas your cockpit does not have still loads, only without that part. One of the blueprints shows
+user tasks, one shows a workflow details page, and one shows an extension of the header. If the
+organisation's cockpit has extension points that no blueprint offers, extend a blueprint, so that
+every extension point is tested by a real module.
 
 Then:
 
 1. Every item of `CHECKLIST.md` has a test that names its id, and every test passes.
 2. The task list and the case list show rows with the columns the modules bring.
-3. The page of a user task from a module loads, lays out its areas and shows the data of the task.
+3. The page of a user task from a module loads, lays out the areas of `Q-PAGE-AREAS` or the one
+   web component of `all`, and shows the data of the task.
 4. A change to a task that somebody else makes shows up without a reload.
 5. Claiming and unclaiming work, and the row shows it afterwards.
 6. Paging, sorting and searching return what they should, also over reported business data.
@@ -331,3 +384,6 @@ Then:
 11. The backend repository builds and serves the user interface the way `Q-HOSTING` chose: with the
     UI jar as a dependency (`embedded`), through its gateway route to the nginx image (`behind`), or
     behind the nginx image (`in-front`).
+12. A module built against the kit loads in your cockpit: the conformance test with the kit's
+    example modules in React, Vue and Angular passes, see
+    [A module built against the kit loads in your cockpit](#a-module-built-against-the-kit-loads-in-your-cockpit).

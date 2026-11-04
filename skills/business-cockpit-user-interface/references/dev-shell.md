@@ -104,7 +104,9 @@ runs the same routing by process and task definition as the cockpit, see
 2. Load. The shell skips it. It does not load the visual entry the answer names.
 3. Draw. For each web component name in the answer, the shell draws the framework component that
    was handed over under this name. A string is the all-in-one form, an object of areas the
-   laid-out form, so the shell lays out the page the same way as the cockpit.
+   laid-out form. The shell picks the areas, or `all`, by the same rules as the cockpit, see
+   [module-loading.md](module-loading.md#the-page-of-a-user-task-or-a-case), so it lays out the
+   page the same way.
 
 The components are imported directly, so the dev server swaps them while the developer types. A
 name the function returns but for which no component was handed over shows a note with that name,

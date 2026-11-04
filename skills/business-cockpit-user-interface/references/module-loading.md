@@ -42,7 +42,8 @@ page, and a module upgrades its framework without asking anybody.
 The entries of one module may share files. The bundler splits the framework into one chunk, and
 every entry of the module imports that chunk. The browser loads the chunk once, because it is the
 same address. So a module's framework is loaded once per module, not once per form, per page or per
-cell.
+cell. Such a shared chunk must never be imported by a data entry, see
+[rough-edges.md](rough-edges.md#a-shared-chunk-carries-the-framework-into-a-data-entry).
 
 The address of an entry lies below `/wm/<workflowModuleId>/`, where the cockpit serves the module.
 It is the same origin as the cockpit, so a Content Security Policy needs nothing beyond
@@ -79,6 +80,12 @@ The cockpit reaches it at `/wm/<workflowModuleId>/bc-manifest.json`. The proposa
 | `buildTimestamp`  | when the module was built, also only for a details view |
 | `entries`         | entry name to file; the file is relative to the manifest |
 
+A field this version does not know is allowed and ignored. A file in `entries` must stay below the
+web path of the module. So it is a relative path: no whole address with a scheme like `https:`, no
+address that starts with `//`, no path that starts with `/`, and no `..` in it. `?v=...` or `#...`
+at its end is allowed. The kit's `checkManifest` and your loader apply the same rules, and the
+loader refuses a manifest that breaks them, with a note that names the module.
+
 Cache busting works through the file names. The bundler puts a hash of the content into every file
 name, so a new build has new addresses, and the browser cannot take an old file for a new one. A
 bundler that cannot do that appends `?v=<buildVersion>` to the file in the manifest. The manifest
@@ -103,7 +110,7 @@ external, because the entries share nothing with the page.
 |------------------|--------|
 | React            | Vite in library mode: `build.lib.entry` is an object of entry name to source file, `formats: ['es']`, `build.manifest: true`. Set `define: { 'process.env.NODE_ENV': '"production"' }`, because library mode leaves it alone, and React reads it. Or esbuild: `--bundle --format=esm --splitting --entry-names=[name]-[hash] --metafile=meta.json`. |
 | Vue              | Vite in library mode as for React, with `@vitejs/plugin-vue`. Import the styles of a component with `?inline`, so they go into the shadow root and not into the page. |
-| Angular          | Zoneless, see [Nothing is shared](#nothing-is-shared). Vite in library mode with `@analogjs/vite-plugin-angular`, or the Angular CLI with its esbuild `application` builder and one build per visual entry, with `--stats-json` for the list of outputs. |
+| Angular          | Zoneless, see [Nothing is shared](#nothing-is-shared). Vite in library mode with `@analogjs/vite-plugin-angular`, or the Angular CLI with its esbuild `application` builder and one build per visual entry, with `--stats-json` for the list of outputs. Plain esbuild is not enough: it needs the Angular compiler (`@angular/compiler-cli`) ahead of time and the Angular linker while it bundles, as the kit's example module does, see [rough-edges.md](rough-edges.md#angular-in-a-shadow-root). |
 | Plain JavaScript | esbuild or Rollup with `output.format: 'es'`. This is the recipe for every data entry, whatever the framework of the module's forms. |
 
 The data entries need no framework compiler, see
@@ -140,7 +147,9 @@ functions of a cockpit, like the lists, claiming or the notifications, are built
 frontend and backend. They are no extension points. An extension point gives a module a place for
 something only this module has, outside the page of a user task and the page of a case.
 
-Four extension points are the bare minimum, and every generated cockpit has them:
+Four extension points are the bare minimum, and every generated cockpit has them. They are the
+four data entries of the module kit `@vanillabp/bc-module-kit`, with the same names of their
+exports, see [types.md](types.md#the-module-kit-is-the-minimum):
 
 | Entry          | What the module exports                                                              | Kind | Where the cockpit uses it |
 |----------------|--------------------------------------------------------------------------------------|------|---------------------------|
@@ -149,8 +158,10 @@ Four extension points are the bare minimum, and every generated cockpit has them
 | `UserTaskForm` | `userTaskForm`, a function from a user task to a visual entry and its web components | data | the page of a user task |
 | `WorkflowPage` | `workflowPage`, a function from a case to a visual entry and its web components      | data | the page of a case |
 
-An organisation may add more (`Q-EXTENSION-POINTS`). Examples: buttons in the header, menu
-entries, pages of a module, and modal dialogs those open, see
+An organisation may add more (`Q-EXTENSION-POINTS`). The interview proposes `Header`, buttons in
+the header, because every customer so far has had it. It proposes no `Pages`, pages of a module
+with their own menu entries, because no customer has had them yet. An example of such a page is
+one to keep the master data a process needs. Both may open modal dialogs, see
 [The other extension points](#the-other-extension-points). For the cockpit there is no difference
 between the four and the others. They all come from the same organisation's generated user
 interface. The cockpit and the modules of one organisation agree on the list, and it holds for
@@ -162,6 +173,12 @@ the user task or the case. A module whose manifest does not name the entry is no
 ignored, without a message to the user. Only an entry that is named and fails to load is worth a
 note.
 
+The other way round holds too. A manifest may name an entry this cockpit does not know, for example
+`Header` in a cockpit without a header. The cockpit never asks or loads it, and shows no error. So
+a blueprint module that offers `Header` works in every cockpit, and in a cockpit without that
+extension point only the header part is missing. The same holds for areas, see
+[The page of a user task or a case](#the-page-of-a-user-task-or-a-case).
+
 The entry name is the contract, and so are the names of the exports. A module that names
 `UserTaskForm` but calls its export differently is loaded and shows nothing. Report that in the
 console with the module id.
@@ -172,8 +189,8 @@ There are two kinds of entries:
 
 - A data entry tells the cockpit something: the columns of a row, which form a user task gets,
   which page a case gets, the pages of a module and their menu entries, the buttons of the header.
-  `UserTaskList`, `WorkflowList`, `UserTaskForm`, `WorkflowPage`, `Header` and `Pages` are data
-  entries.
+  `UserTaskList`, `WorkflowList`, `UserTaskForm` and `WorkflowPage` are data entries, and so are
+  `Header` and `Pages` in a cockpit that has them.
 - A visual entry defines web components that draw something: the forms of the user tasks, the
   pages of the cases, the buttons of the header, the pages of a module and the dialogs. Its name is
   the module's choice, and a data entry names it.
@@ -221,23 +238,41 @@ as the helper itself does not need React. A real dependency on the framework sta
 what the check below finds.
 
 The check runs in the build of the module. The types library ships a small script without
-dependencies, `bc-check-entries`. It reads `bc-manifest.json` and fails the build when:
+dependencies, `bc-check-entries`, the same as the one in the module kit. It reads
+`bc-manifest.json` and fails the build when:
 
-- an entry the manifest names has no file,
+- the manifest breaks a rule of [The manifest](#the-manifest), or an entry it names has no file,
 - a data entry, together with every file it imports, is larger than the limit from the interview
-  (`Q-DATA-ENTRY-LIMIT`, by default 32 KB before compression),
-- a data entry, or a file it imports, contains code of a framework package, for example `react`,
-  `react-dom`, `vue`, `@angular/core` or `zone.js`. The script finds them by the comments and
-  markers those packages leave in a bundle, and by the bundler's list of inputs when it is there.
+  (`Q-DATA-ENTRY-LIMIT`, by default 32 KB before compression; a kilobyte is 1024 bytes),
+- a data entry, or a file it imports, imports a bare name like `react`. An entry imports only
+  files of its own module, by relative paths,
+- a data entry, or a file it imports, imports a file outside the folder of the manifest, or a file
+  that does not exist,
+- a data entry, or a file it imports, contains code of a framework package.
+
+The script follows static imports and dynamic imports with a fixed string, so a chunk which a data
+entry loads later counts as well. It finds a framework in two ways:
+
+- By the markers a framework leaves in a bundle, also in a minified one. These are
+  `@license React`, `react.transitional.element` and the two internal names of React which start
+  with `__CLIENT_INTERNALS_` and `__SECRET_INTERNALS_`, `__vue_app__` and `__v_isRef` for Vue,
+  `@license Angular` and `ɵɵdefineComponent` for Angular, `__zone_symbol__` for `zone.js`, and
+  `litHtmlVersions` for Lit.
+- By the inputs of the bundler's metafile, when the build passes it with `--metafile`. An input
+  from one of the packages `react`, `react-dom`, `scheduler`, `vue`, `@vue/...`, `@angular/...`,
+  `zone.js`, `preact`, `svelte`, `solid-js`, `lit`, `lit-html`, `lit-element` or `@lit/...` fails
+  the check. esbuild writes such a file with `--metafile`.
 
 The limit holds for the data entry only, not for a form. A form is a visual entry, and it may be as
-large as its framework makes it.
+large as its framework makes it. A visual entry is only checked for its file.
 
 The end-to-end tests of the cockpit check the same from the other side: loading the data entries of
 a blueprint module fetches no file of the module's framework.
 
 The types library lists the names of the data entries as `DATA_ENTRIES`, so the script and the
-cockpit agree on them.
+cockpit agree on them. A module whose data entries go beyond them names each one with
+`--data-entry <name>`. A blueprint built against the kit does that for `Header`, because the kit
+knows only the four minimum ones.
 
 ## Which data finds the part
 
@@ -320,9 +355,9 @@ user task, on the page of a case, in the header, on a page of a module and in a 
 2. Load. The cockpit asks the loader for the visual entry the answer names. The loader imports it
    through the manifest, the same way as a data entry. When the browser evaluates the entry, the
    entry calls `customElements.define` for its web components. The cockpit then waits for each
-   named web component with `customElements.whenDefined(name)`, together with a time limit, by
-   default 10 seconds. An entry may define its web components a little later, for example after
-   its own setup, and that is fine within the limit.
+   web component it is going to draw with `customElements.whenDefined(name)`, together with a
+   time limit, by default 10 seconds. An entry may define its web components a little later, for
+   example after its own setup, and that is fine within the limit.
 3. Draw. The cockpit creates the element with `document.createElement(name)` in its area, sets the
    properties and listens for its requests, see [What a part gets](types.md#what-a-part-gets). For a
    user task it hands over the plain data, and the wrapper of the module turns it into `BcUserTask`.
@@ -411,11 +446,13 @@ example `--bc-color-primary` or `--bc-font-family`, and they are inherited into 
 (`Q-THEME-TOKENS`). Their names are part of the types library.
 
 The types library offers a helper, `defineBcElement`, that builds and registers such a web
-component from three plain functions of the module: `mount`, `update` and `unmount`. A React module
+component from three plain functions of the module: `mount`, `update` and `unmount`, see
+[types.md](types.md#the-event-protocol). It is the same helper as in the module kit. A React module
 writes `mount = (root, props) => createRoot(root).render(<Form {...props} />)`, a Vue module uses
 `createApp`, an Angular module `createApplication` once per module and `createComponent` with
 `hostElement` per web component. So no module has to write the shadow root and the protocol by
-hand.
+hand. The example modules of the kit show all three, and the Angular one has its own traps, see
+[rough-edges.md](rough-edges.md#angular-in-a-shadow-root).
 
 ## The page of a user task or a case
 
@@ -439,24 +476,39 @@ It has the same shape as the `{ element, entry }` of the header and the pages, s
 The result has three forms:
 
 - `undefined`: the function does not know this user task or this case. It is not the module's.
-- `element` is a string: the name of one web component. It is the all-in-one form. The cockpit
-  gives it the whole area, draws no column and sets its property `area` to `all`.
+- `element` is a string: the name of one web component, for the area `all`. It is the all-in-one
+  form. The cockpit gives it the whole area, draws no column and sets its property `area` to `all`.
 - `element` is an object: per area, the name of the web component that fills it. It is the
-  laid-out form.
+  laid-out form. It may name a web component for `all` as well.
 
 ```ts
 { entry: 'ConfirmRideForm', element: 'taxi-ride-confirm-ride-page' }
 
 { entry: 'AssessRiskForm',
-  element: { body: 'taxi-ride-assess-risk-form',
+  element: { all: 'taxi-ride-assess-risk-page',
+             body: 'taxi-ride-assess-risk-form',
              information: 'taxi-ride-assess-risk-information',
              actions: 'taxi-ride-assess-risk-actions' } }
 ```
 
-All web components of one page come from the one visual entry the result names. The cockpit loads
-it once and waits for every named web component, see [Ask, load, draw](#ask-load-draw).
+The area `all` is part of the minimum, and every cockpit knows it. Everything else about areas is
+the organisation's choice. So the cockpit picks what to draw like this:
 
-Which areas exist is a convention, not a law (`Q-PAGE-AREAS`). The default convention:
+1. It takes the areas of the object that it knows itself, and ignores the others without an error.
+   If there is at least one, it draws these as the laid-out form.
+2. Otherwise it draws the web component of `all`, as the all-in-one form. A cockpit without areas
+   of its own always ends up here.
+3. If the object has neither, the module has no form for this cockpit. The page says so, the same
+   way as for `undefined`.
+
+So a module that names `all` and areas runs in a cockpit with areas and in one without. The example
+modules of the kit do exactly that. The cockpit draws either the areas or `all`, never both.
+
+All web components of one page come from the one visual entry the result names. The cockpit loads
+it once and waits for every web component it is going to draw, see [Ask, load, draw](#ask-load-draw).
+
+Which areas exist is a convention, not a law (`Q-PAGE-AREAS`). An organisation may also choose no
+areas at all; then its cockpit shows only `all`. The default convention:
 
 | Area          | Where the cockpit puts it |
 |---------------|---------------------------|
@@ -509,7 +561,13 @@ so the cockpit starts with the second step: it loads the entry, waits for the we
 draws it in a modal layer above everything. Often the entry is the one of the button and is loaded
 already. The dialog closes itself with
 `cockpit.closeDialog` and a result, and the promise of `cockpit.openDialog` resolves with that
-result, see [Actions](#actions).
+result, see [Actions](#actions). The cockpit answers `cockpit.closeDialog` first and removes the
+dialog afterwards, in a later task. If it removed the web component first, the web component would
+reject its own request with `DISCONNECTED`.
+
+Dialogs are part of the minimum. The event protocol of the kit has `cockpit.openDialog` and
+`cockpit.closeDialog`, and a form on the page of a user task may open a dialog too. So every
+cockpit offers them, also one without further extension points.
 
 ## The event protocol
 
@@ -534,6 +592,10 @@ element.dispatchEvent(new CustomEvent('bc-request', {
   },
 }));
 ```
+
+`crypto.randomUUID()` exists only in a secure context: https, or plain http on `localhost`. On a
+page served over plain http from another host the wrapper takes a counter with a random part
+instead. The id only has to be unique on its element. The host treats it as an opaque string.
 
 ### Answer
 
@@ -576,6 +638,12 @@ subscribed. The host keeps such messages, in order, and delivers them once the a
 drops them when the page is left. A `target` without a web component on this page is answered with
 `NO_TARGET`.
 
+Both sides take care that no message gets lost around `page.subscribe`. The host delivers the kept
+messages in a later task, after its answer with the `subscriptionId`, for example with
+`setTimeout`. The wrapper still keeps every `bc-message` that comes before it knows its
+`subscriptionId`. Once the answer is there, it hands the kept messages with that id to the handler,
+in order, and drops the others. `ready` of the subscription resolves at that moment.
+
 ### Notifications
 
 `showNotification` is the request `cockpit.showNotification`. The cockpit shows a toast with the
@@ -597,8 +665,14 @@ The text comes in the user's language; the part knows it from the property `lang
 ### Timeout
 
 The wrapper waits 30 seconds by default, then rejects with `TIMEOUT`. An answer that comes later is
-ignored. `cockpit.openDialog` has no timeout, because it waits for the user. When the element is
-disconnected, the wrapper rejects every open request with `DISCONNECTED`.
+ignored. `cockpit.openDialog` has no timeout, because it waits for the user. A caller may pass its
+own timeout in milliseconds, and `0` means no timeout at all.
+
+When the element is disconnected, the wrapper rejects every open request of this element with
+`DISCONNECTED`. The wrapper keeps the open requests per element for this. The function for it is
+`rejectOpenRequests(element)`, and `defineBcElement` calls it in `disconnectedCallback`. So a
+cockpit that removes a web component, for example the dialog after `cockpit.closeDialog`, answers
+its last request before it removes the element.
 
 ### Actions
 
@@ -619,7 +693,7 @@ The minimum set, matching the functions in [types.md](types.md#bcusertask-and-bc
 | `page.unsubscribe`            | `subscriptionId`                                                          | nothing |
 | `cockpit.showNotification`    | `level`, `text`, `sticky`                                                 | nothing |
 | `cockpit.openDialog`          | `element`, `entry`, `data`                                                | what the dialog closed with |
-| `cockpit.closeDialog`         | `result`                                                                  | nothing |
+| `cockpit.closeDialog`         | `result`                                                                  | nothing; answered before the dialog is removed |
 
 The four claim and assign actions resolve once the server has accepted the change. The server
 answers them without the changed user task. The new state reaches the part when the host sets the

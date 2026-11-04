@@ -23,6 +23,9 @@ code of the cockpit. Read this before the first screen, not when something does 
 1. [The bundler rewrites `import()`](#the-bundler-rewrites-import)
 1. [`zone.js` in a module slows every part down](#zonejs-in-a-module-slows-every-part-down)
 1. [A data entry pulls in the framework](#a-data-entry-pulls-in-the-framework)
+1. [A shared chunk carries the framework into a data entry](#a-shared-chunk-carries-the-framework-into-a-data-entry)
+1. [Angular in a shadow root](#angular-in-a-shadow-root)
+1. [Removing a web component before its answer](#removing-a-web-component-before-its-answer)
 1. [What needs a newer cockpit](#what-needs-a-newer-cockpit)
 
 ## Assigning makes a candidate
@@ -184,6 +187,54 @@ is true.
 The function of `UserTaskForm` is the likeliest place for this. It picks the form of a user task,
 so it feels natural to import the forms there. Do not. It names the visual entry and the web
 components as strings, and the forms stay in their own visual entries.
+
+## A shared chunk carries the framework into a data entry
+
+esbuild with `--splitting`, and Rollup or Vite as well, move code that two entries use into a
+shared chunk. This is how the entries of one module share their framework. But the bundler decides
+what goes into which chunk, not you. When a data entry and a form both use a small helper, the
+helper may land in the same chunk as the framework. Then the data entry imports that chunk, and the
+framework comes along, although the source of the data entry never imports it.
+
+`bc-check-entries` finds it, because it follows every file a data entry imports, chunks included.
+The way out is the same as above: data entries use no file that a visual entry uses. If that is not
+possible, build the data entries in a build of their own, without splitting. The kit's example
+modules build with splitting and pass the check, because their data entries share nothing with
+their forms.
+
+## Angular in a shadow root
+
+Angular needs three things that React and Vue do not. The Angular example module of the kit
+(`examples/angular-module`) shows all of them.
+
+Angular puts the styles of a component into the `<head>` of the page. From there they do not reach
+into a shadow root, so the component shows without its styles. The web component writes the
+module's style into its own shadow root, in a `<style>` element in front of the component.
+
+`@angular/elements` does not fit the event protocol. It defines a web component class of its own,
+so the module would have to build the protocol a second time: the functions in the properties, the
+end of all subscriptions and the `DISCONNECTED` answers when the web component leaves the page.
+Use `defineBcElement` instead, start one Angular application per module with `createApplication`
+and `provideZonelessChangeDetection()`, and create the component in the shadow root with
+`createComponent` and `hostElement`. Hand it all properties of the cockpit as one input, for
+example `props`. Call `detectChanges()` once after the first `setInput`, so the component draws
+completely at once and shows no empty text. After that, signals and the events of the template tell
+Angular when to draw again.
+
+The build needs Angular's own compiler. esbuild alone cannot compile Angular components. The
+Angular compiler (`@angular/compiler-cli`) compiles them ahead of time into plain JavaScript, so the
+browser gets no template compiler. Angular also publishes its own packages half compiled, and the
+Angular linker finishes them while the bundler runs. The Angular CLI does both by itself. The data
+entries are plain JavaScript and skip both steps.
+
+## Removing a web component before its answer
+
+A web component that leaves the page rejects its open requests with `DISCONNECTED`. The dialog is
+the trap. Its web component calls `cockpit.closeDialog`, and the obvious thing is to remove the
+dialog right away. Then the request of `closeDialog` fails with `DISCONNECTED`, although the cockpit
+did what was asked. Answer first, and remove the dialog in a later task, for example with
+`setTimeout`. The same holds for any action whose effect removes the web component that asked. See
+[module-loading.md](module-loading.md#timeout).
 
 ## What needs a newer cockpit
 
