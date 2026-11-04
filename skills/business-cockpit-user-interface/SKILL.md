@@ -330,7 +330,9 @@ seeing anything.
    well, because that is where the most rows pile up. Watch two things, because they pull in opposite
    directions. The JavaScript heap stays below the limit. The list scrolls without stuttering, and a
    placeholder instead of the data shows only when the user scrolls very fast. A larger window of
-   loaded rows scrolls more smoothly and costs more memory. See
+   loaded rows scrolls more smoothly and costs more memory. Write the measurement of the list as
+   well: scrolling down and up must not make the heap grow, and leaving the list must free it.
+   Simulate a total of one million entries to see the cap of the list at work. See
    [references/behaviour.md](references/behaviour.md#paging-and-the-window-of-loaded-rows).
 4. Sorting and searching. After this, the paths and their traps are clear.
 5. The types library with `bc-check-entries`, the registry of modules and the central loader. Then
@@ -375,7 +377,8 @@ Then:
 6. Paging, sorting and searching return what they should, also over reported business data.
 7. Scrolling through 30,000 user tasks or cases of three or four modules keeps the JavaScript heap
    below the limit from the interview, also on the primary filter for closed tasks. The list scrolls
-   without stuttering, and placeholders show only when the user scrolls very fast.
+   without stuttering, and placeholders show only when the user scrolls very fast. Scrolling down
+   and up again does not make the heap grow, and leaving the list frees it.
 8. A user task whose `uiUriType` is `EXTERNAL` opens its address in a tab of its own and leaves
    the list intact.
 9. The dev shell shows the page of a blueprint module the same way the cockpit shows it.

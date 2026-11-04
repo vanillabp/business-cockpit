@@ -245,6 +245,15 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 | `SRCH-014` | A taller list area holds more rows in its window than a shorter one.                                                                                                                                                                                  | always |
 | `SRCH-015` | Scrolling up and down shows no empty rows while pages load.                                                                                                                                                                                           | always |
 | `SRCH-016` | Scrolling a list of 30,000 entries with the mouse wheel for ten seconds has at most a few frames longer than 50 ms and shows no placeholder row; after a fast drag of the scroll bar, every placeholder gets its data soon after the scrolling stops. | always |
+| `SRCH-017` | Scrolling the whole list down and up three times, slowly and then fast, keeps the heap and the number of DOM nodes, each read after a forced garbage collection, within 10 % of their values after the first time.                                    | always |
+| `SRCH-018` | When the user leaves the list for another screen, heap and DOM nodes go back to within 10 % of their values before the list opened, after a forced garbage collection, and opening and leaving the list again does not raise them.                    | always |
+| `SRCH-019` | After jumps to 37 %, 71 % and 12 % of the scroll bar, every visible row shows its data within 3 seconds, and no placeholder stays.                                                                                                                    | always |
+| `SRCH-020` | A fast drag of the scroll bar from the top to the bottom asks only for the pages of the window where it stops, not for the pages it passes.                                                                                                           | always |
+| `SRCH-021` | No page is asked for again while it is on its way or in the window, and the answer to a page starts no other request.                                                                                                                                 | always |
+| `SRCH-022` | A list with more entries than `Q-MAX-LIST-ENTRIES` lists only that many, in its current sort, and its count shows the real total.                                                                                                                     | always |
+| `SRCH-023` | Only a capped list shows a notice row after its last entry; it spans all columns, says that only the first entries in the current sort are listed, asks to narrow the list down, and cannot be selected or opened.                                    | always |
+| `SRCH-024` | Every count above `Q-MAX-LIST-ENTRIES` shows the text of the notice on mouse-over.                                                                                                                                                                    | always |
+| `SRCH-025` | With a total of 1,000,000 entries the check of `SRCH-016` still passes, and in Chromium and in Firefox the user can scroll to the notice row at the end of the list.                                                                                  | always |
 
 ## LIVE: live updates
 
@@ -327,14 +336,15 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 
 ## I18N: language and texts
 
-| Id         | Item                                                                                                                      | Applies |
-|------------|---------------------------------------------------------------------------------------------------------------------------|---------|
-| `I18N-001` | All texts of the user interface are in separate files, one per language.                                                  | always |
-| `I18N-002` | The user interface starts in the default language from the interview.                                                     | always |
-| `I18N-003` | The menu offers the languages from `additionalProperties` of `GET /app/info` below its entries, and the choice is kept.   | `Q-LANGUAGE-SWITCH` = yes |
-| `I18N-004` | A missing translation falls back to the default language the same way in headers, cells and titles.                       | always |
-| `I18N-005` | Numbers and dates are formatted for the chosen language.                                                                  | always |
-| `I18N-006` | The build fails when a language file misses a key of the file of the default language, and it names the file and the key. | always |
+| Id         | Item                                                                                                                                                                                                    | Applies |
+|------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `I18N-001` | All texts of the user interface are in separate files, one per language.                                                                                                                                | always |
+| `I18N-002` | The user interface starts in the default language from the interview.                                                                                                                                   | always |
+| `I18N-003` | The menu offers the languages from `additionalProperties` of `GET /app/info` below its entries, and the choice is kept.                                                                                 | `Q-LANGUAGE-SWITCH` = yes |
+| `I18N-004` | A missing translation falls back to the default language the same way in headers, cells and titles.                                                                                                     | always |
+| `I18N-005` | Numbers and dates are formatted for the chosen language.                                                                                                                                                | always |
+| `I18N-006` | The build fails when a language file misses a key of the file of the default language, and it names the file and the key.                                                                               | always |
+| `I18N-007` | Counts and the number in the notice of a capped list use the separators of the chosen language, `1.000.000` in German and `1,000,000` in English, and change as soon as the user switches the language. | always |
 
 ## NOTI: notifications
 

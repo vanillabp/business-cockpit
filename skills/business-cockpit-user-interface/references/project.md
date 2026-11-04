@@ -49,7 +49,8 @@ jars/
 docker/
   Dockerfile                  the nginx image for a separate deployment
   nginx.conf.template
-e2e/                          the end-to-end tests, one per checklist item
+e2e/                          the end-to-end tests, one per checklist item, and the
+                              measurement of the lists, see behaviour.md
 ```
 
 The types library and the dev shells are separate npm packages from the same workspace. That is the
@@ -87,6 +88,17 @@ Before the bundle is built, `npm run check:texts` runs `scripts/check-texts.mjs`
 and every other language file. If a file misses a key of the default language, the script names the
 file and the key and ends with an error, so the build fails. The fallback to the default language at
 run time stays, see [behaviour.md](behaviour.md#language-and-texts).
+
+The lists keep their rules in the code of the bundle, and a few of them are easy to get wrong:
+
+- `Q-MAX-LIST-ENTRIES` is one named constant in a file of its own, which every list reads.
+- A request for a page goes into a stream of events or a queue, never into a reactive value that
+  keeps only its latest value.
+- A service or store that lives longer than a list has a clean-up step that the list calls when it
+  closes, and it ends its old subscriptions before it starts new ones.
+
+[behaviour.md](behaviour.md#paging-and-the-window-of-loaded-rows) says why, and which unit tests
+prove it.
 
 ## The UI jar
 

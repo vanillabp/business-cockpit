@@ -26,6 +26,7 @@ code of the cockpit. Read this before the first screen, not when something does 
 1. [A shared chunk carries the framework into a data entry](#a-shared-chunk-carries-the-framework-into-a-data-entry)
 1. [Angular in a shadow root](#angular-in-a-shadow-root)
 1. [Removing a web component before its answer](#removing-a-web-component-before-its-answer)
+1. [A component library keeps destroyed rows](#a-component-library-keeps-destroyed-rows)
 1. [What needs a newer cockpit](#what-needs-a-newer-cockpit)
 
 ## Assigning makes a candidate
@@ -235,6 +236,21 @@ dialog right away. Then the request of `closeDialog` fails with `DISCONNECTED`, 
 did what was asked. Answer first, and remove the dialog in a later task, for example with
 `setTimeout`. The same holds for any action whose effect removes the web component that asked. See
 [module-loading.md](module-loading.md#timeout).
+
+## A component library keeps destroyed rows
+
+A component that adds a listener and later removes a different one never lets go. In a virtual
+list that bug costs a whole row each time a row leaves the page. PrimeNG is an example. Up to
+20.4.0, and in 21.0.x, its `BaseComponent` adds `callback.bind(this)` to the global `ThemeService`
+and removes the unbound method when it is destroyed. The two references never match. So every
+PrimeNG component in a row, with its view and its DOM, stays reachable. PrimeNG 20.5.1-lts and 21.1
+fix it. Until a fixed version can be used, a patch at the start of the application helps, if it
+removes exactly the bound handler that was added.
+
+Reading the code does not find this kind of bug. The measurement in
+[behaviour.md](behaviour.md#measuring-a-list) does: the heap grows with the distance scrolled, and
+the retaining path of a detached DOM node leads to the library. See
+[behaviour.md](behaviour.md#memory-that-comes-back).
 
 ## What needs a newer cockpit
 
