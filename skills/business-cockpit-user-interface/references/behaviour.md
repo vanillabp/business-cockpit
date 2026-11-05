@@ -63,7 +63,8 @@ Which screens exist is decided per organisation (`Q-SCREENS`). The minimum is:
 | a user task | `/tasks/<id>`     | the page from the workflow module, in the frame of the cockpit |
 
 The paths are a proposal (`Q-ROUTES`). What matters is that every screen has an address that can be
-shared and bookmarked, and that a link into the middle works. The pages of a workflow module
+shared and bookmarked, and that a link into the middle works. With more than one language the paths
+are translated by default, see [Translated paths](#translated-paths). The pages of a workflow module
 always have `/<workflowModuleId>/<pageId>`, see [Extension points](#extension-points).
 
 Often there is more:
@@ -73,12 +74,31 @@ Often there is more:
   click on a slice opens the matching list, narrowed to that type. Each slice is one request to the
   count endpoint, with a filter on the type, see [gui-api.md](gui-api.md#counting).
 - Sub-lists (`Q-SUB-LISTS`), narrowed to a role or to some task types. An example: a company has a
-  list of committees a user can be a member of. The start page has one card per committee (that is,
-  per role), with the number of tasks the user can see and the number the user has claimed. A user
-  without the role sees 0/0. Which views exist is always the organisation's choice, because the
-  task query allows many kinds of filtering.
+  list of committees a user can be a member of. There is one card per committee (that is, per
+  role), with the number of tasks the user can see and the number the user has claimed. A user
+  without the role sees 0/0. The cards stand on the start page, in a column to the left of the
+  list, or in both places, as the interview decided. A click on a card opens the list, narrowed to
+  it. Which views exist is always the organisation's choice, because the task query allows many
+  kinds of filtering.
 - The notification settings (`Q-NOTIFICATIONS`), see [Notifications](#notifications).
 - Pages that a workflow module delivers (`Q-EXTENSION-POINTS`).
+
+### Translated paths
+
+With more than one language (`Q-LANGUAGES`), each screen has one path per language by default
+(`Q-ROUTES`), for example `/tasks/4711` and `/aufgabe/4711`, or `/workflows/0815` and
+`/vorgang/0815`.
+
+- The path of every language works in every language of the user interface. An English user sends
+  `/tasks/4711` to a German colleague, and the link opens the task for her.
+- After the screen opens, the address changes to the path of the viewer's language, here
+  `/aufgabe/4711`. The router replaces the address and adds no entry to the history, so the back
+  button does not lead to the foreign path. Query parameters stay as they are.
+- When the user switches the language, the address changes to the path of the new language in the
+  same way.
+- Links the user interface draws, like the title of a row, use the path of the current language.
+- The pages of a workflow module keep `/<workflowModuleId>/<pageId>` in every language. Their ids
+  come from the module and are not translated.
 
 ## The header and the menu
 
@@ -155,8 +175,12 @@ form can only be edited after the user has claimed the task (`Q-CLAIM`).
 
 On the left, the status line has a group of buttons to choose the primary filter. The interview
 decides which primary filters are offered and which is the default (`Q-PRIMARY-FILTERS`). Possible
-are `OpenTasksWithFollowUp` (all open tasks), `OpenTasksWithoutFollowUp`, `OpenTaskOnlyFollowUp` and
-`ClosedTasksOnly`. The default of the cockpit is `OpenTasksWithFollowUp`. The buttons show a short,
+are `OpenTasksWithFollowUp` (all open tasks), `OpenTasksWithoutFollowUp` (open tasks without those
+put aside until a follow-up date), `OpenTaskOnlyFollowUp` and `ClosedTasksOnly`. The proposed
+default is `OpenTasksWithoutFollowUp`, so a task put aside stays out of sight until its date, see
+[Follow-up](#follow-up). The server takes `OpenTasksWithFollowUp` when a request has no mode, but
+the user interface always sends one, see
+[gui-api.md](gui-api.md#the-primary-filter-which-rows-come-at-all). The buttons show a short,
 translated label, for example "Open" or "Closed", with the count in brackets, see [Counts](#counts).
 The primary filter last chosen is a user setting and is used again next time, in every browser, see
 [User settings](#user-settings). On the right, the status line shows a colour legend for the states
@@ -188,8 +212,9 @@ only handles the row and the page the same way, open or closed, active or inacti
 ### Fixed columns
 
 Some columns every task has (`Q-TASK-COLUMNS`). The organisation picks them and
-their order, for example id, case kind, title, assignee, candidate users, created (`createdAt`), due
-(`dueDate`), follow-up (`followUpDate`), ended (`endedAt`), notes. The follow-up column only shows
+their order. The proposed default is id, title, due (`dueDate`), assignee, candidate users, notes,
+follow-up (`followUpDate`) and ended (`endedAt`). Case kind and created (`createdAt`) can be added.
+The notes column needs notes (`Q-NOTES`). The follow-up column only shows
 for `OpenTasksWithFollowUp` and `OpenTaskOnlyFollowUp`. The ended column only shows for
 `ClosedTasksOnly`. Some organisations want fixed columns only and no dynamic ones, because the
 cockpit is used in one area where the list holds known values (`Q-MODULE-COLUMNS`).
@@ -216,7 +241,8 @@ The fixed columns behave and look different from the columns filled with a modul
 ### Bulk actions
 
 The selected tasks can be claimed, proposed to another person (they become
-candidate users), marked as read or unread, put on follow-up, and given a note (`Q-BULK-ACTIONS`). The selection
+candidate users), marked as read or unread, put on follow-up, and given a note (`Q-BULK-ACTIONS`).
+The selected cases of the case list can be given a note; that is its one bulk action. The selection
 is a set of ids. It stays when rows leave the window of loaded rows, see
 [Paging and the window of loaded rows](#paging-and-the-window-of-loaded-rows).
 
@@ -393,7 +419,10 @@ task is shown, and that is not where the case is shown.
 
 The task actions of the cockpit always sit in the application header. There is no header or footer
 of the task's own. The header shows information about the task (`Q-TASK-HEADER-INFO`), for example
-task kind, case kind and case number, and offers claim, unclaim, propose to a person, follow-up and
+task kind or case kind. It does not show the task title, because the form shows it, and it does not
+repeat what the modules show in the area `information` (`Q-TASK-INFORMATION-AREA`), by default the
+business id and the case title. So with the default areas it shows little or nothing. It offers
+claim, unclaim, propose to a person, follow-up and
 the note of the task (`Q-TASK-HEADER-ACTIONS`). It also offers "mark as unread", because an opened
 task counts as read, and the button that moves the list into a window of its own, see
 [The list in a window of its own](#the-list-in-a-window-of-its-own-q-own-window).
@@ -494,7 +523,7 @@ and loads the visual entry, so the form is there when the user clicks.
 
 ### The areas and the frame
 
-The function returns either one web component or one per area (`Q-PAGE-AREAS`), see
+The function returns either one web component or one per area (`Q-TASK-PAGE-AREAS`), see
 [module-loading.md](module-loading.md#the-page-of-a-user-task-or-a-case). A string is the
 name of one web component, the all-in-one form: it gets the whole area, with no column. An object
 names a web component per area, the laid-out form. With the default convention:
@@ -576,14 +605,17 @@ The page works like the page of a user task, with these differences:
   button that moves the list into a window of its own. "Open in new tab" with the right mouse button
   on a link to the case works.
 - The application header has a form of its own for a case, like the one for a user task. It shows
-  information about the case (`Q-WORKFLOW-HEADER-INFO`), for example case kind and case number,
-  and the actions on the case (`Q-WORKFLOW-HEADER-ACTIONS`), for example the note of the case. It
+  information about the case (`Q-WORKFLOW-HEADER-INFO`), by default nothing. It never shows the
+  case title or the business id, because the main area of the page shows them, and the more areas
+  the page has, the less goes into the header. It shows the actions on the case
+  (`Q-WORKFLOW-HEADER-ACTIONS`), for example the note of the case. It
   shows no task actions. The same rule holds as for the task: each value has its own share of the
   width, and the controls stay in the same place. There is no header or footer of the case's own.
 
 The page asks the loader for `WorkflowPage` and calls `workflowPage` with the case. The function
-names the visual entry and one web component for the all-in-one form, or one per area, the same
-areas as on the page of a user task (`Q-PAGE-AREAS`). The page runs the same three steps, with the
+names the visual entry and one web component for the all-in-one form, or one per area
+(`Q-WORKFLOW-PAGE-AREAS`, by default the same areas as on the page of a user task). The page runs
+the same three steps, with the
 same loading and error states as the task page,
 and gives the module `getUserTasks` for the tasks of the case. Long content scrolls in its own area
 and never breaks the frame of the cockpit.

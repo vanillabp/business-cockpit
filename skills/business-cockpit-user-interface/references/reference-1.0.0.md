@@ -81,28 +81,33 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 
 ## NAV: screens, header and menu
 
-| Id        | Item                                                                                                                                         | Applies |
-|-----------|----------------------------------------------------------------------------------------------------------------------------------------------|---------|
-| `NAV-001` | `/tasks` shows all user tasks the user may see.                                                                                              | always |
-| `NAV-002` | `/my-tasks` shows the user tasks where the user is the assignee.                                                                             | always |
-| `NAV-003` | There is exactly one case list.                                                                                                              | always |
-| `NAV-004` | A deep link to any screen, opened in a new browser, shows that screen after the login.                                                       | always |
-| `NAV-005` | The dashboard shows what the interview asked for, and a click on it opens the matching list, narrowed.                                       | `Q-DASHBOARD` |
-| `NAV-006` | The header has a toggle `My tasks` / `All tasks` / `Cases`, each part with its count in brackets, which opens the list without narrowing.    | always |
-| `NAV-007` | Each sub-list shows its count of visible and of claimed tasks, and 0/0 for a role the user does not have.                                    | `Q-SUB-LISTS` |
-| `NAV-008` | Users of the configured groups see the screens and menu entries meant for them, and others do not.                                           | `Q-VISIBLE-GROUPS` |
-| `NAV-009` | The user interface uses the one word for a case from the interview in every text and never mixes it with another.                            | always |
-| `NAV-010` | All counts are asked again when the application opens, when a list opens, on an update event of their kind, and on return to the tab.        | always |
-| `NAV-011` | The top of the menu shows the user with avatar and short form; on mouse-over of the avatar the long form, the user id and the email address. | always |
-| `NAV-012` | Placeholder: on mouse-over of the name the menu shows the rights of the user and where they come from. A later version specifies it.         | not yet specified |
-| `NAV-013` | In the other views the header shows what the interview decided.                                                                              | `Q-HEADER` |
+| Id        | Item                                                                                                                                                           | Applies |
+|-----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `NAV-001` | `/tasks` shows all user tasks the user may see.                                                                                                                | always |
+| `NAV-002` | `/my-tasks` shows the user tasks where the user is the assignee.                                                                                               | always |
+| `NAV-003` | There is exactly one case list.                                                                                                                                | always |
+| `NAV-004` | A deep link to any screen, opened in a new browser, shows that screen after the login.                                                                         | always |
+| `NAV-005` | The dashboard shows what the interview asked for, and a click on it opens the matching list, narrowed.                                                         | `Q-DASHBOARD` |
+| `NAV-006` | The header has a toggle `My tasks` / `All tasks` / `Cases`, each part with its count in brackets, which opens the list without narrowing.                      | always |
+| `NAV-007` | Each sub-list shows its count of visible and of claimed tasks, and 0/0 for a role the user does not have.                                                      | `Q-SUB-LISTS` |
+| `NAV-008` | Users of the configured groups see the screens and menu entries meant for them, and others do not.                                                             | `Q-VISIBLE-GROUPS` |
+| `NAV-009` | The user interface uses the one word for a case from the interview in every text and never mixes it with another.                                              | always |
+| `NAV-010` | All counts are asked again when the application opens, when a list opens, on an update event of their kind, and on return to the tab.                          | always |
+| `NAV-011` | The top of the menu shows the user with avatar and short form; on mouse-over of the avatar the long form, the user id and the email address.                   | always |
+| `NAV-012` | Placeholder: on mouse-over of the name the menu shows the rights of the user and where they come from. A later version specifies it.                           | not yet specified |
+| `NAV-013` | In the other views the header shows what the interview decided.                                                                                                | `Q-HEADER` |
+| `NAV-014` | Each screen has a path in every offered language, and the path of any language opens its screen in every language of the user interface.                       | `Q-ROUTES` = translated |
+| `NAV-015` | Opening the path of another language replaces the address with the path of the viewer's language, without a new entry in the history.                          | `Q-ROUTES` = translated |
+| `NAV-016` | Switching the language replaces the address with the path of the new language, without a new entry in the history.                                             | `Q-ROUTES` = translated and `Q-LANGUAGE-SWITCH` = yes |
+| `NAV-017` | The pages of a workflow module have the path `/<workflowModuleId>/<pageId>` in every language.                                                                 | `Q-EXTENSION-POINTS` has `Pages` |
+| `NAV-018` | The sub-list cards stand where the interview decided, on the start page, to the left of the list or both, and a click on a card opens the list narrowed to it. | `Q-SUB-LISTS` |
 
 ## TL: task lists
 
 | Id       | Item                                                                                                                                                                | Applies |
 |----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
 | `TL-001` | The status line offers the primary filters from the interview, with short translated labels.                                                                        | always |
-| `TL-002` | The default primary filter is the one from the interview, by default `OpenTasksWithFollowUp`.                                                                       | always |
+| `TL-002` | The default primary filter is the one from the interview, by default `OpenTasksWithoutFollowUp`.                                                                    | always |
 | `TL-003` | Each primary filter except `ClosedTasksOnly` shows its count in brackets. The count of `ClosedTasksOnly` is asked on mouse-over only, and not kept or updated live. | always |
 | `TL-004` | Removed: replaced by `TL-024`.                                                                                                                                      | removed |
 | `TL-005` | The primary filter last chosen is used again the next time the user opens the list.                                                                                 | always |
@@ -221,9 +226,10 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 | `WP-005` | Removed: replaced by `WP-010`.                                                                                                                                                                           | removed |
 | `WP-006` | Removed: replaced by `WP-008`.                                                                                                                                                                           | removed |
 | `WP-007` | The case page has no header or footer of its own and no button "list in its own window"; the application header shows the case information and the case actions from the interview, and no task actions. | always |
-| `WP-008` | The case page shows one web component or the same areas as the page of a user task, as the page function returns.                                                                                        | always |
+| `WP-008` | The case page shows one web component or the areas from the interview, as the page function returns.                                                                                                     | always |
 | `WP-009` | The header of an open case offers its note.                                                                                                                                                              | `Q-NOTES` = yes |
 | `WP-010` | The case page runs the same steps as the task page, with the same loading states and the same notes as `TF-025` and `TF-026`.                                                                            | always |
+| `WP-011` | The header of an open case never shows the case title or the business id.                                                                                                                                | always |
 
 ## SRCH: search, filter, sort and paging
 

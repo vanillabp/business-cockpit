@@ -370,7 +370,7 @@ Then:
 
 1. Every item of `CHECKLIST.md` has a test that names its id, and every test passes.
 2. The task list and the case list show rows with the columns the modules bring.
-3. The page of a user task from a module loads, lays out the areas of `Q-PAGE-AREAS` or the one
+3. The page of a user task from a module loads, lays out the areas of `Q-TASK-PAGE-AREAS` or the one
    web component of `all`, and shows the data of the task.
 4. A change to a task that somebody else makes shows up without a reload.
 5. Claiming and unclaiming work, and the row shows it afterwards.
