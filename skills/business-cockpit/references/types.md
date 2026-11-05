@@ -1,42 +1,49 @@
-# The types library
+# The types library and the module kit
 
 *Part of the description in [`../SKILL.md`](../SKILL.md).*
 
 VanillaBP gives no types for the user interface, and no user interface either. The generated user
-interface publishes the types itself, as `<scope>/bc-types` (`Q-NPM-SCOPE`). A workflow module installs this package to build its
-parts. The package says what a part may expect as input and which functions it may call. It
-depends on no loading library and has no dependencies, see
-[project.md](project.md#the-types-library).
+interface publishes the contract with its workflow modules itself, in two npm packages of its own
+(`Q-NPM-SCOPE`), see [project.md](project.md#which-package-holds-what):
 
-Everything that crosses the line between the cockpit and a module is in it. Nothing else is. Apart
-from this library, the cockpit and a module only meet through DOM events.
+- The types library `<scope>/bc-types` holds the data and the names: the types and every constant.
+  It has no dependencies and no runtime code beyond constants.
+- The module kit `<scope>/bc-module-kit` holds the runtime code a module needs, and it exports
+  everything of the types library again. Its one dependency is the types library.
+
+A workflow module installs the module kit, and only the kit. It says what a part may expect as
+input and which functions it may call. Everything that crosses the line between the cockpit and a
+module is in these two packages. Nothing else is. Apart from them, the cockpit and a module only
+meet through DOM events.
 
 For the Java side of a workflow module there is the types jar with the constants of `ui-uri-type`.
-It is generated from the list in this library, by a Maven project of its own, see
+It is generated from the list in the types library, by Maven, see
 [project.md](project.md#the-types-jar).
 
-1. [The module kit is the minimum](#the-module-kit-is-the-minimum)
+1. [The VanillaBP kit is the minimum](#the-vanillabp-kit-is-the-minimum)
 1. [Data from the GUI API](#data-from-the-gui-api)
 1. [Translatable and Person](#translatable-and-person)
 1. [Column](#column)
 1. [BcUserTask and BcWorkflow](#bcusertask-and-bcworkflow)
 1. [What a part gets](#what-a-part-gets)
+1. [The module kit](#the-module-kit)
 1. [The event protocol](#the-event-protocol)
 1. [The extension points](#the-extension-points)
 1. [The manifest and its check](#the-manifest-and-its-check)
 
-## The module kit is the minimum
+## The VanillaBP kit is the minimum
 
-There is one contract per cockpit, and this library is it. You generate it together with the user
-interface. Next to it there is the module kit, `@vanillabp/bc-module-kit`, from the repository
-`vanillabp/business-cockpit-module-kit`. The kit exists so that the Business Cockpit blueprints
-can show a workflow module without a generated cockpit. A module of the organisation builds
-against this library, not against the kit.
+There is one contract per cockpit, and the module kit you generate is it, together with the types
+library below it. Next to it there is the VanillaBP kit, `@vanillabp/bc-module-kit`, from the
+repository `vanillabp/business-cockpit-module-kit`. The VanillaBP kit exists so that the Business
+Cockpit blueprints can show a workflow module without a generated cockpit. A module of the
+organisation builds against the cockpit's own module kit, not against the VanillaBP kit.
 
-The library does not take the kit in, neither as a dependency nor copied into its build. You write
-it from this description, like the rest of the user interface. But it covers everything the kit
-has, with the same names and the same behaviour, so a blueprint built against the kit loads in your
-cockpit too. The minimum is exactly what the kit has:
+The generated packages do not take the VanillaBP kit in, neither as a dependency nor copied into
+their build. You write them from this description, like the rest of the user interface. But the
+generated module kit covers everything the VanillaBP kit has, with the same names and the same
+behaviour, so a blueprint built against the VanillaBP kit loads in your cockpit too. The minimum is
+exactly what the VanillaBP kit has:
 
 - the four data entries `UserTaskList`, `WorkflowList`, `UserTaskForm` and `WorkflowPage`, and the
   name of the function each one exports, see [The extension points](#the-extension-points),
@@ -48,15 +55,16 @@ cockpit too. The minimum is exactly what the kit has:
 Everything else differs from one organisation to the next and comes from the interview: the entry
 `Header`, the areas of a page like `body`, `information` and `actions`, the entry `Pages`, and any
 other extension point (`Q-EXTENSION-POINTS`, `Q-TASK-PAGE-AREAS`, `Q-WORKFLOW-PAGE-AREAS`). The
-library adds these on top. It never drops or renames a part of the minimum.
+generated packages add these on top. They never drop or rename a part of the minimum.
 
-The kit has a second package, `@vanillabp/bc-module-host`. It is a small host for the tests of a
-module and is not part of any cockpit, see [The event protocol](#the-event-protocol). Phase 3 of the
-skill checks your cockpit with the example modules of the kit, see
+The VanillaBP repository has a second package, `@vanillabp/bc-module-host`. It is a small host for
+the tests of a module. The generated user interface has its own copy of it as well,
+`<scope>/bc-module-host`, see [project.md](project.md#the-module-host). Phase 3 of the skill checks
+your cockpit with the example modules of the VanillaBP kit, see
 [`../SKILL.md`](../SKILL.md#a-module-built-against-the-kit-loads-in-your-cockpit).
 
-The two packages are not on npmjs.com yet. Until they are, the blueprints install them from a local
-Verdaccio registry which passes every other package through from npmjs.com.
+The two VanillaBP packages are not on npmjs.com yet. Until they are, the blueprints install them
+from a local Verdaccio registry which passes every other package through from npmjs.com.
 
 ## Data from the GUI API
 
@@ -67,8 +75,8 @@ interfaces, generated by the same `orval` run the user interface generates its c
 include `endReason`, see [gui-api.md](gui-api.md#how-a-row-ended).
 
 `uiUriType` is a string there and not a type of its own. Which values exist is agreed between this
-user interface and its modules, and VanillaBP knows no names for them. The library exports the
-values from `Q-UI-URI-TYPE` as constants, by default `ES_MODULES` and `EXTERNAL`. The type decides
+user interface and its modules, and VanillaBP knows no names for them. The types library exports
+the values from `Q-UI-URI-TYPE` as constants, by default `ES_MODULES` and `EXTERNAL`. The type decides
 how a row opens, see [module-loading.md](module-loading.md#which-data-finds-the-part).
 
 ```typescript
@@ -242,7 +250,7 @@ into the objects above:
 Every web component also gets the functions `showNotification`, `openDialog`, `closeDialog`,
 `sendTo`, `receiveMessage` and `request`. `request(action, args, timeoutMs)` is the way to any
 other action, for example one of an extension point of this cockpit. These are the properties of
-the kit's `BcElementProps`, and the library uses the same names.
+the VanillaBP kit's `BcElementProps`, and the generated packages use the same names.
 
 The web component of the area `all` gets `area` as `all`.
 
@@ -251,16 +259,35 @@ The web component of the area `all` gets `area` as `all`.
 `language` is the language the user interface shows, for example `en`. A part follows it when it
 changes. `currentUser` is the user from `GET /app/current-user`, with the groups.
 
+## The module kit
+
+The module kit `<scope>/bc-module-kit` is the package a workflow module installs. It depends on the
+types library with the exact version of the workspace, and on nothing else. It holds:
+
+- every type and constant of the types library, exported again, so that a module imports from the
+  kit only,
+- the module's side of the event protocol, see [The event protocol](#the-event-protocol),
+- `defineBcElement`, which builds the web component of a part,
+- the functions of the manifest and the script `bc-check-entries`, see
+  [The manifest and its check](#the-manifest-and-its-check).
+
+The types reach a module as `.d.ts` files. The rest is runtime code, plain JavaScript without
+dependencies, which runs in the browser or, for `bc-check-entries`, in Node.js.
+
 ## The event protocol
 
-The library holds the protocol of [module-loading.md](module-loading.md#the-event-protocol):
+The protocol of [module-loading.md](module-loading.md#the-event-protocol) is split between the two
+packages. The types library holds its names and types:
 
 - the event names `REQUEST_EVENT`, `RESPONSE_EVENT` and `MESSAGE_EVENT` (`bc-request`,
   `bc-response` and `bc-message`),
 - the types of the request and the answer, the action names as `ACTIONS` and the error codes as
   `ERROR_CODES`,
 - `DEFAULT_TIMEOUT_MS`, 30 seconds, and `ACTIONS_WITHOUT_TIMEOUT`, which holds
-  `cockpit.openDialog`,
+  `cockpit.openDialog`.
+
+The module kit holds the code:
+
 - `requestFromCockpit(element, action, args, timeoutMs?)`, which dispatches the request, waits for
   the answer with the same `requestId` and resolves or rejects. Without `timeoutMs` it waits
   `DEFAULT_TIMEOUT_MS`, or for ever for an action in `ACTIONS_WITHOUT_TIMEOUT`. A `timeoutMs` of
@@ -290,20 +317,22 @@ instead. The id only has to be unique on one element.
 to the handler, in order, once it knows its `subscriptionId`, see
 [module-loading.md](module-loading.md#messages-between-areas).
 
-The host side of the protocol is in the cockpit user interface, not in this library. A module never
-needs it. For the tests of a module, the kit has a host of its own, in the separate package
-`@vanillabp/bc-module-host`. The library you generate ships no host.
+The host side of the protocol is not in the module kit. A module never needs it. It is in the
+generated host `<scope>/bc-module-host`, which the user interface loads its modules with and which
+the tests of a module use, see [project.md](project.md#the-module-host). The module kit ships no
+host, the same as the VanillaBP kit.
 
 ## The extension points
 
-The library names every extension point of this cockpit: the four minimum ones and those from
-`Q-EXTENSION-POINTS`. For each one it exports the entry name, the type of the function the module
-exports, and the properties the host sets. The four minimum ones, `EXPORT_NAMES`, `AREA_ALL` and
-the types of their functions are the same as in the kit. Here is an example for an organisation
+The types library names every extension point of this cockpit: the four minimum ones and those
+from `Q-EXTENSION-POINTS`. For each one it exports the entry name, the type of the function the
+module exports, and the properties the host sets. The module kit exports them again. The four
+minimum ones, `EXPORT_NAMES`, `AREA_ALL` and the types of their functions are the same as in the
+VanillaBP kit. Here is an example for an organisation
 which chose `Header` and `Pages`:
 
 ```typescript
-// The minimum, the same as in @vanillabp/bc-module-kit
+// The minimum, the same as in the VanillaBP kit @vanillabp/bc-module-kit
 export const USER_TASK_LIST = 'UserTaskList';
 export const WORKFLOW_LIST = 'WorkflowList';
 export const USER_TASK_FORM = 'UserTaskForm';
@@ -373,8 +402,8 @@ export type PagesFunction = (currentUser: CurrentUser) => BcPage[] | undefined;
 components, and `entry` says which visual entry of the same manifest defines them.
 
 `DATA_ENTRIES` names the four minimum entries and the data entries from the interview, here
-`Header` and `Pages`. In the kit, `DATA_ENTRIES` has only the four. A blueprint module with a
-`Header` names it to `bc-check-entries` with `--data-entry Header`. Your cockpit asks `Header`
+`Header` and `Pages`. In the VanillaBP kit, `DATA_ENTRIES` has only the four. A blueprint module
+with a `Header` names it to `bc-check-entries` with `--data-entry Header`. Your cockpit asks `Header`
 only if it has that extension point. A cockpit ignores every entry and every area it does not
 know, without an error, so such a module still works there, only without that part, see
 [module-loading.md](module-loading.md#extension-points). `BcPageParts`
@@ -384,13 +413,13 @@ area. The cockpit then loads the visual entry and draws the web components in th
 lives in `UserTaskFormFunction`, so every form is a visual entry of its own, see
 [module-loading.md](module-loading.md#data-entries-carry-no-framework).
 
-It also exports the names of the CSS custom properties of the theme (`Q-THEME-TOKENS`), so a module
-can use them inside its shadow DOM. The values behind these names are not part of it. They live in
+The types library also exports the names of the CSS custom properties of the theme
+(`Q-THEME-TOKENS`), so a module can use them inside its shadow DOM. The values behind these names are not part of it. They live in
 the theme library `<scope>/bc-theme`, see [project.md](project.md#the-theme-library).
 
 ## The manifest and its check
 
-The library carries the type of `bc-manifest.json`, see
+The types library carries the type of `bc-manifest.json`, see
 [module-loading.md](module-loading.md#the-manifest):
 
 ```typescript
@@ -403,15 +432,16 @@ export interface BcManifest {
 }
 ```
 
-With it come the functions the kit has for the manifest: `checkManifest(manifest)` lists every rule
-a manifest breaks, `readManifest(source)` reads and checks one and throws a `BcManifestError`,
+The module kit has the functions of the VanillaBP kit for the manifest: `checkManifest(manifest)`
+lists every rule a manifest breaks, `readManifest(source)` reads and checks one and throws a
+`BcManifestError`,
 `createManifest({ entries, buildVersion, buildTimestamp })` builds the one a module's build
 writes, and `entryUrl(manifest, entry, manifestUrl)` gives the address of an entry's file. The
 constants are `MANIFEST_FILE_NAME` and `MANIFEST_VERSION`. The rules for the files of the manifest
 are in [module-loading.md](module-loading.md#the-manifest).
 
-It also ships `bc-check-entries` as a `bin` script, plain Node.js without dependencies. A module
-runs it after its build:
+The module kit also ships `bc-check-entries` as a `bin` script, plain Node.js without
+dependencies. A module runs it after its build:
 
 ```bash
 npx bc-check-entries dist/bc-manifest.json --limit 32kb --metafile dist/meta.json --data-entry Header

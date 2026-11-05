@@ -29,7 +29,7 @@ The generated project has one dev shell package per framework the modules use
 ## The rule
 
 For the components of the workflow module there must be no difference between the dev shell and
-the cockpit. They get the same objects, `BcUserTask` and `BcWorkflow` from the types library, with
+the cockpit. They get the same objects, `BcUserTask` and `BcWorkflow` from the module kit, with
 the same functions, the same language and the same theme. A form that works in the dev shell works in
 the cockpit.
 
@@ -128,7 +128,7 @@ Three surfaces are enough:
 The drop-down always asks with the primary filter `All`, for user tasks and for cases, and offers no
 other. It is only there to pick an entry while developing. The data comes from the simulator, so
 there are few entries, and closed ones are worth trying too. This differs from the cockpit on
-purpose: there the default is `OpenTasksWithoutFollowUp` for user tasks and `Active` for cases, see
+purpose: there the default is `OpenTasksWithoutFollowUp` for user tasks and `InProgress` for cases, see
 [behaviour.md](behaviour.md#the-task-lists).
 
 ## Where the data comes from
