@@ -1,11 +1,11 @@
 ---
-name: business-cockpit
+name: business-cockpit-creator
 description: Generate the two repositories of a VanillaBP Business Cockpit that fits an organisation's own tech stack. The frontend repository is one npm workspaces repository with the user interface in any web framework, the types library, the cockpit's own module kit and module host for its workflow modules, the theme, a dev shell per framework, a jar the backend pulls as a Maven dependency and an nginx image for a separate deployment. The backend repository is a Maven project with the cockpit application on the business-cockpit library, the controllers of the lists, the login (OIDC with Keycloak by default, or a form), the user directory, a types jar for the Java side of the workflow modules and a docker-compose.yaml with MongoDB, Kafka, Mailpit and Keycloak. The agent first interviews the user (framework, design library, theme, the word for a case, language, screens, primary filters, columns, live updates, extension points, login, hosting, coordinates, memory limit), then generates both repositories, then verifies them against a versioned checklist that also drives the end-to-end tests. Covers the GUI API with paging, sorting, filtering over reported business data and the update stream, lists that hold only a window of rows, loading the parts of workflow modules at runtime as self-contained ES modules with import() and a small manifest per module, sharing no dependencies so that cockpit and modules mix frameworks freely, the web components with shadow DOM those parts register, the event protocol between a module's part and the cockpit, the behaviour a user expects, and what a cockpit user interface never does. Use whenever somebody wants their own Business Cockpit, its front end or its backend application, wants to upgrade a generated one to a newer checklist, or needs a dev shell for the parts of a workflow module.
 license: Apache-2.0
 metadata:
-author: vanillabp
-homepage: https://www.vanillabp.io
-----------------------------------
+  author: vanillabp
+  homepage: https://www.vanillabp.io
+---
 
 # Generating a Business Cockpit
 
@@ -30,6 +30,10 @@ starting points, not finished applications.
 The skill lives in the repository `business-cockpit`, because it describes that repository's own
 interfaces. If it lived somewhere else, it would get out of date apart from the code. Where it and
 the code disagree, the code is right and the text is the bug.
+
+Install it with `gh skill install vanillabp/business-cockpit business-cockpit-creator`. The skill
+`business-cockpit` in `vanillabp/skills` only says that the cockpit exists and where to read more;
+this skill is the one that builds a cockpit.
 
 **Contents:**
 

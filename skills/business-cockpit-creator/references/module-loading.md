@@ -12,20 +12,20 @@ describes the module's side: what it offers and how it builds. Here is the other
 host does. The host is your user interface.
 
 1. [Self-contained ES modules](#self-contained-es-modules)
-1. [The manifest](#the-manifest)
-1. [Building the entries](#building-the-entries)
-1. [The rules](#the-rules)
-1. [Extension points](#extension-points)
-1. [Data entries carry no framework](#data-entries-carry-no-framework)
-1. [Which data finds the part](#which-data-finds-the-part)
-1. [One registry and one loader](#one-registry-and-one-loader)
-1. [Ask, load, draw](#ask-load-draw)
-1. [Nothing is shared](#nothing-is-shared)
-1. [A visual part is a web component](#a-visual-part-is-a-web-component)
-1. [The page of a user task or a case](#the-page-of-a-user-task-or-a-case)
-1. [The other extension points](#the-other-extension-points)
-1. [The event protocol](#the-event-protocol)
-1. [Cells drawn by a workflow module](#cells-drawn-by-a-workflow-module)
+2. [The manifest](#the-manifest)
+3. [Building the entries](#building-the-entries)
+4. [The rules](#the-rules)
+5. [Extension points](#extension-points)
+6. [Data entries carry no framework](#data-entries-carry-no-framework)
+7. [Which data finds the part](#which-data-finds-the-part)
+8. [One registry and one loader](#one-registry-and-one-loader)
+9. [Ask, load, draw](#ask-load-draw)
+10. [Nothing is shared](#nothing-is-shared)
+11. [A visual part is a web component](#a-visual-part-is-a-web-component)
+12. [The page of a user task or a case](#the-page-of-a-user-task-or-a-case)
+13. [The other extension points](#the-other-extension-points)
+14. [The event protocol](#the-event-protocol)
+15. [Cells drawn by a workflow module](#cells-drawn-by-a-workflow-module)
 
 ## Self-contained ES modules
 
@@ -73,12 +73,12 @@ The cockpit reaches it at `/wm/<workflowModuleId>/bc-manifest.json`. The proposa
 }
 ```
 
-| Field             | Meaning |
-|-------------------|---------|
+|       Field       |                                        Meaning                                         |
+|-------------------|----------------------------------------------------------------------------------------|
 | `manifestVersion` | the version of this format; `1` today; a cockpit refuses a higher one it does not know |
-| `buildVersion`    | the version of the module's build, shown in a details view, if at all |
-| `buildTimestamp`  | when the module was built, also only for a details view |
-| `entries`         | entry name to file; the file is relative to the manifest |
+| `buildVersion`    | the version of the module's build, shown in a details view, if at all                  |
+| `buildTimestamp`  | when the module was built, also only for a details view                                |
+| `entries`         | entry name to file; the file is relative to the manifest                               |
 
 A field this version does not know is allowed and ignored. A file in `entries` must stay below the
 web path of the module. So it is a relative path: no whole address with a scheme like `https:`, no
@@ -106,12 +106,12 @@ with the content hash in the name, and write `bc-manifest.json` from the bundler
 outputs. A short script of ten lines does the second, for every bundler below. Nothing is marked as
 external, because the entries share nothing with the page.
 
-| Framework        | Recipe |
-|------------------|--------|
-| React            | Vite in library mode: `build.lib.entry` is an object of entry name to source file, `formats: ['es']`, `build.manifest: true`. Set `define: { 'process.env.NODE_ENV': '"production"' }`, because library mode leaves it alone, and React reads it. Or esbuild: `--bundle --format=esm --splitting --entry-names=[name]-[hash] --metafile=meta.json`. |
-| Vue              | Vite in library mode as for React, with `@vitejs/plugin-vue`. Import the styles of a component with `?inline`, so they go into the shadow root and not into the page. |
+|    Framework     |                                                                                                                                                                                                                                                Recipe                                                                                                                                                                                                                                                 |
+|------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| React            | Vite in library mode: `build.lib.entry` is an object of entry name to source file, `formats: ['es']`, `build.manifest: true`. Set `define: { 'process.env.NODE_ENV': '"production"' }`, because library mode leaves it alone, and React reads it. Or esbuild: `--bundle --format=esm --splitting --entry-names=[name]-[hash] --metafile=meta.json`.                                                                                                                                                   |
+| Vue              | Vite in library mode as for React, with `@vitejs/plugin-vue`. Import the styles of a component with `?inline`, so they go into the shadow root and not into the page.                                                                                                                                                                                                                                                                                                                                 |
 | Angular          | Zoneless, see [Nothing is shared](#nothing-is-shared). Vite in library mode with `@analogjs/vite-plugin-angular`, or the Angular CLI with its esbuild `application` builder and one build per visual entry, with `--stats-json` for the list of outputs. Plain esbuild is not enough: it needs the Angular compiler (`@angular/compiler-cli`) ahead of time and the Angular linker while it bundles, as the kit's example module does, see [rough-edges.md](rough-edges.md#angular-in-a-shadow-root). |
-| Plain JavaScript | esbuild or Rollup with `output.format: 'es'`. This is the recipe for every data entry, whatever the framework of the module's forms. |
+| Plain JavaScript | esbuild or Rollup with `output.format: 'es'`. This is the recipe for every data entry, whatever the framework of the module's forms.                                                                                                                                                                                                                                                                                                                                                                  |
 
 The data entries need no framework compiler, see
 [Data entries carry no framework](#data-entries-carry-no-framework). So a module can build them with
@@ -151,12 +151,12 @@ Four extension points are the bare minimum, and every generated cockpit has them
 four data entries of the VanillaBP kit `@vanillabp/bc-module-kit`, with the same names of their
 exports, see [types.md](types.md#the-vanillabp-kit-is-the-minimum):
 
-| Entry          | What the module exports                                                              | Kind | Where the cockpit uses it |
+|     Entry      |                               What the module exports                                | Kind | Where the cockpit uses it |
 |----------------|--------------------------------------------------------------------------------------|------|---------------------------|
-| `UserTaskList` | `userTaskListColumns`, a function from a user task to its columns                    | data | the task lists |
-| `WorkflowList` | `workflowListColumns`, a function from a case to its columns                         | data | the case list |
-| `UserTaskForm` | `userTaskForm`, a function from a user task to a visual entry and its web components | data | the page of a user task |
-| `WorkflowPage` | `workflowPage`, a function from a case to a visual entry and its web components      | data | the page of a case |
+| `UserTaskList` | `userTaskListColumns`, a function from a user task to its columns                    | data | the task lists            |
+| `WorkflowList` | `workflowListColumns`, a function from a case to its columns                         | data | the case list             |
+| `UserTaskForm` | `userTaskForm`, a function from a user task to a visual entry and its web components | data | the page of a user task   |
+| `WorkflowPage` | `workflowPage`, a function from a case to a visual entry and its web components      | data | the page of a case        |
 
 An organisation may add more (`Q-EXTENSION-POINTS`). The interview proposes `Header`, buttons in
 the header, because every customer so far has had it. It proposes no `Pages`, pages of a module
@@ -280,11 +280,11 @@ does that for `Header`, because that kit knows only the four minimum ones.
 Three fields of each user task and each case from the GUI API say what to load. They have the same
 names in both objects:
 
-| Field              | Meaning |
-|--------------------|---------|
-| `workflowModuleId` | the workflow module the row comes from |
+|       Field        |                                        Meaning                                         |
+|--------------------|----------------------------------------------------------------------------------------|
+| `workflowModuleId` | the workflow module the row comes from                                                 |
 | `uiUriType`        | a type agreed between this user interface and the module; it decides how the row opens |
-| `uiUri`            | the `uiUriPath` the module reported, unchanged |
+| `uiUri`            | the `uiUriPath` the module reported, unchanged                                         |
 
 First the address. It is built from `uiUri` by one rule, see
 [gui-api.md](gui-api.md#what-the-cockpit-serves):
@@ -369,13 +369,13 @@ user task, on the page of a case, in the header, on a page of a module and in a 
 
 What the user sees in each step:
 
-| Step | Loading state                     | Error                                      | What the user sees on the error |
-|------|-----------------------------------|--------------------------------------------|---------------------------------|
-| ask  | the data entry is being loaded    | the data entry fails to load               | a note and a button that loads again |
-| ask  |                                   | the function answers `undefined`: not mine | see below; no error |
-| load | the visual entry is being loaded  | `import()` of the visual entry fails       | a note and a button that loads again |
+| Step |           Loading state           |                   Error                    |                What the user sees on the error                |
+|------|-----------------------------------|--------------------------------------------|---------------------------------------------------------------|
+| ask  | the data entry is being loaded    | the data entry fails to load               | a note and a button that loads again                          |
+| ask  |                                   | the function answers `undefined`: not mine | see below; no error                                           |
+| load | the visual entry is being loaded  | `import()` of the visual entry fails       | a note and a button that loads again                          |
 | load | the cockpit waits for the element | a web component is not defined in time     | a note that names the module, the entry and the web component |
-| draw | none; the part shows its own      | creating the element throws                | a note that names the module and the web component |
+| draw | none; the part shows its own      | creating the element throws                | a note that names the module and the web component            |
 
 "Not mine" is no error. On the page of a user task and the page of a case only the module of the
 row is asked, so the page says that this module has no form for it. In the header and on the pages
@@ -518,10 +518,10 @@ Which areas exist is a convention, not a law (`Q-TASK-PAGE-AREAS` for the page o
 for one page or for both; then its cockpit shows only `all` there. The default convention, the same
 for both pages:
 
-| Area          | Where the cockpit puts it |
-|---------------|---------------------------|
-| `body`        | the main area; a long form scrolls in it |
-| `information` | the top of a column on the right, for example the case number and the customer |
+|     Area      |                              Where the cockpit puts it                              |
+|---------------|-------------------------------------------------------------------------------------|
+| `body`        | the main area; a long form scrolls in it                                            |
+| `information` | the top of a column on the right, for example the case number and the customer      |
 | `actions`     | the bottom of that column, for example "Accept" and "Reject"; it never scrolls away |
 
 An object with `body` only is still the laid-out form: `body` sits in the main area, and the column
@@ -543,12 +543,12 @@ names a data entry in its manifest, and the data entry exports a function. The f
 there is, and a visual entry defines the web components. So the cockpit can build the menu and the
 routes for every module without loading a single framework. Proposals for the usual ones:
 
-| Entry            | What the module exports                                                           | Kind   | Where the cockpit uses it |
+|      Entry       |                              What the module exports                              |  Kind  | Where the cockpit uses it |
 |------------------|-----------------------------------------------------------------------------------|--------|---------------------------|
-| `Header`         | `header: (currentUser) => Array<{ element, entry }> \| undefined`                 | data   | the application header |
-| `Pages`          | `pages: (currentUser) => Array<{ id, title, element, entry, menu }> \| undefined` | data   | the router and the menu |
-| `HeaderElements` | nothing; evaluating it defines the web components of the header buttons           | visual | the application header |
-| `PageElements`   | nothing; evaluating it defines the web components of the pages                    | visual | a page of a module |
+| `Header`         | `header: (currentUser) => Array<{ element, entry }> \| undefined`                 | data   | the application header    |
+| `Pages`          | `pages: (currentUser) => Array<{ id, title, element, entry, menu }> \| undefined` | data   | the router and the menu   |
+| `HeaderElements` | nothing; evaluating it defines the web components of the header buttons           | visual | the application header    |
+| `PageElements`   | nothing; evaluating it defines the web components of the pages                    | visual | a page of a module        |
 
 `element` is the name of a web component, and `entry` names the visual entry of the same manifest
 that defines it. The cockpit runs the three steps of [Ask, load, draw](#ask-load-draw). It loads the
@@ -661,14 +661,14 @@ The text comes in the user's language; the part knows it from the property `lang
 
 ### Error codes
 
-| Code             | Who sets it | Meaning |
-|------------------|-------------|---------|
+|       Code       | Who sets it |                            Meaning                            |
+|------------------|-------------|---------------------------------------------------------------|
 | `UNKNOWN_ACTION` | host        | this cockpit does not know the action; a module may fall back |
-| `REFUSED`        | host        | the server refused it; `status` carries the HTTP status |
-| `FAILED`         | host        | the request did not get through, for example a network error |
+| `REFUSED`        | host        | the server refused it; `status` carries the HTTP status       |
+| `FAILED`         | host        | the request did not get through, for example a network error  |
 | `NO_TARGET`      | host        | `sendTo` named an area that has no web component on this page |
-| `TIMEOUT`        | wrapper     | no answer within the timeout |
-| `DISCONNECTED`   | wrapper     | the element was removed from the page before the answer came |
+| `TIMEOUT`        | wrapper     | no answer within the timeout                                  |
+| `DISCONNECTED`   | wrapper     | the element was removed from the page before the answer came  |
 
 ### Timeout
 
@@ -686,21 +686,21 @@ its last request before it removes the element.
 
 The minimum set, matching the functions in [types.md](types.md#bcusertask-and-bcworkflow):
 
-| Action                        | `args`                                                                    | `result` |
-|-------------------------------|---------------------------------------------------------------------------|----------|
-| `userTask.open`               | `userTaskId`                                                              | nothing |
-| `userTask.navigateToWorkflow` | `userTaskId`                                                              | nothing |
-| `userTask.claim`              | `userTaskId`                                                              | nothing |
-| `userTask.unclaim`            | `userTaskId`                                                              | nothing |
-| `userTask.assign`             | `userTaskId`, `userId`                                                    | nothing |
-| `userTask.unassign`           | `userTaskId`, `userId`                                                    | nothing |
-| `workflow.navigateToWorkflow` | `workflowId`                                                              | nothing |
-| `workflow.getUserTasks`       | `workflowId`, `activeOnly`, `limitListAccordingToCurrentUsersPermissions` | an array of user tasks |
-| `page.sendTo`                 | `target`, `message`                                                       | nothing |
-| `page.subscribe`              | none; the area is the one of the element                                  | `subscriptionId` |
-| `page.unsubscribe`            | `subscriptionId`                                                          | nothing |
-| `cockpit.showNotification`    | `level`, `text`, `sticky`                                                 | nothing |
-| `cockpit.openDialog`          | `element`, `entry`, `data`                                                | what the dialog closed with |
+|            Action             |                                  `args`                                   |                    `result`                    |
+|-------------------------------|---------------------------------------------------------------------------|------------------------------------------------|
+| `userTask.open`               | `userTaskId`                                                              | nothing                                        |
+| `userTask.navigateToWorkflow` | `userTaskId`                                                              | nothing                                        |
+| `userTask.claim`              | `userTaskId`                                                              | nothing                                        |
+| `userTask.unclaim`            | `userTaskId`                                                              | nothing                                        |
+| `userTask.assign`             | `userTaskId`, `userId`                                                    | nothing                                        |
+| `userTask.unassign`           | `userTaskId`, `userId`                                                    | nothing                                        |
+| `workflow.navigateToWorkflow` | `workflowId`                                                              | nothing                                        |
+| `workflow.getUserTasks`       | `workflowId`, `activeOnly`, `limitListAccordingToCurrentUsersPermissions` | an array of user tasks                         |
+| `page.sendTo`                 | `target`, `message`                                                       | nothing                                        |
+| `page.subscribe`              | none; the area is the one of the element                                  | `subscriptionId`                               |
+| `page.unsubscribe`            | `subscriptionId`                                                          | nothing                                        |
+| `cockpit.showNotification`    | `level`, `text`, `sticky`                                                 | nothing                                        |
+| `cockpit.openDialog`          | `element`, `entry`, `data`                                                | what the dialog closed with                    |
 | `cockpit.closeDialog`         | `result`                                                                  | nothing; answered before the dialog is removed |
 
 The four claim and assign actions resolve once the server has accepted the change. The server

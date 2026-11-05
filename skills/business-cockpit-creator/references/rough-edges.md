@@ -6,28 +6,28 @@ Here is what brings a generated user interface down if nobody mentions it. Each 
 code of the cockpit. Read this before the first screen, not when something does not work.
 
 1. [Assigning makes a candidate](#assigning-makes-a-candidate)
-1. [Claiming overwrites](#claiming-overwrites)
-1. [Giving back somebody else's task answers 200](#giving-back-somebody-elses-task-answers-200)
-1. [Closed tasks can still be claimed](#closed-tasks-can-still-be-claimed)
-1. [Bulk actions do not say what they skipped](#bulk-actions-do-not-say-what-they-skipped)
-1. [`current-user` answers 200 instead of 404](#current-user-answers-200-instead-of-404)
-1. [The refresh token leads nowhere](#the-refresh-token-leads-nowhere)
-1. [A search pattern goes into the database unescaped](#a-search-pattern-goes-into-the-database-unescaped)
-1. [Two filters on one path](#two-filters-on-one-path)
-1. [`businessIds` is lost in the update](#businessids-is-lost-in-the-update)
-1. [The suggestions are not the most frequent](#the-suggestions-are-not-the-most-frequent)
-1. [An event says that something changed, not what](#an-event-says-that-something-changed-not-what)
-1. [`filterable` is not read by the server](#filterable-is-not-read-by-the-server)
-1. [A module may report a type of another user interface](#a-module-may-report-a-type-of-another-user-interface)
-1. [The update form has no offset](#the-update-form-has-no-offset)
-1. [The bundler rewrites `import()`](#the-bundler-rewrites-import)
-1. [`zone.js` in a module slows every part down](#zonejs-in-a-module-slows-every-part-down)
-1. [A data entry pulls in the framework](#a-data-entry-pulls-in-the-framework)
-1. [A shared chunk carries the framework into a data entry](#a-shared-chunk-carries-the-framework-into-a-data-entry)
-1. [Angular in a shadow root](#angular-in-a-shadow-root)
-1. [Removing a web component before its answer](#removing-a-web-component-before-its-answer)
-1. [A component library keeps destroyed rows](#a-component-library-keeps-destroyed-rows)
-1. [What needs a newer cockpit](#what-needs-a-newer-cockpit)
+2. [Claiming overwrites](#claiming-overwrites)
+3. [Giving back somebody else's task answers 200](#giving-back-somebody-elses-task-answers-200)
+4. [Closed tasks can still be claimed](#closed-tasks-can-still-be-claimed)
+5. [Bulk actions do not say what they skipped](#bulk-actions-do-not-say-what-they-skipped)
+6. [`current-user` answers 200 instead of 404](#current-user-answers-200-instead-of-404)
+7. [The refresh token leads nowhere](#the-refresh-token-leads-nowhere)
+8. [A search pattern goes into the database unescaped](#a-search-pattern-goes-into-the-database-unescaped)
+9. [Two filters on one path](#two-filters-on-one-path)
+10. [`businessIds` is lost in the update](#businessids-is-lost-in-the-update)
+11. [The suggestions are not the most frequent](#the-suggestions-are-not-the-most-frequent)
+12. [An event says that something changed, not what](#an-event-says-that-something-changed-not-what)
+13. [`filterable` is not read by the server](#filterable-is-not-read-by-the-server)
+14. [A module may report a type of another user interface](#a-module-may-report-a-type-of-another-user-interface)
+15. [The update form has no offset](#the-update-form-has-no-offset)
+16. [The bundler rewrites `import()`](#the-bundler-rewrites-import)
+17. [`zone.js` in a module slows every part down](#zonejs-in-a-module-slows-every-part-down)
+18. [A data entry pulls in the framework](#a-data-entry-pulls-in-the-framework)
+19. [A shared chunk carries the framework into a data entry](#a-shared-chunk-carries-the-framework-into-a-data-entry)
+20. [Angular in a shadow root](#angular-in-a-shadow-root)
+21. [Removing a web component before its answer](#removing-a-web-component-before-its-answer)
+22. [A component library keeps destroyed rows](#a-component-library-keeps-destroyed-rows)
+23. [What needs a newer cockpit](#what-needs-a-newer-cockpit)
 
 ## Assigning makes a candidate
 
@@ -257,16 +257,16 @@ the retaining path of a detached DOM node leads to the library. See
 This description counts on prompts of the `business-cockpit` repository that are not all released
 yet. The cockpit version of the interview (`Q-COCKPIT-VERSION`) must have them:
 
-| Prompt | What it brings |
-|--------|----------------|
-| `1504` | `endReason` on user tasks and cases, so a cancelled row can be told from a completed one |
-| `1505` | `customSettings` on the user, read and written one entry at a time with `GET` and `PUT /app/current-user/settings/{key}`, in the cockpit's own file `api/gui/v1.yaml` |
-| `1506` | the count endpoint |
-| `1507` | notes on user tasks and cases |
+| Prompt |                                                                                           What it brings                                                                                            |
+|--------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `1504` | `endReason` on user tasks and cases, so a cancelled row can be told from a completed one                                                                                                            |
+| `1505` | `customSettings` on the user, read and written one entry at a time with `GET` and `PUT /app/current-user/settings/{key}`, in the cockpit's own file `api/gui/v1.yaml`                               |
+| `1506` | the count endpoint                                                                                                                                                                                  |
+| `1507` | notes on user tasks and cases                                                                                                                                                                       |
 | `1509` | `OpenTasks` is gone; the open modes are `OpenTasksWithFollowUp` and `OpenTasksWithoutFollowUp`; without `mode` the server takes `OpenTasksWithFollowUp` for user tasks and the open cases for cases |
-| `1510` | the library brings no login; the application writes the security chains and `userDetailsProvider`. Needed by a backend the skill creates, not by the user interface |
-| `1511` | `GET /updates` and the types of its events in the cockpit's own file `api/gui/v1.yaml`, so these types are generated too |
-| `1762` | the modes of a case list are `All`, `InProgress` (not ended, suspended cases included) and `Done` (ended) |
+| `1510` | the library brings no login; the application writes the security chains and `userDetailsProvider`. Needed by a backend the skill creates, not by the user interface                                 |
+| `1511` | `GET /updates` and the types of its events in the cockpit's own file `api/gui/v1.yaml`, so these types are generated too                                                                            |
+| `1762` | the modes of a case list are `All`, `InProgress` (not ended, suspended cases included) and `Done` (ended)                                                                                           |
 
 Against an older cockpit the generated client lacks these endpoints and fields, and the build
 fails. That is on purpose: better a failed build than a user interface that guesses.

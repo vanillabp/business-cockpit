@@ -21,15 +21,15 @@ It is generated from the list in the types library, by Maven, see
 [project.md](project.md#the-types-jar).
 
 1. [The VanillaBP kit is the minimum](#the-vanillabp-kit-is-the-minimum)
-1. [Data from the GUI API](#data-from-the-gui-api)
-1. [Translatable and Person](#translatable-and-person)
-1. [Column](#column)
-1. [BcUserTask and BcWorkflow](#bcusertask-and-bcworkflow)
-1. [What a part gets](#what-a-part-gets)
-1. [The module kit](#the-module-kit)
-1. [The event protocol](#the-event-protocol)
-1. [The extension points](#the-extension-points)
-1. [The manifest and its check](#the-manifest-and-its-check)
+2. [Data from the GUI API](#data-from-the-gui-api)
+3. [Translatable and Person](#translatable-and-person)
+4. [Column](#column)
+5. [BcUserTask and BcWorkflow](#bcusertask-and-bcworkflow)
+6. [What a part gets](#what-a-part-gets)
+7. [The module kit](#the-module-kit)
+8. [The event protocol](#the-event-protocol)
+9. [The extension points](#the-extension-points)
+10. [The manifest and its check](#the-manifest-and-its-check)
 
 ## The VanillaBP kit is the minimum
 
@@ -240,12 +240,12 @@ form.
 The host sets plain data as properties of the custom element. The wrapper in the module turns it
 into the objects above:
 
-| Web component               | Properties the host sets                                                          | What the module's component gets |
-|-----------------------------|-----------------------------------------------------------------------------------|----------------------------------|
-| an area of a user task page | `userTask`, `area`, `language`, `currentUser`                                     | `BcUserTask`, the area, the language, the user |
-| an area of a case page      | `workflow`, `area`, `language`, `currentUser`                                     | `BcWorkflow`, the area, the language, the user |
+|        Web component        |                             Properties the host sets                              |         What the module's component gets          |
+|-----------------------------|-----------------------------------------------------------------------------------|---------------------------------------------------|
+| an area of a user task page | `userTask`, `area`, `language`, `currentUser`                                     | `BcUserTask`, the area, the language, the user    |
+| an area of a case page      | `workflow`, `area`, `language`, `currentUser`                                     | `BcWorkflow`, the area, the language, the user    |
 | a dialog                    | `workflowModule`, `language`, `currentUser`, `data`                               | the same; `data` is what `openDialog` handed over |
-| other visual parts          | `workflowModule`, `language`, `currentUser`, and what the extension point defines | the same |
+| other visual parts          | `workflowModule`, `language`, `currentUser`, and what the extension point defines | the same                                          |
 
 Every web component also gets the functions `showNotification`, `openDialog`, `closeDialog`,
 `sendTo`, `receiveMessage` and `request`. `request(action, args, timeoutMs)` is the way to any

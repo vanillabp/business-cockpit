@@ -7,24 +7,24 @@ interview. What follows is the behaviour users know and workflow modules rely on
 depends on an interview answer, the question id is named.
 
 1. [The whole](#the-whole)
-1. [The screens](#the-screens)
-1. [The header and the menu](#the-header-and-the-menu)
-1. [Counts](#counts)
-1. [The task lists](#the-task-lists)
-1. [How the columns of a list come about](#how-the-columns-of-a-list-come-about)
-1. [The columns a workflow module brings](#the-columns-a-workflow-module-brings)
-1. [The actions on a user task](#the-actions-on-a-user-task)
-1. [Opening and working on a user task](#opening-and-working-on-a-user-task)
-1. [The case list](#the-case-list)
-1. [The page of a case](#the-page-of-a-case)
-1. [Search, filter, sort](#search-filter-sort)
-1. [Paging and the window of loaded rows](#paging-and-the-window-of-loaded-rows)
-1. [Live updates](#live-updates)
-1. [Notifications](#notifications)
-1. [User settings](#user-settings)
-1. [Language and texts](#language-and-texts)
-1. [Extension points](#extension-points)
-1. [Who sees what](#who-sees-what)
+2. [The screens](#the-screens)
+3. [The header and the menu](#the-header-and-the-menu)
+4. [Counts](#counts)
+5. [The task lists](#the-task-lists)
+6. [How the columns of a list come about](#how-the-columns-of-a-list-come-about)
+7. [The columns a workflow module brings](#the-columns-a-workflow-module-brings)
+8. [The actions on a user task](#the-actions-on-a-user-task)
+9. [Opening and working on a user task](#opening-and-working-on-a-user-task)
+10. [The case list](#the-case-list)
+11. [The page of a case](#the-page-of-a-case)
+12. [Search, filter, sort](#search-filter-sort)
+13. [Paging and the window of loaded rows](#paging-and-the-window-of-loaded-rows)
+14. [Live updates](#live-updates)
+15. [Notifications](#notifications)
+16. [User settings](#user-settings)
+17. [Language and texts](#language-and-texts)
+18. [Extension points](#extension-points)
+19. [Who sees what](#who-sees-what)
 
 ## The whole
 
@@ -54,12 +54,12 @@ modules' developers, see [dev-shell.md](dev-shell.md).
 
 Which screens exist is decided per organisation (`Q-SCREENS`). The minimum is:
 
-| Screen      | Path              | What it shows |
-|-------------|-------------------|---------------|
-| all tasks   | `/tasks`          | all user tasks the user may see |
-| my tasks    | `/my-tasks`       | the user tasks where the user is the assignee |
-| case list   | `/workflows`      | the cases; there is exactly one case list |
-| a case      | `/workflows/<id>` | the page from the workflow module |
+|   Screen    |       Path        |                         What it shows                          |
+|-------------|-------------------|----------------------------------------------------------------|
+| all tasks   | `/tasks`          | all user tasks the user may see                                |
+| my tasks    | `/my-tasks`       | the user tasks where the user is the assignee                  |
+| case list   | `/workflows`      | the cases; there is exactly one case list                      |
+| a case      | `/workflows/<id>` | the page from the workflow module                              |
 | a user task | `/tasks/<id>`     | the page from the workflow module, in the frame of the cockpit |
 
 The paths are a proposal (`Q-ROUTES`). What matters is that every screen has an address that can be
@@ -323,14 +323,14 @@ The value of a cell is `column.path`, resolved against the row with dots as sepa
 
 Each `type` expects a different structure at `path`, and the cockpit draws it like this:
 
-| `type`      | Value at `path`                                       | How it is drawn |
-|-------------|-------------------------------------------------------|-----------------|
+|   `type`    |                    Value at `path`                    |                                                                                                                 How it is drawn                                                                                                                 |
+|-------------|-------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `value`     | a single value                                        | localised: an integer with thousands separators, a decimal number with the local decimal mark, a boolean as "Yes" or "No" in the user's language. Text left-aligned, everything else right-aligned, decimal numbers aligned at the decimal mark |
-| `i18n`      | a map with language codes as keys and texts as values | the text in the language of the user interface, falling back to the default language |
-| `person`    | a `Person`                                            | `displayShort`, else `email`, else `id`. On mouse-over: `display`, an empty line, `id`, `email` |
-| `date`      | a string `YYYY-MM-DD`                                 | the localised date |
-| `date-time` | a string in ISO 8601 extended format                  | the localised date and, next to it, the localised hour and minute. On mouse-over also the seconds |
-| `time`      | a string `hh:mm[:ss]`                                 | the localised hour and minute. On mouse-over also the seconds, if present |
+| `i18n`      | a map with language codes as keys and texts as values | the text in the language of the user interface, falling back to the default language                                                                                                                                                            |
+| `person`    | a `Person`                                            | `displayShort`, else `email`, else `id`. On mouse-over: `display`, an empty line, `id`, `email`                                                                                                                                                 |
+| `date`      | a string `YYYY-MM-DD`                                 | the localised date                                                                                                                                                                                                                              |
+| `date-time` | a string in ISO 8601 extended format                  | the localised date and, next to it, the localised hour and minute. On mouse-over also the seconds                                                                                                                                               |
+| `time`      | a string `hh:mm[:ss]`                                 | the localised hour and minute. On mouse-over also the seconds, if present                                                                                                                                                                       |
 
 Without `type` the cell is drawn like `value`. An object at the path is shown as a short note that
 this column needs a type, not as `[object Object]`.
@@ -338,11 +338,11 @@ this column needs a type, not as `[object Object]`.
 What is sent to the server as `sort` depends on the `type` of the column. This is one of the least
 visible places of the whole contract:
 
-| `type` of the column | What is sent as `sort` |
-|----------------------|------------------------|
-| `i18n`               | `<path>.<language>` |
+| `type` of the column | What is sent as `sort`  |
+|----------------------|-------------------------|
+| `i18n`               | `<path>.<language>`     |
 | `person`             | `<path>.sort,<path>.id` |
-| everything else      | `<path>` |
+| everything else      | `<path>`                |
 
 The reason for the second row: a person is stored in the document with the fields `id`, `fulltext`
 and `sort`, and `sort` is the value to sort by. The application builds it itself, for example from
@@ -360,15 +360,15 @@ types out of the box, for example a currency, are a wish for later.
 
 For one row or for several selected rows:
 
-| Action           | What it means |
-|------------------|---------------|
-| Claim            | the user becomes the assignee |
-| Unclaim          | the assignee is removed |
+|      Action      |                      What it means                      |
+|------------------|---------------------------------------------------------|
+| Claim            | the user becomes the assignee                           |
+| Unclaim          | the assignee is removed                                 |
 | Propose          | a person the user searched for becomes a candidate user |
-| Remove candidate | a person is removed from the candidate users |
-| Mark as read     | sets `read`, the row is no longer bold |
-| Mark as unread   | takes `read` back |
-| Follow-up        | sets or deletes the follow-up date |
+| Remove candidate | a person is removed from the candidate users            |
+| Mark as read     | sets `read`, the row is no longer bold                  |
+| Mark as unread   | takes `read` back                                       |
+| Follow-up        | sets or deletes the follow-up date                      |
 
 Claiming a task that already has another assignee takes it away from a colleague, see
 [rough-edges.md](rough-edges.md#claiming-overwrites). So the user interface asks first. The question
@@ -935,13 +935,13 @@ with endpoints that read and write one entry, see [gui-api.md](gui-api.md#user-s
 This holds for every setting, whether the user sets it on purpose or the user interface only
 remembers it. Examples:
 
-| Setting                                                 | Explicit or implicit |
-|---------------------------------------------------------|----------------------|
-| the language                                            | explicit, in the menu |
+|                         Setting                         |   Explicit or implicit    |
+|---------------------------------------------------------|---------------------------|
+| the language                                            | explicit, in the menu     |
 | "don't ask again" before claiming                       | explicit, in the question |
-| the primary filter last chosen                          | implicit |
-| the width of a column the user resized                  | implicit |
-| the order or the hidden state of columns, where offered | implicit |
+| the primary filter last chosen                          | implicit                  |
+| the width of a column the user resized                  | implicit                  |
+| the order or the hidden state of columns, where offered | implicit                  |
 
 The generated user interface has one global settings service for this. Every part of it that keeps
 a setting uses the service, and nothing else calls the endpoints. The service:
