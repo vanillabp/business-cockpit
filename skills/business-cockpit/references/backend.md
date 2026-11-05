@@ -61,7 +61,7 @@ application/
   src/test/java/<package>/      the test that starts the application
 docker-compose.yaml             MongoDB, Kafka, Mailpit, and Keycloak for Q-LOGIN-KIND oidc
 keycloak/
-  realm-business-cockpit.json   the realm Keycloak imports, for Q-LOGIN-KIND oidc
+  realm.json                    the realm Keycloak imports at the start, for Q-LOGIN-KIND oidc
 README.md                       how to start it, and the order of the builds
 ```
 
@@ -389,18 +389,23 @@ Pin every image to a version. MongoDB runs as a single-node replica set. Start i
 `rs.initiate()`. The application connects with `directConnection=true`, because the member's name
 inside the compose network does not resolve outside it.
 
-Keycloak starts with `start-dev --import-realm` and reads
-`keycloak/realm-business-cockpit.json`. The skill writes that file for local development:
+Keycloak starts with `start-dev --import-realm`. The compose file mounts `keycloak/realm.json`
+into `/opt/keycloak/data/import/`, so Keycloak creates the realm at its first start. The skill
+writes that file for local development:
 
 - a realm, by default `business-cockpit`,
 - a confidential client, by default `business-cockpit`, with the redirect address
   `http://localhost:8080/login/oauth2/code/<id>` and the secret that `application-local.yaml`
   names,
 - a mapper that writes the groups of a user into the claim `groups`,
-- the groups the screens of the interview need (`Q-VISIBLE-GROUPS`, `Q-SUB-LISTS`), and two or
-  three users with a password, each in some of the groups, so the visibilities can be tried out.
+- exactly one group and one user with a password, and the user is a member of the group. They are
+  a template, not a set of test users.
 
-These users and secrets are for a developer's machine only. The `README.md` says so.
+The groups decide which user tasks and cases a user sees. So the template is not enough to try the
+visibilities out. The `README.md` tells the developer to add test users with different groups to
+`realm.json`, for example one per group of `Q-VISIBLE-GROUPS` and `Q-SUB-LISTS`, and to start
+Keycloak again with an empty volume, so the realm is imported again. These users and the secret are
+for a developer's machine only, and the `README.md` says that too.
 
 ## The test that starts the application
 
@@ -421,6 +426,9 @@ The `README.md` of the backend repository says:
 - how to start it: `docker compose up`, then the application with the profile `local`, and the
   system property `workerId` when Kafka is read,
 - which users exist locally and with which password, and that they are for local use only,
+- with `Q-LOGIN-KIND` `oidc`: that `keycloak/realm.json` has one group and one user as a template,
+  that the developer adds test users with different groups there, because the groups decide which
+  user tasks and cases a user sees, and how to import the realm again,
 - which environment variables a real deployment sets: the MongoDB address, the JWT key, the BPMS
   API user, the client secret of the provider, the mail server,
 - the order of the builds, see [project.md](project.md#where-the-types-jar-is-built): the cockpit
