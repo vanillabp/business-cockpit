@@ -64,7 +64,8 @@ For this it must:
 9. Look like the cockpit. The theme from the interview (`Q-THEME`) is built into the base pages when
    the dev shell is generated, so a user task or a case looks as close to pixel-identical to the
    cockpit as possible. The application header with the task actions, the areas `body`,
-   `information` and `actions` (`Q-PAGE-AREAS`) and the scrolling are laid out as in the cockpit.
+   `information` and `actions` (`Q-TASK-PAGE-AREAS`, `Q-WORKFLOW-PAGE-AREAS`) and the scrolling are
+   laid out as in the cockpit.
 
 A dev shell for Angular runs zoneless, as an Angular module does in the cockpit, see
 [module-loading.md](module-loading.md#nothing-is-shared). A form that needs `zone.js` fails in the
@@ -126,7 +127,7 @@ Three surfaces are enough:
 The drop-down always asks with the primary filter `All`, for user tasks and for cases, and offers no
 other. It is only there to pick an entry while developing. The data comes from the simulator, so
 there are few entries, and closed ones are worth trying too. This differs from the cockpit on
-purpose: there the default is `OpenTasksWithFollowUp` for user tasks and `Active` for cases, see
+purpose: there the default is `OpenTasksWithoutFollowUp` for user tasks and `Active` for cases, see
 [behaviour.md](behaviour.md#the-task-lists).
 
 ## Where the data comes from

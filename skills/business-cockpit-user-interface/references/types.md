@@ -47,8 +47,8 @@ cockpit too. The minimum is exactly what the kit has:
 
 Everything else differs from one organisation to the next and comes from the interview: the entry
 `Header`, the areas of a page like `body`, `information` and `actions`, the entry `Pages`, and any
-other extension point (`Q-EXTENSION-POINTS`, `Q-PAGE-AREAS`). The library adds these on top. It
-never drops or renames a part of the minimum.
+other extension point (`Q-EXTENSION-POINTS`, `Q-TASK-PAGE-AREAS`, `Q-WORKFLOW-PAGE-AREAS`). The
+library adds these on top. It never drops or renames a part of the minimum.
 
 The kit has a second package, `@vanillabp/bc-module-host`. It is a small host for the tests of a
 module and is not part of any cockpit, see [The event protocol](#the-event-protocol). Phase 3 of the
@@ -345,7 +345,8 @@ export interface BcPageParts {
  */
 export type PageAreas = { [area: string]: string };
 
-// Areas of this cockpit, from Q-PAGE-AREAS; none when the organisation chose none
+// Areas of this cockpit, from Q-TASK-PAGE-AREAS and Q-WORKFLOW-PAGE-AREAS; none when the
+// organisation chose none for both pages
 export const AREA_BODY = 'body';
 export const AREA_INFORMATION = 'information';
 export const AREA_ACTIONS = 'actions';

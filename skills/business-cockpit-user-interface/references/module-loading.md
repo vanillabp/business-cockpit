@@ -507,8 +507,10 @@ modules of the kit do exactly that. The cockpit draws either the areas or `all`,
 All web components of one page come from the one visual entry the result names. The cockpit loads
 it once and waits for every web component it is going to draw, see [Ask, load, draw](#ask-load-draw).
 
-Which areas exist is a convention, not a law (`Q-PAGE-AREAS`). An organisation may also choose no
-areas at all; then its cockpit shows only `all`. The default convention:
+Which areas exist is a convention, not a law (`Q-TASK-PAGE-AREAS` for the page of a user task,
+`Q-WORKFLOW-PAGE-AREAS` for the page of a case). An organisation may also choose no areas at all,
+for one page or for both; then its cockpit shows only `all` there. The default convention, the same
+for both pages:
 
 | Area          | Where the cockpit puts it |
 |---------------|---------------------------|

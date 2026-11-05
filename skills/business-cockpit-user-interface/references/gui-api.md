@@ -391,7 +391,7 @@ follow-ups alone.
 | `Active`              | what has no end |
 | `Inactive`            | what has an end |
 
-Without `mode` the server takes the default of the cockpit since prompt `1509`:
+Without `mode` the server takes its own default since prompt `1509`:
 `OpenTasksWithFollowUp` for a task list and `Active` for a case list, for `POST` and `PUT` alike.
 Still always send the primary filter yourself, so the list never depends on a default. The dev shell
 always sends `All`, see [dev-shell.md](dev-shell.md#what-it-shows).
