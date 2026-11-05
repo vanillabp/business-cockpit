@@ -1,13 +1,13 @@
 ---
 name: business-cockpit
-description: Generate a user interface for the VanillaBP Business Cockpit that fits an organisation's own tech stack, in any web framework, together with a dev shell, a types library for workflow modules, a jar the cockpit backend pulls as a Maven dependency and an nginx image for a separate deployment. The agent first interviews the user (framework, design library, theme, the word for a case, language, screens, primary filters, columns, live updates, extension points, backend framework, coordinates, memory limit), then generates the project, then verifies it against a versioned checklist that also drives the end-to-end tests. Covers the GUI API with paging, sorting, filtering over reported business data and the update stream, lists that hold only a window of rows, loading the parts of workflow modules at runtime as self-contained ES modules with import() and a small manifest per module, sharing no dependencies so that cockpit and modules mix frameworks freely, the web components with shadow DOM those parts register, the event protocol between a module's part and the cockpit, the behaviour a user expects, and what a cockpit user interface never does. Use whenever somebody wants their own Business Cockpit front end, wants to upgrade a generated one to a newer checklist, or needs a dev shell for the parts of a workflow module.
+description: Generate the two repositories of a VanillaBP Business Cockpit that fits an organisation's own tech stack. The frontend repository is one npm workspaces repository with the user interface in any web framework, the types library, the cockpit's own module kit and module host for its workflow modules, the theme, a dev shell per framework, a jar the backend pulls as a Maven dependency and an nginx image for a separate deployment. The backend repository is a Maven project with the cockpit application on the business-cockpit library, the controllers of the lists, the login (OIDC with Keycloak by default, or a form), the user directory, a types jar for the Java side of the workflow modules and a docker-compose.yaml with MongoDB, Kafka, Mailpit and Keycloak. The agent first interviews the user (framework, design library, theme, the word for a case, language, screens, primary filters, columns, live updates, extension points, login, hosting, coordinates, memory limit), then generates both repositories, then verifies them against a versioned checklist that also drives the end-to-end tests. Covers the GUI API with paging, sorting, filtering over reported business data and the update stream, lists that hold only a window of rows, loading the parts of workflow modules at runtime as self-contained ES modules with import() and a small manifest per module, sharing no dependencies so that cockpit and modules mix frameworks freely, the web components with shadow DOM those parts register, the event protocol between a module's part and the cockpit, the behaviour a user expects, and what a cockpit user interface never does. Use whenever somebody wants their own Business Cockpit, its front end or its backend application, wants to upgrade a generated one to a newer checklist, or needs a dev shell for the parts of a workflow module.
 license: Apache-2.0
 metadata:
 author: vanillabp
 homepage: https://www.vanillabp.io
 ----------------------------------
 
-# Generating a Business Cockpit user interface
+# Generating a Business Cockpit
 
 The Business Cockpit is the central user interface of a company. Employees find the user tasks that
 the digitised business processes give them, and they look up the state of a business case. The
@@ -15,11 +15,13 @@ VanillaBP cockpit backend has no user interface of its own. Every organisation b
 framework, its own version of it, its own component library and its own design. So no single user
 interface fits, and this skill does not describe one.
 
-This skill is a generator. You use it to generate a cockpit user interface that fits the tech stack
-of one organisation. You work in three phases:
+This skill is a generator. You use it to generate the cockpit of one organisation: a user interface
+that fits its tech stack, and on request the backend application that serves it. You work in three
+phases:
 
 1. [Interview](#phase-1-interview). You ask, and you assume nothing.
-2. [Generate](#phase-2-generate). You build the project from the answers and from the references.
+2. [Generate](#phase-2-generate). You build both repositories from the answers and from the
+   references.
 3. [Verify](#phase-3-verify). You check the result against the checklist, item by item.
 
 Example user interfaces in React, Angular and Vue exist, each generated with this skill. They are
@@ -43,47 +45,63 @@ the code disagree, the code is right and the text is the bug.
 
 ## What you generate
 
-By default two repositories and one small Maven project, each with one build tool.
+Two repositories, each with one build tool. Running the skill builds both: the frontend repository
+always, the backend repository when the user wants it (`Q-BACKEND`).
 [references/project.md](references/project.md) describes them.
 
 The UI repository is one npm repository with npm workspaces. Every npm package below is a
 workspace of it, and one `package-lock.json` at the root pins the dependencies of all of them, see
 [references/project.md](references/project.md#the-npm-workspaces). It produces:
 
+- The types library `<scope>/bc-types`. It holds the data of the GUI API and every constant of the
+  contract with the workflow modules, such as the entries, the areas and the `ui-uri-type` values
+  this user interface understands. It has no dependencies.
+- The module kit `<scope>/bc-module-kit`, the package a workflow module installs. It is this
+  cockpit's own copy of the VanillaBP kit `@vanillabp/bc-module-kit`, made to fit the interview.
+  It is built on the types library and exports its types again, and it brings the runtime code a
+  module needs: `defineBcElement`, the event protocol, the manifest and `bc-check-entries`. It covers
+  the VanillaBP kit as its minimum, see
+  [references/types.md](references/types.md#the-vanillabp-kit-is-the-minimum).
+- The module host `<scope>/bc-module-host`, this cockpit's own copy of `@vanillabp/bc-module-host`.
+  It loads the parts of the workflow modules. The user interface uses it, and so do the tests of a
+  workflow module.
+- The theme library `<scope>/bc-theme`. It holds the colours, fonts and logo of the cockpit, and
+  the user interface and every dev shell take their look from it.
 - The cockpit user interface, a single-page application. It shows the lists and loads the parts of
   the workflow modules into its pages at runtime.
-- The UI jar, with the built files at the place where the backend framework serves them. A Node
-  script builds it and uploads it with HTTP `PUT` into the company's Maven repository.
-- A types library for workflow modules, as an npm package. It says what a part of a module may
-  expect from the cockpit, and it carries the small helper which turns a function call into an event
-  on the DOM element. It also lists the `ui-uri-type` values this user interface understands. It
-  is the one contract of this cockpit, and it covers the module kit `@vanillabp/bc-module-kit` as
-  its minimum, see [references/types.md](references/types.md#the-module-kit-is-the-minimum).
-- The theme library, as an npm package. It holds the colours, fonts and logo of the cockpit, and
-  the user interface and every dev shell take their look from it.
 - A dev shell for each framework the workflow modules use, as an npm package. It is the workbench on
   which somebody writes a user task form without starting a cockpit.
+- The UI jar, with the built files at the place where the backend framework serves them. A Node
+  script builds it and uploads it with HTTP `PUT` into the company's Maven repository.
 - A `Dockerfile` that serves the user interface with nginx, for an organisation that deploys it
   apart from the backend (`Q-HOSTING` is `behind` or `in-front`).
 
-The types module, the small Maven project, produces:
+The backend repository is a Maven project with a parent `pom.xml` and two modules, see
+[references/backend.md](references/backend.md):
 
-- The types jar, for the Java side of the workflow modules. It holds one constant for each
-  `ui-uri-type` value this user interface understands, so a workflow module reports the same values
-  the types library lists.
+- `application`, the cockpit application of the organisation, the counterpart of the `container`
+  module of the cockpit. It depends on the `business-cockpit` library and brings what the library
+  leaves to the application: the controllers of the lists, the login, the user directory and the
+  configuration. By default it pulls the UI jar as an ordinary dependency and serves the user
+  interface itself.
+- `types`, the types jar for the Java side of the workflow modules. It holds one constant for each
+  `ui-uri-type` value, generated from the types library, so a workflow module reports the same
+  values the user interface understands.
+- A `docker-compose.yaml` that starts what the application needs on a developer's machine:
+  MongoDB, Kafka, Mailpit, and Keycloak for an OIDC login.
 
-The backend repository is a pure Maven project, the cockpit application of the organisation. By
-default it pulls the UI jar as an ordinary dependency and serves the user interface itself. The skill
-does not write the application, but it tells the user which dependency to add. The user interface can
-also run in an nginx of its own. Then the backend still answers every request of the browser and
-passes on to that nginx only what the cockpit does not know itself. The three ways are described in
-[Where the user interface runs](#where-the-user-interface-runs), and `Q-HOSTING` decides between
-them.
+When the organisation keeps a backend of its own, the skill does not create one. It tells the user
+which dependency to add, and the types jar comes from a small Maven project of its own instead.
 
-The types module is a Maven project of its own, apart from the backend application and from the UI
-build. It builds the types jar. It reads the npm package of the types library, and the user interface needs
-the OpenAPI files of the cockpit jars first. Inside the cockpit build that would be a circle, so its
-`README.md` explains the order: cockpit release, user interface, types module, backend.
+The user interface can also run in an nginx of its own. Then the backend still answers every request
+of the browser and passes on to that nginx only what the cockpit does not know itself. The three ways
+are described in [Where the user interface runs](#where-the-user-interface-runs), and `Q-HOSTING`
+decides between them.
+
+The types jar reads the npm package of the types library, and the user interface needs the OpenAPI
+files of the cockpit jars first. Inside the cockpit build that would be a circle. So the order of a
+release is: the cockpit release, the user interface, then the backend repository, see
+[references/project.md](references/project.md#where-the-types-jar-is-built).
 
 ## Phase 1: interview
 
@@ -92,12 +110,13 @@ write the answers down. Where a question has a default, propose it, but let the 
 fill in an answer because it sounds likely. An organisation that uses the cockpit in one department
 wants different things from one that uses it company-wide.
 
-The answers go into the generated project as `INTERVIEW.md`. The next agent who changes the user
-interface reads it first.
+The answers go into the UI repository as `INTERVIEW.md`. The next agent who changes the user
+interface or the backend reads it first.
 
 ## Phase 2: generate
 
-Generate the project as [references/project.md](references/project.md) describes. Build each screen
+Generate the UI repository as [references/project.md](references/project.md) describes, and the
+backend repository as [references/backend.md](references/backend.md) describes. Build each screen
 as [references/behaviour.md](references/behaviour.md) describes. Talk to the server as
 [references/gui-api.md](references/gui-api.md) describes, and load the parts of the workflow
 modules as [references/module-loading.md](references/module-loading.md) describes. Read
@@ -125,14 +144,14 @@ down the result. Then do what [How you know it is done](#how-you-know-it-is-done
 
 ### A module built against the kit loads in your cockpit
 
-The module kit `@vanillabp/bc-module-kit` is the minimum every cockpit keeps, see
-[references/types.md](references/types.md#the-module-kit-is-the-minimum). Its repository
+The VanillaBP kit `@vanillabp/bc-module-kit` is the minimum every cockpit keeps, see
+[references/types.md](references/types.md#the-vanillabp-kit-is-the-minimum). Its repository
 `vanillabp/business-cockpit-module-kit` has three example modules, the same module written in
 React, in Vue and in Angular, and a browser test for them. Run that test against your cockpit
 (`EXT-040`). It passes for a cockpit with areas and for one without, because the example modules
 offer both.
 
-1. Take the kit's repository at the version your types library covers. Run `npm ci`,
+1. Take the kit's repository at the version your module kit covers. Run `npm ci`,
    `npm run build:examples` and `npm run build:conformance`. This writes the folder
    `dist/conformance`, which works on its own: the built modules below `wm/react-module/`,
    `wm/vue-module/` and `wm/angular-module/`, a small web server `serve.mjs`, the test
@@ -188,30 +207,34 @@ Read them in this order. Each one builds on the one before.
    The questions you ask before you generate anything, and their defaults.
 2. [references/project.md](references/project.md)<br>
    The two repositories: the npm workspaces of the UI repository, the user interface, the UI jar,
-   the upload into the Maven repository, the nginx image, the backend, the types module, the types
-   library, the theme library and the dev shells.
-3. [references/gui-api.md](references/gui-api.md)<br>
+   the upload into the Maven repository, the nginx image, the backend repository, the types jar, the
+   types library, the module kit, the module host, the theme library and the dev shells.
+3. [references/backend.md](references/backend.md)<br>
+   The backend repository the skill creates: the parent pom, the application, the controllers of
+   the lists, the login, the BPMS API, the user directory, the configuration, the
+   `docker-compose.yaml` and the test that starts the application.
+4. [references/gui-api.md](references/gui-api.md)<br>
    What the server can do: generating the client, logging in, the endpoints, paging, sorting,
    filtering over reported business data, suggestions for a search field, the primary filter, the
    timestamp that keeps a list stable, and the update stream.
-4. [references/module-loading.md](references/module-loading.md)<br>
+5. [references/module-loading.md](references/module-loading.md)<br>
    How a part of a workflow module gets into your page: self-contained ES modules loaded with
    `import()`, the manifest of a module, build recipes per framework, the extension points, data
    entries without a framework, the registry of modules and the central loader, the three steps
    ask, load and draw with their states, web components with shadow DOM, the areas of a page, and
    the event protocol.
-5. [references/types.md](references/types.md)<br>
-   What goes into the types library the generated user interface publishes.
-6. [references/behaviour.md](references/behaviour.md)<br>
+6. [references/types.md](references/types.md)<br>
+   What goes into the types library and the module kit the generated user interface publishes.
+7. [references/behaviour.md](references/behaviour.md)<br>
    What the user expects: the screens, the header and the menu, the counts, the lists, the columns,
    notes, opening a task, the window of loaded rows, live updates, search, user settings, language,
    extension points and who sees what.
-7. [references/dev-shell.md](references/dev-shell.md)<br>
+8. [references/dev-shell.md](references/dev-shell.md)<br>
    The workbench for a workflow module and the simulator behind it.
-8. [references/rough-edges.md](references/rough-edges.md)<br>
+9. [references/rough-edges.md](references/rough-edges.md)<br>
    The places where the obvious thing is the wrong thing.
-9. [references/reference-1.0.0.md](references/reference-1.0.0.md)<br>
-   The checklist of version 1.0.0. The base for `CHECKLIST.md` and for the end-to-end tests.
+10. [references/reference-1.0.0.md](references/reference-1.0.0.md)<br>
+    The checklist of version 1.0.0. The base for `CHECKLIST.md` and for the end-to-end tests.
 
 The wiki of the repository describes the same things for a reader who does not build a user
 interface:
@@ -256,10 +279,11 @@ customer's Git repository.
 ## How your user interface gets into the cockpit
 
 Today a cockpit is a Spring Boot application. A Quarkus variant of the cockpit comes later, and the
-generator is ready for it (`Q-BACKEND-FRAMEWORK`). A cockpit is either the runnable `container` jar
-of the `business-cockpit` repository, or an application of the organisation's own that has the
-library `io.vanillabp.businesscockpit:business-cockpit` as a dependency. How such an application is
-built is in the wiki under
+UI jar is ready for it (`Q-BACKEND-FRAMEWORK`). A cockpit is either the runnable `container` jar of
+the `business-cockpit` repository, or an application of the organisation's own that has the library
+`io.vanillabp.businesscockpit:business-cockpit` as a dependency. The skill creates such an
+application on request, see [references/backend.md](references/backend.md). The wiki describes it
+for a reader under
 [Building a custom Business Cockpit](https://github.com/vanillabp/business-cockpit/wiki/Building-a-custom-Business-Cockpit).
 The library and the `container` jar bring no user interface.
 
@@ -293,13 +317,12 @@ There are three ways. Ask which one in the interview (`Q-HOSTING`); the default 
 Propose `embedded`. Propose `behind` when the user interface needs its own deployment. Propose
 `in-front` only for a token in the `Authorization` header.
 
-The library sets no rules for login. How a user logs in is decided by the backend application. In
-Spring Boot, for example, an unauthenticated request can be sent to the `/login` endpoint. Depending
-on the configuration, that shows a login form or forwards to an OAuth2 login. The runnable
-`container` jar is an example that runs out of the box. Only it uses basic authentication, with a
-local user directory. See [Security](https://github.com/vanillabp/business-cockpit/wiki/Security).
-Today the library still has a default chain of its own, with basic authentication and users in
-memory. Prompt `1510` moves it into `container`, see
+The library brings no login. How a user logs in is decided by the backend application, in its
+security chains (`Q-LOGIN-KIND`). A backend the skill creates logs the user in at an OIDC provider,
+by default the Keycloak of its `docker-compose.yaml`, or with a login form, see
+[references/backend.md](references/backend.md#the-login). The runnable `container` jar is an example
+that runs out of the box. Only it uses basic authentication, with a local user directory. See
+[Security](https://github.com/vanillabp/business-cockpit/wiki/Security) and
 [references/rough-edges.md](references/rough-edges.md#what-needs-a-newer-cockpit).
 
 What your user interface needs from the backend application:
@@ -323,12 +346,16 @@ What your user interface needs from the backend application:
 Each step can be shown on its own. If you change the order, you build for a long time without
 seeing anything.
 
-1. The project skeleton: the npm workspaces with the types library and the theme, the generated GUI
-   API client, and the UI jar with an empty shell, uploaded into the Maven repository. Add it to
-   the backend and see the shell load.
-2. The frame and the login. `GET /app/info` and `GET /app/current-user` are enough for an
+1. The project skeleton: the npm workspaces with the types library, the module kit, the module host
+   and the theme, the generated GUI API client, and the UI jar with an empty shell, uploaded into
+   the Maven repository.
+2. The backend repository, when the skill creates it: the parent pom, the application with the
+   controllers of the lists, the login and the user directory, the `docker-compose.yaml` and the
+   test that starts the application. Start it with the UI jar and see the shell load after the
+   login. With a backend of the organisation's own, add the UI jar to it instead.
+3. The frame and the login. `GET /app/info` and `GET /app/current-user` are enough for an
    application that knows who is there. Then the header with its toggle and the menu.
-3. A list without the columns of the modules, with the primary filter and its counts, and with the
+4. A list without the columns of the modules, with the primary filter and its counts, and with the
    window of loaded rows. This settles paging. Write the memory test and the scrolling test now, not
    at the end, and run them with a lot of data: three or four simulated workflow modules that
    together report 30,000 user tasks or cases. Run them on the primary filter for closed tasks as
@@ -339,21 +366,22 @@ seeing anything.
    well: scrolling down and up must not make the heap grow, and leaving the list must free it.
    Simulate a total of one million entries to see the cap of the list at work. See
    [references/behaviour.md](references/behaviour.md#paging-and-the-window-of-loaded-rows).
-4. Sorting and searching. After this, the paths and their traps are clear.
-5. The types library with `bc-check-entries`, the registry of modules and the central loader. Then
+5. Sorting and searching. After this, the paths and their traps are clear.
+6. The module kit with `bc-check-entries`, and the module host with the registry of modules and the
+   central loader. Then
    the columns of a list, then the page of a user task with its areas, then the page of a case,
    then the other extension points.
-6. The update stream. It comes late, because it needs most of the rest.
-7. The dev shells, one per framework the workflow modules use.
-8. The types module with its `README.md`, and the nginx image when `Q-HOSTING` is `behind` or
-   `in-front`.
-9. The end-to-end tests, one per checklist item.
+7. The update stream. It comes late, because it needs most of the rest.
+8. The dev shells, one per framework the workflow modules use.
+9. The types jar: the module `types` of the backend repository, or the types module of its own with
+   its `README.md`. Then the nginx image when `Q-HOSTING` is `behind` or `in-front`.
+10. The end-to-end tests, one per checklist item.
 
 ## How you know it is done
 
 Run the generated user interface against a running cockpit with workflow modules. As workflow
 modules, use the Business Cockpit blueprints in the `vanillabp-blueprints` organisation. They do not
-wait for a generated cockpit. They are built against the module kit `@vanillabp/bc-module-kit`, a
+wait for a generated cockpit. They are built against the VanillaBP kit `@vanillabp/bc-module-kit`, a
 small npm package in plain JavaScript from its own repository
 (`vanillabp/business-cockpit-module-kit`). It holds the minimum of the contract: the four data
 entries and their export names, the area `all`, the manifest, the event protocol,
@@ -362,10 +390,11 @@ of that repository, `@vanillabp/bc-module-host`, a minimal host which loads a mo
 [references/module-loading.md](references/module-loading.md) describes. Both packages are not on
 npmjs.com yet; until they are, they come from a local Verdaccio registry.
 
-The types library you generate does not take the kit in. It is the one contract of this cockpit. It
-covers the kit as its minimum, with the same names, and adds what only this user interface knows,
-such as its `ui-uri-type` values, `Header` or the areas of a page (`PKG-027`). So a blueprint which
-passes against the kit loads in every generated cockpit. A blueprint that offers a `Header` or
+The module kit you generate does not take the VanillaBP kit in. Together with the types library
+below it, it is the one contract of this cockpit. It covers the VanillaBP kit as its minimum, with
+the same names, and adds what only this user interface knows, such as its `ui-uri-type` values,
+`Header` or the areas of a page (`PKG-043`). So a blueprint which passes against the VanillaBP kit
+loads in every generated cockpit. A blueprint that offers a `Header` or
 areas your cockpit does not have still loads, only without that part. One of the blueprints shows
 user tasks, one shows a workflow details page, and one shows an extension of the header. If the
 organisation's cockpit has extension points that no blueprint offers, extend a blueprint, so that
@@ -392,6 +421,8 @@ Then:
 11. The backend repository builds and serves the user interface the way `Q-HOSTING` chose: with the
     UI jar as a dependency (`embedded`), through its gateway route to the nginx image (`behind`), or
     behind the nginx image (`in-front`).
-12. A module built against the kit loads in your cockpit: the conformance test with the kit's
+12. When the skill created the backend: `docker compose up` and the profile `local` start a cockpit
+    a user logs in to the way `Q-LOGIN-KIND` chose, and every list of `Q-LIST-CONTROLLERS` answers.
+13. A module built against the kit loads in your cockpit: the conformance test with the kit's
     example modules in React, Vue and Angular passes, see
     [A module built against the kit loads in your cockpit](#a-module-built-against-the-kit-loads-in-your-cockpit).

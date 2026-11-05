@@ -264,15 +264,23 @@ yet. The cockpit version of the interview (`Q-COCKPIT-VERSION`) must have them:
 | `1506` | the count endpoint |
 | `1507` | notes on user tasks and cases |
 | `1509` | `OpenTasks` is gone; the open modes are `OpenTasksWithFollowUp` and `OpenTasksWithoutFollowUp`; without `mode` the server takes `OpenTasksWithFollowUp` for user tasks and the open cases for cases |
-| `1762` | the modes of a case list are `All`, `InProgress` (not ended, suspended cases included) and `Done` (ended) |
+| `1510` | the library brings no login; the application writes the security chains and `userDetailsProvider`. Needed by a backend the skill creates, not by the user interface |
 | `1511` | `GET /updates` and the types of its events in the cockpit's own file `api/gui/v1.yaml`, so these types are generated too |
+| `1762` | the modes of a case list are `All`, `InProgress` (not ended, suspended cases included) and `Done` (ended) |
 
 Against an older cockpit the generated client lacks these endpoints and fields, and the build
 fails. That is on purpose: better a failed build than a user interface that guesses.
 
-Your user interface does not need prompt `1510`. Today the library still has a default security
-chain with basic authentication, and `1510` moves it into `container`. The login on the cockpit side
-is the business of the backend application.
+Your user interface does not need prompt `1510`, but a backend the skill creates does. Since `1510`
+the library brings no login: the two security chains and the bean `userDetailsProvider` are the
+application's, and the generated backend writes all three itself, see
+[backend.md](backend.md#the-login). An older library has a BPMS API chain of its own under the same
+bean name, and the application would not start next to it.
+
+The OIDC login of [backend.md](backend.md#oidc-the-default) follows the wiki page
+[Security](https://github.com/vanillabp/business-cockpit/wiki/Security), but the cockpit has no
+test for it yet. The second part of `1510`, a login with OAuth2, is still to come. Until then the
+end-to-end test of the login in the generated project is the proof (`BE-007`).
 
 One thing is still to come and has no prompt yet: the rights of the user and where they come from,
 for the overview in the menu, see [behaviour.md](behaviour.md#the-header-and-the-menu).
