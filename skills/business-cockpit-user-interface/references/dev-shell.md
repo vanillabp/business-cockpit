@@ -61,11 +61,12 @@ For this it must:
 7. Show a toast when a part calls `showNotification`, in the look of its `level`, and keep a
    `sticky` one until it is clicked away.
 8. Let the developer choose the language from the languages of the cockpit (`Q-LANGUAGES`).
-9. Look like the cockpit. The theme from the interview (`Q-THEME`) is built into the base pages when
-   the dev shell is generated, so a user task or a case looks as close to pixel-identical to the
-   cockpit as possible. The application header with the task actions, the areas `body`,
-   `information` and `actions` (`Q-TASK-PAGE-AREAS`, `Q-WORKFLOW-PAGE-AREAS`) and the scrolling are
-   laid out as in the cockpit.
+9. Look like the cockpit. The theme from the interview (`Q-THEME`) comes from the theme library
+   `<scope>/bc-theme`, the workspace the user interface takes it from too, see
+   [project.md](project.md#the-theme-library). So a user task or a case looks as close to
+   pixel-identical to the cockpit as possible. The application header with the task actions, the
+   areas `body`, `information` and `actions` (`Q-TASK-PAGE-AREAS`, `Q-WORKFLOW-PAGE-AREAS`) and the
+   scrolling are laid out as in the cockpit.
 
 A dev shell for Angular runs zoneless, as an Angular module does in the cockpit, see
 [module-loading.md](module-loading.md#nothing-is-shared). A form that needs `zone.js` fails in the

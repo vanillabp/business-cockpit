@@ -47,7 +47,9 @@ the code disagree, the code is right and the text is the bug.
 By default two repositories and one small Maven project, each with one build tool.
 [references/project.md](references/project.md) describes them.
 
-The UI repository is a pure npm project. It produces:
+The UI repository is one npm repository with npm workspaces. Every npm package below is a
+workspace of it, and one `package-lock.json` at the root pins the dependencies of all of them, see
+[references/project.md](references/project.md#the-npm-workspaces). It produces:
 
 - The cockpit user interface, a single-page application. It shows the lists and loads the parts of
   the workflow modules into its pages at runtime.
@@ -58,6 +60,8 @@ The UI repository is a pure npm project. It produces:
   on the DOM element. It also lists the `ui-uri-type` values this user interface understands. It
   is the one contract of this cockpit, and it covers the module kit `@vanillabp/bc-module-kit` as
   its minimum, see [references/types.md](references/types.md#the-module-kit-is-the-minimum).
+- The theme library, as an npm package. It holds the colours, fonts and logo of the cockpit, and
+  the user interface and every dev shell take their look from it.
 - A dev shell for each framework the workflow modules use, as an npm package. It is the workbench on
   which somebody writes a user task form without starting a cockpit.
 - A `Dockerfile` that serves the user interface with nginx, for an organisation that deploys it
@@ -184,8 +188,9 @@ Read them in this order. Each one builds on the one before.
 1. [references/interview.md](references/interview.md)<br>
    The questions you ask before you generate anything, and their defaults.
 2. [references/project.md](references/project.md)<br>
-   The two repositories: the user interface, the UI jar, the upload into the Maven repository, the
-   nginx image, the backend, the types module, the types library and the dev shells.
+   The two repositories: the npm workspaces of the UI repository, the user interface, the UI jar,
+   the upload into the Maven repository, the nginx image, the backend, the types module, the types
+   library, the theme library and the dev shells.
 3. [references/gui-api.md](references/gui-api.md)<br>
    What the server can do: generating the client, logging in, the endpoints, paging, sorting,
    filtering over reported business data, suggestions for a search field, the primary filter, the
@@ -319,8 +324,9 @@ What your user interface needs from the backend application:
 Each step can be shown on its own. If you change the order, you build for a long time without
 seeing anything.
 
-1. The project skeleton: the npm workspace, the generated GUI API client, and the UI jar with an
-   empty shell, uploaded into the Maven repository. Add it to the backend and see the shell load.
+1. The project skeleton: the npm workspaces with the types library and the theme, the generated GUI
+   API client, and the UI jar with an empty shell, uploaded into the Maven repository. Add it to
+   the backend and see the shell load.
 2. The frame and the login. `GET /app/info` and `GET /app/current-user` are enough for an
    application that knows who is there. Then the header with its toggle and the menu.
 3. A list without the columns of the modules, with the primary filter and its counts, and with the
