@@ -293,12 +293,14 @@ Only the application knows where its users live. The library asks three beans fo
 `DerivedCockpitApplication` in the tests of `container` shows all three on a fixed list of users.
 Where the list comes from is `Q-USER-DIRECTORY`:
 
-- `configuration`, the default: a list of users with their groups in `application.yaml`, below a
-  prefix of the application, read with `@ConfigurationProperties`. With `Q-LOGIN-KIND` `form` it
-  also holds each password as a `bcrypt` hash. It is enough for a start and for the tests. For
-  production the organisation replaces it.
-- `keycloak`: the users and groups of the Keycloak realm, read through Keycloak's admin REST API
-  with a service account. The skill writes the client for it in the application.
+- `keycloak`, the default: the users and groups of the Keycloak realm, read through Keycloak's
+  admin REST API with a service account. The library brings no client for it, so the skill writes
+  one in the application. The login and the directory then come from one place, so the ids always
+  match.
+- `configuration`: a list of users with their groups in `application.yaml`, below a prefix of the
+  application, read with `@ConfigurationProperties`. With `Q-LOGIN-KIND` `form` it also holds each
+  password as a `bcrypt` hash. It is the choice when there is no Keycloak, and the default with
+  `Q-LOGIN-KIND` `form`.
 - `ldap`: the users and groups of a directory, read with Spring LDAP.
 
 The users of the directory and the users of the login must be the same people with the same ids.
@@ -398,6 +400,9 @@ writes that file for local development:
   `http://localhost:8080/login/oauth2/code/<id>` and the secret that `application-local.yaml`
   names,
 - a mapper that writes the groups of a user into the claim `groups`,
+- with `Q-USER-DIRECTORY` `keycloak`: a second confidential client, by default
+  `business-cockpit-directory`, with service accounts on and only the roles `view-users` and
+  `query-groups` of `realm-management`, and its secret named in `application-local.yaml`,
 - exactly one group and one user with a password, and the user is a member of the group. They are
   a template, not a set of test users.
 
