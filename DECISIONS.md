@@ -890,7 +890,7 @@ interface from this text has no second source to check it against.
 
 #### Where this decision is referred to
 
-- `skills/business-cockpit-user-interface/SKILL.md`, the paragraph saying why the text lives in
+- `skills/business-cockpit/SKILL.md`, the paragraph saying why the text lives in
   this repository.
 - the skill `business-cockpit` in `vanillabp/skills`, which points here instead of repeating.
 - the wiki page `Customizing the user interface`.
@@ -906,6 +906,13 @@ Note (2026-10-12): Since decision 63 the React application is no longer in this 
 is no longer the worked example next to the description. The description in
 `skills/business-cockpit-user-interface` stays, and the Git history keeps the sources it was read
 from.
+
+Note (2026-11-05): The maintainer renamed the directory to `skills/business-cockpit`, and the
+skill's `name` with it. The skill no longer describes only a user interface. It now generates both
+repositories of a cockpit: the npm repository of the user interface and the Maven repository of
+the backend application. A name that says "user interface" would send an agent away from the
+backend half. The skill of the same name in `vanillabp/skills` still points here. It has to be
+renamed or merged, so that one installation does not hold two skills called `business-cockpit`.
 
 ### 28. An initiator is always set, and the application is the only one who knows it
 
@@ -1208,7 +1215,7 @@ Each of these says it in its own words, so none of them has to cite a number:
   the comment above the `ui-uri-type` check
 - `ui/bc-ui/src/utils/module-federation.ts`, `UiUriType` and `addressOfFederatedBundle`
 - `UPGRADE.md`, the section about the address
-- `skills/business-cockpit-user-interface/references/gui-api.md` and
+- `skills/business-cockpit/references/gui-api.md` and
   `references/module-loading.md`
 - the wiki pages `User-task-forms-and-status-sites` and `Customizing-the-user-interface`
 
