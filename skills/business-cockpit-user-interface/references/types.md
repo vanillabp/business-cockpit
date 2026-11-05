@@ -385,7 +385,8 @@ lives in `UserTaskFormFunction`, so every form is a visual entry of its own, see
 [module-loading.md](module-loading.md#data-entries-carry-no-framework).
 
 It also exports the names of the CSS custom properties of the theme (`Q-THEME-TOKENS`), so a module
-can use them inside its shadow DOM.
+can use them inside its shadow DOM. The values behind these names are not part of it. They live in
+the theme library `<scope>/bc-theme`, see [project.md](project.md#the-theme-library).
 
 ## The manifest and its check
 

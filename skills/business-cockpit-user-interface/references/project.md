@@ -5,9 +5,9 @@
 By default the skill fills two repositories and one small Maven project, and each one needs only
 one build tool.
 
-- The UI repository is a pure npm project. It builds and publishes the user interface, the types
-  library, the dev shells, the UI jar and an nginx image. It has no `pom.xml`, and its build needs
-  no Java.
+- The UI repository is one npm repository with npm workspaces. It builds and publishes the user
+  interface, the types library, the theme, the dev shells, the UI jar and an nginx image. It has no
+  `pom.xml`, and its build needs no Java.
 - The backend repository is a pure Maven project. It is the cockpit application, and it pulls
   the UI jar as an ordinary dependency. It has no `package.json`.
 - The types module is a Maven project of its own. It builds the types jar, see
@@ -19,6 +19,7 @@ Keeping npm and Maven apart avoids both problems, and a Maven release of the bac
 ordinary Maven release.
 
 1. [The UI repository](#the-ui-repository)
+1. [The npm workspaces](#the-npm-workspaces)
 1. [The user interface bundle](#the-user-interface-bundle)
 1. [The UI jar](#the-ui-jar)
 1. [Uploading the UI jar into the Maven repository](#uploading-the-ui-jar-into-the-maven-repository)
@@ -27,18 +28,23 @@ ordinary Maven release.
 1. [The types jar](#the-types-jar)
 1. [What still needs Java](#what-still-needs-java)
 1. [The types library](#the-types-library)
+1. [The theme library](#the-theme-library)
 1. [The dev shell libraries](#the-dev-shell-libraries)
 1. [What the project keeps beside the code](#what-the-project-keeps-beside-the-code)
 
 ## The UI repository
 
 ```
-package.json                  the workspace root, with the scripts that build everything
+package.json                  the workspace root: the list of workspaces, the scripts
+                              that build everything, no dependencies of the code
+package-lock.json             the one lock file of all workspaces
+renovate.json                 groups the updates of a framework across the workspaces
 INTERVIEW.md                  the answers of the interview
 CHECKLIST.md                  the checklist, see ../SKILL.md
 packages/
   ui/                         the cockpit user interface
   bc-types/                   <scope>/bc-types, no dependencies
+  bc-theme/                   <scope>/bc-theme, the colours, fonts and logo of Q-THEME
   bc-dev-shell-<framework>/   <scope>/bc-dev-shell-<framework>, one per framework of the modules
 scripts/
   fetch-openapi.mjs           loads the OpenAPI files from the jars of the cockpit
@@ -53,12 +59,13 @@ e2e/                          the end-to-end tests, one per checklist item, and 
                               measurement of the lists, see behaviour.md
 ```
 
-The types library and the dev shells are separate npm packages from the same workspace. That is the
-recommended way. A dev shell needs its framework as a peer dependency, and the types library must
-not have one: a workflow module in Vue must not be forced to install React. One package with subpath
-exports, such as `<scope>/bc/types` and `<scope>/bc/dev-shell-react`, would also work, because tree
-shaking drops the parts a module does not use. But its peer dependencies would still name every
-framework, so separate packages are cleaner.
+The types library, the theme and the dev shells are separate npm packages, each a workspace of the
+same repository. That is the recommended way. A dev shell needs its framework as a peer dependency,
+and the types library must not have one: a workflow module in Vue must not be forced to install
+React. One package with subpath exports, such as `<scope>/bc/types` and
+`<scope>/bc/dev-shell-react`, would also work, because tree shaking drops the parts a module does
+not use. But its peer dependencies would still name every framework, so separate packages are
+cleaner.
 
 The GUI API client is generated at build time into `packages/ui` and into each dev shell, see
 [gui-api.md](gui-api.md#generating-the-client). It is not committed. `scripts/fetch-openapi.mjs`
@@ -66,6 +73,101 @@ loads the two OpenAPI files first. It reads the jars of the cockpit from the Mav
 the interview (`Q-COCKPIT-VERSION`, `Q-COCKPIT-REPOSITORY`). By default that is Maven Central,
 which needs no token. Only a company repository with a login needs one, from the environment
 variable the interview names.
+
+## The npm workspaces
+
+The UI repository uses npm workspaces. npm has them since version 7, so no other tool is needed,
+neither pnpm nor Lerna. The root `package.json` lists the workspaces:
+
+```json
+{
+  "name": "business-cockpit-ui-root",
+  "version": "1.4.0",
+  "private": true,
+  "workspaces": [
+    "packages/bc-types",
+    "packages/bc-theme",
+    "packages/ui",
+    "packages/bc-dev-shell-*"
+  ]
+}
+```
+
+Every npm package of the repository is a workspace: the user interface, the types library, the
+theme and each dev shell. A new npm package, for example a second theme, becomes one more entry in
+this list, not a repository of its own. The Maven types module and the backend stay outside, see
+[The types jar](#the-types-jar).
+
+One `npm ci` at the root installs every workspace. There is one `package-lock.json`, at the root,
+and no workspace has a lock file of its own. Each workspace still has its own `package.json` with
+its own dependencies, so a dev shell for Vue never pulls React into the user interface.
+
+### How the workspaces depend on each other
+
+The user interface and each dev shell name the types library as an ordinary dependency, with the
+version of the workspace:
+
+```json
+"dependencies": {
+  "<scope>/bc-types": "1.4.0",
+  "<scope>/bc-theme": "1.4.0"
+}
+```
+
+npm sees that a workspace has this name and version, and links it instead of downloading it. So the
+user interface and the dev shells always build against the types library of the same commit. npm
+has no `workspace:` protocol like pnpm or Yarn. The version must match exactly, or npm downloads the
+package from the registry. When the published package is installed by a workflow module, the same
+line names the published version.
+
+### The order of the build
+
+`npm run build --workspaces` runs the build of each workspace in the order of the list in the root
+`package.json`. npm does not sort the workspaces by their dependencies. So the list keeps this
+order, and the root script `build` calls it:
+
+1. `packages/bc-types`, because everything else imports it.
+2. `packages/bc-theme`, because the user interface and the dev shells take its styles.
+3. `packages/ui`, the single-page application.
+4. `packages/bc-dev-shell-*`, one per framework.
+5. After the workspaces, `npm run build:jars` builds the UI jar from `packages/ui/dist`.
+
+### One version, each package published on its own
+
+All workspaces have the same version, the one in the root `package.json`. A short script,
+`scripts/set-version.mjs`, writes the new version into every `package.json` and into the
+dependencies between the workspaces, then runs `npm install` so that the lock file follows. The Git
+tag is made from that version.
+
+Each package is published on its own, `npm publish --workspace packages/bc-types` and so on, or all
+at once with `npm publish --workspaces`. Publish the types library and the theme first, because the
+dev shells depend on them. `packages/ui` and the root have `"private": true`, so npm never publishes
+them. The user interface leaves the repository as the UI jar and the nginx image, not as an npm
+package.
+
+### Renovate
+
+Renovate handles npm workspaces. It finds the `package.json` of every workspace, and it updates the
+one `package-lock.json` at the root. It leaves the dependencies between the workspaces alone, as
+long as `updateInternalDeps` stays `false`, its default.
+
+Group the updates of a framework across the workspaces. Otherwise Renovate opens one pull request
+for the user interface and another for the dev shell of the same framework, and for a while they
+use two versions. With React, for example:
+
+```json
+{
+  "packageRules": [
+    {
+      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
+      "groupName": "react"
+    }
+  ]
+}
+```
+
+Write one rule like this for every framework of `Q-FRAMEWORK` and `Q-MODULE-FRAMEWORKS`, and one for
+the design library of `Q-DESIGN-LIBRARY`.
 
 ## The user interface bundle
 
@@ -159,13 +261,14 @@ So that a Maven release of the backend works:
 - A build for trying something out gets a version of its own, for example `1.4.0-dev.7`. Maven
   treats it like a release version, so it never clashes with a snapshot and is never overwritten.
 - The version of the npm packages and of the UI jar is the same, the one in the root `package.json`.
-  `npm version` sets it, and the Git tag is made from it.
+  `scripts/set-version.mjs` sets it in every workspace, see
+  [One version, each package published on its own](#one-version-each-package-published-on-its-own).
 - Nexus and Artifactory update the `maven-metadata.xml` of the artifact themselves after a `PUT`.
   A plain WebDAV server does not; there the script also writes that file. Check this with your
   repository once, before the first release.
 
-The npm scripts call this: `npm run build:jars` and `npm run publish:jars`. `npm publish` of the
-npm packages runs next to it, with the same version. The types library must be published before the
+The npm scripts call this: `npm run build:jars` and `npm run publish:jars`. `npm publish` of the npm
+workspaces runs next to it, with the same version. The types library must be published before the
 types module builds the types jar, see [The types jar](#the-types-jar).
 
 ## The nginx image
@@ -359,17 +462,29 @@ as its minimum, but it does not depend on the kit and does not bundle it, see
 It is published to the npm registry from the interview (`Q-NPM-SCOPE`). Its version follows the
 version of the user interface, because both sides of a contract change together.
 
+## The theme library
+
+`<scope>/bc-theme` holds the look of the cockpit from `Q-THEME`: the colours, the fonts, the logo
+and the spacing, also the colours of a new, changed, removed and inactive row. It ships them as a
+CSS file that sets the custom properties on the root, under the names the types library exports
+(`Q-THEME-TOKENS`), and as plain values for code that needs them. It has no dependencies and no
+framework.
+
+The user interface and every dev shell depend on it. So a colour changes in one place, and the
+dev shells look like the cockpit without a copy of the theme. It is published with the dev shells,
+because they need it.
+
 ## The dev shell libraries
 
 `<scope>/bc-dev-shell-<framework>` is generated once for every framework the workflow modules use
-(`Q-MODULE-FRAMEWORKS`). It has the framework as a peer dependency and `<scope>/bc-types` as a
-dependency. Its entry point is the framework's natural form: a `bootstrapDevShell` function for
-React, an application config plus bootstrap for Angular, a component or plugin for Vue.
-[dev-shell.md](dev-shell.md) describes what it must do.
+(`Q-MODULE-FRAMEWORKS`). It has the framework as a peer dependency and `<scope>/bc-types` and
+`<scope>/bc-theme` as dependencies. Its entry point is the framework's natural form: a
+`bootstrapDevShell` function for React, an application config plus bootstrap for Angular, a
+component or plugin for Vue. [dev-shell.md](dev-shell.md) describes what it must do.
 
-The theme of the cockpit (`Q-THEME`) is built into the base pages of every dev shell. A user task
-or a case page must look the same in the dev shell as in the cockpit, as close to pixel-identical
-as possible.
+The theme of the cockpit (`Q-THEME`) comes from `<scope>/bc-theme` into the base pages of every dev
+shell. A user task or a case page must look the same in the dev shell as in the cockpit, as close
+to pixel-identical as possible.
 
 ## What the project keeps beside the code
 

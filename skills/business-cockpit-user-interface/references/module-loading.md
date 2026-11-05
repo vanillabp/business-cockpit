@@ -443,7 +443,8 @@ What a web component does:
 
 The theme reaches the shadow DOM as CSS custom properties. The host sets them on its root, for
 example `--bc-color-primary` or `--bc-font-family`, and they are inherited into every shadow tree
-(`Q-THEME-TOKENS`). Their names are part of the types library.
+(`Q-THEME-TOKENS`). Their names are part of the types library, their values come from the theme
+library, see [project.md](project.md#the-theme-library).
 
 The types library offers a helper, `defineBcElement`, that builds and registers such a web
 component from three plain functions of the module: `mount`, `update` and `unmount`, see
