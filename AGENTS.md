@@ -23,11 +23,11 @@ deployment pipeline of the VanillaBP core through `io.vanillabp:vanillabp-extens
 no BPMS. The five BPMS halves live in their own repositories and consume this one as a published
 artifact:
 
-- [vanillabp/businesscockpit-camunda7-adapter](https://github.com/vanillabp/businesscockpit-camunda7-adapter)
-- [vanillabp/businesscockpit-camunda8-adapter](https://github.com/vanillabp/businesscockpit-camunda8-adapter)
-- [vanillabp/businesscockpit-cibseven-adapter](https://github.com/vanillabp/businesscockpit-cibseven-adapter)
-- [vanillabp/businesscockpit-operaton-adapter](https://github.com/vanillabp/businesscockpit-operaton-adapter)
-- [vanillabp/businesscockpit-process-engine-api-adapter](https://github.com/vanillabp/businesscockpit-process-engine-api-adapter)
+- [vanillabp/business-cockpit-camunda7-adapter](https://github.com/vanillabp/business-cockpit-camunda7-adapter)
+- [vanillabp/business-cockpit-camunda8-adapter](https://github.com/vanillabp/business-cockpit-camunda8-adapter)
+- [vanillabp/business-cockpit-cibseven-adapter](https://github.com/vanillabp/business-cockpit-cibseven-adapter)
+- [vanillabp/business-cockpit-operaton-adapter](https://github.com/vanillabp/business-cockpit-operaton-adapter)
+- [vanillabp/business-cockpit-process-engine-api-adapter](https://github.com/vanillabp/business-cockpit-process-engine-api-adapter)
 
 Whatever those five need from here is an interface in `io.vanillabp.cockpit.extension.spi`. A
 change there is a change to a published contract, so it is made deliberately and documented in the
