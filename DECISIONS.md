@@ -890,7 +890,7 @@ interface from this text has no second source to check it against.
 
 #### Where this decision is referred to
 
-- `skills/business-cockpit/SKILL.md`, the paragraph saying why the text lives in
+- `skills/business-cockpit-creator/SKILL.md`, the paragraph saying why the text lives in
   this repository.
 - the skill `business-cockpit` in `vanillabp/skills`, which points here instead of repeating.
 - the wiki page `Customizing the user interface`.
@@ -911,8 +911,13 @@ Note (2026-11-05): The maintainer renamed the directory to `skills/business-cock
 skill's `name` with it. The skill no longer describes only a user interface. It now generates both
 repositories of a cockpit: the npm repository of the user interface and the Maven repository of
 the backend application. A name that says "user interface" would send an agent away from the
-backend half. The skill of the same name in `vanillabp/skills` still points here. It has to be
-renamed or merged, so that one installation does not hold two skills called `business-cockpit`.
+backend half.
+
+Note (2026-11-05, later the same day): The name `business-cockpit` collided with the skill of the
+same name in `vanillabp/skills`, which is the problem the second reason above warns about. The
+maintainer renamed this skill to `business-cockpit-creator`, in `skills/business-cockpit-creator`.
+The skill in `vanillabp/skills` keeps its name. It only tells an agent that the cockpit exists and
+where to read more, and for building a cockpit it points to this skill.
 
 ### 28. An initiator is always set, and the application is the only one who knows it
 
@@ -1215,7 +1220,7 @@ Each of these says it in its own words, so none of them has to cite a number:
   the comment above the `ui-uri-type` check
 - `ui/bc-ui/src/utils/module-federation.ts`, `UiUriType` and `addressOfFederatedBundle`
 - `UPGRADE.md`, the section about the address
-- `skills/business-cockpit/references/gui-api.md` and
+- `skills/business-cockpit-creator/references/gui-api.md` and
   `references/module-loading.md`
 - the wiki pages `User-task-forms-and-status-sites` and `Customizing-the-user-interface`
 

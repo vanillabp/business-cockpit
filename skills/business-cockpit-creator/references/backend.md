@@ -23,17 +23,17 @@ shortest complete application there is: it lives outside the packages of the lib
 of the library reaches it by the component scan, exactly like the application you generate.
 
 1. [Spring Boot only](#spring-boot-only)
-1. [The layout](#the-layout)
-1. [The parent pom](#the-parent-pom)
-1. [The application](#the-application)
-1. [The controllers of the lists](#the-controllers-of-the-lists)
-1. [The login](#the-login)
-1. [The BPMS API](#the-bpms-api)
-1. [The user directory](#the-user-directory)
-1. [The configuration](#the-configuration)
-1. [The docker-compose.yaml](#the-docker-composeyaml)
-1. [The test that starts the application](#the-test-that-starts-the-application)
-1. [The README](#the-readme)
+2. [The layout](#the-layout)
+3. [The parent pom](#the-parent-pom)
+4. [The application](#the-application)
+5. [The controllers of the lists](#the-controllers-of-the-lists)
+6. [The login](#the-login)
+7. [The BPMS API](#the-bpms-api)
+8. [The user directory](#the-user-directory)
+9. [The configuration](#the-configuration)
+10. [The docker-compose.yaml](#the-docker-composeyaml)
+11. [The test that starts the application](#the-test-that-starts-the-application)
+12. [The README](#the-readme)
 
 ## Spring Boot only
 
@@ -143,13 +143,13 @@ action on it. Without a controller a list stays empty, because nothing answers i
 The skill writes one controller per list of `Q-LIST-CONTROLLERS`. The default follows the screens
 of the interview:
 
-| Controller           | Path                       | Abstract class                            | Visibility                                                   | Generated when |
-|----------------------|----------------------------|-------------------------------------------|--------------------------------------------------------------|----------------|
-| task list            | `/gui/api/v1`              | `AbstractUserTaskListGuiApiController`    | `UserTaskVisibility.everythingTheUserMayWorkOn(currentUser)` | always, it serves `/tasks` |
-| the user's own tasks | `/gui/api/v1/current-user` | `AbstractUserTaskListGuiApiController`    | `UserTaskVisibility.onlyWhatIsTheUsersOwn(currentUser)`      | always, it serves `/my-tasks` |
+|      Controller      |            Path            |              Abstract class               |                          Visibility                          |           Generated when            |
+|----------------------|----------------------------|-------------------------------------------|--------------------------------------------------------------|-------------------------------------|
+| task list            | `/gui/api/v1`              | `AbstractUserTaskListGuiApiController`    | `UserTaskVisibility.everythingTheUserMayWorkOn(currentUser)` | always, it serves `/tasks`          |
+| the user's own tasks | `/gui/api/v1/current-user` | `AbstractUserTaskListGuiApiController`    | `UserTaskVisibility.onlyWhatIsTheUsersOwn(currentUser)`      | always, it serves `/my-tasks`       |
 | tasks of the roles   | `/gui/api/v1/user-roles`   | `AbstractUserTaskListGuiApiController`    | `UserTaskVisibility.whatTheUsersGroupsMayTake(currentUser)`  | `Q-SUB-LISTS` has sub-lists by role |
-| case list            | `/gui/api/v1`              | `AbstractWorkflowListGuiApiController`    | `WorkflowVisibility.workflowsAddressedTo(currentUser)`       | always |
-| workflow modules     | `/gui/api/v1`              | `AbstractWorkflowModulesGuiApiController` | `WorkflowModuleVisibility.modulesAddressedTo(currentUser)`   | always, the loader needs it |
+| case list            | `/gui/api/v1`              | `AbstractWorkflowListGuiApiController`    | `WorkflowVisibility.workflowsAddressedTo(currentUser)`       | always                              |
+| workflow modules     | `/gui/api/v1`              | `AbstractWorkflowModulesGuiApiController` | `WorkflowModuleVisibility.modulesAddressedTo(currentUser)`   | always, the loader needs it         |
 
 ```java
 @RestController
@@ -377,12 +377,12 @@ One `docker compose up` starts everything the application needs on a developer's
 `development/docker-compose.yaml` of the `business-cockpit` repository is the template for the
 first three:
 
-| Service  | Image                                | Why                                                                            | When |
-|----------|--------------------------------------|--------------------------------------------------------------------------------|------|
-| MongoDB  | `mongo`, the version of the template | the storage; a replica set, because change streams and the changesets need one | always |
+| Service  |                Image                 |                                      Why                                       |                      When                       |
+|----------|--------------------------------------|--------------------------------------------------------------------------------|-------------------------------------------------|
+| MongoDB  | `mongo`, the version of the template | the storage; a replica set, because change streams and the changesets need one | always                                          |
 | Kafka    | `apache/kafka`, in KRaft mode        | the reports of the workflow modules, when they come through Kafka              | always; the application reads it with `Q-KAFKA` |
-| Mailpit  | `axllent/mailpit`                    | catches the notification e-mails, web interface on port 8025                   | always; the application sends with `Q-MAIL` |
-| Keycloak | `quay.io/keycloak/keycloak`          | the OIDC provider, with the realm of `keycloak/` imported at the start         | `Q-LOGIN-KIND` is `oidc` |
+| Mailpit  | `axllent/mailpit`                    | catches the notification e-mails, web interface on port 8025                   | always; the application sends with `Q-MAIL`     |
+| Keycloak | `quay.io/keycloak/keycloak`          | the OIDC provider, with the realm of `keycloak/` imported at the start         | `Q-LOGIN-KIND` is `oidc`                        |
 
 Pin every image to a version. MongoDB runs as a single-node replica set. Start it with
 `--replSet` and initiate the set in a health check or a setup container, so nobody has to type
@@ -434,3 +434,4 @@ The `README.md` of the backend repository says:
 - the order of the builds, see [project.md](project.md#where-the-types-jar-is-built): the cockpit
   release, then the user interface, then this repository, the types jar and the application,
 - how a new version of the user interface gets in: a new value of `ui.version`.
+

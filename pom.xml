@@ -308,6 +308,9 @@
               <exclude>**/target/**/</exclude>
               <exclude>**/node_modules/**/</exclude>
               <exclude>**/.github/**/</exclude>
+              <!-- flexmark does not know YAML front matter and turns its closing line into a
+                   heading underline, which breaks the skill for every agent -->
+              <exclude>skills/**/SKILL.md</exclude>
             </excludes>
             <flexmark/>
           </markdown>

@@ -17,14 +17,14 @@ The generated project has one dev shell package per framework the modules use
 (`Q-MODULE-FRAMEWORKS`), see [project.md](project.md#the-dev-shell-libraries).
 
 1. [The rule](#the-rule)
-1. [What a dev shell must do](#what-a-dev-shell-must-do)
-1. [The entry point](#the-entry-point)
-1. [What it shows](#what-it-shows)
-1. [Where the data comes from](#where-the-data-comes-from)
-1. [The dev shell simulator](#the-dev-shell-simulator)
-1. [The proxy of the dev server](#the-proxy-of-the-dev-server)
-1. [Where it differs from the cockpit on purpose](#where-it-differs-from-the-cockpit-on-purpose)
-1. [Developing inside the cockpit instead](#developing-inside-the-cockpit-instead)
+2. [What a dev shell must do](#what-a-dev-shell-must-do)
+3. [The entry point](#the-entry-point)
+4. [What it shows](#what-it-shows)
+5. [Where the data comes from](#where-the-data-comes-from)
+6. [The dev shell simulator](#the-dev-shell-simulator)
+7. [The proxy of the dev server](#the-proxy-of-the-dev-server)
+8. [Where it differs from the cockpit on purpose](#where-it-differs-from-the-cockpit-on-purpose)
+9. [Developing inside the cockpit instead](#developing-inside-the-cockpit-instead)
 
 ## The rule
 
@@ -81,12 +81,12 @@ themselves, see [module-loading.md](module-loading.md#cells-drawn-by-a-workflow-
 The developer hands over their parts and an address, and the shell builds the application from them.
 What is handed over is the real contract:
 
-| What                                  | Why the shell needs it |
-|---------------------------------------|------------------------|
-| the address of the GUI API            | it builds its client from it, with the simulator `/official-api/v1` |
+|                 What                  |                                                            Why the shell needs it                                                            |
+|---------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
+| the address of the GUI API            | it builds its client from it, with the simulator `/official-api/v1`                                                                          |
 | the functions of the data entries     | `userTaskForm`, `workflowPage`, and for the other extension points for example `header` and `pages`; the shell asks them as the cockpit does |
-| the components, by web component name | what the shell draws for each name the functions return |
-| the workflow module id                | for the frame, and for the requests of a form through `/wm/` |
+| the components, by web component name | what the shell draws for each name the functions return                                                                                      |
+| the workflow module id                | for the frame, and for the requests of a form through `/wm/`                                                                                 |
 
 The form of the entry point follows the framework, and it does not have to be the same everywhere:
 
@@ -143,14 +143,14 @@ form that runs here runs against the same shape of data as in the cockpit.
 The functions on `BcUserTask` and `BcWorkflow` call the API directly. There is no event protocol in
 the dev shell, because the components are not wrapped. What each function does:
 
-| Function                                 | What the shell does |
-|------------------------------------------|---------------------|
-| `open`, `navigateToWorkflow`             | go to the shell's own page of this user task or this case |
-| `assign`, `unassign`, `claim`, `unclaim` | the simulator does not answer them; show a toast that says so, and resolve |
-| `getUserTasks`                           | call `POST /workflow/{id}/usertasks` and wrap the tasks again |
+|                 Function                 |                                                                   What the shell does                                                                    |
+|------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `open`, `navigateToWorkflow`             | go to the shell's own page of this user task or this case                                                                                                |
+| `assign`, `unassign`, `claim`, `unclaim` | the simulator does not answer them; show a toast that says so, and resolve                                                                               |
+| `getUserTasks`                           | call `POST /workflow/{id}/usertasks` and wrap the tasks again                                                                                            |
 | `sendTo`, `receiveMessage`               | carry the message to the subscribed component of the other area, as the cockpit does; keep messages until the area subscribes, and stop on `unsubscribe` |
-| `showNotification`                       | show the toast, as the cockpit does |
-| `openDialog`                             | show the component handed over for its `element` in a modal layer, as the cockpit does |
+| `showNotification`                       | show the toast, as the cockpit does                                                                                                                      |
+| `openDialog`                             | show the component handed over for its `element` in a modal layer, as the cockpit does                                                                   |
 
 Doing nothing is allowed, as long as the developer notices. A function that silently does nothing is
 the worst choice, because the developer then looks for the bug in their form.
@@ -183,14 +183,14 @@ wiki under
 
 There is also a small interface of its own for the shell, under `/dev-shell/user`:
 
-| Call                            | For whom    | What it does |
-|---------------------------------|-------------|--------------|
-| `GET /dev-shell/user/all/id`    | shell       | the ids of all users |
-| `GET /dev-shell/user/all`       | shell       | all users with details |
+|              Call               |  For whom   |              What it does              |
+|---------------------------------|-------------|----------------------------------------|
+| `GET /dev-shell/user/all/id`    | shell       | the ids of all users                   |
+| `GET /dev-shell/user/all`       | shell       | all users with details                 |
 | `GET /dev-shell/user/`          | shell       | the id of the user chosen now, as text |
-| `POST /dev-shell/user/{userId}` | shell       | switch the user; `---` logs out |
-| `GET /dev-shell/user/details`   | application | the user chosen now, from the cookie |
-| `GET /dev-shell/user/{userId}`  | application | one user by id |
+| `POST /dev-shell/user/{userId}` | shell       | switch the user; `---` logs out        |
+| `GET /dev-shell/user/details`   | application | the user chosen now, from the cookie   |
+| `GET /dev-shell/user/{userId}`  | application | one user by id                         |
 
 The pretend users are in `development/dev-shell-simulator/users.yaml`, under the key
 `dev-shell-simulator.users`. Each user has `id`, `email`, `first-name`, `last-name`, `groups` as a
@@ -218,10 +218,10 @@ update stream. A shell that calls one of these calls into nothing.
 The shell runs on the dev server of the framework, the simulator on port 8079. So that the cookie
 travels along and the browser sees no other origin, the dev server forwards:
 
-| Path               | Target |
-|--------------------|--------|
-| `/official-api/**` | `http://localhost:8079` |
-| `/dev-shell/**`    | `http://localhost:8079` |
+|        Path        |                                 Target                                  |
+|--------------------|-------------------------------------------------------------------------|
+| `/official-api/**` | `http://localhost:8079`                                                 |
+| `/dev-shell/**`    | `http://localhost:8079`                                                 |
 | `/wm/<id>/**`      | the workflow module, if its forms call their own backend through `/wm/` |
 
 Plus the fallback to the start page for unknown paths, because the shell is a single-page

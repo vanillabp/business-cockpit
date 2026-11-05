@@ -17,21 +17,21 @@ is in the cockpit's own file.
 What is written here is the behaviour behind them, which neither file says.
 
 1. [Generating the client](#generating-the-client)
-1. [Protection and login](#protection-and-login)
-1. [Staying logged in](#staying-logged-in)
-1. [The endpoints](#the-endpoints)
-1. [Reading page by page](#reading-page-by-page)
-1. [Sorting](#sorting)
-1. [Counting](#counting)
-1. [Filtering over reported business data](#filtering-over-reported-business-data)
-1. [Suggestions for a search field](#suggestions-for-a-search-field)
-1. [The primary filter: which rows come at all](#the-primary-filter-which-rows-come-at-all)
-1. [The timestamp that keeps a list stable](#the-timestamp-that-keeps-a-list-stable)
-1. [The second form of the same query](#the-second-form-of-the-same-query)
-1. [The update stream](#the-update-stream)
-1. [How a row ended](#how-a-row-ended)
-1. [User settings](#user-settings)
-1. [What the cockpit serves](#what-the-cockpit-serves)
+2. [Protection and login](#protection-and-login)
+3. [Staying logged in](#staying-logged-in)
+4. [The endpoints](#the-endpoints)
+5. [Reading page by page](#reading-page-by-page)
+6. [Sorting](#sorting)
+7. [Counting](#counting)
+8. [Filtering over reported business data](#filtering-over-reported-business-data)
+9. [Suggestions for a search field](#suggestions-for-a-search-field)
+10. [The primary filter: which rows come at all](#the-primary-filter-which-rows-come-at-all)
+11. [The timestamp that keeps a list stable](#the-timestamp-that-keeps-a-list-stable)
+12. [The second form of the same query](#the-second-form-of-the-same-query)
+13. [The update stream](#the-update-stream)
+14. [How a row ended](#how-a-row-ended)
+15. [User settings](#user-settings)
+16. [What the cockpit serves](#what-the-cockpit-serves)
 
 ## Generating the client
 
@@ -61,10 +61,10 @@ Maven repository the cockpit artifacts are deployed to. The interview names that
 Maven coordinates of the cockpit (`Q-COCKPIT-VERSION`, `Q-COCKPIT-REPOSITORY`). By default the
 group is `io.vanillabp.businesscockpit`.
 
-| File                                                                         | Jar                                     | Path inside the jar |
+|                                     File                                     |                   Jar                   | Path inside the jar |
 |------------------------------------------------------------------------------|-----------------------------------------|---------------------|
-| the `official-gui-api`                                                       | `official-gui-api-server-<version>.jar` | `v1.yaml` |
-| the cockpit's own file: `app/info`, `current-user`, the settings, `/updates` | `business-cockpit-<version>.jar`        | `api/gui/v1.yaml` |
+| the `official-gui-api`                                                       | `official-gui-api-server-<version>.jar` | `v1.yaml`           |
+| the cockpit's own file: `app/info`, `current-user`, the settings, `/updates` | `business-cockpit-<version>.jar`        | `api/gui/v1.yaml`   |
 
 A script downloads the two jars with HTTP `GET` from the path Maven uses,
 `<repository>/<group as path>/<artifactId>/<version>/<artifactId>-<version>.jar`. It unpacks the two
@@ -162,10 +162,10 @@ The task lists of the runnable cockpit are the same endpoints under three base p
 each of them shows is decided by a controller of the application and not by the API, see
 [Building a custom Business Cockpit](https://github.com/vanillabp/business-cockpit/wiki/Building-a-custom-Business-Cockpit).
 
-| Base path                  | What the list shows |
-|----------------------------|---------------------|
-| `/gui/api/v1`              | everything the user may work on |
-| `/gui/api/v1/current-user` | only what is assigned to the user personally |
+|         Base path          |                      What the list shows                       |
+|----------------------------|----------------------------------------------------------------|
+| `/gui/api/v1`              | everything the user may work on                                |
+| `/gui/api/v1/current-user` | only what is assigned to the user personally                   |
 | `/gui/api/v1/user-roles`   | what the user's groups may claim and nobody is assigned to yet |
 
 Do not take these three paths as given. They are a choice of the runnable cockpit. An application of
@@ -174,29 +174,29 @@ the first base path, and `/my-tasks` the second one, or the first with a filter 
 
 The endpoints, all relative to the base path:
 
-| Call                                                                     | What for |
-|--------------------------------------------------------------------------|----------|
-| `POST /usertask`                                                         | one page of the task list |
-| `PUT /usertask`                                                          | the same query as an update, see below |
-| `OPTIONS /usertask`                                                      | suggestions for a search field over user tasks |
-| `GET /usertask/{id}`                                                     | one user task, with `markAsRead` also marked as read |
-| `PATCH /usertask/{id}/claim`, `PATCH /usertask/claim`                    | set the assignee, with `unclaim=true` give it back |
-| `PATCH /usertask/{id}/assign`, `PATCH /usertask/assign`                  | add a person as candidate user, with `unassign=true` remove them |
-| `PATCH /usertask/{id}/mark-as-read`, `PATCH /usertask/mark-as-read`      | mark as read, with `unread=true` take it back |
-| `PATCH /usertask/{id}/follow-up-date`                                    | set or delete the follow-up date |
-| notes of a user task and of a case                                       | read and write notes, added by prompt `1507` |
-| counting a list                                                          | the number of rows of a query, added by prompt `1506` |
-| `POST /user`                                                             | search users, to propose a task to a person |
-| `POST /workflow`                                                         | one page of the case list |
-| `PUT /workflow`                                                          | the same query as an update |
-| `OPTIONS /workflow`                                                      | suggestions for a search field over cases |
-| `GET /workflow/{id}`                                                     | one case |
-| `POST /workflow/{id}/usertasks`                                          | the user tasks of a case |
-| `GET /workflow-module`, `GET /workflow-module/{id}`                      | the workflow modules the user may see |
+|                                   Call                                   |                                                  What for                                                  |
+|--------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
+| `POST /usertask`                                                         | one page of the task list                                                                                  |
+| `PUT /usertask`                                                          | the same query as an update, see below                                                                     |
+| `OPTIONS /usertask`                                                      | suggestions for a search field over user tasks                                                             |
+| `GET /usertask/{id}`                                                     | one user task, with `markAsRead` also marked as read                                                       |
+| `PATCH /usertask/{id}/claim`, `PATCH /usertask/claim`                    | set the assignee, with `unclaim=true` give it back                                                         |
+| `PATCH /usertask/{id}/assign`, `PATCH /usertask/assign`                  | add a person as candidate user, with `unassign=true` remove them                                           |
+| `PATCH /usertask/{id}/mark-as-read`, `PATCH /usertask/mark-as-read`      | mark as read, with `unread=true` take it back                                                              |
+| `PATCH /usertask/{id}/follow-up-date`                                    | set or delete the follow-up date                                                                           |
+| notes of a user task and of a case                                       | read and write notes, added by prompt `1507`                                                               |
+| counting a list                                                          | the number of rows of a query, added by prompt `1506`                                                      |
+| `POST /user`                                                             | search users, to propose a task to a person                                                                |
+| `POST /workflow`                                                         | one page of the case list                                                                                  |
+| `PUT /workflow`                                                          | the same query as an update                                                                                |
+| `OPTIONS /workflow`                                                      | suggestions for a search field over cases                                                                  |
+| `GET /workflow/{id}`                                                     | one case                                                                                                   |
+| `POST /workflow/{id}/usertasks`                                          | the user tasks of a case                                                                                   |
+| `GET /workflow-module`, `GET /workflow-module/{id}`                      | the workflow modules the user may see                                                                      |
 | `GET /notifications/media`, `/config`, `/recipient-config`, `/workflows` | the notification settings of the user; `PUT` on `/config` and `/recipient-config/{mediumType}` stores them |
-| `GET /app/info`, `GET /app/current-user`                                 | the application and the user |
-| `GET /app/current-user/settings/{key}`, `PUT` on the same path           | read and write one entry of `customSettings`, added by prompt `1505` |
-| `GET /updates`                                                           | the update stream, see below |
+| `GET /app/info`, `GET /app/current-user`                                 | the application and the user                                                                               |
+| `GET /app/current-user/settings/{key}`, `PUT` on the same path           | read and write one entry of `customSettings`, added by prompt `1505`                                       |
+| `GET /updates`                                                           | the update stream, see below                                                                               |
 
 The last three rows are in the cockpit's own file, all the others in the `official-gui-api`. They
 exist only under `/gui/api/v1`, not under the other two base paths.
@@ -373,23 +373,23 @@ server determines for the user. The mode is called the primary filter. The user 
 status line of the list, see [behaviour.md](behaviour.md#the-task-lists), and this skill uses
 this term everywhere.
 
-| `mode` of a task list      | What comes |
-|----------------------------|------------|
-| `All`                      | everything, open and closed |
-| `OpenTasksWithFollowUp`    | everything open, with and without a follow-up date |
+|   `mode` of a task list    |                       What comes                       |
+|----------------------------|--------------------------------------------------------|
+| `All`                      | everything, open and closed                            |
+| `OpenTasksWithFollowUp`    | everything open, with and without a follow-up date     |
 | `OpenTasksWithoutFollowUp` | open, without a follow-up date or with one that is due |
-| `OpenTaskOnlyFollowUp`     | open, with a follow-up date in the future |
-| `ClosedTasksOnly`          | only what has an end |
+| `OpenTaskOnlyFollowUp`     | open, with a follow-up date in the future              |
+| `ClosedTasksOnly`          | only what has an end                                   |
 
 The mode `OpenTasks` is gone since prompt `1509`. It returned the same rows as
 `OpenTasksWithFollowUp`. So the open modes are a pair, with and without follow-up, plus the
 follow-ups alone.
 
-| `mode` of a case list | What comes |
-|-----------------------|------------|
-| `All`                 | everything |
+| `mode` of a case list |                What comes                 |
+|-----------------------|-------------------------------------------|
+| `All`                 | everything                                |
 | `InProgress`          | what has no end, suspended cases included |
-| `Done`                | what has an end |
+| `Done`                | what has an end                           |
 
 A suspended case has not ended. So it is in progress, and `InProgress` shows it.
 
@@ -471,11 +471,11 @@ on the body. A generated call waits for the end of the answer, and a stream has 
 
 What comes through it:
 
-| Name of the event | Data |
-|-------------------|------|
-| `ping`            | an object with `id` and `name`, nothing else |
+| Name of the event |                                      Data                                       |
+|-------------------|---------------------------------------------------------------------------------|
+| `ping`            | an object with `id` and `name`, nothing else                                    |
 | `UserTask`        | a JSON array; each entry carries an `event` object with `id`, `name` and `type` |
-| `Workflow`        | the same for cases |
+| `Workflow`        | the same for cases                                                              |
 
 `type` is `INSERT`, `UPDATE`, `DELETE`, `FOLLOWUP` or `RELOAD`. `id` is the id of the user task or
 the case. `RELOAD` has an empty id and means: load the lists of this kind again.

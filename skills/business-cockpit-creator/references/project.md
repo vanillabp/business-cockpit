@@ -24,20 +24,20 @@ Keeping npm and Maven apart avoids both problems, and a Maven release of the bac
 ordinary Maven release.
 
 1. [The UI repository](#the-ui-repository)
-1. [The npm workspaces](#the-npm-workspaces)
-1. [The user interface bundle](#the-user-interface-bundle)
-1. [The UI jar](#the-ui-jar)
-1. [Uploading the UI jar into the Maven repository](#uploading-the-ui-jar-into-the-maven-repository)
-1. [The nginx image](#the-nginx-image)
-1. [The backend repository](#the-backend-repository)
-1. [The types jar](#the-types-jar)
-1. [What still needs Java](#what-still-needs-java)
-1. [The types library](#the-types-library)
-1. [The module kit](#the-module-kit)
-1. [The module host](#the-module-host)
-1. [The theme library](#the-theme-library)
-1. [The dev shell libraries](#the-dev-shell-libraries)
-1. [What the project keeps beside the code](#what-the-project-keeps-beside-the-code)
+2. [The npm workspaces](#the-npm-workspaces)
+3. [The user interface bundle](#the-user-interface-bundle)
+4. [The UI jar](#the-ui-jar)
+5. [Uploading the UI jar into the Maven repository](#uploading-the-ui-jar-into-the-maven-repository)
+6. [The nginx image](#the-nginx-image)
+7. [The backend repository](#the-backend-repository)
+8. [The types jar](#the-types-jar)
+9. [What still needs Java](#what-still-needs-java)
+10. [The types library](#the-types-library)
+11. [The module kit](#the-module-kit)
+12. [The module host](#the-module-host)
+13. [The theme library](#the-theme-library)
+14. [The dev shell libraries](#the-dev-shell-libraries)
+15. [What the project keeps beside the code](#what-the-project-keeps-beside-the-code)
 
 ## The UI repository
 
@@ -106,10 +106,10 @@ like the rest of the user interface.
 
 There is one place for each name, so no name has two sources:
 
-| Package                  | What it holds                                                                                                                                                                                                     | Depends on |
-|--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|
-| `<scope>/bc-types`       | the data of the GUI API, generated from the OpenAPI files, the other types, and every constant: entries, export names, areas, `ui-uri-type` values, event names, action names, error codes, names of theme tokens | nothing |
-| `<scope>/bc-module-kit`  | the runtime helpers a module needs: `defineBcElement`, the module's side of the event protocol, the manifest functions, `bc-check-entries`; it exports the types and constants of `bc-types` again                | `bc-types` |
+|         Package          |                                                                                                   What it holds                                                                                                   |   Depends on    |
+|--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------|
+| `<scope>/bc-types`       | the data of the GUI API, generated from the OpenAPI files, the other types, and every constant: entries, export names, areas, `ui-uri-type` values, event names, action names, error codes, names of theme tokens | nothing         |
+| `<scope>/bc-module-kit`  | the runtime helpers a module needs: `defineBcElement`, the module's side of the event protocol, the manifest functions, `bc-check-entries`; it exports the types and constants of `bc-types` again                | `bc-types`      |
 | `<scope>/bc-module-host` | the registry of modules, the central loader, ask, load and draw, and the cockpit's side of the event protocol                                                                                                     | `bc-module-kit` |
 
 A workflow module depends on the module kit only. It gets every type and constant from there and
@@ -171,14 +171,14 @@ names the host, the kit and the theme:
 }
 ```
 
-| Workspace                  | Names these workspaces |
-|----------------------------|------------------------|
-| `bc-types`                 | none |
-| `bc-module-kit`            | `bc-types` |
-| `bc-module-host`           | `bc-module-kit` |
-| `bc-theme`                 | none |
+|         Workspace          |            Names these workspaces             |
+|----------------------------|-----------------------------------------------|
+| `bc-types`                 | none                                          |
+| `bc-module-kit`            | `bc-types`                                    |
+| `bc-module-host`           | `bc-module-kit`                               |
+| `bc-theme`                 | none                                          |
 | `ui`                       | `bc-module-host`, `bc-module-kit`, `bc-theme` |
-| `bc-dev-shell-<framework>` | `bc-module-kit`, `bc-theme` |
+| `bc-dev-shell-<framework>` | `bc-module-kit`, `bc-theme`                   |
 
 npm sees that a workspace has this name and version, and links it instead of downloading it. So
 every workspace builds against the others of the same commit. npm has no `workspace:` protocol like
@@ -278,10 +278,10 @@ prove it.
 A jar is a zip file with a `META-INF/MANIFEST.MF`. The UI jar holds the built files at the place
 where the backend framework serves static files from its class path (`Q-BACKEND-FRAMEWORK`):
 
-| Backend framework | Place in the jar      | Served at |
+| Backend framework |   Place in the jar    | Served at |
 |-------------------|-----------------------|-----------|
-| Spring Boot       | `static/`             | `/` |
-| Quarkus           | `META-INF/resources/` | `/` |
+| Spring Boot       | `static/`             | `/`       |
+| Quarkus           | `META-INF/resources/` | `/`       |
 
 For Spring Boot:
 
