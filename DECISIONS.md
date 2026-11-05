@@ -2923,6 +2923,10 @@ That is different from the cockpit on purpose. The simulator only fills the list
 task from in the dev shell, and its data comes from the developer's own test runs, so it is small.
 A dev shell keeps its switch "all, only open, only ended", and the switch starts on `All`.
 
+Note (2026-11-05): Since decision 79 the list of workflows without `mode` is called `InProgress`. It
+is the same list as `Active`. This decision stays as it is: `Active` and `Inactive` are deprecated
+names which go with the next major version, not a second name kept for good.
+
 ### 71. An ended user task refuses every change but the read marker
 
 #### What was found
@@ -3418,3 +3422,46 @@ The reports carry no field of their own for the person. They
 already have `initiator`, "the user who triggered the event", and that is the person. So
 `suspendedBy` is the `initiator` of the last suspension or activation the cockpit applied. This
 holds for version 1 of the REST API as well.
+
+### 79. A list of workflows has the modes `InProgress` and `Done`, and keeps `Active` and `Inactive` only as deprecated names
+
+This decision adds to decision 70, which stays in force. Decision 70 names `Active` as the mode a
+list of workflows gets without `mode`. That list is now called `InProgress`. It is the same list.
+
+Decided on 2026-11-05 by the maintainer.
+
+#### What was found
+
+`WorkflowRetrieveMode` had `All`, `Active` and `Inactive`. `Active` meant "has not ended", so a
+suspended workflow was in it. Since the cockpit knows "suspend" and "activate", a reader takes
+`Active` for "not suspended" and `Inactive` for "suspended". Both are wrong.
+
+#### What the cockpit does now
+
+`WorkflowRetrieveMode` has `All`, `InProgress` and `Done`. `InProgress` shows the workflows which
+have not ended, suspended ones included. `Done` shows the ended ones. Without `mode` a list gets
+`InProgress`.
+
+`Active` and `Inactive` stay in the OpenAPI file, marked as deprecated. `Active` gives the same list
+as `InProgress`, and `Inactive` the same as `Done`. They go with the next major version at the
+earliest. The cockpit and the dev-shell simulator map them onto the new names, so nothing behind the
+API knows them. `WorkflowlistService.RetrieveItemsMode` has only `All`, `InProgress` and `Done`.
+
+#### Why this does not go against decision 70
+
+Decision 70 removed `OpenTasks` without keeping it as a second name, because a server which renames
+a value quietly keeps two names for good. `Active` and `Inactive` are not kept for good. They are
+deprecated, the description of the schema says which name replaces them, and they go with the next
+major version. Until then every user interface which sends them today keeps working while it moves
+to the new names. `UPGRADE.md` says what a user interface and a Java caller have to change.
+
+#### Where this is relied on
+
+- `apis/official-gui-api/openapi/v1.yaml`, the schema `WorkflowRetrieveMode` and
+  `WorkflowCountFilter`
+- `business-cockpit/src/main/java/io/vanillabp/cockpit/workflowlist/api/v1/GuiApiMapper.java`
+- `business-cockpit/src/main/java/io/vanillabp/cockpit/workflowlist/WorkflowlistService.java`
+- `development/dev-shell-simulator/src/main/java/io/vanillabp/cockpit/devshell/simulator/businesscockpit/OfficialApiMapper.java`
+- `container/src/test/java/io/vanillabp/cockpit/itest/WhatAListShowsForItsModeTest.java`
+- `development/dev-shell-simulator/src/test/java/io/vanillabp/cockpit/devshell/simulator/businesscockpit/TheSimulatorReadsTheOldNamesOfTheWorkflowModesTest.java`
+- `UPGRADE.md`, the section about `InProgress` and `Done`
