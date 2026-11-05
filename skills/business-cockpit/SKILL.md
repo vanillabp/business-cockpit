@@ -1,6 +1,5 @@
 ---
-
-name: business-cockpit-user-interface
+name: business-cockpit
 description: Generate a user interface for the VanillaBP Business Cockpit that fits an organisation's own tech stack, in any web framework, together with a dev shell, a types library for workflow modules, a jar the cockpit backend pulls as a Maven dependency and an nginx image for a separate deployment. The agent first interviews the user (framework, design library, theme, the word for a case, language, screens, primary filters, columns, live updates, extension points, backend framework, coordinates, memory limit), then generates the project, then verifies it against a versioned checklist that also drives the end-to-end tests. Covers the GUI API with paging, sorting, filtering over reported business data and the update stream, lists that hold only a window of rows, loading the parts of workflow modules at runtime as self-contained ES modules with import() and a small manifest per module, sharing no dependencies so that cockpit and modules mix frameworks freely, the web components with shadow DOM those parts register, the event protocol between a module's part and the cockpit, the behaviour a user expects, and what a cockpit user interface never does. Use whenever somebody wants their own Business Cockpit front end, wants to upgrade a generated one to a newer checklist, or needs a dev shell for the parts of a workflow module.
 license: Apache-2.0
 metadata:
