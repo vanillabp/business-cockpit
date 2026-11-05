@@ -137,7 +137,7 @@ its own shadow DOM.
 Every part comes into the page in the same three steps: ask, load and draw, see
 [Ask, load, draw](#ask-load-draw).
 
-Nothing is shared between the host and the modules, except the types library and DOM events, see
+Nothing is shared between the host and the modules, except the module kit and DOM events, see
 [Nothing is shared](#nothing-is-shared).
 
 ## Extension points
@@ -148,8 +148,8 @@ frontend and backend. They are no extension points. An extension point gives a m
 something only this module has, outside the page of a user task and the page of a case.
 
 Four extension points are the bare minimum, and every generated cockpit has them. They are the
-four data entries of the module kit `@vanillabp/bc-module-kit`, with the same names of their
-exports, see [types.md](types.md#the-module-kit-is-the-minimum):
+four data entries of the VanillaBP kit `@vanillabp/bc-module-kit`, with the same names of their
+exports, see [types.md](types.md#the-vanillabp-kit-is-the-minimum):
 
 | Entry          | What the module exports                                                              | Kind | Where the cockpit uses it |
 |----------------|--------------------------------------------------------------------------------------|------|---------------------------|
@@ -165,7 +165,8 @@ one to keep the master data a process needs. Both may open modal dialogs, see
 [The other extension points](#the-other-extension-points). For the cockpit there is no difference
 between the four and the others. They all come from the same organisation's generated user
 interface. The cockpit and the modules of one organisation agree on the list, and it holds for
-every module. Write it into the types library, see [types.md](types.md#the-extension-points).
+every module. Write it into the types library, and the module kit exports it again, see
+[types.md](types.md#the-extension-points).
 
 An extension point outside the lists, the page of a user task and the page of a case, like the
 header, asks every module the user may see. The four minimum ones only ask the module of the row,
@@ -237,8 +238,8 @@ helper that a data entry imports by mistake from a file that also imports React 
 as the helper itself does not need React. A real dependency on the framework stays, and that is
 what the check below finds.
 
-The check runs in the build of the module. The types library ships a small script without
-dependencies, `bc-check-entries`, the same as the one in the module kit. It reads
+The check runs in the build of the module. The module kit ships a small script without
+dependencies, `bc-check-entries`, the same as the one in the VanillaBP kit. It reads
 `bc-manifest.json` and fails the build when:
 
 - the manifest breaks a rule of [The manifest](#the-manifest), or an entry it names has no file,
@@ -269,10 +270,10 @@ large as its framework makes it. A visual entry is only checked for its file.
 The end-to-end tests of the cockpit check the same from the other side: loading the data entries of
 a blueprint module fetches no file of the module's framework.
 
-The types library lists the names of the data entries as `DATA_ENTRIES`, so the script and the
-cockpit agree on them. A module whose data entries go beyond them names each one with
-`--data-entry <name>`. A blueprint built against the kit does that for `Header`, because the kit
-knows only the four minimum ones.
+The types library lists the names of the data entries as `DATA_ENTRIES`, and the module kit
+exports them again, so the script and the cockpit agree on them. A module whose data entries go
+beyond them names each one with `--data-entry <name>`. A blueprint built against the VanillaBP kit
+does that for `Header`, because that kit knows only the four minimum ones.
 
 ## Which data finds the part
 
@@ -310,7 +311,11 @@ Show the row anyway, and tell the user that this row cannot be opened here.
 
 ## One registry and one loader
 
-No list, no page and no header loads a module part on its own. One central place does it:
+No list, no page and no header loads a module part on its own. One central place does it, the
+module host `<scope>/bc-module-host` of the UI repository, see
+[project.md](project.md#the-module-host). The user interface wraps it in the code of its framework.
+The tests of a workflow module use the same package, so a module is tested the way the cockpit loads
+it.
 
 1. The registry. After `GET /app/current-user`, the user interface calls
    `GET /gui/api/v1/workflow-module` once. It lists the modules the user may see. The answer stays in
@@ -397,9 +402,9 @@ Show them in a details view, if at all.
 ## Nothing is shared
 
 The host shares nothing with the modules, and the modules share nothing with each other. The only
-things that cross the line are the types library and DOM events. Every module brings its own
-framework in its own version. That is what lets a Vue cockpit load a React form and an Angular case
-page, and a module upgrade its framework without asking anybody.
+things that cross the line are the module kit, with the types library below it, and DOM events.
+Every module brings its own framework in its own version. That is what lets a Vue cockpit load a
+React form and an Angular case page, and a module upgrade its framework without asking anybody.
 
 It costs little, because every entry is loaded once, and the entries of one module share their
 framework chunk, see [Self-contained ES modules](#self-contained-es-modules).
@@ -446,14 +451,14 @@ example `--bc-color-primary` or `--bc-font-family`, and they are inherited into 
 (`Q-THEME-TOKENS`). Their names are part of the types library, their values come from the theme
 library, see [project.md](project.md#the-theme-library).
 
-The types library offers a helper, `defineBcElement`, that builds and registers such a web
+The module kit offers a helper, `defineBcElement`, that builds and registers such a web
 component from three plain functions of the module: `mount`, `update` and `unmount`, see
-[types.md](types.md#the-event-protocol). It is the same helper as in the module kit. A React module
-writes `mount = (root, props) => createRoot(root).render(<Form {...props} />)`, a Vue module uses
+[types.md](types.md#the-event-protocol). It is the same helper as in the VanillaBP kit. A React
+module writes `mount = (root, props) => createRoot(root).render(<Form {...props} />)`, a Vue module uses
 `createApp`, an Angular module `createApplication` once per module and `createComponent` with
 `hostElement` per web component. So no module has to write the shadow root and the protocol by
-hand. The example modules of the kit show all three, and the Angular one has its own traps, see
-[rough-edges.md](rough-edges.md#angular-in-a-shadow-root).
+hand. The example modules of the VanillaBP kit show all three, and the Angular one has its own
+traps, see [rough-edges.md](rough-edges.md#angular-in-a-shadow-root).
 
 ## The page of a user task or a case
 
@@ -503,7 +508,7 @@ the organisation's choice. So the cockpit picks what to draw like this:
    way as for `undefined`.
 
 So a module that names `all` and areas runs in a cockpit with areas and in one without. The example
-modules of the kit do exactly that. The cockpit draws either the areas or `all`, never both.
+modules of the VanillaBP kit do exactly that. The cockpit draws either the areas or `all`, never both.
 
 All web components of one page come from the one visual entry the result names. The cockpit loads
 it once and waits for every web component it is going to draw, see [Ask, load, draw](#ask-load-draw).
@@ -568,7 +573,7 @@ result, see [Actions](#actions). The cockpit answers `cockpit.closeDialog` first
 dialog afterwards, in a later task. If it removed the web component first, the web component would
 reject its own request with `DISCONNECTED`.
 
-Dialogs are part of the minimum. The event protocol of the kit has `cockpit.openDialog` and
+Dialogs are part of the minimum. The event protocol of the VanillaBP kit has `cockpit.openDialog` and
 `cockpit.closeDialog`, and a form on the page of a user task may open a dialog too. So every
 cockpit offers them, also one without further extension points.
 
@@ -577,8 +582,8 @@ cockpit offers them, also one without further extension points.
 A part of a module gets functions, for example `claim()` on a user task. The part calls them like
 ordinary functions that return a promise. Below that, a wrapper on the module's side turns the call
 into a DOM event on the web component. The cockpit runs it and answers with an event on the same
-element. The wrapper then resolves or rejects the caller's promise. The helper of the types library
-is that wrapper.
+element. The wrapper then resolves or rejects the caller's promise. The helper of the module kit is
+that wrapper.
 
 ### Request
 
