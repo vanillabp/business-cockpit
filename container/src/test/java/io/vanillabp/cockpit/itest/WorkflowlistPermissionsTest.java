@@ -117,7 +117,7 @@ class WorkflowlistPermissionsTest extends ItestBase {
   private List<String> workflowsListedFor(
       final String cookie) {
 
-    return workflowList(cookie, token, "Active").read("$.workflows[*].id", List.class);
+    return workflowList(cookie, token, "InProgress").read("$.workflows[*].id", List.class);
 
   }
 

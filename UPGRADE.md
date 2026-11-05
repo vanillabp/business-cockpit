@@ -359,3 +359,20 @@ changes. The full-text filter of the lists now finds an entry by its note as wel
 of the user signed in, in the new field `customSettings` of the collection `users`. Nothing breaks.
 A chain of your own needs nothing new, as long as it keeps `currentUserRequestMatcher` as it is and
 does not open `/gui/api/v1/app/current-user/**`.
+
+### The list of workflows says `InProgress` and `Done`
+
+`WorkflowRetrieveMode` has two new names: `InProgress` for the workflows which have not ended, and
+`Done` for those which have. A suspended workflow has not ended, so it is in `InProgress`. A request
+without `mode` gets `InProgress`, the same list as before.
+
+`Active` and `Inactive` still work and give the same lists as `InProgress` and `Done`. They are
+deprecated and go with the next major version at the earliest. Since there is "suspend" and
+"activate", `Active` reads like "not suspended", and that is not what it shows. So move a user
+interface to the new names when you touch it.
+
+A Java caller has to change. `WorkflowlistService.RetrieveItemsMode` knows only `All`, `InProgress`
+and `Done` now. A subclass of `AbstractWorkflowListGuiApiController` which overrides `getWorkflows`,
+and a caller of `WorkflowlistService`, use `InProgress` instead of `Active` and `Done` instead of
+`Inactive`. The generated `WorkflowRetrieveMode` of the official GUI API has all five values, so code
+which reads it gets two more cases in a `switch`.

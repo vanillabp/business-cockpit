@@ -224,7 +224,7 @@ class KafkaIngestionTest extends ItestBase {
         .build());
 
     await().untilAsserted(() -> {
-      final var list = workflowList(cookie, token, "Active");
+      final var list = workflowList(cookie, token, "InProgress");
       assertThat(list.read("$.workflows[*].id", List.class)).containsExactly(workflowId);
     });
     assertThat(json(guiGet(cookie, "/workflow/"

@@ -72,10 +72,13 @@ public class WorkflowlistService {
   public enum RetrieveItemsMode {
     /** Every workflow, ended or not. */
     All,
-    /** The workflows which have not ended, or ended after the user started to page. */
-    Active,
+    /**
+     * The workflows which have not ended, or ended after the user started to page. A suspended
+     * workflow has not ended, so it belongs here.
+     */
+    InProgress,
     /** The workflows which have ended. */
-    Inactive
+    Done
   }
 
   /** The prefix of the name of every sort index of the workflows. */
@@ -750,7 +753,7 @@ public class WorkflowlistService {
         .withPage(0)
         .withSort(Sort.by(orderBySort.order()));
 
-    final var effectiveMode = mode != null ? mode : RetrieveItemsMode.Active;
+    final var effectiveMode = mode != null ? mode : RetrieveItemsMode.InProgress;
 
     final var query = new Query();
     query.fields().include("_id");
@@ -815,7 +818,7 @@ public class WorkflowlistService {
 
   /**
    * Suggestions for a search field of the workflow list: the words in a field which contain the
-   * text typed so far. Only active workflows are searched. Nothing is suggested for less than
+   * text typed so far. Only the workflows in progress are searched. Nothing is suggested for less than
    * three letters.
    *
    * @param endedSince When the user started to page through the list
@@ -843,7 +846,7 @@ public class WorkflowlistService {
     final var match = buildWorkflowlistCriteria(
         visibility,
         endedSince,
-        RetrieveItemsMode.Active,
+        RetrieveItemsMode.InProgress,
         searchCriteria,
         null);
 
@@ -901,12 +904,12 @@ public class WorkflowlistService {
     switch (mode) {
       case All:
         break;
-      case Active:
+      case InProgress:
         subCriterias.add(new Criteria().orOperator(
             Criteria.where("endedAt").exists(false),
             Criteria.where("endedAt").gte(initialTimestamp)));
         break;
-      case Inactive:
+      case Done:
         subCriterias.add(new Criteria().orOperator(
             Criteria.where("endedAt").exists(true),
             Criteria.where("endedAt").lt(initialTimestamp)));

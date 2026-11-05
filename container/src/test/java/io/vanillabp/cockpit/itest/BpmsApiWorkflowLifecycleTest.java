@@ -71,7 +71,7 @@ class BpmsApiWorkflowLifecycleTest extends ItestBase {
             """));
     assertThat(created.statusCode()).isEqualTo(200);
 
-    final var list = workflowList(cookie, token, "Active");
+    final var list = workflowList(cookie, token, "InProgress");
     assertThat(list.read("$.workflows[*].id", List.class)).containsExactly(workflowId);
 
     final var detailResponse = guiGet(cookie, "/workflow/"
@@ -98,7 +98,7 @@ class BpmsApiWorkflowLifecycleTest extends ItestBase {
    * the address the workflow module reported is what the user interface is told to open.
    */
   /**
-   * A suspended case stays in the list of active cases and carries the moment of its suspension.
+   * A suspended case stays in the list of cases in progress and carries the moment of its suspension.
    * An activation removes it again.
    */
   @Test
@@ -120,7 +120,7 @@ class BpmsApiWorkflowLifecycleTest extends ItestBase {
             """.formatted(unique("event"), workflowId, suspendedAt));
     assertThat(suspended.statusCode()).isEqualTo(200);
 
-    assertThat(workflowList(cookie, token, "Active").read("$.workflows[*].id", List.class))
+    assertThat(workflowList(cookie, token, "InProgress").read("$.workflows[*].id", List.class))
         .containsExactly(workflowId);
     final var workflow = json(guiGet(cookie, "/workflow/"
         + workflowId));
@@ -198,7 +198,7 @@ class BpmsApiWorkflowLifecycleTest extends ItestBase {
             "details": { "ride-request": "4711" }
             """)).statusCode()).isEqualTo(200);
 
-    assertThat(workflowList(cookie, token, "Active")
+    assertThat(workflowList(cookie, token, "InProgress")
         .read("$.workflows[*].id", List.class)).isEmpty();
 
     // and the creation filled in what the completion could not report
@@ -366,7 +366,7 @@ class BpmsApiWorkflowLifecycleTest extends ItestBase {
     final var workflow = json(guiGet(cookie, "/workflow/"
         + workflowId));
     assertThat(workflow.read("$.endedAt", String.class)).isNotNull();
-    assertThat(workflowList(cookie, token, "Inactive")
+    assertThat(workflowList(cookie, token, "Done")
         .read("$.workflows[*].id", List.class)).containsExactly(workflowId);
 
   }

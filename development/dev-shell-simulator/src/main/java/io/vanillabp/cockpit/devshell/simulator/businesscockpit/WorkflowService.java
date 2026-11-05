@@ -29,10 +29,10 @@ public class WorkflowService {
   public enum RetrieveMode {
     /** All workflows, running and ended. */
     ALL,
-    /** Only the workflows which have not ended yet. */
-    ACTIVE,
+    /** Only the workflows which have not ended yet, suspended ones included. */
+    INPROGRESS,
     /** Only the workflows which have ended. */
-    INACTIVE
+    DONE
   };
 
   @Autowired
@@ -154,8 +154,8 @@ public class WorkflowService {
     final Sort sort = Sort.by(direction, effectiveSortField);
 
     List<Workflow> allWorkflows = switch (retrieveMode) {
-      case ACTIVE -> workflows.findByEndedAtIsNull(sort);
-      case INACTIVE -> workflows.findByEndedAtIsNotNull(sort);
+      case INPROGRESS -> workflows.findByEndedAtIsNull(sort);
+      case DONE -> workflows.findByEndedAtIsNotNull(sort);
       default -> workflows.findAll(sort);
     };
 
