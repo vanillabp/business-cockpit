@@ -407,7 +407,7 @@ user wants it (`Q-BACKEND`), the skill creates it:
 pom.xml                       the parent: the versions, the two modules
 types/                        the types jar with the ui-uri-type constants
 application/                  the cockpit application, the counterpart of container
-docker-compose.yaml           MongoDB, Kafka, Mailpit, and Keycloak for an OIDC login
+docker-compose.yaml           MongoDB, Mailpit, Keycloak for an OIDC login, Kafka with Q-KAFKA
 README.md                     how to start it, and the order of the builds
 ```
 

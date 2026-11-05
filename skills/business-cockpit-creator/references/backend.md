@@ -59,7 +59,7 @@ application/
     application.yaml            what every environment shares
     application-local.yaml      the values for docker-compose.yaml
   src/test/java/<package>/      the test that starts the application
-docker-compose.yaml             MongoDB, Kafka, Mailpit, and Keycloak for Q-LOGIN-KIND oidc
+docker-compose.yaml             MongoDB, Mailpit, Keycloak for Q-LOGIN-KIND oidc, Kafka for Q-KAFKA
 keycloak/
   realm.json                    the realm Keycloak imports at the start, for Q-LOGIN-KIND oidc
 README.md                       how to start it, and the order of the builds
@@ -377,12 +377,12 @@ One `docker compose up` starts everything the application needs on a developer's
 `development/docker-compose.yaml` of the `business-cockpit` repository is the template for the
 first three:
 
-| Service  |                Image                 |                                      Why                                       |                      When                       |
-|----------|--------------------------------------|--------------------------------------------------------------------------------|-------------------------------------------------|
-| MongoDB  | `mongo`, the version of the template | the storage; a replica set, because change streams and the changesets need one | always                                          |
-| Kafka    | `apache/kafka`, in KRaft mode        | the reports of the workflow modules, when they come through Kafka              | always; the application reads it with `Q-KAFKA` |
-| Mailpit  | `axllent/mailpit`                    | catches the notification e-mails, web interface on port 8025                   | always; the application sends with `Q-MAIL`     |
-| Keycloak | `quay.io/keycloak/keycloak`          | the OIDC provider, with the realm of `keycloak/` imported at the start         | `Q-LOGIN-KIND` is `oidc`                        |
+| Service  |                Image                 |                                      Why                                       |                    When                     |
+|----------|--------------------------------------|--------------------------------------------------------------------------------|---------------------------------------------|
+| MongoDB  | `mongo`, the version of the template | the storage; a replica set, because change streams and the changesets need one | always                                      |
+| Kafka    | `apache/kafka`, in KRaft mode        | the reports of the workflow modules, when they come through Kafka              | only with `Q-KAFKA`                         |
+| Mailpit  | `axllent/mailpit`                    | catches the notification e-mails, web interface on port 8025                   | always; the application sends with `Q-MAIL` |
+| Keycloak | `quay.io/keycloak/keycloak`          | the OIDC provider, with the realm of `keycloak/` imported at the start         | `Q-LOGIN-KIND` is `oidc`                    |
 
 Pin every image to a version. MongoDB runs as a single-node replica set. Start it with
 `--replSet` and initiate the set in a health check or a setup container, so nobody has to type

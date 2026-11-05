@@ -1,6 +1,6 @@
 ---
 name: business-cockpit-creator
-description: Generate a VanillaBP Business Cockpit that fits an organisation's own tech stack, as two repositories. The frontend is one npm workspaces repository with the user interface in any web framework, the types, the cockpit's own module kit and module host, the theme, dev shells for workflow module parts and an nginx image. The backend is a Maven project with the cockpit application on the business-cockpit library, the list controllers, the login (OIDC with Keycloak by default), a types jar and a docker-compose.yaml with MongoDB, Kafka, Mailpit and Keycloak. The agent interviews the user, generates both repositories and verifies them against a versioned checklist. Covers the GUI API, lists over large data, loading workflow module parts at runtime as ES modules and web components, and the behaviour users expect. Use whenever somebody wants their own Business Cockpit, its user interface or backend, wants to upgrade a generated one to a newer checklist, or needs a dev shell for the parts of a workflow module.
+description: Generate a VanillaBP Business Cockpit that fits an organisation's own tech stack, as two repositories. The frontend is one npm workspaces repository with the user interface in any web framework, the types, the cockpit's own module kit and module host, the theme, dev shells for workflow module parts and an nginx image. The backend is a Maven project with the cockpit application on the business-cockpit library, the list controllers, the login (OIDC with Keycloak by default), a types jar and a docker-compose.yaml with MongoDB, Mailpit, Keycloak, Kafka if wanted. The agent interviews the user, generates both repositories and verifies them against a versioned checklist. Covers the GUI API, lists over large data, loading workflow module parts at runtime as ES modules and web components, and the behaviour users expect. Use whenever somebody wants their own Business Cockpit, its user interface or backend, wants to upgrade a generated one to a newer checklist, or needs a dev shell for the parts of a workflow module.
 license: Apache-2.0
 metadata:
   author: vanillabp
@@ -92,7 +92,7 @@ The backend repository is a Maven project with a parent `pom.xml` and two module
   `ui-uri-type` value, generated from the types library, so a workflow module reports the same
   values the user interface understands.
 - A `docker-compose.yaml` that starts what the application needs on a developer's machine:
-  MongoDB, Kafka, Mailpit, and Keycloak for an OIDC login.
+  MongoDB, Mailpit, Keycloak for an OIDC login, and Kafka with `Q-KAFKA`.
 
 When the organisation keeps a backend of its own, the skill does not create one. It tells the user
 which dependency to add, and the types jar comes from a small Maven project of its own instead.
