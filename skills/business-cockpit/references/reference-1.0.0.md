@@ -211,15 +211,15 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 
 | Id       | Item                                                                                                                                     | Applies |
 |----------|------------------------------------------------------------------------------------------------------------------------------------------|---------|
-| `WL-001` | The case list offers the primary filters from the interview, by default `Active` and `Inactive`.                                         | always |
+| `WL-001` | The case list offers the primary filters from the interview, by default `InProgress` and `Done`.                                         | always |
 | `WL-002` | Its fixed columns are the ones from the interview, in its order.                                                                         | always |
 | `WL-003` | Modules add their own case columns, apart from the task columns.                                                                         | `Q-MODULE-COLUMNS` = yes |
 | `WL-004` | There is no read marker in the case list.                                                                                                | always |
 | `WL-005` | `accessibleToUsers` and `accessibleToGroups` are not shown as columns.                                                                   | always |
 | `WL-006` | The title opens the case page, and "open in new tab" works on it.                                                                        | always |
-| `WL-007` | In `Inactive` a completed case looks like any other row, and a cancelled one is grey with its title struck through, as `endReason` says. | always |
+| `WL-007` | In `Done` a completed case looks like any other row, and a cancelled one is grey with its title struck through, as `endReason` says. | always |
 | `WL-008` | A note can be written per row in the case list and for all selected cases at once in the list.                                           | `Q-NOTES` = yes |
-| `WL-009` | The default primary filter of the case list is the one from the interview, by default `Active`.                                          | always |
+| `WL-009` | The default primary filter of the case list is the one from the interview, by default `InProgress`.                                          | always |
 
 ## WP: the page of a case
 

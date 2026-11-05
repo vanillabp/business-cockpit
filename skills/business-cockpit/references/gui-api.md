@@ -388,11 +388,13 @@ follow-ups alone.
 | `mode` of a case list | What comes |
 |-----------------------|------------|
 | `All`                 | everything |
-| `Active`              | what has no end |
-| `Inactive`            | what has an end |
+| `InProgress`          | what has no end, suspended cases included |
+| `Done`                | what has an end |
+
+A suspended case has not ended. So it is in progress, and `InProgress` shows it.
 
 Without `mode` the server takes its own default since prompt `1509`:
-`OpenTasksWithFollowUp` for a task list and `Active` for a case list, for `POST` and `PUT` alike.
+`OpenTasksWithFollowUp` for a task list and `InProgress` for a case list, for `POST` and `PUT` alike.
 Still always send the primary filter yourself, so the list never depends on a default. The dev shell
 always sends `All`, see [dev-shell.md](dev-shell.md#what-it-shows).
 

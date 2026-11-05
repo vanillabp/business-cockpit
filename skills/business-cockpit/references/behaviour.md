@@ -575,8 +575,9 @@ These two fields are not shown as columns.
 
 ### Primary filters
 
-The interview decides which are offered (`Q-WORKFLOW-FILTERS`). By default these are `Active` and
-`Inactive`, and `All` is possible as well. The default of the cockpit is `Active`.
+The interview decides which are offered (`Q-WORKFLOW-FILTERS`). By default these are `InProgress`
+and `Done`, and `All` is possible as well. The default of the cockpit is `InProgress`. A suspended
+case has not ended, so it shows in `InProgress`.
 
 The dev shell is different: it always asks with `All`, for user tasks and for cases, see
 [dev-shell.md](dev-shell.md#what-it-shows).
@@ -588,7 +589,7 @@ columns. The case list has its own fixed columns (`Q-WORKFLOW-COLUMNS`). There i
 and no read function. A case list without bulk actions has no selection column. Notes work as in
 the task list, per row and for all selected rows, see [Notes](#notes).
 
-In `Inactive` a completed case looks like any other row. Only a cancelled case looks inactive: grey,
+In `Done` a completed case looks like any other row. Only a cancelled case looks inactive: grey,
 with its title struck through, the same as for user tasks. `endReason` tells the two apart.
 
 Some organisations want fixed columns only, as for the task lists (`Q-MODULE-COLUMNS`).

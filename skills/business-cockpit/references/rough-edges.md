@@ -263,7 +263,8 @@ yet. The cockpit version of the interview (`Q-COCKPIT-VERSION`) must have them:
 | `1505` | `customSettings` on the user, read and written one entry at a time with `GET` and `PUT /app/current-user/settings/{key}`, in the cockpit's own file `api/gui/v1.yaml` |
 | `1506` | the count endpoint |
 | `1507` | notes on user tasks and cases |
-| `1509` | `OpenTasks` is gone; the open modes are `OpenTasksWithFollowUp` and `OpenTasksWithoutFollowUp`; without `mode` the server takes `OpenTasksWithFollowUp` for user tasks and `Active` for cases |
+| `1509` | `OpenTasks` is gone; the open modes are `OpenTasksWithFollowUp` and `OpenTasksWithoutFollowUp`; without `mode` the server takes `OpenTasksWithFollowUp` for user tasks and the open cases for cases |
+| `1762` | the modes of a case list are `All`, `InProgress` (not ended, suspended cases included) and `Done` (ended) |
 | `1511` | `GET /updates` and the types of its events in the cockpit's own file `api/gui/v1.yaml`, so these types are generated too |
 
 Against an older cockpit the generated client lacks these endpoints and fields, and the build
