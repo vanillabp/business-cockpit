@@ -15,7 +15,7 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 /**
  * Which tasks and workflows a list shows for each mode, and for a request which names no mode.
  * Without a mode a list of tasks shows the open ones, with or without a follow-up date, and a
- * list of workflows shows the active ones. That holds for the first page, for the update of a
+ * list of workflows shows the ones in progress. That holds for the first page, for the update of a
  * list and for the tasks of one workflow alike.
  */
 @ExtendWith(SuppressOutputExtension.class)
@@ -82,6 +82,47 @@ class WhatAListShowsForItsModeTest extends ItestBase {
 
     assertThat(workflowList(cookie, token, "All").read("$.workflows[*].id", List.class))
         .containsExactlyInAnyOrder(running, ended);
+
+  }
+
+  @Test
+  void everyModeOfTheWorkflowsGivesItsOwnListAndTheOldNamesGiveTheSameOnes() {
+
+    final var running = unique("workflow");
+    final var suspended = unique("workflow");
+    final var ended = unique("workflow");
+    reportWorkflow(moduleId, token, running, "created");
+    reportWorkflow(moduleId, token, suspended, "created");
+    reportWorkflow(moduleId, token, suspended, "suspended");
+    reportWorkflow(moduleId, token, ended, "created");
+    reportWorkflow(moduleId, token, ended, "completed");
+
+    final var expected = Map.of(
+        "All", List.of(running, suspended, ended),
+        "InProgress", List.of(running, suspended),
+        "Done", List.of(ended),
+        "Active", List.of(running, suspended),
+        "Inactive", List.of(ended));
+
+    expected.forEach((
+        mode,
+        workflows) -> assertThat(workflowList(cookie, token, mode)
+            .read("$.workflows[*].id", List.class))
+            .as(mode)
+            .containsExactlyInAnyOrderElementsOf(workflows));
+
+  }
+
+  @Test
+  void anUnknownModeOfTheWorkflowsIsAnsweredWith400WhichNamesTheModesThereAre() {
+
+    final var response = guiPost(cookie, "/workflow", """
+        { "pageSize": 1, "mode": "Suspended" }
+        """);
+
+    assertThat(response.statusCode()).isEqualTo(400);
+    assertThat(response.body()).isEqualTo("The request is not valid: 'mode' takes one of 'All', "
+        + "'InProgress', 'Done', 'Active', 'Inactive'.");
 
   }
 

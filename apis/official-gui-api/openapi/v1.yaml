@@ -1307,12 +1307,17 @@ components:
     WorkflowRetrieveMode:
       type: string
       description: >-
-        Which workflows a list shows. 'All' shows running and ended workflows. 'Active' shows the
-        workflows which have not ended, and those which ended after 'initialTimestamp', so the pages
-        stay the same while the user pages through them. 'Inactive' shows the workflows which have
-        ended. A request without 'mode' gets 'Active'.
+        Which workflows a list shows. 'All' shows running and ended workflows. 'InProgress' shows
+        the workflows which have not ended, and those which ended after 'initialTimestamp', so the
+        pages stay the same while the user pages through them. A suspended workflow has not ended,
+        so it is in 'InProgress' too. 'Done' shows the workflows which have ended. A request without
+        'mode' gets 'InProgress'. 'Active' and 'Inactive' are deprecated second names: 'Active'
+        gives the same list as 'InProgress', and 'Inactive' the same as 'Done'. They are removed
+        with the next major version at the earliest. Any other value is answered with 400.
       enum:
         - All
+        - InProgress
+        - Done
         - Active
         - Inactive
     UserTaskRetrieveMode:
@@ -1531,7 +1536,7 @@ components:
       type: object
       description: >-
         One list to count, with the filters 'POST /workflow' takes. A request without 'mode' counts
-        'Active', the same as the list.
+        'InProgress', the same as the list.
       required:
         - key
       properties:

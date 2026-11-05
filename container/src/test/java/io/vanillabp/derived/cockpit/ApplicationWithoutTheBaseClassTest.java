@@ -366,7 +366,7 @@ class ApplicationWithoutTheBaseClassTest {
       final String cookie,
       final String fulltextToken) {
 
-    return listOf("/workflow", cookie, fulltextToken, "Active");
+    return listOf("/workflow", cookie, fulltextToken, "InProgress");
 
   }
 

@@ -174,7 +174,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
         ListPaging.sortAscending(workflowsRequest.getSortAscending()),
         workflowsRequest.getMode() != null
             ? mapper.toModel(workflowsRequest.getMode())
-            : WorkflowlistService.RetrieveItemsMode.Active);
+            : WorkflowlistService.RetrieveItemsMode.InProgress);
 
     tellTheUpdateStreamsWhatIsShown(currentUser, visibility, workflows);
 
@@ -229,7 +229,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
                 mapper.toModel(filter.getSearchQueries()),
                 filter.getMode() != null
                     ? mapper.toModel(filter.getMode())
-                    : WorkflowlistService.RetrieveItemsMode.Active)))
+                    : WorkflowlistService.RetrieveItemsMode.InProgress)))
         .toList();
 
     return ResponseEntity.ok(new Counts().serverTimestamp(timestamp).counts(counts));
@@ -295,7 +295,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
         ListPaging.sortAscending(workflowsUpdateRequest.getSortAscending()),
         workflowsUpdateRequest.getMode() != null
             ? mapper.toModel(workflowsUpdateRequest.getMode())
-            : WorkflowlistService.RetrieveItemsMode.Active);
+            : WorkflowlistService.RetrieveItemsMode.InProgress);
 
     tellTheUpdateStreamsWhatIsShown(currentUser, visibility, workflows);
 

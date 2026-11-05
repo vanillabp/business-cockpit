@@ -33,7 +33,7 @@ class ACountAgreesWithItsListTest extends ItestBase {
       "All", "OpenTasksWithFollowUp", "OpenTasksWithoutFollowUp", "OpenTaskOnlyFollowUp",
       "ClosedTasksOnly");
 
-  private static final List<String> WORKFLOW_MODES = List.of("All", "Active", "Inactive");
+  private static final List<String> WORKFLOW_MODES = List.of("All", "InProgress", "Done");
 
   @Autowired
   private MongoTemplate mongo;

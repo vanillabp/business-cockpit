@@ -144,8 +144,8 @@ public abstract class OfficialApiMapper {
     }
     return switch (retrieveMode) {
       case ALL -> WorkflowService.RetrieveMode.ALL;
-      case ACTIVE -> WorkflowService.RetrieveMode.ACTIVE;
-      case INACTIVE -> WorkflowService.RetrieveMode.INACTIVE;
+      case INPROGRESS, ACTIVE -> WorkflowService.RetrieveMode.INPROGRESS;
+      case DONE, INACTIVE -> WorkflowService.RetrieveMode.DONE;
     };
   }
 

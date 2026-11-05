@@ -69,14 +69,18 @@ public abstract class GuiApiMapper {
   }
 
   /**
-   * Turns which workflows a GUI API request asks for into the mode the service reads.
+   * Turns which workflows a GUI API request asks for into the mode the service reads. The old
+   * names {@code Active} and {@code Inactive} are still accepted and give the same list as
+   * {@code InProgress} and {@code Done}.
    *
    * @param mode The mode of the request
    * @return The mode for the service
    */
   @ValueMapping(target = "All", source = "ALL")
-  @ValueMapping(target = "Active", source = "ACTIVE")
-  @ValueMapping(target = "Inactive", source = "INACTIVE")
+  @ValueMapping(target = "InProgress", source = "INPROGRESS")
+  @ValueMapping(target = "Done", source = "DONE")
+  @ValueMapping(target = "InProgress", source = "ACTIVE")
+  @ValueMapping(target = "Done", source = "INACTIVE")
   public abstract WorkflowlistService.RetrieveItemsMode toModel(
       WorkflowRetrieveMode mode);
 

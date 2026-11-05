@@ -274,7 +274,7 @@ class ANoteOnATaskAndOnACaseTest extends ItestBase {
             { "text": "remember %s" }
             """.formatted(word));
 
-    assertThat(workflowList(martin, word, "Active").read("$.workflows[*].id", List.class))
+    assertThat(workflowList(martin, word, "InProgress").read("$.workflows[*].id", List.class))
         .containsExactly(workflowId);
 
   }
