@@ -122,12 +122,12 @@ In the order they build on each other:
 4. **[extensions-commons](./extensions-commons)**:<br>The platform-neutral half of the integration
    into VanillaBP Version 2, on Spring Boot and on Quarkus. The five halves which know a BPMS live in
    their own repositories and consume this one as a published artifact:
-   [businesscockpit-camunda7-adapter](https://github.com/vanillabp/businesscockpit-camunda7-adapter),
-   [businesscockpit-camunda8-adapter](https://github.com/vanillabp/businesscockpit-camunda8-adapter),
-   [businesscockpit-cibseven-adapter](https://github.com/vanillabp/businesscockpit-cibseven-adapter),
-   [businesscockpit-operaton-adapter](https://github.com/vanillabp/businesscockpit-operaton-adapter)
+   [business-cockpit-camunda7-adapter](https://github.com/vanillabp/business-cockpit-camunda7-adapter),
+   [business-cockpit-camunda8-adapter](https://github.com/vanillabp/business-cockpit-camunda8-adapter),
+   [business-cockpit-cibseven-adapter](https://github.com/vanillabp/business-cockpit-cibseven-adapter),
+   [business-cockpit-operaton-adapter](https://github.com/vanillabp/business-cockpit-operaton-adapter)
    and
-   [businesscockpit-process-engine-api-adapter](https://github.com/vanillabp/businesscockpit-process-engine-api-adapter).
+   [business-cockpit-process-engine-api-adapter](https://github.com/vanillabp/business-cockpit-process-engine-api-adapter).
 5. **[business-cockpit](./business-cockpit)**:<br>The cockpit as a library: services, persistence, GUI
    API, security extension points and ingestion of what workflow modules report. It builds no
    runnable jar.

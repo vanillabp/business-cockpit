@@ -54,11 +54,11 @@ dashboard_wait_hours=36
 # The six repositories whose pins are compared. The first one is the root of the chain.
 repos=(
     vanillabp/business-cockpit
-    vanillabp/businesscockpit-camunda7-adapter
-    vanillabp/businesscockpit-camunda8-adapter
-    vanillabp/businesscockpit-process-engine-api-adapter
-    vanillabp/businesscockpit-operaton-adapter
-    vanillabp/businesscockpit-cibseven-adapter
+    vanillabp/business-cockpit-camunda7-adapter
+    vanillabp/business-cockpit-camunda8-adapter
+    vanillabp/business-cockpit-process-engine-api-adapter
+    vanillabp/business-cockpit-operaton-adapter
+    vanillabp/business-cockpit-cibseven-adapter
 )
 
 # The repositories whose main branch and snapshot are watched: the six, and the MongoDB
@@ -74,11 +74,11 @@ repos=(
 # is the one of the repository's root POM.
 watched=(
     "vanillabp/business-cockpit io.vanillabp.businesscockpit extensions-commons central Publish snapshots"
-    "vanillabp/businesscockpit-camunda7-adapter io.vanillabp.businesscockpit businesscockpit-camunda7-adapter central Publish snapshots"
-    "vanillabp/businesscockpit-camunda8-adapter io.vanillabp.businesscockpit businesscockpit-camunda8-adapter central Publish snapshots"
-    "vanillabp/businesscockpit-process-engine-api-adapter io.vanillabp.businesscockpit businesscockpit-process-engine-api-adapter central Publish snapshots"
-    "vanillabp/businesscockpit-operaton-adapter io.vanillabp.businesscockpit businesscockpit-operaton-adapter central Publish snapshots"
-    "vanillabp/businesscockpit-cibseven-adapter io.vanillabp.businesscockpit businesscockpit-cibseven-adapter central Publish snapshots"
+    "vanillabp/business-cockpit-camunda7-adapter io.vanillabp.businesscockpit businesscockpit-camunda7-adapter central Publish snapshots"
+    "vanillabp/business-cockpit-camunda8-adapter io.vanillabp.businesscockpit businesscockpit-camunda8-adapter central Publish snapshots"
+    "vanillabp/business-cockpit-process-engine-api-adapter io.vanillabp.businesscockpit businesscockpit-process-engine-api-adapter central Publish snapshots"
+    "vanillabp/business-cockpit-operaton-adapter io.vanillabp.businesscockpit businesscockpit-operaton-adapter central Publish snapshots"
+    "vanillabp/business-cockpit-cibseven-adapter io.vanillabp.businesscockpit businesscockpit-cibseven-adapter central Publish snapshots"
     "Phactum/mongodb-changesets com.phactum.mongodb mongodb-changesets packages Publish to GitHub Packages"
 )
 
@@ -110,48 +110,48 @@ pins=(
 #   artifact <id>     the version written right after that artifactId
 reads=(
     "release-parent|vanillabp/business-cockpit|pom.xml|parent||"
-    "release-parent|vanillabp/businesscockpit-camunda7-adapter|pom.xml|parent||"
-    "release-parent|vanillabp/businesscockpit-camunda8-adapter|pom.xml|parent||"
-    "release-parent|vanillabp/businesscockpit-process-engine-api-adapter|pom.xml|parent||"
-    "release-parent|vanillabp/businesscockpit-operaton-adapter|pom.xml|parent||"
-    "release-parent|vanillabp/businesscockpit-cibseven-adapter|pom.xml|parent||"
+    "release-parent|vanillabp/business-cockpit-camunda7-adapter|pom.xml|parent||"
+    "release-parent|vanillabp/business-cockpit-camunda8-adapter|pom.xml|parent||"
+    "release-parent|vanillabp/business-cockpit-process-engine-api-adapter|pom.xml|parent||"
+    "release-parent|vanillabp/business-cockpit-operaton-adapter|pom.xml|parent||"
+    "release-parent|vanillabp/business-cockpit-cibseven-adapter|pom.xml|parent||"
     "java|vanillabp/business-cockpit|pom.xml|property|version.java|"
-    "java|vanillabp/businesscockpit-camunda7-adapter|pom.xml|property|version.java|"
-    "java|vanillabp/businesscockpit-camunda8-adapter|pom.xml|property|version.java|"
-    "java|vanillabp/businesscockpit-process-engine-api-adapter|pom.xml|property|version.java|"
-    "java|vanillabp/businesscockpit-operaton-adapter|pom.xml|property|version.java|"
-    "java|vanillabp/businesscockpit-cibseven-adapter|pom.xml|property|version.java|"
+    "java|vanillabp/business-cockpit-camunda7-adapter|pom.xml|property|version.java|"
+    "java|vanillabp/business-cockpit-camunda8-adapter|pom.xml|property|version.java|"
+    "java|vanillabp/business-cockpit-process-engine-api-adapter|pom.xml|property|version.java|"
+    "java|vanillabp/business-cockpit-operaton-adapter|pom.xml|property|version.java|"
+    "java|vanillabp/business-cockpit-cibseven-adapter|pom.xml|property|version.java|"
     "spring-boot|vanillabp/business-cockpit|pom.xml|artifact|spring-boot-dependencies|BOM"
     "spring-boot|vanillabp/business-cockpit|pom.xml|artifact|spring-boot-maven-plugin|plugin"
-    "spring-boot|vanillabp/businesscockpit-camunda7-adapter|pom.xml|property|spring-boot.version|"
-    "spring-boot|vanillabp/businesscockpit-camunda8-adapter|pom.xml|property|spring-boot.version|"
-    "spring-boot|vanillabp/businesscockpit-process-engine-api-adapter|pom.xml|property|spring-boot.version|"
-    "spring-boot|vanillabp/businesscockpit-operaton-adapter|pom.xml|property|spring-boot.version|"
-    "spring-boot|vanillabp/businesscockpit-cibseven-adapter|pom.xml|property|spring-boot.version|"
+    "spring-boot|vanillabp/business-cockpit-camunda7-adapter|pom.xml|property|spring-boot.version|"
+    "spring-boot|vanillabp/business-cockpit-camunda8-adapter|pom.xml|property|spring-boot.version|"
+    "spring-boot|vanillabp/business-cockpit-process-engine-api-adapter|pom.xml|property|spring-boot.version|"
+    "spring-boot|vanillabp/business-cockpit-operaton-adapter|pom.xml|property|spring-boot.version|"
+    "spring-boot|vanillabp/business-cockpit-cibseven-adapter|pom.xml|property|spring-boot.version|"
     "quarkus|vanillabp/business-cockpit|extensions-commons/pom.xml|property|version.quarkus|"
-    "quarkus|vanillabp/businesscockpit-camunda7-adapter|pom.xml|property|quarkus.version|"
-    "quarkus|vanillabp/businesscockpit-camunda8-adapter|pom.xml|property|quarkus.version|"
-    "quarkus|vanillabp/businesscockpit-process-engine-api-adapter|pom.xml|property|quarkus.version|"
-    "quarkus|vanillabp/businesscockpit-operaton-adapter|pom.xml|property|quarkus.version|"
-    "quarkus|vanillabp/businesscockpit-cibseven-adapter|pom.xml|property|quarkus.version|"
+    "quarkus|vanillabp/business-cockpit-camunda7-adapter|pom.xml|property|quarkus.version|"
+    "quarkus|vanillabp/business-cockpit-camunda8-adapter|pom.xml|property|quarkus.version|"
+    "quarkus|vanillabp/business-cockpit-process-engine-api-adapter|pom.xml|property|quarkus.version|"
+    "quarkus|vanillabp/business-cockpit-operaton-adapter|pom.xml|property|quarkus.version|"
+    "quarkus|vanillabp/business-cockpit-cibseven-adapter|pom.xml|property|quarkus.version|"
     "jacoco|vanillabp/business-cockpit|pom.xml|property|jacoco.version|"
-    "jacoco|vanillabp/businesscockpit-camunda7-adapter|pom.xml|property|jacoco.version|"
-    "jacoco|vanillabp/businesscockpit-camunda8-adapter|pom.xml|property|jacoco.version|"
-    "jacoco|vanillabp/businesscockpit-process-engine-api-adapter|pom.xml|property|jacoco.version|"
-    "jacoco|vanillabp/businesscockpit-operaton-adapter|pom.xml|property|jacoco.version|"
-    "jacoco|vanillabp/businesscockpit-cibseven-adapter|pom.xml|property|jacoco.version|"
+    "jacoco|vanillabp/business-cockpit-camunda7-adapter|pom.xml|property|jacoco.version|"
+    "jacoco|vanillabp/business-cockpit-camunda8-adapter|pom.xml|property|jacoco.version|"
+    "jacoco|vanillabp/business-cockpit-process-engine-api-adapter|pom.xml|property|jacoco.version|"
+    "jacoco|vanillabp/business-cockpit-operaton-adapter|pom.xml|property|jacoco.version|"
+    "jacoco|vanillabp/business-cockpit-cibseven-adapter|pom.xml|property|jacoco.version|"
     "vanillabp|vanillabp/business-cockpit|pom.xml|property|version.vanillabp|"
-    "vanillabp|vanillabp/businesscockpit-camunda7-adapter|pom.xml|property|adapter-platform.version|"
-    "vanillabp|vanillabp/businesscockpit-camunda8-adapter|pom.xml|property|adapter-platform.version|"
-    "vanillabp|vanillabp/businesscockpit-process-engine-api-adapter|pom.xml|property|adapter-platform.version|"
-    "vanillabp|vanillabp/businesscockpit-operaton-adapter|pom.xml|property|adapter-platform.version|"
-    "vanillabp|vanillabp/businesscockpit-cibseven-adapter|pom.xml|property|adapter-platform.version|"
+    "vanillabp|vanillabp/business-cockpit-camunda7-adapter|pom.xml|property|adapter-platform.version|"
+    "vanillabp|vanillabp/business-cockpit-camunda8-adapter|pom.xml|property|adapter-platform.version|"
+    "vanillabp|vanillabp/business-cockpit-process-engine-api-adapter|pom.xml|property|adapter-platform.version|"
+    "vanillabp|vanillabp/business-cockpit-operaton-adapter|pom.xml|property|adapter-platform.version|"
+    "vanillabp|vanillabp/business-cockpit-cibseven-adapter|pom.xml|property|adapter-platform.version|"
     "business-cockpit|vanillabp/business-cockpit|pom.xml|project||"
-    "business-cockpit|vanillabp/businesscockpit-camunda7-adapter|pom.xml|property|business-cockpit.version|"
-    "business-cockpit|vanillabp/businesscockpit-camunda8-adapter|pom.xml|property|business-cockpit.version|"
-    "business-cockpit|vanillabp/businesscockpit-process-engine-api-adapter|pom.xml|property|business-cockpit.version|"
-    "business-cockpit|vanillabp/businesscockpit-operaton-adapter|pom.xml|property|business-cockpit.version|"
-    "business-cockpit|vanillabp/businesscockpit-cibseven-adapter|pom.xml|property|business-cockpit.version|"
+    "business-cockpit|vanillabp/business-cockpit-camunda7-adapter|pom.xml|property|business-cockpit.version|"
+    "business-cockpit|vanillabp/business-cockpit-camunda8-adapter|pom.xml|property|business-cockpit.version|"
+    "business-cockpit|vanillabp/business-cockpit-process-engine-api-adapter|pom.xml|property|business-cockpit.version|"
+    "business-cockpit|vanillabp/business-cockpit-operaton-adapter|pom.xml|property|business-cockpit.version|"
+    "business-cockpit|vanillabp/business-cockpit-cibseven-adapter|pom.xml|property|business-cockpit.version|"
 )
 
 # Pins which look as if they belonged to the list above and do not. Printed in every

@@ -49,12 +49,12 @@ interface a BPMS half implements. A platform module finds beans and hands them o
 nothing, which is what keeps a feature from existing on one platform only.
 
 The five BPMS halves live in
-[businesscockpit-camunda7-adapter](https://github.com/vanillabp/businesscockpit-camunda7-adapter),
-[businesscockpit-camunda8-adapter](https://github.com/vanillabp/businesscockpit-camunda8-adapter),
-[businesscockpit-cibseven-adapter](https://github.com/vanillabp/businesscockpit-cibseven-adapter),
-[businesscockpit-operaton-adapter](https://github.com/vanillabp/businesscockpit-operaton-adapter)
+[business-cockpit-camunda7-adapter](https://github.com/vanillabp/business-cockpit-camunda7-adapter),
+[business-cockpit-camunda8-adapter](https://github.com/vanillabp/business-cockpit-camunda8-adapter),
+[business-cockpit-cibseven-adapter](https://github.com/vanillabp/business-cockpit-cibseven-adapter),
+[business-cockpit-operaton-adapter](https://github.com/vanillabp/business-cockpit-operaton-adapter)
 and
-[businesscockpit-process-engine-api-adapter](https://github.com/vanillabp/businesscockpit-process-engine-api-adapter).
+[business-cockpit-process-engine-api-adapter](https://github.com/vanillabp/business-cockpit-process-engine-api-adapter).
 
 The path an event takes is drawn in the wiki under
 [Architecture](https://github.com/vanillabp/business-cockpit/wiki/Architecture#the-path-a-report-takes).
