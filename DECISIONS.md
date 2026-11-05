@@ -3465,3 +3465,4 @@ to the new names. `UPGRADE.md` says what a user interface and a Java caller have
 - `container/src/test/java/io/vanillabp/cockpit/itest/WhatAListShowsForItsModeTest.java`
 - `development/dev-shell-simulator/src/test/java/io/vanillabp/cockpit/devshell/simulator/businesscockpit/TheSimulatorReadsTheOldNamesOfTheWorkflowModesTest.java`
 - `UPGRADE.md`, the section about `InProgress` and `Done`
+
