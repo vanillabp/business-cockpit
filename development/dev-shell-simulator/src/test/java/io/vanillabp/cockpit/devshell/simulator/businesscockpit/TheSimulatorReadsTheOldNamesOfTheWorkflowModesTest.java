@@ -3,13 +3,16 @@ package io.vanillabp.cockpit.devshell.simulator.businesscockpit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.vanillabp.cockpit.gui.api.v1.WorkflowRetrieveMode;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * The simulator plays the official GUI API, so it takes the deprecated names 'Active' and
  * 'Inactive' as well, and gives them the same list as 'InProgress' and 'Done'.
  */
+@ExtendWith(SuppressOutputExtension.class)
 class TheSimulatorReadsTheOldNamesOfTheWorkflowModesTest {
 
   private final OfficialApiMapper mapper = new OfficialApiMapperImpl();
