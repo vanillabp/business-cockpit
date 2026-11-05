@@ -11,10 +11,10 @@ homepage: https://www.vanillabp.io
 # Generating a Business Cockpit user interface
 
 The Business Cockpit is the central user interface of a company. Employees find the user tasks that
-the digitised business processes give them, and they look up the state of a business case. The VanillaBP
-cockpit backend has no user interface of its own. Every organisation brings its own framework, its
-own version of it, its own component library and its own design. So no single user interface fits,
-and this skill does not describe one.
+the digitised business processes give them, and they look up the state of a business case. The
+VanillaBP cockpit backend has no user interface of its own. Every organisation brings its own
+framework, its own version of it, its own component library and its own design. So no single user
+interface fits, and this skill does not describe one.
 
 This skill is a generator. You use it to generate a cockpit user interface that fits the tech stack
 of one organisation. You work in three phases:
