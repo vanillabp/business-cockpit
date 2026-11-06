@@ -148,9 +148,8 @@
       <dependency>
         <!--
           The MongoDB migration this repository used to carry itself, in commons, under
-          io.vanillabp.cockpit.commons.mongo.changesets. Its snapshots are read from the GitHub
-          Packages of Phactum/mongodb-changesets, which .github/workflows/github-packages-settings.xml
-          names. A local build needs the same repository in its own settings.xml, see README.md.
+          io.vanillabp.cockpit.commons.mongo.changesets. Its snapshots are read from the snapshot
+          repository of Maven Central, like the VanillaBP snapshots, so no login is needed.
         -->
         <groupId>com.phactum.mongodb</groupId>
         <artifactId>mongodb-changesets</artifactId>

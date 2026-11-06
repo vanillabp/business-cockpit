@@ -8,7 +8,7 @@
       "enabled": false
     },
     {
-      "description": "mongodb-changesets is a snapshot from the GitHub Packages of Phactum/mongodb-changesets, which only the build reads through its settings.xml. Renovate does not know that repository, so the lookup can only fail. The version is raised by hand when a release is cut.",
+      "description": "mongodb-changesets is a snapshot from the snapshot repository of Maven Central. While it is a snapshot there is no release to look up. The version is raised by hand when a release is cut.",
       "matchPackageNames": ["com.phactum.mongodb:mongodb-changesets"],
       "enabled": false
     }
