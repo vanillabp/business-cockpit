@@ -13,7 +13,7 @@ name: Chain check
 # A finding becomes an issue. A finding which is still there the next night gets a comment
 # on that issue, never a second issue. A green night after a red one gets a comment too,
 # and the issue stays open until somebody closes it: one green night does not prove a fix.
-# The same pattern as the nightly release-line matrix of businesscockpit-camunda8-adapter.
+# The same pattern as the nightly release-line matrix of business-cockpit-camunda8-adapter.
 #
 # The report of every run, a green one too, starts and ends with the time it was asked,
 # and is written to the summary of the run. A question the script could not answer counts

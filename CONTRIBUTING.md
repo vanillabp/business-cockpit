@@ -26,8 +26,7 @@ build. The submodules are cloned over SSH. If GitHub has no SSH key of yours, ru
 `git config --global url."https://github.com/".insteadOf "git@github.com:"` before you clone. If
 the bug is in a repository the workspace does not hold, the agent clones it next to the others.
 Before it opens the pull request, the agent follows the `CONTRIBUTING.md` and the `AGENTS.md` of
-the repository it changes, where it has one. The two Camunda adapters live in the Camunda Community
-Hub, which asks you to sign its contributor license agreement on your first pull request there.
+the repository it changes, where it has one.
 
 ## Before you change the code
 
