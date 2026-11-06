@@ -19,7 +19,7 @@ name: Nightly build
 # A red night becomes an issue with the label 'nightly-build'. A night which is still red
 # gets a comment on that issue, never a second issue. A green night after a red one gets a
 # comment too, and the issue stays open until somebody closes it. The same pattern as the
-# nightly release-line matrix of businesscockpit-camunda8-adapter.
+# nightly release-line matrix of business-cockpit-camunda8-adapter.
 "on":
   schedule:
     # A crooked minute, because GitHub's queue is longest on the hour, and not the minute of
@@ -102,9 +102,9 @@ jobs:
       - uses: actions/checkout@v7
         if: github.ref_name == 'main'
         with:
-          repository: camunda-community-hub/vanillabp-camunda8-adapter
+          repository: vanillabp/camunda8-adapter
           ref: main
-          path: vanillabp-camunda8-adapter
+          path: camunda8-adapter
           sparse-checkout: bin
       - name: Open or update the issue
         # Only for main: a dispatch on a branch says nothing about main.
@@ -171,7 +171,7 @@ jobs:
                     # came out empty.
                     gh api --allow-escape-sequences "repos/$GH_REPO/actions/jobs/$id/logs" \
                       > "$RUNNER_TEMP/job.log" 2>/dev/null || true
-                    excerpt=$(vanillabp-camunda8-adapter/bin/job-log-excerpt.sh \
+                    excerpt=$(camunda8-adapter/bin/job-log-excerpt.sh \
                       "$RUNNER_TEMP/job.log")
                     if [ -n "$excerpt" ]; then
                       echo '```'
