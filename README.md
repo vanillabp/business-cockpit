@@ -36,14 +36,10 @@ does the runnable jar of `container`. The React application, the npm packages an
 which used to be here are in the Git history. Decision 63 in [DECISIONS.md](./DECISIONS.md) says
 why.
 
-The build reads two kinds of snapshot. The snapshots of the VanillaBP platform come from the
-snapshot repository of Maven Central, `https://central.sonatype.com/repository/maven-snapshots/`.
-The parent `io.vanillabp:release-parent` names that repository, and reading it needs no login. The
-snapshot of the MongoDB changeset library `com.phactum.mongodb:mongodb-changesets` still comes from
-GitHub Packages, which asks for a token even for a public repository. The build of a pull request
-uses [.github/workflows/github-packages-settings.xml](./.github/workflows/github-packages-settings.xml)
-for it, and a local build needs the same repository in `~/.m2/settings.xml`, with a GitHub token
-which has the scope `read:packages`.
+The build reads the snapshots of the VanillaBP platform and of the MongoDB changeset library
+`com.phactum.mongodb:mongodb-changesets`. Both come from the snapshot repository of Maven Central,
+`https://central.sonatype.com/repository/maven-snapshots/`. The parent
+`io.vanillabp:release-parent` names that repository, and reading it needs no login.
 
 Every push to `main` publishes the snapshot of this repository to the same snapshot repository of
 Maven Central.
@@ -72,9 +68,7 @@ whether a version stayed behind without a pull request or a reason, whether the 
 was green, and whether the published snapshot belongs to the head of main. It builds nothing. A
 finding becomes one issue with the label `chain-check`, and a finding which is still there the
 next night is a comment on that issue. Run the script locally to get the same report. It needs
-the GitHub CLI, logged in. For the snapshot of the MongoDB changeset library it also needs a token
-with `read:packages` in `PACKAGES_TOKEN`. The snapshots of the four cockpit repositories need no
-token.
+the GitHub CLI, logged in. It reads the snapshots without a login.
 
 The chain check builds nothing. So when a new platform snapshot breaks main and nobody pushes
 here, the chain check does not notice. The workflow `Nightly build` covers this. Once a night it

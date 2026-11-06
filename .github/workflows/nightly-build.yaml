@@ -80,7 +80,6 @@ jobs:
     secrets: inherit
     permissions:
       contents: read
-      packages: read
 
   # Opens the issue, comments on it, or says nothing. A job of this workflow rather than a
   # workflow of its own: nothing else calls this workflow, so it can ask for 'issues: write'
