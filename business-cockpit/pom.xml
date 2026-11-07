@@ -255,7 +255,7 @@
       <plugin>
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
-        <version>7.24.0</version>
+        <version>7.27.0</version>
         <!-- The same version as apis/official-gui-api/server. 6.4.0 does not know x-internal, and the
              update stream needs it: the stream is written by hand, and a generated interface for its
              path would map the same request twice. -->
