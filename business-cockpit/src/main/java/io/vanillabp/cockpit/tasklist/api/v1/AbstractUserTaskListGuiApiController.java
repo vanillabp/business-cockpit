@@ -118,7 +118,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
    * @param visibility Which tasks the user may reach
    * @param pageNumber The number of the page, starting at 0
    * @param pageSize How many tasks a page holds
-   * @param initialTimestamp When the user started to page through the list
+   * @param initialTimestamp When the user started to page through the list, or {@code null} for
+   *        the first page, which takes only the tasks which have not ended as open
    * @param searchQueries The filters of the list, or {@code null}
    * @param sort The paths to sort by, separated by commas, or {@code null}
    * @param sortAscending Whether to sort in ascending order
@@ -163,7 +164,12 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
         visibility,
         ListPaging.pageNumber(userTasksRequest.getPageNumber()),
         ListPaging.pageSize(userTasksRequest.getPageSize()),
-        timestamp,
+        // without a timestamp the list asks for the tasks which have not ended, as the count does.
+        // 'now' gives the same tasks with an "or" more, and MongoDB then reads the index entries of
+        // every task the user may see, the ended ones included. The answer still carries 'now'. A
+        // request which sends it back gets the same tasks, except one which ended in the instant
+        // between taking 'now' and reading the tasks
+        initialTimestamp,
         mapper.toModel(userTasksRequest.getSearchQueries()),
         userTasksRequest.getSort(),
         ListPaging.sortAscending(userTasksRequest.getSortAscending()),
@@ -238,7 +244,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
    * @param visibility Which tasks the user may reach
    * @param size How many tasks to return at most
    * @param knownUserTasksIds The ids of the tasks the browser shows already
-   * @param initialTimestamp When the user started to page through the list
+   * @param initialTimestamp When the user started to page through the list, or {@code null} for a
+   *        list which has no timestamp yet, which takes only the tasks which have not ended as open
    * @param searchQueries The filters of the list, or {@code null}
    * @param sort The paths to sort by, separated by commas, or {@code null}
    * @param sortAscending Whether to sort in ascending order
@@ -283,7 +290,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
         visibility,
         userTasksUpdateRequest.getSize(),
         userTasksUpdateRequest.getKnownUserTasksIds(),
-        timestamp,
+        // the same as for the first page
+        initialTimestamp,
         mapper.toModel(userTasksUpdateRequest.getSearchQueries()),
         userTasksUpdateRequest.getSort(),
         ListPaging.sortAscending(userTasksUpdateRequest.getSortAscending()),

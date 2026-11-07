@@ -858,6 +858,8 @@ public class UserTaskService {
    * @param pageSize How many tasks a page holds
    * @param initialTimestamp When the user started to page through the list. A task which ended
    *        after this time still counts as open, so the pages stay the same while the user pages.
+   *        {@code null} takes only the tasks which have not ended as open, which the indexes of
+   *        the visibility answer best.
    * @param searchQueries The filters of the list, or {@code null}
    * @param sort The paths to sort by, separated by commas, or {@code null} for the due date
    * @param sortAscending Whether to sort in ascending order
@@ -895,7 +897,8 @@ public class UserTaskService {
    * @param pageNumber The number of the page, starting at 0
    * @param pageSize How many tasks a page holds
    * @param initialTimestamp When the user started to page through the list. A task which ended
-   *        after this time still counts as open.
+   *        after this time still counts as open. {@code null} takes only the tasks which have not
+   *        ended as open.
    * @param searchQueries The filters of the list, or {@code null}
    * @param sort The paths to sort by, separated by commas, or {@code null} for the due date
    * @param sortAscending Whether to sort in ascending order
