@@ -24,6 +24,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
@@ -75,6 +77,26 @@ public class RestfulExceptionHandlerTest {
     Assertions
         .assertThat(response.getBody())
         .isEqualTo(Map.of("title", "is missing", "dueDate", "lies in the past"));
+
+  }
+
+  @Test
+  public void testAnUnexpectedExceptionIsLoggedInPlainWords() {
+
+    final var logger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(RestfulExceptionHandlerTest.class);
+    final var recorded = new ListAppender<ILoggingEvent>();
+    recorded.start();
+    logger.addAppender(recorded);
+    try {
+      handler.handleUnexpectedException(new IllegalStateException("boom"));
+    } finally {
+      logger.detachAppender(recorded);
+    }
+
+    Assertions
+        .assertThat(recorded.list)
+        .extracting(ILoggingEvent::getFormattedMessage)
+        .containsExactly("Unexpected exception");
 
   }
 

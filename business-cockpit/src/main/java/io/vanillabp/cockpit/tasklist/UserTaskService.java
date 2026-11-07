@@ -437,7 +437,9 @@ public class UserTaskService {
 
   /**
    * Adds a person to the candidate users of a task. Assigning in the cockpit makes the person a
-   * candidate, not the assignee.
+   * candidate, not the assignee; {@link #claimTask(UserTaskVisibility, String, Person)} sets the
+   * assignee. The name stays as it is, because it is the name of the operation in the GUI API and
+   * applications derived from the cockpit call it.
    *
    * @param visibility Which tasks the caller may reach
    * @param userTaskId The id of the task
@@ -463,8 +465,8 @@ public class UserTaskService {
   }
 
   /**
-   * Adds a person to the candidate users of several tasks. Tasks the caller may not reach are
-   * left out.
+   * Adds a person to the candidate users of several tasks, the same way as for one task: the
+   * person becomes a candidate, not the assignee. Tasks the caller may not reach are left out.
    *
    * @param visibility Which tasks the caller may reach
    * @param userTaskIds The ids of the tasks

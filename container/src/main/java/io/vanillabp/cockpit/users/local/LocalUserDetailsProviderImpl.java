@@ -99,7 +99,7 @@ public class LocalUserDetailsProviderImpl implements UserDetailsProvider {
           .forEach(users::add);
     } catch (Exception e) {
       throw new RuntimeException(
-          ("Unable to load users from Simulator. Is it up an running at %s?\n"
+          ("Unable to load users from Simulator. Is it up and running at %s?\n"
               +
               "If URI is another than this, use Spring Boot property '%s' to change. One can also point to the "
               +

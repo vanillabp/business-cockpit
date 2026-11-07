@@ -60,7 +60,7 @@ public class JwtProperties {
       } catch (Exception e) {
         throw new RuntimeException(
             "No property 'business-cockpit.jwt.hmacSHA256-base64' set! "
-                + "Additionally, on generating a key to be used an error occured.", e);
+                + "Additionally, on generating a key to be used an error occurred.", e);
       }
       throw new RuntimeException(
           "No property 'business-cockpit.jwt.hmacSHA256-base64' set! "

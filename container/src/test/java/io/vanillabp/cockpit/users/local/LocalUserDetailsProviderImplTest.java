@@ -220,6 +220,7 @@ class LocalUserDetailsProviderImplTest {
         RuntimeException.class,
         () -> new LocalUserDetailsProviderImpl(usersUri).loadAllUsersFromDevShellSimulator());
 
+    assertTrue(failure.getMessage().contains("Is it up and running at"));
     assertTrue(failure.getMessage().contains("dev-shell-simulator.users-uri"));
     assertTrue(failure.getMessage().contains(usersUri));
 
