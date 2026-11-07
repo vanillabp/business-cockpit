@@ -4,6 +4,10 @@ A standalone Spring Boot application which stands in for a business service: it 
 and workflows to the cockpit the way a workflow module does. Cockpit features can be built against
 it without a BPMS and without a real application.
 
+It also answers a part of the cockpit's official API. A user task or a case asked for by id is
+made up and kept, so the next request gets the same one. `POST /usertask/count` and
+`POST /workflow/count` count what it keeps, by the modes of the cockpit. It has no lists.
+
 How to run it and what its test data form does is in
 [development/README.md](../README.md#simulation-service).
 

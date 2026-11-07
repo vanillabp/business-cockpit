@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.simulator.workflow;
 
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -13,11 +14,15 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.devskiller.jfairy.Fairy;
 
+import io.vanillabp.cockpit.gui.api.v1.Count;
+import io.vanillabp.cockpit.gui.api.v1.Counts;
 import io.vanillabp.cockpit.gui.api.v1.OfficialWorkflowlistApi;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskRetrieveMode;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import io.vanillabp.cockpit.gui.api.v1.Workflow;
+import io.vanillabp.cockpit.gui.api.v1.WorkflowCountsRequest;
+import io.vanillabp.cockpit.gui.api.v1.WorkflowRetrieveMode;
 import io.vanillabp.cockpit.simulator.common.FairyHelper;
 import io.vanillabp.cockpit.simulator.usertask.OfficialTasklistApiMapper;
 import io.vanillabp.cockpit.simulator.usertask.testdata.UserTaskTestDataGenerator;
@@ -26,7 +31,8 @@ import io.vanillabp.cockpit.simulator.workflow.testdata.WorkflowTestDataGenerato
 /**
  * A fake of the Business Cockpit's official workflow list API. It answers every workflow id with
  * a random workflow and keeps it, so the next request for the same id returns the same workflow.
- * The user tasks of a workflow are random too, and kept the same way.
+ * The user tasks of a workflow are random too, and kept the same way. It counts the workflows it
+ * keeps. It has no list of its own.
  */
 @RestController
 @RequestMapping(path = "/official-api/v1")
@@ -109,6 +115,57 @@ public class OfficialWorkflowlistApiController implements OfficialWorkflowlistAp
     }
 
     return ResponseEntity.ok(result);
+
+  }
+
+  /**
+   * Counts the workflows the simulator keeps, for each filter by its mode and its business ids.
+   * Like the cockpit, a filter without a mode counts the workflows in progress. The simulator reads
+   * no search queries.
+   */
+  @Override
+  public ResponseEntity<Counts> countWorkflows(
+      final WorkflowCountsRequest workflowCountsRequest,
+      final OffsetDateTime initialTimestamp) {
+
+    final var counts = workflowCountsRequest
+        .getFilters()
+        .stream()
+        .map(filter -> new Count()
+            .key(filter.getKey())
+            .count(workflows
+                .values()
+                .stream()
+                .filter(workflow -> shows(filter.getMode(), workflow))
+                .filter(workflow -> (filter.getBusinessIds() == null)
+                    || filter.getBusinessIds().isEmpty()
+                    || filter.getBusinessIds().contains(workflow.getBusinessId()))
+                .count()))
+        .toList();
+
+    return ResponseEntity.ok(new Counts()
+        .serverTimestamp(initialTimestamp != null ? initialTimestamp : OffsetDateTime.now())
+        .counts(counts));
+
+  }
+
+  /**
+   * Whether a list of the given mode holds the workflow, by the rules of the cockpit.
+   *
+   * @param mode The mode, or {@code null} for the workflows in progress
+   * @param workflow The workflow
+   * @return Whether the list holds the workflow
+   */
+  static boolean shows(
+      final WorkflowRetrieveMode mode,
+      final Workflow workflow) {
+
+    final var inProgress = workflow.getEndedAt() == null;
+    return switch (mode == null ? WorkflowRetrieveMode.INPROGRESS : mode) {
+      case ALL -> true;
+      case INPROGRESS, ACTIVE -> inProgress;
+      case DONE, INACTIVE -> !inProgress;
+    };
 
   }
 
