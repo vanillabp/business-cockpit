@@ -644,4 +644,41 @@ class StartupConfigurationCheckTest {
 
   }
 
+
+  /**
+   * A key the cockpit bound once and never read is gone. Somebody who still sets it believes it
+   * changes something, so the start stops and says what to do. The key is found in every spelling
+   * relaxed binding accepts.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "mongodb.change-stream-executor.core-pool-size", "mongodb.changeStreamExecutor.max-pool-size"
+  })
+  void aRemovedKeyStopsTheStartAndSaysWhatToDo(
+      final String key) {
+
+    final var environment = configurationWithout().withProperty(key, "4");
+
+    assertThatThrownBy(() -> check.checkConfigurationOf(environment))
+        .hasMessageContaining("'mongodb.change-stream-executor'")
+        .hasMessageContaining("Remove");
+
+  }
+
+  @Test
+  void aRemovedKeyIsShownAsTheFailureReport() {
+
+    final var environment = configurationWithout()
+        .withProperty("mongodb.change-stream-executor.core-pool-size", "4");
+    final var failure = catchThrowableOfType(
+        RemovedPropertyIsSetException.class,
+        () -> check.checkConfigurationOf(environment));
+
+    final var analysis = new RemovedPropertyIsSetFailureAnalyzer().analyze(failure);
+
+    assertThat(analysis.getDescription()).contains("'mongodb.change-stream-executor'");
+    assertThat(analysis.getAction()).contains("Remove these keys");
+
+  }
+
 }

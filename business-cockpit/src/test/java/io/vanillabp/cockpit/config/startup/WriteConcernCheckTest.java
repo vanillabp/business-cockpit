@@ -290,6 +290,18 @@ class WriteConcernCheckTest {
 
   }
 
+  @Test
+  void theConfiguredTimeoutIsTheTimeoutOfTheWriteConcern() {
+
+    final var properties = configuredWith("majority", null);
+    properties.setUseTimeout("PT12S");
+
+    final var writeConcern = WriteConcernCheck.writeConcernConfigured(properties).orElseThrow();
+
+    assertThat(writeConcern.getWTimeout(TimeUnit.SECONDS)).isEqualTo(12);
+
+  }
+
   /**
    * The driver refuses a journal on a write nobody waits for, so the journal is left off and the
    * value reaches the check, which says in words what is wrong with it.

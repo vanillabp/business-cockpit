@@ -47,7 +47,9 @@ public class GuiSseProperties {
   /**
    * How often, in milliseconds, the changes collected since the last time are checked against
    * the open streams. Each check asks the database once per kind of entity, whatever the number
-   * of open streams, and only when something was collected.
+   * of open streams, and only when something was collected. The scheduler reads the key
+   * {@code business-cockpit.gui-sse.filtering-interval} itself, so this value is there for binding
+   * and reading only.
    *
    * @return The interval
    */

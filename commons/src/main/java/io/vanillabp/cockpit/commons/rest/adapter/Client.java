@@ -1,7 +1,5 @@
 package io.vanillabp.cockpit.commons.rest.adapter;
 
-import java.util.Map;
-
 /**
  * The settings of one outgoing REST client: where it connects, how long it waits, and how it
  * deals with proxy, TLS, authentication and retries. {@link ClientsConfigurationBase} turns them
@@ -32,8 +30,6 @@ public class Client {
   private String sslTruststoreFilename;
 
   private String sslTruststorePassword;
-
-  private Map<String, String> additionalGetParameters;
 
   private Retry retry;
 
@@ -174,25 +170,6 @@ public class Client {
   public void setLog(
       boolean log) {
     this.log = log;
-  }
-
-  /**
-   * Extra query parameters meant for GET requests. Nothing in this module reads them.
-   *
-   * @return The parameters by name
-   */
-  public Map<String, String> getAdditionalGetParameters() {
-    return additionalGetParameters;
-  }
-
-  /**
-   * Sets extra query parameters meant for GET requests. Nothing in this module reads them.
-   *
-   * @param additionalGetParameters The parameters by name
-   */
-  public void setAdditionalGetParameters(
-      Map<String, String> additionalGetParameters) {
-    this.additionalGetParameters = additionalGetParameters;
   }
 
   /**
