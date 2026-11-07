@@ -3,6 +3,7 @@ package io.vanillabp.cockpit.autoconfigure;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 
 import io.vanillabp.cockpit.config.MongoDbConfiguration;
@@ -16,6 +17,7 @@ import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import io.vanillabp.cockpit.workflowlist.model.WorkflowEndReason;
 import io.vanillabp.cockpit.workflowmodules.model.WorkflowModule;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * A released changeset never changes, but its code reads names which live outside of it: the names
@@ -27,6 +29,7 @@ import io.vanillabp.cockpit.workflowmodules.model.WorkflowModule;
  * changes one of the names gets a red test and reads why. The way out is to keep the old value,
  * not to change this test.
  */
+@ExtendWith(SuppressOutputExtension.class)
 class NamesTheReleasedChangesetsReadTest {
 
   private final MongoMappingContext mapping = mappingOfTheCockpit();
