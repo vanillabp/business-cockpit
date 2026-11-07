@@ -137,15 +137,31 @@ public class OfficialWorkflowlistApiController implements OfficialWorkflowlistAp
                 .values()
                 .stream()
                 .filter(workflow -> shows(filter.getMode(), workflow))
-                .filter(workflow -> (filter.getBusinessIds() == null)
-                    || filter.getBusinessIds().isEmpty()
-                    || filter.getBusinessIds().contains(workflow.getBusinessId()))
+                .filter(workflow -> hasOneOf(filter.getBusinessIds(), workflow))
                 .count()))
         .toList();
 
     return ResponseEntity.ok(new Counts()
         .serverTimestamp(initialTimestamp != null ? initialTimestamp : OffsetDateTime.now())
         .counts(counts));
+
+  }
+
+  /**
+   * Whether the workflow has one of the business ids, the same way as in the cockpit.
+   *
+   * @param businessIds The business ids, or {@code null} or none for every workflow
+   * @param workflow The workflow
+   * @return Whether the workflow counts
+   */
+  private static boolean hasOneOf(
+      final List<String> businessIds,
+      final Workflow workflow) {
+
+    if ((businessIds == null) || businessIds.isEmpty()) {
+      return true;
+    }
+    return businessIds.contains(workflow.getBusinessId());
 
   }
 

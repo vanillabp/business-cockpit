@@ -52,7 +52,7 @@ public class WorkflowTestDataGenerator implements Runnable {
    * Creates a generator.
    *
    * @param offset The number of events the generators before this one send. It names the
-   *               logger and is part of the random seed.
+   *               logger.
    * @param noOfEvents The number of events this generator sends
    * @param bpmsApi The client of the Business Cockpit
    * @param fairies The generators of random texts, by language
@@ -69,7 +69,9 @@ public class WorkflowTestDataGenerator implements Runnable {
             + "#"
             + offset);
     this.noOfEvents = noOfEvents;
-    this.random = new Random(System.currentTimeMillis() * offset);
+    // a seed of its own for every generator. The clock times the offset gave the first generator
+    // the seed 0, so it sent the same cases in every run
+    this.random = new Random();
     this.bpmsApi = bpmsApi;
     this.fairies = fairies;
     this.parameters = parameters;

@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.simulator.usertask.testdata;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -25,8 +26,10 @@ import io.vanillabp.cockpit.simulator.common.FairyHelper;
 
 /**
  * Sends random user task events to the Business Cockpit. It first registers the workflow module
- * {@code TestModule}, then creates tasks and updates some of them, until it has sent the number
- * of events it was given. Each instance runs in a thread of its own.
+ * {@code TestModule}, then creates tasks. Half of the later reports about a task update it, the
+ * other half complete it, cancel it, suspend it or activate it again. A task which was completed or
+ * cancelled gets no report after that. The generator stops when it has sent the number of events
+ * it was given. Each instance runs in a thread of its own.
  */
 public class UserTaskTestDataGenerator implements Runnable {
 
@@ -51,13 +54,16 @@ public class UserTaskTestDataGenerator implements Runnable {
 
   private List<UserTaskCreatedEvent> created = new LinkedList<>();
 
+  /** The tasks created which have not ended yet, the only ones a later report is about */
+  private List<UserTaskCreatedEvent> open = new ArrayList<>();
+
   private Logger logger;
 
   /**
    * Creates a generator.
    *
    * @param offset The number of events the generators before this one send. It names the
-   *               logger and is part of the random seed.
+   *               logger.
    * @param noOfEvents The number of events this generator sends
    * @param bpmsApi The client of the Business Cockpit
    * @param users The users to assign tasks to
@@ -80,7 +86,9 @@ public class UserTaskTestDataGenerator implements Runnable {
             + "#"
             + offset);
     this.noOfEvents = noOfEvents;
-    this.random = new Random(System.currentTimeMillis() * offset);
+    // a seed of its own for every generator. The clock times the offset gave the first generator
+    // the seed 0, so it sent the same tasks in every run
+    this.random = new Random();
     this.bpmsApi = bpmsApi;
     this.users = users;
     this.groups = groups;
@@ -106,13 +114,13 @@ public class UserTaskTestDataGenerator implements Runnable {
       ++current;
 
       final var onlyUpdatesLeft = (created.size() * 100 / noOfEvents) > (100 - parameters.getPercentageUpdates());
-      final var updateWanted = created.size() > 0 && random.nextInt(100) < parameters.getPercentageUpdates();
-      if (onlyUpdatesLeft || updateWanted) {
+      final var updateWanted = random.nextInt(100) < parameters.getPercentageUpdates();
+      if (!open.isEmpty() && (onlyUpdatesLeft || updateWanted)) {
 
-        final var createdEvent = created.get(
-            random.nextInt(created.size()));
+        final var createdEvent = open.get(
+            random.nextInt(open.size()));
 
-        final var doUpdate = true; // random.nextBoolean();
+        final var doUpdate = random.nextBoolean();
         if (doUpdate) {
 
           final var updatedEvent = buildUpdatedEvent(createdEvent);
@@ -121,17 +129,19 @@ public class UserTaskTestDataGenerator implements Runnable {
 
         } else {
 
-          final var typeOfEvent = random.nextInt();
+          final var typeOfEvent = random.nextInt(4);
           switch (typeOfEvent) {
             case 0:
               bpmsApi.userTaskCompletedEvent(
                   createdEvent.getUserTaskId(),
                   buildCompletedEvent(createdEvent));
+              open.remove(createdEvent);
               break;
             case 1:
               bpmsApi.userTaskCancelledEvent(
                   createdEvent.getUserTaskId(),
                   buildCancelledEvent(createdEvent));
+              open.remove(createdEvent);
               break;
             case 2:
               bpmsApi.userTaskSuspendedEvent(
@@ -153,6 +163,7 @@ public class UserTaskTestDataGenerator implements Runnable {
           return;
         }
         created.add(event);
+        open.add(event);
         bpmsApi.userTaskCreatedEvent(event);
 
       }

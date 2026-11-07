@@ -45,8 +45,7 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 @SpringBootTest(properties = {
     "spring.datasource.url=jdbc:h2:mem:what-the-simulator-lists",
     // the simulator does not start without a user to log in as
-    "dev-shell-simulator.users[0].id=john",
-    "dev-shell-simulator.users[0].groups[0]=ADMIN"
+    "dev-shell-simulator.users[0].id=john", "dev-shell-simulator.users[0].groups[0]=ADMIN"
 })
 class WhatTheSimulatorListsForItsModeTest {
 

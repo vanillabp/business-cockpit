@@ -18,15 +18,16 @@ the ended ones included. The count asks for "not ended" only and lets MongoDB na
 the data of decision 72 and the indexes of the visibility. For the main list of one user, mode
 `OpenTasksWithFollowUp`, page size 10:
 
-| query of the list           | without a timestamp | with a timestamp |
-|-----------------------------|---------------------|------------------|
-| count, keys / docs examined | 456 / 904           | 3339 / 6649      |
-| find, keys / docs examined  | 456 / 904           | 948 / 948        |
+|      query of the list      |        without a timestamp         |      with a timestamp      |
+|-----------------------------|------------------------------------|----------------------------|
+| count, keys / docs examined | 456 / 904                          | 3339 / 6649                |
+| find, keys / docs examined  | 456 / 904                          | 948 / 948                  |
 | find, plan                  | `OR` of five `IXSCAN`, then `SORT` | `IXSCAN` of the sort index |
 
 A list runs both, so a first page read 912 keys instead of 4287. Time was 1 ms against 3 to 4 ms.
-The other open modes looked the same. `All` and `ClosedTasksOnly` put no condition of the timestamp
-into the query, so they did not change.
+The other open modes looked the same. `All` puts no condition of the timestamp into the query, so
+it did not change. Neither did `ClosedTasksOnly` in this measurement. It now takes the tasks which
+ended before the timestamp, which is one condition and no "or".
 
 ## The decision
 
@@ -48,3 +49,4 @@ is a few milliseconds, and the count has the same window since decision 72.
 - `WhatAListShowsForItsModeTest#theUpdateWithTheTimestampOfTheFirstPageKeepsATaskWhichEndedInBetween`,
   which holds the first page and its update together.
 - `CountingMeasurement`, which measures the plans of the count and of the first page.
+
