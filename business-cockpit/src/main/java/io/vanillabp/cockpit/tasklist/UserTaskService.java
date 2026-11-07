@@ -1526,9 +1526,10 @@ public class UserTaskService {
    * them and is not cancelled. {@link UserTaskVisibility} says why.
    *
    * @param visibility Which tasks the caller may reach
-   * @param initialTimestamp When the user started to page through the list. For the modes of
-   *        open tasks, a task which ended after this time counts as open. {@code null} counts
-   *        only the tasks which have not ended.
+   * @param initialTimestamp When the user started to page through the list. A task which ended
+   *        after this time counts as open, so it is in the modes of open tasks and not in
+   *        {@link RetrieveItemsMode#ClosedTasksOnly}. {@code null} takes the tasks which have not
+   *        ended as open and every ended task as closed.
    * @param mode Which tasks the list holds
    * @param predefinedCriterias More conditions a task has to meet, or {@code null}
    * @return The criteria
@@ -1641,7 +1642,14 @@ public class UserTaskService {
         }
         break;
       case ClosedTasksOnly:
-        subCriterias.add(Criteria.where("endedAt").exists(true));
+        // the counterpart of the open modes: a task which ended after the timestamp is open there
+        if (initialTimestamp == null) {
+          subCriterias.add(
+              Criteria.where("endedAt").exists(true));
+        } else {
+          subCriterias.add(
+              Criteria.where("endedAt").lt(initialTimestamp));
+        }
         break;
       default:
         throw new RuntimeException("Unsupported mode '"
