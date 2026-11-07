@@ -80,7 +80,13 @@ import jakarta.annotation.PreDestroy;
 @Service
 public class UserTaskService {
 
-  /** The prefix of the name of every sort index of the user tasks. */
+  /**
+   * The prefix of the name of every sort index of the user tasks.
+   * <p>
+   * Released database changesets read this value. Changing it changes what they do on a new
+   * database, without a line of them changing, so it stays as it is. {@code NamesTheReleasedChangesetsReadTest}
+   * fails when it changes.
+   */
   public static final String INDEX_CUSTOM_SORT_PREFIX = SortIndexes.INDEX_PREFIX;
   /** The field of the due date, which the list is sorted by first by default. */
   public static final String PROPERTY_DUEDATE = "dueDate";

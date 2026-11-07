@@ -22,7 +22,13 @@ import io.vanillabp.cockpit.notification.model.NotificationConfiguration;
 @Document(collection = User.COLLECTION_NAME)
 public class User {
 
-  /** The name of the MongoDB collection the users are stored in. */
+  /**
+   * The name of the MongoDB collection the users are stored in.
+   * <p>
+   * Released database changesets read this value. Changing it changes what they do on a new
+   * database, without a line of them changing, so it stays as it is. {@code NamesTheReleasedChangesetsReadTest}
+   * fails when it changes.
+   */
   public static final String COLLECTION_NAME = "users";
 
   /** The user id as reported by {@code UserDetails#getId()}. */

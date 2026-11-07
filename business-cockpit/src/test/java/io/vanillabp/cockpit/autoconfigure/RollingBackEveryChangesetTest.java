@@ -156,11 +156,14 @@ class RollingBackEveryChangesetTest {
   void aRollbackSomebodyChangedOnPurposeIsLeftAlone() {
 
     final var changedOnPurpose = List.of("{ drop: 'somethingElse' }");
-    storeTheRecord(io.vanillabp.cockpit.tasklist.model.changesets.V000004.RECORD_OF_THE_USERTASK_COLLECTION, changedOnPurpose);
-    storeTheRecord(io.vanillabp.cockpit.workflowlist.model.changesets.V000004.RECORD_OF_THE_WORKFLOW_COLLECTION, changedOnPurpose);
+    storeTheRecord(io.vanillabp.cockpit.tasklist.model.changesets.V000004.RECORD_OF_THE_USERTASK_COLLECTION,
+        changedOnPurpose);
+    storeTheRecord(io.vanillabp.cockpit.workflowlist.model.changesets.V000004.RECORD_OF_THE_WORKFLOW_COLLECTION,
+        changedOnPurpose);
 
     new io.vanillabp.cockpit.tasklist.model.changesets.V000004().rollBackTheUsertaskCollectionByDroppingItOnly(mongo);
-    new io.vanillabp.cockpit.workflowlist.model.changesets.V000004().rollBackTheWorkflowCollectionByDroppingItOnly(mongo);
+    new io.vanillabp.cockpit.workflowlist.model.changesets.V000004()
+        .rollBackTheWorkflowCollectionByDroppingItOnly(mongo);
 
     assertThat(mongo.findAll(ChangesetInformation.class))
         .extracting(ChangesetInformation::getRollbackScripts)
