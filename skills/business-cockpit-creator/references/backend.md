@@ -87,10 +87,12 @@ version of `Q-JAVA-VERSION` and the property `ui.version`, the version of the us
 modules read `ui.version`: `types` downloads `<scope>/bc-types` of that version, and `application`
 takes the UI jar of that version.
 
-A snapshot of the library pulls snapshots of `com.phactum.mongodb:mongodb-changesets` from GitHub
-Packages, which asks for credentials. A release of the library needs no such repository. Propose a
-release version in `Q-COCKPIT-VERSION`, and name the repository in the `README.md` only when the
-user takes a snapshot.
+The library depends on `com.phactum.mongodb:mongodb-changesets`. Its releases and its snapshots
+both come from Maven Central, so neither asks for credentials. When a release of
+`mongodb-changesets` exists, the parent pins it in `dependencyManagement`, so a snapshot of the
+library does not bring a snapshot of the changesets with it. Without a release, the snapshot comes
+from the snapshot repository of Maven Central (`https://central.sonatype.com/repository/maven-snapshots/`),
+and the parent names that repository. Propose a release version in `Q-COCKPIT-VERSION`.
 
 ## The application
 
@@ -388,7 +390,9 @@ first three:
 
 Pin every image to a version. MongoDB runs as a single-node replica set. Start it with
 `--replSet` and initiate the set in a health check or a setup container, so nobody has to type
-`rs.initiate()`. The application connects with `directConnection=true`, because the member's name
+`rs.initiate()`. The same setup creates the database `business-cockpit` and a user
+`business-cockpit` with the password `business-cockpit` and the role `dbOwner` on that database,
+as `development/mongo/` of the template does. `application-local.yaml` connects as that user. The application connects with `directConnection=true`, because the member's name
 inside the compose network does not resolve outside it.
 
 Keycloak starts with `start-dev --import-realm`. The compose file mounts `keycloak/realm.json`
