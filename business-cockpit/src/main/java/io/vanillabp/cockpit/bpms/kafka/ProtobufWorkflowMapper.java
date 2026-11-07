@@ -47,13 +47,16 @@ public abstract class ProtobufWorkflowMapper {
   /**
    * Turns the id of a user, as a workflow module reports it, into a person of the cockpit.
    *
-   * @param userId The id of the user
-   * @return The person
+   * @param userId The id of the user. Empty if the event names nobody, because Protobuf has no
+   *        null for a string.
+   * @return The person, or {@code null} if the event names nobody
    */
   @Named(PERSON_MAPPING)
   public Person toPerson(
       final String userId) {
-    return personAndGroupMapper.toModelPerson(userId);
+    // the same as a missing id in the REST mappers: no person at all, rather than a person whose
+    // empty id every comparison of ids stumbles over
+    return (userId == null) || userId.isEmpty() ? null : personAndGroupMapper.toModelPerson(userId);
   }
 
   /**

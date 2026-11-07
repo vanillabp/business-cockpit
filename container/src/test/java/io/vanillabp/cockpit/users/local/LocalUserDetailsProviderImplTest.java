@@ -52,6 +52,11 @@ class LocalUserDetailsProviderImplTest {
         {
           "id": "nameless",
           "email": "nameless@vanillabp.io"
+        },
+        {
+          "id": "mailless",
+          "firstName": "Max",
+          "lastName": "Mailless"
         }
       ]
       """;
@@ -117,7 +122,7 @@ class LocalUserDetailsProviderImplTest {
     final var users = loadedProvider().getAllUsers();
 
     assertEquals("/dev-shell/user/all", requestedPath.get());
-    assertEquals(List.of("willi", "testuser", "nameless"), idsOf(users));
+    assertEquals(List.of("willi", "testuser", "nameless", "mailless"), idsOf(users));
 
   }
 
@@ -174,12 +179,33 @@ class LocalUserDetailsProviderImplTest {
   }
 
   @Test
+  void theQueryIgnoresUpperAndLowerCase() {
+
+    final var provider = loadedProvider();
+
+    assertEquals(List.of("willi"), idsOf(provider.findUsers("Wichtig")));
+    assertEquals(List.of("willi"), idsOf(provider.findUsers("WILLI.WICHTIG@")));
+    assertEquals(List.of("willi"), idsOf(provider.findUsers("Wichtig", List.of("testuser"))));
+
+  }
+
+  @Test
+  void aUserWithoutAnEmailIsFoundByName() {
+
+    final var provider = loadedProvider();
+
+    assertEquals(List.of("mailless"), idsOf(provider.findUsers("mailless")));
+    assertEquals(List.of(), idsOf(provider.findUsers("nobody", List.of("willi"))));
+
+  }
+
+  @Test
   void excludedUsersAreLeftOutOfBothLists() {
 
     final var provider = loadedProvider();
     final var excluded = List.of("willi");
 
-    assertEquals(List.of("testuser", "nameless"), idsOf(provider.getAllUsers(excluded)));
+    assertEquals(List.of("testuser", "nameless", "mailless"), idsOf(provider.getAllUsers(excluded)));
     assertEquals(List.of(), idsOf(provider.findUsers("wichtig", excluded)));
     assertEquals(List.of("testuser"), idsOf(provider.findUsers("test.user", excluded)));
 
