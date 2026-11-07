@@ -77,7 +77,10 @@ public class WorkflowlistService {
      * workflow has not ended, so it belongs here.
      */
     InProgress,
-    /** The workflows which have ended. */
+    /**
+     * The workflows which ended before the user started to page. A workflow is in this list or in
+     * {@link #InProgress}, never in both.
+     */
     Done
   }
 
@@ -910,9 +913,12 @@ public class WorkflowlistService {
             Criteria.where("endedAt").gte(initialTimestamp)));
         break;
       case Done:
-        subCriterias.add(new Criteria().orOperator(
-            Criteria.where("endedAt").exists(true),
-            Criteria.where("endedAt").lt(initialTimestamp)));
+        // the counterpart of InProgress: a workflow which ended after the user started to page
+        // is still in progress for that user, so it must not be done as well. Without a moment
+        // every ended workflow is done
+        subCriterias.add(initialTimestamp == null
+            ? Criteria.where("endedAt").ne(null)
+            : Criteria.where("endedAt").lt(initialTimestamp));
         break;
       default:
         throw new RuntimeException("Unsupported mode '"

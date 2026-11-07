@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.workflowlist.model;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -182,7 +183,8 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware,
       return;
     }
     if (accessibleToUsers == null) {
-      setAccessibleToUsers(List.of(person));
+      // a list later calls add to and remove from, so it cannot be immutable
+      setAccessibleToUsers(new ArrayList<>(List.of(person)));
     } else {
       this.getAccessibleToUsers().removeIf(candidate -> candidate.getId().equals(person.getId()));
       this.getAccessibleToUsers().add(person);
