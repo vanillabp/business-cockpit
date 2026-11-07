@@ -94,10 +94,15 @@ public class JwtUserDetails implements UserDetails {
 
   }
 
+  /**
+   * The claim {@code email} of the token. The subject is the user id and no e-mail address.
+   *
+   * @return The e-mail address, or {@code null} if the token carries none
+   */
   @Override
   public String getEmail() {
 
-    return getJwt().getSubject();
+    return getJwt().getClaimAsString("email");
 
   }
 

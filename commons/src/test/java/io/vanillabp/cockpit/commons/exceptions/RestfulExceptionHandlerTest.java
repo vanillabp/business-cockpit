@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.commons.exceptions;
 
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Map;
 
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,6 +60,21 @@ public class RestfulExceptionHandlerTest {
     Assertions.assertThat(response.getStatusCode().value()).isEqualTo(400);
     Assertions.assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
     Assertions.assertThat(response.getBody()).isEqualTo(exception.getViolations());
+
+  }
+
+  @Test
+  public void testValidationFailureNamesEachViolatedField() {
+
+    final var exception = new BcValidationException(
+        "two fields are not valid", Map.of("title", "is missing", "dueDate", "lies in the past"));
+
+    final var response = handler.handleValidationException(exception);
+
+    Assertions.assertThat(response.getStatusCode().value()).isEqualTo(400);
+    Assertions
+        .assertThat(response.getBody())
+        .isEqualTo(Map.of("title", "is missing", "dueDate", "lies in the past"));
 
   }
 
