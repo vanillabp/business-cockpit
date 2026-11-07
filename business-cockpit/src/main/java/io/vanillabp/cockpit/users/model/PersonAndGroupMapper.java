@@ -5,6 +5,11 @@ import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 /**
  * Turns the ids a workflow module reports into the persons and groups stored with a user task or a
  * workflow. The application provides it, because only the application knows its users.
+ * <p>
+ * Released database changesets call {@link #toModelPerson(String)} and
+ * {@link #toModelGroup(String)} to turn the plain ids of old records into persons and groups, and
+ * they read the id, the full text and the sort text of the answer. These methods keep what they
+ * mean, or those changesets store something else on a database from an old release.
  */
 public interface PersonAndGroupMapper {
 

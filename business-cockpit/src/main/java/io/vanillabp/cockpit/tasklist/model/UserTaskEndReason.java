@@ -5,6 +5,9 @@ package io.vanillabp.cockpit.tasklist.model;
  * <p>
  * The notification poller reads it to tell a completion from a cancellation by the process, and
  * the GUI API shows it, so a list can show a cancelled task in its own way.
+ * <p>
+ * Released database changesets write the names {@code COMPLETED} and {@code CANCELLED}, so
+ * these two are never renamed. {@code NamesTheReleasedChangesetsReadTest} fails when one is.
  */
 public enum UserTaskEndReason {
 

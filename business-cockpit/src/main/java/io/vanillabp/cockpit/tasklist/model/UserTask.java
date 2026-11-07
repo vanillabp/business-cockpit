@@ -23,6 +23,11 @@ import io.vanillabp.cockpit.util.candidates.CandidatesAware;
 /**
  * A user task as the cockpit stores it: what the workflow modules reported about it, plus what
  * the cockpit itself records, like who read it and who took it.
+ * <p>
+ * Released database changesets update by this class, so Spring Data takes the collection and the
+ * fields {@code readBy}, {@code dangling} and {@code assignee} from it. Mapping one of them to
+ * another field changes what those changesets do on a new database. {@code NamesTheReleasedChangesetsReadTest}
+ * fails when that happens.
  */
 @Document(collection = UserTask.COLLECTION_NAME)
 public class UserTask extends CandidatesAware implements UpdateInformationAware, SuspendableRecord {
@@ -47,7 +52,13 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware,
   public static record CandidateSince(String userId, OffsetDateTime timestamp) {
   };
 
-  /** The name of the MongoDB collection the user tasks are stored in. */
+  /**
+   * The name of the MongoDB collection the user tasks are stored in.
+   * <p>
+   * Released database changesets read this value. Changing it changes what they do on a new
+   * database, without a line of them changing, so it stays as it is. {@code NamesTheReleasedChangesetsReadTest}
+   * fails when it changes.
+   */
   public static final String COLLECTION_NAME = "usertask";
 
   @Id

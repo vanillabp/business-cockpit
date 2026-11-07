@@ -190,6 +190,21 @@ in the log.
 Commit messages and pull-request descriptions may cite whatever they like. They are records of a
 point in time themselves.
 
+## A released changeset never changes
+
+The MongoDB changesets live in the packages `*/model/changesets`. One which was part of a release is
+not changed again: not its code, not its class, method or bean name, not its `order`, not even its
+imports. The changeset library knows a changeset by its class and method name only, and it does not
+compare the code. So a changed changeset never runs again on a database which ran it, and a renamed
+one runs a second time. A correction is a new changeset in a new class, see decision 67 in the
+repository's DECISIONS.md.
+
+The code of a released changeset also reads names from outside: the names of the collections, the
+prefix of the sort indexes, the names of the end reasons, the fields `UserTask` and `Workflow` map,
+and `PersonAndGroupMapper`. Changing one of them changes what the changeset does on a new database,
+and not a line of the changeset changes. These names say so where they are declared, and
+`NamesTheReleasedChangesetsReadTest` holds their values. If that test turns red, keep the old value.
+
 ## Formatting
 
 Spotless formats the whole repository the way every other VanillaBP repository is formatted: the

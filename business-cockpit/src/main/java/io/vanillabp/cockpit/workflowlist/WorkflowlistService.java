@@ -84,7 +84,13 @@ public class WorkflowlistService {
     Done
   }
 
-  /** The prefix of the name of every sort index of the workflows. */
+  /**
+   * The prefix of the name of every sort index of the workflows.
+   * <p>
+   * Released database changesets read this value. Changing it changes what they do on a new
+   * database, without a line of them changing, so it stays as it is. {@code NamesTheReleasedChangesetsReadTest}
+   * fails when it changes.
+   */
   public static final String INDEX_CUSTOM_SORT_PREFIX = SortIndexes.INDEX_PREFIX;
   /** The field of the start of a workflow, which the list is sorted by first by default. */
   public static final String PROPERTY_CREATEDAT = "createdAt";

@@ -21,11 +21,22 @@ import io.vanillabp.cockpit.util.candidates.CandidatesAware;
 /**
  * A workflow, which is one business case, as the cockpit stores it: what the workflow modules
  * reported about it.
+ * <p>
+ * A released database changeset updates by this class and removes the field {@code workflowId}, so
+ * Spring Data takes the collection and that field from it. A property {@code workflowId} mapped to
+ * another field changes what the changeset does on a new database.
+ * {@code NamesTheReleasedChangesetsReadTest} fails when that happens.
  */
 @Document(collection = Workflow.COLLECTION_NAME)
 public class Workflow extends CandidatesAware implements UpdateInformationAware, SuspendableRecord {
 
-  /** The name of the MongoDB collection the workflows are stored in. */
+  /**
+   * The name of the MongoDB collection the workflows are stored in.
+   * <p>
+   * Released database changesets read this value. Changing it changes what they do on a new
+   * database, without a line of them changing, so it stays as it is. {@code NamesTheReleasedChangesetsReadTest}
+   * fails when it changes.
+   */
   public static final String COLLECTION_NAME = "workflow";
 
   @Id
