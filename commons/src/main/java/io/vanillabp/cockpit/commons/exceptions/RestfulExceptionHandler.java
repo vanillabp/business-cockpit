@@ -282,7 +282,7 @@ public class RestfulExceptionHandler {
   public ResponseEntity<String> handleUnexpectedException(
       final Exception exception) {
 
-    logger.warn("Unexpected exeception", exception);
+    logger.warn("Unexpected exception", exception);
 
     return ResponseEntity
         .internalServerError()

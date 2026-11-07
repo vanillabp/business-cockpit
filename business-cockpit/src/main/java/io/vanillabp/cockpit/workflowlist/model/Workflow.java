@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.workflowlist.model;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -20,11 +21,22 @@ import io.vanillabp.cockpit.util.candidates.CandidatesAware;
 /**
  * A workflow, which is one business case, as the cockpit stores it: what the workflow modules
  * reported about it.
+ * <p>
+ * A released database changeset updates by this class and removes the field {@code workflowId}, so
+ * Spring Data takes the collection and that field from it. A property {@code workflowId} mapped to
+ * another field changes what the changeset does on a new database.
+ * {@code NamesTheReleasedChangesetsReadTest} fails when that happens.
  */
 @Document(collection = Workflow.COLLECTION_NAME)
 public class Workflow extends CandidatesAware implements UpdateInformationAware, SuspendableRecord {
 
-  /** The name of the MongoDB collection the workflows are stored in. */
+  /**
+   * The name of the MongoDB collection the workflows are stored in.
+   * <p>
+   * Released database changesets read this value. Changing it changes what they do on a new
+   * database, without a line of them changing, so it stays as it is. {@code NamesTheReleasedChangesetsReadTest}
+   * fails when it changes.
+   */
   public static final String COLLECTION_NAME = "workflow";
 
   @Id
@@ -182,7 +194,8 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware,
       return;
     }
     if (accessibleToUsers == null) {
-      setAccessibleToUsers(List.of(person));
+      // a list later calls add to and remove from, so it cannot be immutable
+      setAccessibleToUsers(new ArrayList<>(List.of(person)));
     } else {
       this.getAccessibleToUsers().removeIf(candidate -> candidate.getId().equals(person.getId()));
       this.getAccessibleToUsers().add(person);

@@ -4,16 +4,15 @@ import java.math.BigDecimal;
 
 import org.bson.types.Decimal128;
 import org.springframework.core.convert.converter.Converter;
-import org.springframework.data.convert.WritingConverter;
+import org.springframework.data.convert.ReadingConverter;
 
 import com.mongodb.lang.NonNull;
 
 /**
- * Writes a {@link BigDecimal} to MongoDB as {@link Decimal128}, so the value keeps all its digits.
- * Despite its name this converter is used for writing.
+ * Reads a {@link Decimal128} stored by MongoDB back as {@link BigDecimal}.
  */
-@WritingConverter
-public class BigDecimalReadConverter implements Converter<BigDecimal, Decimal128> {
+@ReadingConverter
+public class BigDecimalReadConverter implements Converter<Decimal128, BigDecimal> {
 
   /**
    * Creates the converter.
@@ -22,9 +21,9 @@ public class BigDecimalReadConverter implements Converter<BigDecimal, Decimal128
   }
 
   @Override
-  public Decimal128 convert(
-      @NonNull BigDecimal source) {
-    return new Decimal128(source);
+  public BigDecimal convert(
+      @NonNull Decimal128 source) {
+    return source.bigDecimalValue();
   }
 
 }

@@ -80,7 +80,13 @@ import jakarta.annotation.PreDestroy;
 @Service
 public class UserTaskService {
 
-  /** The prefix of the name of every sort index of the user tasks. */
+  /**
+   * The prefix of the name of every sort index of the user tasks.
+   * <p>
+   * Released database changesets read this value. Changing it changes what they do on a new
+   * database, without a line of them changing, so it stays as it is. {@code NamesTheReleasedChangesetsReadTest}
+   * fails when it changes.
+   */
   public static final String INDEX_CUSTOM_SORT_PREFIX = SortIndexes.INDEX_PREFIX;
   /** The field of the due date, which the list is sorted by first by default. */
   public static final String PROPERTY_DUEDATE = "dueDate";
@@ -437,7 +443,9 @@ public class UserTaskService {
 
   /**
    * Adds a person to the candidate users of a task. Assigning in the cockpit makes the person a
-   * candidate, not the assignee.
+   * candidate, not the assignee; {@link #claimTask(UserTaskVisibility, String, Person)} sets the
+   * assignee. The name stays as it is, because it is the name of the operation in the GUI API and
+   * applications derived from the cockpit call it.
    *
    * @param visibility Which tasks the caller may reach
    * @param userTaskId The id of the task
@@ -463,8 +471,8 @@ public class UserTaskService {
   }
 
   /**
-   * Adds a person to the candidate users of several tasks. Tasks the caller may not reach are
-   * left out.
+   * Adds a person to the candidate users of several tasks, the same way as for one task: the
+   * person becomes a candidate, not the assignee. Tasks the caller may not reach are left out.
    *
    * @param visibility Which tasks the caller may reach
    * @param userTaskIds The ids of the tasks
@@ -858,6 +866,8 @@ public class UserTaskService {
    * @param pageSize How many tasks a page holds
    * @param initialTimestamp When the user started to page through the list. A task which ended
    *        after this time still counts as open, so the pages stay the same while the user pages.
+   *        {@code null} takes only the tasks which have not ended as open, which the indexes of
+   *        the visibility answer best.
    * @param searchQueries The filters of the list, or {@code null}
    * @param sort The paths to sort by, separated by commas, or {@code null} for the due date
    * @param sortAscending Whether to sort in ascending order
@@ -895,7 +905,8 @@ public class UserTaskService {
    * @param pageNumber The number of the page, starting at 0
    * @param pageSize How many tasks a page holds
    * @param initialTimestamp When the user started to page through the list. A task which ended
-   *        after this time still counts as open.
+   *        after this time still counts as open. {@code null} takes only the tasks which have not
+   *        ended as open.
    * @param searchQueries The filters of the list, or {@code null}
    * @param sort The paths to sort by, separated by commas, or {@code null} for the due date
    * @param sortAscending Whether to sort in ascending order
@@ -1526,9 +1537,10 @@ public class UserTaskService {
    * them and is not cancelled. {@link UserTaskVisibility} says why.
    *
    * @param visibility Which tasks the caller may reach
-   * @param initialTimestamp When the user started to page through the list. For the modes of
-   *        open tasks, a task which ended after this time counts as open. {@code null} counts
-   *        only the tasks which have not ended.
+   * @param initialTimestamp When the user started to page through the list. A task which ended
+   *        after this time counts as open, so it is in the modes of open tasks and not in
+   *        {@link RetrieveItemsMode#ClosedTasksOnly}. {@code null} takes the tasks which have not
+   *        ended as open and every ended task as closed.
    * @param mode Which tasks the list holds
    * @param predefinedCriterias More conditions a task has to meet, or {@code null}
    * @return The criteria
@@ -1641,7 +1653,14 @@ public class UserTaskService {
         }
         break;
       case ClosedTasksOnly:
-        subCriterias.add(Criteria.where("endedAt").exists(true));
+        // the counterpart of the open modes: a task which ended after the timestamp is open there
+        if (initialTimestamp == null) {
+          subCriterias.add(
+              Criteria.where("endedAt").exists(true));
+        } else {
+          subCriterias.add(
+              Criteria.where("endedAt").lt(initialTimestamp));
+        }
         break;
       default:
         throw new RuntimeException("Unsupported mode '"

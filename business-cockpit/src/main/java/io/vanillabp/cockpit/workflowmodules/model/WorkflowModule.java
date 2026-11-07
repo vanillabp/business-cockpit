@@ -13,7 +13,13 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document(collection = WorkflowModule.COLLECTION_NAME)
 public class WorkflowModule {
 
-  /** The name of the MongoDB collection which holds the registrations. */
+  /**
+   * The name of the MongoDB collection which holds the registrations.
+   * <p>
+   * Released database changesets read this value. Changing it changes what they do on a new
+   * database, without a line of them changing, so it stays as it is. {@code NamesTheReleasedChangesetsReadTest}
+   * fails when it changes.
+   */
   public static final String COLLECTION_NAME = "modules";
 
   /** Creates an empty registration. Spring Data uses it to read a document. */

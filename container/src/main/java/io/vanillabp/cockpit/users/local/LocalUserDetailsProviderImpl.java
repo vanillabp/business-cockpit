@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -98,7 +99,7 @@ public class LocalUserDetailsProviderImpl implements UserDetailsProvider {
           .forEach(users::add);
     } catch (Exception e) {
       throw new RuntimeException(
-          ("Unable to load users from Simulator. Is it up an running at %s?\n"
+          ("Unable to load users from Simulator. Is it up and running at %s?\n"
               +
               "If URI is another than this, use Spring Boot property '%s' to change. One can also point to the "
               +
@@ -158,11 +159,7 @@ public class LocalUserDetailsProviderImpl implements UserDetailsProvider {
 
     return users
         .stream()
-        .filter(user -> {
-          if (user.getDisplay().toLowerCase().contains(query)) return true;
-          if (user.getEmail().toLowerCase().contains(query)) return true;
-          return false;
-        })
+        .filter(user -> matches(user, query))
         .toList();
 
   }
@@ -175,12 +172,29 @@ public class LocalUserDetailsProviderImpl implements UserDetailsProvider {
     return users
         .stream()
         .filter(user -> !excludeUsersIds.contains(user.getId()))
-        .filter(user -> {
-          if (user.getDisplay().toLowerCase().contains(query)) return true;
-          if (user.getEmail().toLowerCase().contains(query)) return true;
-          return false;
-        })
+        .filter(user -> matches(user, query))
         .toList();
+
+  }
+
+  /**
+   * Whether the display name or the e-mail address of a user contains the query, ignoring upper
+   * and lower case. A user of the simulator may have no e-mail address.
+   */
+  private static boolean matches(
+      final UserDetails user,
+      final String query) {
+
+    final var lowerCaseQuery = query == null ? "" : query.toLowerCase(Locale.ROOT);
+    return contains(user.getDisplay(), lowerCaseQuery) || contains(user.getEmail(), lowerCaseQuery);
+
+  }
+
+  private static boolean contains(
+      final String text,
+      final String lowerCaseQuery) {
+
+    return (text != null) && text.toLowerCase(Locale.ROOT).contains(lowerCaseQuery);
 
   }
 

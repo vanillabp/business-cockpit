@@ -177,7 +177,8 @@ public class Client {
   }
 
   /**
-   * Extra query parameters meant for GET requests. Nothing in this module reads them.
+   * Extra query parameters meant for GET requests. The cockpit itself does not read them; an
+   * application which builds its own clients on this class reads them from here, so they stay.
    *
    * @return The parameters by name
    */
@@ -186,7 +187,8 @@ public class Client {
   }
 
   /**
-   * Sets extra query parameters meant for GET requests. Nothing in this module reads them.
+   * Sets extra query parameters meant for GET requests. The cockpit itself does not read them; an
+   * application which builds its own clients on this class reads them from here.
    *
    * @param additionalGetParameters The parameters by name
    */

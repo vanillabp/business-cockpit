@@ -105,7 +105,7 @@ public class ChangeStreamUtils {
           .get(null)
           .toString();
     } catch (Exception e) {
-      throw new RuntimeException("Could not access public static propery '"
+      throw new RuntimeException("Could not access public static property '"
           + entityClass.getName()
           + "."
           + COLLECTION_NAME_PROPERTY

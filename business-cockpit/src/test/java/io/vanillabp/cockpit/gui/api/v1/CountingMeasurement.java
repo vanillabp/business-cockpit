@@ -40,7 +40,8 @@ import io.vanillabp.integration.test.utils.ContainerImages;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * Measures which plan MongoDB picks for the counts of the lists, and how long they take. It is
+ * Measures which plan MongoDB picks for the counts of the lists and for the first page of the
+ * task list, and how long they take. It is
  * no test and runs only on request:
  *
  * <pre>
@@ -65,6 +66,13 @@ class CountingMeasurement {
   private static final int GROUPS = 30;
 
   private static final int RUNS = 7;
+
+  private static final int PAGE_SIZE = 10;
+
+  /** The default order of the task list, as the cockpit sorts and indexes it. */
+  private static final Document DEFAULT_SORT = new Document("dueDate", 1)
+      .append("createdAt", 1)
+      .append("_id", 1);
 
   private static final Path RESULTS = Path.of("target", "counting-measurement.md");
 
@@ -140,6 +148,21 @@ class CountingMeasurement {
       }
     }
 
+    write("");
+    write("First page of the list, sorted the default way, %d tasks:".formatted(PAGE_SIZE));
+    write("");
+    write("| list | mode | tasks | plan | keys examined | docs examined | median ms |");
+    write("|---|---|---|---|---|---|---|");
+    for (final var timestamp : timestamps.entrySet()) {
+      for (final var visibility : visibilities.entrySet()) {
+        for (final var mode : RetrieveItemsMode.values()) {
+          final var query = new Query(userTasks.buildUserTasksCriteria(
+              visibility.getValue(), timestamp.getValue(), mode, null));
+          measureFirstPage(mongoTemplate, query, visibility.getKey() + timestamp.getKey(), mode.name());
+        }
+      }
+    }
+
     final var workflows = new WorkflowlistService();
     for (final var mode : WorkflowlistService.RetrieveItemsMode.values()) {
       final var query = new Query(workflows.buildWorkflowlistCriteria(
@@ -180,6 +203,55 @@ class CountingMeasurement {
         list,
         mode,
         count,
+        String.join(" < ", stagesOf((Document) ((Document) explained.get("queryPlanner"))
+            .get("winningPlan"), new LinkedHashSet<>())),
+        stats.get("totalKeysExamined"),
+        stats.get("totalDocsExamined"),
+        millis[RUNS / 2]));
+
+  }
+
+  /**
+   * The find of the first page of a list, with the sort and the sort index of the list's default
+   * order: due date, start and id.
+   */
+  private void measureFirstPage(
+      final MongoTemplate mongoTemplate,
+      final Query query,
+      final String list,
+      final String mode) throws IOException {
+
+    final var mapper = new QueryMapper(mongoTemplate.getConverter());
+    final var filter = mapper.getMappedObject(
+        query.getQueryObject(),
+        mongoTemplate.getConverter().getMappingContext().getPersistentEntity(UserTask.class));
+    final var explained = mongoTemplate.getDb()
+        .runCommand(new Document("explain", new Document("find", UserTask.COLLECTION_NAME)
+            .append("filter", filter)
+            .append("sort", DEFAULT_SORT)
+            .append("limit", PAGE_SIZE))
+            .append("verbosity", "executionStats"));
+    final var stats = (Document) explained.get("executionStats");
+
+    final var collection = mongoTemplate.getCollection(UserTask.COLLECTION_NAME);
+    final var millis = new long[RUNS];
+    var found = 0;
+    for (var run = 0; run < RUNS; ++run) {
+      final var started = System.nanoTime();
+      found = collection
+          .find(filter)
+          .sort(DEFAULT_SORT)
+          .limit(PAGE_SIZE)
+          .into(new ArrayList<>())
+          .size();
+      millis[run] = (System.nanoTime() - started) / 1_000_000;
+    }
+    Arrays.sort(millis);
+
+    write("| %s | %s | %d | %s | %s | %s | %d |".formatted(
+        list,
+        mode,
+        found,
         String.join(" < ", stagesOf((Document) ((Document) explained.get("queryPlanner"))
             .get("winningPlan"), new LinkedHashSet<>())),
         stats.get("totalKeysExamined"),
@@ -259,6 +331,7 @@ class CountingMeasurement {
           .append("candidateUsers", ids(candidates))
           .append("dangling", (assignee == null) && groups.isEmpty() && candidates.isEmpty())
           .append("createdAt", new Date(ended.getTime() - number * 1_000L))
+          .append("dueDate", new Date(inAWeek.getTime() + (number % 30) * 86_400_000L))
           .append("detailsFulltextSearch", "task "
               + number);
       if (assignee != null) {
@@ -289,6 +362,8 @@ class CountingMeasurement {
     // the indexes the changesets of the cockpit created before the count endpoint
     collection.createIndex(new Document("endedAt", 1));
     collection.createIndex(new Document("readBy.userId", 1));
+    // the sort index the first request of the list creates for its default order
+    collection.createIndex(DEFAULT_SORT);
 
   }
 

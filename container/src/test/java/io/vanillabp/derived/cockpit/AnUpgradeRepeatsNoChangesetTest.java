@@ -194,7 +194,9 @@ class AnUpgradeRepeatsNoChangesetTest {
       "io.vanillabp.cockpit.workflowmodules.model.changesets.V000002#correctTheRollbackOfTheWorkflowModuleCollection",
       "io.vanillabp.cockpit.tasklist.model.changesets.V000003#giveEveryEndedTaskItsReason",
       "io.vanillabp.cockpit.workflowlist.model.changesets.V000003#giveEveryEndedCaseItsReason",
-      "io.vanillabp.cockpit.workflowlist.model.changesets.V000003#indexTheNote");
+      "io.vanillabp.cockpit.workflowlist.model.changesets.V000003#indexTheNote",
+      "io.vanillabp.cockpit.tasklist.model.changesets.V000004#rollBackTheUsertaskCollectionByDroppingItOnly",
+      "io.vanillabp.cockpit.workflowlist.model.changesets.V000004#rollBackTheWorkflowCollectionByDroppingItOnly");
 
   /**
    * An index as MongoDB lists it: its name, its keys in their order, and whether it is unique.
@@ -352,6 +354,21 @@ class AnUpgradeRepeatsNoChangesetTest {
       final var expected = new Document(written.get(record.id()));
       if (record.id().equals(RECORD_OF_THE_MODULE_COLLECTION)) {
         expected.put("rollbackScripts", List.of("{ drop: 'modules' }"));
+      }
+      // Two changesets of today shorten the stored rollback of the task and the case collection
+      // to a plain drop, because the indexes it named are gone by then (decision 67 again). They
+      // only touch a record which still holds the three commands the first release stored.
+      final var droppedOnly = Map.of(
+          TASKS
+              + "createUsertaskCollection",
+          "usertask",
+          WORKFLOWS
+              + "createWorkflowCollection",
+          "workflow");
+      if (droppedOnly.containsKey(record.id()) && ((List<?>) expected.get("rollbackScripts")).size() == 3) {
+        expected.put("rollbackScripts", List.of("{ drop: '"
+            + droppedOnly.get(record.id())
+            + "' }"));
       }
       assertThat(afterTheUpgrade.get(record.id()))
           .as("the record of %s after the upgrade from %s", record.id(), release)

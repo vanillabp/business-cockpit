@@ -133,6 +133,7 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
       final ConfigurableEnvironment environment) {
 
     failOnMissingMandatoryValues(environment);
+    failOnARemovedProperty(environment);
     failOnAnUnusableMapKeyDotReplacement(environment);
     failOnAnUnusableJwtLifetime(environment);
     failOnAnUnusableSortIndexLimit(environment);
@@ -180,6 +181,20 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
 
     if (!missing.isEmpty()) {
       throw new CockpitIsNotConfiguredException(List.copyOf(missing));
+    }
+
+  }
+
+  /**
+   * A removed key would stop the start anyway where its section binds strictly, but with a
+   * message about a field which is missing. This one says that the key is gone and why.
+   */
+  private void failOnARemovedProperty(
+      final Environment environment) {
+
+    final var removedKeys = RemovedProperties.setIn(environment);
+    if (!removedKeys.isEmpty()) {
+      throw new RemovedPropertyIsSetException(removedKeys);
     }
 
   }

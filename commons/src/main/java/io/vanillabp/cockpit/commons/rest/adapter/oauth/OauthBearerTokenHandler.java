@@ -1,5 +1,8 @@
 package io.vanillabp.cockpit.commons.rest.adapter.oauth;
 
+import java.time.Duration;
+import java.time.Instant;
+
 import org.apache.oltu.oauth2.client.request.OAuthClientRequest;
 import org.apache.oltu.oauth2.client.request.OAuthClientRequest.TokenRequestBuilder;
 import org.apache.oltu.oauth2.client.response.OAuthJSONAccessTokenResponse;
@@ -11,13 +14,12 @@ import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 
 /**
- * Adds a bearer token to the &quot;Authorization&quot; header.
+ * Adds a bearer token to the &quot;Authorization&quot; header. The token comes from the token
+ * endpoint of an OAuth server, by the client credentials grant.
  * <p>
- * An expired token is renewed with the refresh token. Where that fails, and where there is no
- * token yet, a new one is fetched.
- * <p>
- * Each thread holds its own token, so two threads fetching or renewing at the same time do not
- * get in each other's way.
+ * The token is used until shortly before the time the server gives in {@code expires_in}. Then a
+ * new one is fetched. A token without {@code expires_in} is used until a request is answered with
+ * 401. See {@code OauthBearerTokenHandlerTest}.
  */
 public class OauthBearerTokenHandler extends BearerTokenBasedAuthInterceptor {
 
@@ -63,6 +65,13 @@ public class OauthBearerTokenHandler extends BearerTokenBasedAuthInterceptor {
   @Override
   protected String createToken() {
 
+    return createBearerToken().value();
+
+  }
+
+  @Override
+  protected BearerToken createBearerToken() {
+
     try {
 
       final OAuthClientRequest request;
@@ -73,10 +82,15 @@ public class OauthBearerTokenHandler extends BearerTokenBasedAuthInterceptor {
       } else {
         request = this.tokenRequestBuilder.buildBodyMessage();
       }
+      final var fetchedAt = Instant.now();
       final var tokenResponse = oauthClient.accessToken(
           request,
           OAuthJSONAccessTokenResponse.class);
-      return tokenResponse.getAccessToken();
+      final var expiresIn = tokenResponse.getExpiresIn();
+      return expiresIn == null
+          ? new BearerToken(tokenResponse.getAccessToken(), null)
+          : BearerToken.expiringAfter(
+              tokenResponse.getAccessToken(), fetchedAt, Duration.ofSeconds(expiresIn));
 
     } catch (Exception e) {
       throw new RuntimeException("Could not create token!", e);

@@ -10,6 +10,9 @@ public class BcValidationException extends RuntimeException {
 
   private static final long serialVersionUID = 1L;
 
+  /** The violations by field name. A {@code Map.copyOf}, which is serializable. */
+  private final Map<String, String> violations;
+
   /**
    * Creates the exception and says how its stack trace and suppressed exceptions are handled.
    *
@@ -24,6 +27,7 @@ public class BcValidationException extends RuntimeException {
       boolean enableSuppression,
       boolean writableStackTrace) {
     super(message, cause, enableSuppression, writableStackTrace);
+    this.violations = Map.of();
   }
 
   /**
@@ -36,6 +40,7 @@ public class BcValidationException extends RuntimeException {
       String message,
       Throwable cause) {
     super(message, cause);
+    this.violations = Map.of();
   }
 
   /**
@@ -46,16 +51,32 @@ public class BcValidationException extends RuntimeException {
   public BcValidationException(
       String message) {
     super(message);
+    this.violations = Map.of();
   }
 
   /**
-   * What is wrong with the request, one entry per field. This class has none, so the body of the
-   * answer is an empty JSON object; the message only goes to the log.
+   * Creates the exception with what is wrong with each field. The answer to the request names
+   * them.
+   *
+   * @param message    What went wrong, for the log
+   * @param violations The field name as key and the problem as value
+   */
+  public BcValidationException(
+      String message,
+      Map<String, String> violations) {
+    super(message);
+    this.violations = violations == null ? Map.of() : Map.copyOf(violations);
+  }
+
+  /**
+   * What is wrong with the request, one entry per field. An exception created without them has
+   * none, and the body of the answer is an empty JSON object then. The message only goes to the
+   * log.
    *
    * @return The violations, the field name as key and the problem as value
    */
   public Map<String, String> getViolations() {
-    return Map.of();
+    return violations;
   }
 
 }

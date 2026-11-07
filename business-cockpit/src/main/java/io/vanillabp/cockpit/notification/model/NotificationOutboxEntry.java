@@ -19,7 +19,13 @@ import io.vanillabp.cockpit.notification.NotificationType;
 @Document(collection = NotificationOutboxEntry.COLLECTION_NAME)
 public class NotificationOutboxEntry {
 
-  /** The MongoDB collection which holds the outbox. */
+  /**
+   * The MongoDB collection which holds the outbox.
+   * <p>
+   * Released database changesets read this value. Changing it changes what they do on a new
+   * database, without a line of them changing, so it stays as it is. {@code NamesTheReleasedChangesetsReadTest}
+   * fails when it changes.
+   */
   public static final String COLLECTION_NAME = "notification_outbox";
 
   @Id

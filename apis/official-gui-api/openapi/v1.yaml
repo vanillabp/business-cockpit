@@ -1328,7 +1328,8 @@ components:
         date. 'OpenTasksWithoutFollowUp' shows open tasks without a follow-up date or with one which
         is due. 'OpenTaskOnlyFollowUp' shows open tasks with a follow-up date in the future.
         'ClosedTasksOnly' shows ended tasks. A task which ended after 'initialTimestamp' still counts
-        as open, so the pages stay the same while the user pages through them. A request without
+        as open and not as ended, so the pages stay the same while the user pages through them, and
+        each task is either in 'OpenTasksWithFollowUp' or in 'ClosedTasksOnly'. A request without
         'mode' gets 'OpenTasksWithFollowUp'. Any other value is answered with 400.
       enum:
         - All

@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.tasklist;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -85,6 +86,16 @@ class UserTaskServiceInitiatorTest {
     final var result = service.assignTask(EVERY_USER_TASK, "task-1", person("targetUser"));
 
     assertEquals("actingUser", result.getInitiator());
+  }
+
+  @Test
+  void assignTask_makesThePersonACandidateAndLeavesTheAssignee() {
+    when(currentUserContext.getUserLoggedIn()).thenReturn("actingUser");
+
+    final var result = service.assignTask(EVERY_USER_TASK, "task-1", person("targetUser"));
+
+    assertNull(result.getAssignee());
+    assertEquals(List.of("targetUser"), result.getCandidateUsers().stream().map(Person::getId).toList());
   }
 
   @Test

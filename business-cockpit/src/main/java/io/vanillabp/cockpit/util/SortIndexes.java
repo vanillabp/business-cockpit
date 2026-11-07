@@ -31,7 +31,13 @@ import org.springframework.data.mongodb.core.index.IndexInfo;
  */
 public class SortIndexes {
 
-  /** The prefix of the name of every sort index. The rest of the name is the sort combination. */
+  /**
+   * The prefix of the name of every sort index. The rest of the name is the sort combination.
+   * <p>
+   * Released database changesets read this value. Changing it changes what they do on a new
+   * database, without a line of them changing, so it stays as it is. {@code NamesTheReleasedChangesetsReadTest}
+   * fails when it changes.
+   */
   public static final String INDEX_PREFIX = "_sort_";
 
   private final String collectionName;

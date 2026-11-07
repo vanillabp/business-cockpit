@@ -20,7 +20,7 @@ public interface UserDetails {
   /**
    * The email address of the user.
    *
-   * @return The address
+   * @return The address, or {@code null} if it is not known
    */
   String getEmail();
 

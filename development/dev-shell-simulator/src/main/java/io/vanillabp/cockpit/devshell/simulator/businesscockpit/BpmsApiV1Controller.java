@@ -69,7 +69,7 @@ public class BpmsApiV1Controller implements BpmsApi {
   }
 
   /**
-   * Processes a user task CREATED event
+   * Stores the user task a creation report describes.
    *
    * @param event (required)
    * @return Returns the fitting response code.
@@ -90,6 +90,8 @@ public class BpmsApiV1Controller implements BpmsApi {
   }
 
   /**
+   * Ends the user task of a cancellation report.
+   *
    * @param userTaskId (required)
    * @param event      (required)
    * @return Returns the fitting response code.
@@ -112,7 +114,7 @@ public class BpmsApiV1Controller implements BpmsApi {
   }
 
   /**
-   * Processes a user task CANCELLED event
+   * Ends the user task of a completion report.
    *
    * @param userTaskId (required)
    * @param event      (required)
@@ -136,6 +138,8 @@ public class BpmsApiV1Controller implements BpmsApi {
   }
 
   /**
+   * Changes the stored user task the way an update report says.
+   *
    * @param userTaskId (required)
    * @param event      (required)
    * @return Returns the fitting response code.
@@ -159,7 +163,7 @@ public class BpmsApiV1Controller implements BpmsApi {
 
 
   /**
-   * Processes a user task UPDATED event
+   * Stores the workflow a creation report describes.
    *
    * @param event (required)
    * @return Returns the fitting response code.
@@ -182,6 +186,8 @@ public class BpmsApiV1Controller implements BpmsApi {
   }
 
   /**
+   * Ends the workflow of a cancellation report.
+   *
    * @param workflowId The unique key of the workflow (required)
    * @param event      (required)
    * @return Returns the fitting response code.
@@ -204,7 +210,7 @@ public class BpmsApiV1Controller implements BpmsApi {
   }
 
   /**
-   * Processes a workflow CANCELLED event
+   * Changes the stored workflow the way an update report says.
    *
    * @param workflowId The unique key of the workflow (required)
    * @param event      (required)
@@ -228,7 +234,7 @@ public class BpmsApiV1Controller implements BpmsApi {
   }
 
   /**
-   * Processes a workflow COMPLETED event (see BpmsApi interface for details)
+   * Ends the workflow of a completion report.
    *
    * @param workflowId The unique key of the workflow (required)
    * @param event      (required)
