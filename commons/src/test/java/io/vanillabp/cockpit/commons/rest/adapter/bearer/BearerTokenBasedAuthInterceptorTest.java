@@ -17,7 +17,8 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 /**
  * What the interceptor does with a token which the server did not accept. An HTTP 401 has to
  * come back as a retryable exception, so Feign asks for a new token and sends the call again.
- * Every other status stays a plain failure.
+ * Every other status stays a plain failure. Until then the token is kept, so the token issuer is
+ * not asked once per request.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class BearerTokenBasedAuthInterceptorTest {
@@ -68,6 +69,36 @@ public class BearerTokenBasedAuthInterceptorTest {
     interceptor.apply(template);
 
     Assertions.assertThat(template.headers().get("Authorization")).containsExactly("Bearer token-1");
+
+  }
+
+  @Test
+  public void testTwoRequestsFetchOneToken() {
+
+    final var interceptor = new TestInterceptor();
+    final var first = new RequestTemplate();
+    final var second = new RequestTemplate();
+
+    interceptor.apply(first);
+    interceptor.apply(second);
+
+    Assertions.assertThat(interceptor.tokensCreated).isEqualTo(1);
+    Assertions.assertThat(second.headers().get("Authorization")).containsExactly("Bearer token-1");
+
+  }
+
+  @Test
+  public void testAfterUnauthorizedTheNextRequestFetchesANewToken() {
+
+    final var interceptor = new TestInterceptor();
+    interceptor.apply(new RequestTemplate());
+
+    interceptor.decode("someMethodKey", responseWith(401, "Unauthorized"));
+    final var retry = new RequestTemplate();
+    interceptor.apply(retry);
+
+    Assertions.assertThat(interceptor.tokensCreated).isEqualTo(2);
+    Assertions.assertThat(retry.headers().get("Authorization")).containsExactly("Bearer token-2");
 
   }
 
