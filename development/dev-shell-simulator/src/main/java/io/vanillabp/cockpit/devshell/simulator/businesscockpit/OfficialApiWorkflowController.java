@@ -87,21 +87,24 @@ public class OfficialApiWorkflowController implements OfficialWorkflowlistApi {
   }
 
   /**
-   * Method that returns a specific Workflow based on workflowId
+   * Reads one workflow. Like the cockpit, the simulator answers 404 for an id it does not hold.
    *
-   * @param workflowId unique Id for each workflow. (required)
-   * @return returns the requested workflow.
+   * @param workflowId The id of the workflow
+   * @return The workflow, or 404 if there is none of that id
    */
   @Override
   public ResponseEntity<Workflow> getWorkflow(
       final String workflowId) {
 
     final var workflowFound = workflowService.getWorkflow(workflowId);
-    final var apiWorkflow = mapper.toApi(workflowFound);
+    if (workflowFound.isEmpty()) {
+      log.info("Client asked for workflow {}, which the simulator does not hold", workflowId);
+      return ResponseEntity.notFound().build();
+    }
 
     log.info("Client retrieved workflow {}", workflowId);
 
-    return ResponseEntity.ok(apiWorkflow);
+    return ResponseEntity.ok(mapper.toApi(workflowFound.get()));
 
   }
 

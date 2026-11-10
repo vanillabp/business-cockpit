@@ -49,10 +49,11 @@ public class OfficialApiTaskController implements OfficialTasklistApi {
   }
 
   /**
-   * Retrieves a UserTask by its ID.
+   * Reads one user task. Like the cockpit, the simulator answers 404 for an id it does not hold.
    *
-   * @param userTaskId The ID of the UserTask to retrieve.
-   * @return A ResponseEntity containing the retrieved UserTask or an error response.
+   * @param userTaskId The id of the user task
+   * @param markAsRead Ignored, the simulator keeps no read marks
+   * @return The user task, or 404 if there is none of that id
    */
   @Override
   public ResponseEntity<UserTask> getUserTask(
@@ -60,11 +61,14 @@ public class OfficialApiTaskController implements OfficialTasklistApi {
       final Boolean markAsRead) {
 
     final var userTaskFound = taskService.getUserTask(userTaskId);
-    final var apiUserTask = mapper.toApi(userTaskFound);
+    if (userTaskFound.isEmpty()) {
+      log.info("Client asked for UserTask {}, which the simulator does not hold", userTaskId);
+      return ResponseEntity.notFound().build();
+    }
 
     log.info("Client retrieved UserTask {}", userTaskId);
 
-    return ResponseEntity.ok(apiUserTask);
+    return ResponseEntity.ok(mapper.toApi(userTaskFound.get()));
 
   }
 

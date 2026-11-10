@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.devshell.simulator.businesscockpit;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -88,21 +89,17 @@ public class TaskService {
   /**
    * Reads one user task.
    *
-   * @param userTaskId unique Id for each UserTask.
-   * @return userTask object
+   * @param userTaskId The id of the user task
+   * @return The user task, or nothing if the simulator holds none of that id
    */
-  public UserTask getUserTask(
+  public Optional<UserTask> getUserTask(
       final String userTaskId) {
 
     if (userTaskId == null) {
       throw new IllegalArgumentException("UserTask ID must not be null");
     }
 
-    return userTasks
-        .findById(userTaskId)
-        .orElseThrow(() -> new IllegalStateException("User task with ID "
-            + userTasks
-            + " not found"));
+    return userTasks.findById(userTaskId);
 
   }
 
