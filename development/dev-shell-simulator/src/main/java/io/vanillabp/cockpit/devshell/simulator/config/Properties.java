@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.devshell.simulator.config;
 
 import java.util.List;
 
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import io.vanillabp.cockpit.devshell.simulator.usermanagement.User;
@@ -15,7 +16,25 @@ import lombok.Data;
 @AllArgsConstructor
 @Data
 @ConfigurationProperties(prefix = "dev-shell-simulator")
-public class Properties {
+public class Properties implements InitializingBean {
+
+  /**
+   * What the simulator says when it starts without users. It names the key and shows a user,
+   * so the developer can fix the configuration from the log alone.
+   */
+  static final String NO_USERS_MESSAGE = """
+      The dev shell simulator has no users, so nobody can log in to the dev shell.
+      Add at least one user under the property key 'dev-shell-simulator.users', for example
+      in a file users.yaml:
+
+        dev-shell-simulator:
+          users:
+            - id: john
+              first-name: John
+              last-name: Doe
+              groups: ADMIN
+
+      and start the simulator with '--spring.config.additional-location=./users.yaml'.""";
 
   private List<User> users;
 
@@ -23,6 +42,19 @@ public class Properties {
    * Creates empty properties. Spring Boot fills them by the setters.
    */
   public Properties() {
+  }
+
+  /**
+   * Stops the start when no user is configured. Without a user, the dev shell is of no use,
+   * and the simulator would otherwise fail later with a message which does not say why.
+   */
+  @Override
+  public void afterPropertiesSet() {
+
+    if ((users == null) || users.isEmpty()) {
+      throw new IllegalStateException(NO_USERS_MESSAGE);
+    }
+
   }
 
   /**

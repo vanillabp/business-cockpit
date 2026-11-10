@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.devshell.simulator.businesscockpit;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -106,21 +107,17 @@ public class WorkflowService {
   /**
    * Reads one workflow.
    *
-   * @param workflowId Unique ID for each workflow.
-   * @return Returns the requested workflow object based on ID.
+   * @param workflowId The id of the workflow
+   * @return The workflow, or nothing if the simulator holds none of that id
    */
-  public Workflow getWorkflow(
+  public Optional<Workflow> getWorkflow(
       final String workflowId) {
 
     if (workflowId == null) {
       throw new IllegalArgumentException("Workflow ID must not be null");
     }
 
-    return workflows
-        .findById(workflowId)
-        .orElseThrow(() -> new IllegalStateException("Workflow with ID "
-            + workflowId
-            + " not found"));
+    return workflows.findById(workflowId);
 
   }
 
