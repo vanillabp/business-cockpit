@@ -62,6 +62,7 @@ public class FollowUpScheduler {
                     applicationEventPublisher.publishEvent(
                             new UserTaskChangedNotification(
                                     NotificationEvent.Type.FOLLOWUP,
+                                    task.getWorkflowModuleId(),
                                     task.getId(),
                                     task.getTargetGroups()));
                 })

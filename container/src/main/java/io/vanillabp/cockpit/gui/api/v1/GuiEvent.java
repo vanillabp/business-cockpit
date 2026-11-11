@@ -7,17 +7,21 @@ public class GuiEvent extends ApplicationEvent {
 
     private static final long serialVersionUID = 1L;
     
-    private Object event;
+    private final Object event;
+
+    private final String workflowModuleId;
     
-    private Collection<String> targetGroups;
+    private final Collection<String> targetGroups;
 
     public GuiEvent(
             final Object source,
+            final String workflowModuleId,
             final Collection<String> targetGroups,
             final Object event) {
         
         super(source);
         this.event = event;
+        this.workflowModuleId = workflowModuleId;
         this.targetGroups = targetGroups;
         
     }
@@ -44,4 +48,7 @@ public class GuiEvent extends ApplicationEvent {
         
     }
 
+    public String getWorkflowModuleId() {
+        return workflowModuleId;
+    }
 }

@@ -17,12 +17,14 @@ public class WorkflowChangedNotification extends NotificationEvent {
 
     public WorkflowChangedNotification(
             final Type type,
+            final String workflowModuleId,
             final String workflowId,
             final Collection<String> targetGroups) {
         
         super(
                 "Workflow",
                 type,
+                workflowModuleId,
                 targetGroups);
         
         this.workflowId = workflowId;
@@ -51,6 +53,7 @@ public class WorkflowChangedNotification extends NotificationEvent {
 
         return new WorkflowChangedNotification(
                 Type.valueOf(type.name()),
+                message.getBody().getWorkflowModuleId(),
                 message.getRaw().getDocumentKey().get(
                         message.getRaw().getDocumentKey().getFirstKey()).asString().getValue(),
                 null);
@@ -79,6 +82,7 @@ public class WorkflowChangedNotification extends NotificationEvent {
 
         return new WorkflowChangedNotification(
                 Type.valueOf(type.name()),
+                event.getBody().getWorkflowModuleId(),
                 event.getRaw().getDocumentKey().get(
                         event.getRaw().getDocumentKey().getFirstKey()).asString().getValue(),
                 null);

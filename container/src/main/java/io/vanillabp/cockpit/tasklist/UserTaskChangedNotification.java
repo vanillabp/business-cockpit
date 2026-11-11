@@ -18,12 +18,14 @@ public class UserTaskChangedNotification extends NotificationEvent {
     
     public UserTaskChangedNotification(
             final Type type,
+            final String workflowModuleId,
             final String userTaskId,
             final Collection<String> targetGroups) {
         
         super(
                 "UserTask",
                 type,
+                workflowModuleId,
                 targetGroups);
         
         this.userTaskId = userTaskId;
@@ -52,6 +54,7 @@ public class UserTaskChangedNotification extends NotificationEvent {
 
         return new UserTaskChangedNotification(
                 Type.valueOf(type.name()),
+                message.getBody().getWorkflowModuleId(),
                 message.getRaw().getDocumentKey().get(
                         message.getRaw().getDocumentKey().getFirstKey()).asString().getValue(),
                 message.getBody().getTargetGroups());
@@ -80,6 +83,7 @@ public class UserTaskChangedNotification extends NotificationEvent {
 
         return new UserTaskChangedNotification(
                 Type.valueOf(type.name()),
+                event.getBody().getWorkflowModuleId(),
                 event.getRaw().getDocumentKey().get(
                         event.getRaw().getDocumentKey().getFirstKey()).asString().getValue(),
                 event.getBody() == null ? List.of() : event.getBody().getTargetGroups());

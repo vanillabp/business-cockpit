@@ -21,6 +21,7 @@ public class GuiNotificationService {
         applicationEventPublisher.publishEvent(
                 new GuiEvent(
                         notification.getSource(),
+                        notification.getWorkflowModuleId(),
                         notification.getTargetGroups(),
                         new WorkflowEvent()
                                 .name("Workflow")

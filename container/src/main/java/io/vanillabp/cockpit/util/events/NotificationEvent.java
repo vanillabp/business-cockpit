@@ -12,6 +12,8 @@ public abstract class NotificationEvent extends ApplicationEvent {
     public enum Type { INSERT, UPDATE, DELETE, FOLLOWUP };
     
     private final Type type;
+
+    private final String workflowModuleId;
     
     private Collection<String> targetGroups;
 
@@ -19,10 +21,12 @@ public abstract class NotificationEvent extends ApplicationEvent {
             final Object source,
             final Clock clock,
             final Type type,
+            final String workflowModuleId,
             final Collection<String> targetGroups) {
         
         super(source, clock);
         this.type = type;
+        this.workflowModuleId = workflowModuleId;
         this.targetGroups = targetGroups;
         
     }
@@ -30,10 +34,12 @@ public abstract class NotificationEvent extends ApplicationEvent {
     public NotificationEvent(
             final Object source,
             final Type type,
+            final String workflowModuleId,
             Collection<String> targetGroups) {
         
         super(source);
         this.type = type;
+        this.workflowModuleId = workflowModuleId;
         this.targetGroups = targetGroups;
         
     }
@@ -59,5 +65,8 @@ public abstract class NotificationEvent extends ApplicationEvent {
                 .anyMatch(hasMatchingGroup -> hasMatchingGroup);
         
     }
-    
+
+    public String getWorkflowModuleId() {
+        return workflowModuleId;
+    }
 }
