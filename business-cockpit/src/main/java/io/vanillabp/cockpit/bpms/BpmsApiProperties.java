@@ -2,7 +2,7 @@ package io.vanillabp.cockpit.bpms;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import io.vanillabp.cockpit.commons.kafka.KafkaProperties;
+import io.vanillabp.cockpit.kafka.KafkaProperties;
 
 /**
  * How the BPMS adapters of the workflow modules reach the cockpit to report user tasks, cases and

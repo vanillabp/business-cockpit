@@ -35,7 +35,7 @@
     See decision 63 in the repository's DECISIONS.md.
   -->
   <modules>
-    <module>commons</module>
+    <module>support</module>
     <module>apis/bpms-api/client</module>
     <module>apis/bpms-api/server</module>
     <module>apis/bpms-api/protobuf</module>
@@ -74,6 +74,7 @@
     <version.mongodb-changesets>1.0.0-SNAPSHOT</version.mongodb-changesets>
     <version.org.mapstruct>1.6.3</version.org.mapstruct>
     <version.protobuf>4.31.1</version.protobuf>
+    <version.lombok>1.18.48</version.lombok>
     <!--
       One property for the whole JUnit family, used by the BOM import below and by the Surefire
       plugin, which reads its dependencies outside of dependency management.
@@ -114,14 +115,28 @@
       <dependency>
         <!--
           Imported before the other BOMs so it wins: Spring Cloud pins the OpenFeign artifacts to 13.6.1,
-          and feign-jackson3 - the Jackson 3 codec used in commons - implements feign.codec.JsonDecoder,
+          and feign-jackson3 - the Jackson 3 codec used in support - implements feign.codec.JsonDecoder,
           which only exists from feign-core 13.10 on. Mixing the two compiles and unit-tests fine and then
           fails at runtime with NoClassDefFoundError: feign/codec/JsonDecoder as soon as a client is built.
           The BOM keeps every feign artifact on one version.
         -->
         <groupId>io.github.openfeign</groupId>
         <artifactId>feign-bom</artifactId>
-        <version>13.14</version>
+        <version>13.18</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <!--
+          Imported before the Spring BOMs so it wins. feign-okhttp of the feign-bom above reads
+          OkHttp 5, whose classes come in the artifact okhttp-jvm. Another BOM still names OkHttp 4
+          for logging-interceptor, which then brings the artifact okhttp as well. Both carry the
+          package okhttp3, and which class wins depends on the order of the class path. This BOM
+          keeps every OkHttp artifact on the version feign-okhttp is built against.
+        -->
+        <groupId>com.squareup.okhttp3</groupId>
+        <artifactId>okhttp-bom</artifactId>
+        <version>5.5.1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -159,6 +174,23 @@
         <groupId>org.mapstruct</groupId>
         <artifactId>mapstruct</artifactId>
         <version>${version.org.mapstruct}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+        <version>${version.lombok}</version>
+      </dependency>
+      <dependency>
+        <!-- what the OpenAPI generator writes for an optional nullable field. Named here once
+             because the generated clients and servers of several modules import it. -->
+        <groupId>org.openapitools</groupId>
+        <artifactId>jackson-databind-nullable</artifactId>
+        <version>0.2.13</version>
+      </dependency>
+      <dependency>
+        <groupId>io.swagger.core.v3</groupId>
+        <artifactId>swagger-annotations</artifactId>
+        <version>3.0.0</version>
       </dependency>
       <dependency>
         <groupId>com.google.protobuf</groupId>
@@ -224,6 +256,12 @@
             <release>${version.java}</release>
             <parameters>true</parameters>
             <annotationProcessorPaths>
+              <!-- writes the logger field of a class annotated with @Slf4j -->
+              <path>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${version.lombok}</version>
+              </path>
               <path>
                 <groupId>org.mapstruct</groupId>
                 <artifactId>mapstruct-processor</artifactId>

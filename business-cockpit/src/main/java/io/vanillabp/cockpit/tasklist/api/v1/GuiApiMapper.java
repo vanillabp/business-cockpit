@@ -10,12 +10,12 @@ import org.mapstruct.ValueMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 
-import io.vanillabp.cockpit.commons.mapstruct.NoMappingMethod;
 import io.vanillabp.cockpit.gui.api.v1.KwicResult;
 import io.vanillabp.cockpit.gui.api.v1.SearchQuery;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskRetrieveMode;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
+import io.vanillabp.cockpit.mapstruct.NoMappingMethod;
 import io.vanillabp.cockpit.tasklist.UserTaskService.RetrieveItemsMode;
 import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;

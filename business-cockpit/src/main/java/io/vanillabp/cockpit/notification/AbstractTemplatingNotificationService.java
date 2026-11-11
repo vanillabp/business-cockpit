@@ -18,7 +18,7 @@ import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateNotFoundException;
 import freemarker.template.Version;
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 import jakarta.annotation.PostConstruct;
 import no.api.freemarker.java8.Java8ObjectWrapper;
 

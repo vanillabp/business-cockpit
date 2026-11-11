@@ -17,15 +17,13 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import io.vanillabp.cockpit.commons.exceptions.RestfulExceptionHandler;
+import io.vanillabp.cockpit.exceptions.RestfulExceptionHandler;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
@@ -75,7 +73,6 @@ class AMissingRequiredFieldTest {
     });
     final var userTaskService = new UserTaskService();
     set(UserTaskService.class, userTaskService, "userTasks", userTaskRepository);
-    set(UserTaskService.class, userTaskService, "logger", mock(Logger.class));
     set(UserTaskService.class, userTaskService, "mongoTemplate", mock(MongoTemplate.class));
 
     final var workflowRepository = mock(WorkflowRepository.class);
@@ -88,7 +85,6 @@ class AMissingRequiredFieldTest {
     });
     final var workflowlistService = new WorkflowlistService();
     set(WorkflowlistService.class, workflowlistService, "workflowRepository", workflowRepository);
-    set(WorkflowlistService.class, workflowlistService, "logger", mock(Logger.class));
     set(WorkflowlistService.class, workflowlistService, "mongoTemplate", mock(MongoTemplate.class));
 
     final var bpmsApi = new BpmsApiController();
@@ -99,11 +95,6 @@ class AMissingRequiredFieldTest {
     set(BpmsApiController.class, bpmsApi, "workflowModuleService", mock(WorkflowModuleService.class));
 
     final var exceptionHandler = new RestfulExceptionHandler();
-    set(
-        RestfulExceptionHandler.class,
-        exceptionHandler,
-        "logger",
-        LoggerFactory.getLogger(AMissingRequiredFieldTest.class));
 
     client = MockMvcBuilders
         .standaloneSetup(bpmsApi)

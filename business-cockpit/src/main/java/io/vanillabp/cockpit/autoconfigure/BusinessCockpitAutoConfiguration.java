@@ -5,7 +5,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Import;
 
 import io.vanillabp.cockpit.bpms.BpmsApiProperties;
-import io.vanillabp.cockpit.commons.utils.LoggerFactory;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
 import io.vanillabp.cockpit.config.startup.StartupConfigurationCheck;
 import io.vanillabp.cockpit.notification.NotificationProperties;
@@ -31,7 +30,7 @@ import io.vanillabp.cockpit.workflowmodules.WorkflowModuleService;
     ApplicationProperties.class, BpmsApiProperties.class, NotificationProperties.class
 })
 @Import({
-    LoggerFactory.class, StartupConfigurationCheck.class, KwicService.class, GroupHierarchyService.class, WorkflowModuleService.class, UserTaskService.class, WorkflowlistService.class, FollowUpScheduler.class, io.vanillabp.cockpit.tasklist.api.GuiNotificationService.class, io.vanillabp.cockpit.workflowlist.api.GuiNotificationService.class
+    StartupConfigurationCheck.class, KwicService.class, GroupHierarchyService.class, WorkflowModuleService.class, UserTaskService.class, WorkflowlistService.class, FollowUpScheduler.class, io.vanillabp.cockpit.tasklist.api.GuiNotificationService.class, io.vanillabp.cockpit.workflowlist.api.GuiNotificationService.class
 })
 public class BusinessCockpitAutoConfiguration {
 

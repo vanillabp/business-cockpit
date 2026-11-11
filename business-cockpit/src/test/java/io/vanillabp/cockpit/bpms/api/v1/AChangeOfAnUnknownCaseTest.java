@@ -17,7 +17,6 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.slf4j.Logger;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.HttpStatus;
 
@@ -62,7 +61,6 @@ class AChangeOfAnUnknownCaseTest {
 
     final var workflowlistService = new WorkflowlistService();
     set(WorkflowlistService.class, workflowlistService, "workflowRepository", repository);
-    set(WorkflowlistService.class, workflowlistService, "logger", mock(Logger.class));
     set(WorkflowlistService.class, workflowlistService, "mongoTemplate", mock(MongoTemplate.class));
 
     bpmsApi = new BpmsApiController();

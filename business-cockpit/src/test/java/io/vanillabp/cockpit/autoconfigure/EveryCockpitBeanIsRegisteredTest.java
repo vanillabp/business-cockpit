@@ -85,7 +85,7 @@ class EveryCockpitBeanIsRegisteredTest {
 
   /**
    * Every concrete class below {@code io.vanillabp.cockpit} which a component scan would register,
-   * taken from the compiled library and from {@code commons}. Test classes are left out. They are
+   * taken from the compiled library and from {@code support}. Test classes are left out. They are
    * beans of a test context, and no auto-configuration has to know them.
    */
   private Set<String> componentsOfTheLibrary() {
@@ -173,8 +173,8 @@ class EveryCockpitBeanIsRegisteredTest {
   }
 
   /**
-   * The auto-configurations of every jar on the classpath, not only of this one. {@code commons}
-   * registers two of its own, and a class they reach is registered as surely as one this jar names.
+   * The auto-configurations of every jar on the classpath, not only of this one. A class which the
+   * auto-configuration of another jar reaches is registered as surely as one this jar names.
    */
   private List<String> autoConfigurationNames() {
 

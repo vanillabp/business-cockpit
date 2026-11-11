@@ -2,7 +2,7 @@ package io.vanillabp.cockpit.users;
 
 import java.util.List;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 
 /**
  * A plain holder of the details of a user, for a {@link UserDetailsProvider} which builds them

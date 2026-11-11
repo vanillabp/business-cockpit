@@ -17,7 +17,6 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -25,9 +24,9 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import io.vanillabp.cockpit.commons.exceptions.RestfulExceptionHandler;
-import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.exceptions.RestfulExceptionHandler;
+import io.vanillabp.cockpit.support.security.usercontext.UserContext;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.UserTaskVisibility;
 import io.vanillabp.cockpit.tasklist.api.v1.AbstractUserTaskListGuiApiController;
@@ -110,8 +109,6 @@ class AListWithoutPagingValuesTest {
         mock(io.vanillabp.cockpit.workflowlist.api.v1.GuiApiMapper.class));
 
     final var exceptionHandler = new RestfulExceptionHandler();
-    set(RestfulExceptionHandler.class, exceptionHandler, "logger",
-        LoggerFactory.getLogger(AListWithoutPagingValuesTest.class));
 
     client = MockMvcBuilders
         .standaloneSetup(userTasks, workflows)

@@ -4,7 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.stream.IntStream;
 
-import io.vanillabp.cockpit.commons.exceptions.BcInvalidRequestException;
+import io.vanillabp.cockpit.exceptions.BcInvalidRequestException;
 
 /**
  * The keys of a count request of the GUI API. A client names each filter it wants counted, and

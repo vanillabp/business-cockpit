@@ -25,8 +25,8 @@ import org.testcontainers.mongodb.MongoDBContainer;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 
-import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeReadConverter;
-import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeWriteConverter;
+import io.vanillabp.cockpit.mongo.converters.OffsetDateTimeReadConverter;
+import io.vanillabp.cockpit.mongo.converters.OffsetDateTimeWriteConverter;
 import io.vanillabp.cockpit.notification.model.NotificationConfiguration;
 import io.vanillabp.cockpit.notification.model.WorkflowNotificationConfiguration;
 import io.vanillabp.cockpit.users.UserSettings;

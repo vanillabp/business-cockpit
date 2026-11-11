@@ -19,7 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 import io.vanillabp.integration.test.utils.OneFreePortPerJvm;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 

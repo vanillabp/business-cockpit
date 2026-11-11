@@ -16,8 +16,8 @@ import com.mongodb.WriteConcern;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
-import io.vanillabp.cockpit.commons.mongo.MongoDbProperties;
-import io.vanillabp.cockpit.commons.mongo.MongoDbProperties.Mode;
+import io.vanillabp.cockpit.mongo.MongoDbProperties;
+import io.vanillabp.cockpit.mongo.MongoDbProperties.Mode;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**

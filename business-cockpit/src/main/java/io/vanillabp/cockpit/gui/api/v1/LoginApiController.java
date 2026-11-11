@@ -17,9 +17,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException;
-import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
+import io.vanillabp.cockpit.support.security.BcUnauthorizedException;
+import io.vanillabp.cockpit.support.security.usercontext.UserContext;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
 
 /**

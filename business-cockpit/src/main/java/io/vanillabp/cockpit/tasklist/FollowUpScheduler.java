@@ -2,7 +2,6 @@ package io.vanillabp.cockpit.tasklist;
 
 import java.time.OffsetDateTime;
 
-import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -13,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.util.events.NotificationEvent;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Sends a FOLLOWUP event for every user task whose follow-up date has passed since the last tick.
@@ -25,10 +25,8 @@ import io.vanillabp.cockpit.util.events.NotificationEvent;
  * because a browser stays on the node its event stream was opened on.
  */
 @Component
+@Slf4j
 public class FollowUpScheduler {
-
-  @Autowired
-  private Logger logger;
 
   @Autowired
   private MongoTemplate mongoTemplate;
@@ -60,7 +58,7 @@ public class FollowUpScheduler {
     final var since = previousCheckTimestamp;
     previousCheckTimestamp = now;
 
-    logger.debug("Follow-up tick window {} → {}", since, now);
+    log.debug("Follow-up tick window {} → {}", since, now);
 
     final var query = Query.query(new Criteria().andOperator(
         Criteria.where("endedAt").exists(false),
@@ -70,7 +68,7 @@ public class FollowUpScheduler {
     try {
       final var elapsed = mongoTemplate.find(query, UserTask.class);
       elapsed.forEach(task -> {
-        logger.debug(
+        log.debug(
             "Follow-up elapsed for user-task '{}' (followUpDate={}, targetGroups={})",
             task.getId(), task.getFollowUpDate(), task.getTargetGroups());
         applicationEventPublisher.publishEvent(
@@ -78,12 +76,12 @@ public class FollowUpScheduler {
                 NotificationEvent.Type.FOLLOWUP, task.getId(), task.getTargetGroups()));
       });
       if (!elapsed.isEmpty()) {
-        logger.info(
+        log.info(
             "Emitted {} user-task FOLLOWUP event(s) for elapsed follow-up dates (window {} \u2192 {})",
             elapsed.size(), since, now);
       }
     } catch (Exception e) {
-      logger.warn(
+      log.warn(
           "Could not emit follow-up update events for window {} \u2192 {}",
           since, now, e);
     }

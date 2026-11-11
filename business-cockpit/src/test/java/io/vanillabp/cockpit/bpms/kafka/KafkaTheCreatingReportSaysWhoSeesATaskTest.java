@@ -18,7 +18,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.slf4j.Logger;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
 import com.google.protobuf.Timestamp;
@@ -79,7 +78,6 @@ class KafkaTheCreatingReportSaysWhoSeesATaskTest {
     });
     final var userTaskService = new UserTaskService();
     set(UserTaskService.class, userTaskService, "userTasks", repository);
-    set(UserTaskService.class, userTaskService, "logger", mock(Logger.class));
     set(UserTaskService.class, userTaskService, "mongoTemplate", mock(MongoTemplate.class));
 
     userTasks = new KafkaUserTaskController(userTaskService, userTaskMapper);

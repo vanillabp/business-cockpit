@@ -3,11 +3,11 @@ package io.vanillabp.cockpit.workflowmodules.api.v1;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.gui.api.v1.OfficialWorkflowModulesApi;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowModule;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowModules;
+import io.vanillabp.cockpit.support.security.usercontext.UserContext;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.workflowmodules.WorkflowModuleService;
 import io.vanillabp.cockpit.workflowmodules.WorkflowModuleVisibility;
 

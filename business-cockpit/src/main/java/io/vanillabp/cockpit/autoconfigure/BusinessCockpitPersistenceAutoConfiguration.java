@@ -14,9 +14,9 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import com.mongodb.client.MongoClient;
 import com.phactum.mongodb.changesets.ChangesetApplier;
 
-import io.vanillabp.cockpit.commons.mongo.changestreams.ChangeStreamUtils;
-import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationEventListener;
 import io.vanillabp.cockpit.config.MongoDbConfiguration;
+import io.vanillabp.cockpit.mongo.changestreams.ChangeStreamUtils;
+import io.vanillabp.cockpit.mongo.updateinfo.UpdateInformationEventListener;
 
 /**
  * Where the cockpit keeps user tasks, workflows, modules, users and pending notifications: the

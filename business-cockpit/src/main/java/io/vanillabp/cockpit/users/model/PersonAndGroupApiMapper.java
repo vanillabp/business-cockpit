@@ -1,8 +1,8 @@
 package io.vanillabp.cockpit.users.model;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.gui.api.v1.Group;
 import io.vanillabp.cockpit.gui.api.v1.Person;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 
 /**
  * Turns persons and groups into what the GUI API answers with. The application provides it,

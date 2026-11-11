@@ -25,12 +25,12 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
 import org.springframework.security.web.context.NullSecurityContextRepository;
 
 import io.vanillabp.cockpit.bpms.BpmsApiAuthority;
-import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationToken;
-import io.vanillabp.cockpit.commons.security.jwt.JwtMapper;
-import io.vanillabp.cockpit.commons.security.jwt.JwtRenewalFilter;
-import io.vanillabp.cockpit.commons.security.jwt.JwtSecurityContextRepository;
-import io.vanillabp.cockpit.commons.security.jwt.PassiveJwtSecurityFilter;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
+import io.vanillabp.cockpit.support.security.jwt.JwtAuthenticationToken;
+import io.vanillabp.cockpit.support.security.jwt.JwtMapper;
+import io.vanillabp.cockpit.support.security.jwt.JwtRenewalFilter;
+import io.vanillabp.cockpit.support.security.jwt.JwtSecurityContextRepository;
+import io.vanillabp.cockpit.support.security.jwt.PassiveJwtSecurityFilter;
 import io.vanillabp.cockpit.users.UserDetailsProvider;
 
 /**

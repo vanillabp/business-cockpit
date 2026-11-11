@@ -6,8 +6,8 @@ import java.util.Map;
 import org.jspecify.annotations.NonNull;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import io.vanillabp.cockpit.commons.security.jwt.JwtProperties;
 import io.vanillabp.cockpit.gui.api.v1.GuiSseProperties;
+import io.vanillabp.cockpit.support.security.jwt.JwtProperties;
 
 /**
  * The general settings of the cockpit application, read from {@code business-cockpit.*}.

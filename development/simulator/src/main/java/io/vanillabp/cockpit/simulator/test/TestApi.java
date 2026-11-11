@@ -7,9 +7,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException;
-import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.support.security.BcUnauthorizedException;
+import io.vanillabp.cockpit.support.security.usercontext.UserContext;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 
 /**
  * A small API of a fake workflow module called {@code TestModule}. Tests use it to check that the

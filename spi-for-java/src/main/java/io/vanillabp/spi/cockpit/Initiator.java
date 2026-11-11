@@ -15,7 +15,7 @@ package io.vanillabp.spi.cockpit;
  *
  * <p>The cockpit server writes the same text as
  * <code>UpdateInformationAware.SYSTEM_USER</code>, in the artifact
- * <code>io.vanillabp.businesscockpit:commons</code>. The two modules do not see each other, so
+ * <code>io.vanillabp.businesscockpit:business-cockpit</code>. The two modules do not see each other, so
  * they hold two constants of the same value, and neither of them may be changed alone.
  */
 public final class Initiator {

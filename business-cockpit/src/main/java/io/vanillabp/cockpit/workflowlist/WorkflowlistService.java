@@ -11,7 +11,6 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.bson.Document;
-import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -40,10 +39,10 @@ import io.vanillabp.cockpit.bpms.OutcomeOfStoring;
 import io.vanillabp.cockpit.bpms.SuspensionOfARecord;
 import io.vanillabp.cockpit.bpms.SuspensionRule;
 import io.vanillabp.cockpit.bpms.WhatAnEndReports;
-import io.vanillabp.cockpit.commons.mongo.changestreams.ChangeStreamUtils;
 import io.vanillabp.cockpit.config.startup.CockpitConfiguration;
 import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
 import io.vanillabp.cockpit.config.startup.SortIndexLimit;
+import io.vanillabp.cockpit.mongo.changestreams.ChangeStreamUtils;
 import io.vanillabp.cockpit.util.ListPaths;
 import io.vanillabp.cockpit.util.NotesOfTheCockpit;
 import io.vanillabp.cockpit.util.SearchCriteriaHelper;
@@ -56,6 +55,7 @@ import io.vanillabp.cockpit.workflowlist.model.WorkflowEndReason;
 import io.vanillabp.cockpit.workflowlist.model.WorkflowRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Reads and stores the workflows the cockpit holds. It has two kinds of callers: the GUI API, where
@@ -66,6 +66,7 @@ import jakarta.annotation.PreDestroy;
  * {@link WorkflowChangedNotification} for the open browsers.
  */
 @Service
+@Slf4j
 public class WorkflowlistService {
 
   /** Which workflows a list holds, depending on whether they ended. */
@@ -118,9 +119,6 @@ public class WorkflowlistService {
       "suspendedAt", "suspendedBy");
 
   @Autowired
-  private Logger logger;
-
-  @Autowired
   private ApplicationEventPublisher applicationEventPublisher;
 
   @Autowired
@@ -162,7 +160,7 @@ public class WorkflowlistService {
         FIELDS_OF_THE_LIST, MapKeyDotReplacement.configuredIn(environment));
     sortIndexes = new SortIndexes(
         Workflow.COLLECTION_NAME, listPaths, SortIndexLimit.configuredIn(
-            environment), CockpitConfiguration.MONGODB_SORT_INDEXES_PER_COLLECTION, mongoTemplate, logger);
+            environment), CockpitConfiguration.MONGODB_SORT_INDEXES_PER_COLLECTION, mongoTemplate, log);
     sortIndexes.learnExistingIndexes();
 
   }
@@ -370,7 +368,7 @@ public class WorkflowlistService {
 
     final var stored = getWorkflow(workflowId);
     if (stored == null) {
-      logger.info(
+      log.info(
           "Leaving out the reported {} of workflow '{}' at {}: the cockpit does not know the case. "
               + "Its creation brings it, and the next report about its suspension marks it.",
           kindOfReport,
@@ -384,7 +382,7 @@ public class WorkflowlistService {
       return save(stored);
     }
     if (outcome != SuspensionOfARecord.Outcome.REPEATED) {
-      logger.info(
+      log.info(
           "Keeping workflow '{}' as it is: the reported {} happened at {}, and what is stored is about {}",
           workflowId,
           kindOfReport,
@@ -416,7 +414,7 @@ public class WorkflowlistService {
       final OffsetDateTime eventTimestamp,
       final Workflow stored) {
 
-    logger.info(
+    log.info(
         "Keeping workflow '{}' as it is: the reported {} happened at {}, and what is stored is about {}",
         workflowId,
         kindOfReport,
@@ -960,7 +958,7 @@ public class WorkflowlistService {
   /**
    * The conditions of the filters of a list request, after their paths are checked.
    *
-   * @throws io.vanillabp.cockpit.commons.exceptions.BcInvalidRequestException if a path breaks
+   * @throws io.vanillabp.cockpit.exceptions.BcInvalidRequestException if a path breaks
    *         the rule of {@link ListPaths}
    */
   private List<? extends CriteriaDefinition> filterCriteria(

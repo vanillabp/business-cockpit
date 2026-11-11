@@ -28,7 +28,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.kafka.autoconfigure.KafkaAutoConfiguration;
@@ -157,10 +156,8 @@ class KafkaReportWhichCouldNotBeStoredTest {
     // its lifecycle methods, which would want MongoDB
     final var userTaskService = new UserTaskService();
     set(UserTaskService.class, userTaskService, "userTasks", userTaskRepository);
-    set(UserTaskService.class, userTaskService, "logger", LoggerFactory.getLogger(UserTaskService.class));
     final var workflowlistService = new WorkflowlistService();
     set(WorkflowlistService.class, workflowlistService, "workflowRepository", mock(WorkflowRepository.class));
-    set(WorkflowlistService.class, workflowlistService, "logger", LoggerFactory.getLogger(WorkflowlistService.class));
 
     cockpit = new ApplicationContextRunner()
         .withConfiguration(AutoConfigurations.of(

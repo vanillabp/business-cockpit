@@ -24,10 +24,10 @@ import org.testcontainers.mongodb.MongoDBContainer;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 
-import io.vanillabp.cockpit.commons.mongo.converters.BigDecimalReadConverter;
-import io.vanillabp.cockpit.commons.mongo.converters.BigDecimalWriteConverter;
-import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeReadConverter;
-import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeWriteConverter;
+import io.vanillabp.cockpit.mongo.converters.BigDecimalReadConverter;
+import io.vanillabp.cockpit.mongo.converters.BigDecimalWriteConverter;
+import io.vanillabp.cockpit.mongo.converters.OffsetDateTimeReadConverter;
+import io.vanillabp.cockpit.mongo.converters.OffsetDateTimeWriteConverter;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService.RetrieveItemsMode;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import io.vanillabp.integration.test.utils.ContainerImages;

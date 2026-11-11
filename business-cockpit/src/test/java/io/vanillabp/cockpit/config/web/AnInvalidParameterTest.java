@@ -6,14 +6,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.slf4j.LoggerFactory;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.vanillabp.cockpit.commons.exceptions.RestfulExceptionHandler;
+import io.vanillabp.cockpit.exceptions.RestfulExceptionHandler;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import jakarta.validation.constraints.Size;
 
@@ -47,9 +46,6 @@ class AnInvalidParameterTest {
   void setUp() throws Exception {
 
     final var exceptionHandler = new RestfulExceptionHandler();
-    final var logger = RestfulExceptionHandler.class.getDeclaredField("logger");
-    logger.setAccessible(true);
-    logger.set(exceptionHandler, LoggerFactory.getLogger(AnInvalidParameterTest.class));
 
     client = MockMvcBuilders
         .standaloneSetup(new ControllerWithAConstrainedParameter())

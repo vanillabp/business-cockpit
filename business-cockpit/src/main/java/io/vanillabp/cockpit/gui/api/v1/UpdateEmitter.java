@@ -14,7 +14,7 @@ import java.util.UUID;
 
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 
 /**
  * One subscribed browser tab: the open server-sent-event stream, the person it was opened for, and

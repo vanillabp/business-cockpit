@@ -25,7 +25,7 @@ import org.springframework.data.mongodb.core.query.Update;
 
 import com.mongodb.client.result.UpdateResult;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.users.model.User;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 

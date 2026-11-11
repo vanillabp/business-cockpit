@@ -3,7 +3,7 @@ package io.vanillabp.cockpit.workflowlist.api.v1;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.workflowlist.WorkflowVisibility;
 
 /**

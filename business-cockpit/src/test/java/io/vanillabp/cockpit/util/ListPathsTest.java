@@ -11,7 +11,7 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import io.vanillabp.cockpit.commons.exceptions.BcInvalidRequestException;
+import io.vanillabp.cockpit.exceptions.BcInvalidRequestException;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**

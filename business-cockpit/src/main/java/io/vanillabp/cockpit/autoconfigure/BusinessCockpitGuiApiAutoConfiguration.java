@@ -5,15 +5,15 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
 import org.springframework.context.annotation.Import;
 
-import io.vanillabp.cockpit.commons.exceptions.RestfulExceptionHandler;
-import io.vanillabp.cockpit.commons.security.usercontext.UserContextConfiguration;
 import io.vanillabp.cockpit.config.MicroserviceProxyConfiguration;
 import io.vanillabp.cockpit.config.web.JsonConfiguration;
 import io.vanillabp.cockpit.config.web.SpaNoHandlerFoundExceptionHandler;
+import io.vanillabp.cockpit.exceptions.RestfulExceptionHandler;
 import io.vanillabp.cockpit.gui.api.v1.LoginApiController;
 import io.vanillabp.cockpit.gui.api.v1.UpdateStreams;
 import io.vanillabp.cockpit.gui.api.v1.UserSettingsApiController;
 import io.vanillabp.cockpit.notification.api.v1.NotificationConfigGuiApiController;
+import io.vanillabp.cockpit.support.security.usercontext.UserContextConfiguration;
 import io.vanillabp.cockpit.tasklist.api.UserTaskStreamAudience;
 import io.vanillabp.cockpit.tasklist.api.v1.TasklistGuiApiMapperImpl;
 import io.vanillabp.cockpit.users.UserSettings;

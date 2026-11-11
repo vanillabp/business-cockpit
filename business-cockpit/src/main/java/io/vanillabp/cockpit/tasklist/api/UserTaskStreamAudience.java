@@ -11,11 +11,11 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.gui.api.v1.GuiEvent;
 import io.vanillabp.cockpit.gui.api.v1.UpdateEmitter;
 import io.vanillabp.cockpit.gui.api.v1.UpdateStreamAudience;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskEvent;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.tasklist.UserTaskVisibility;
 import io.vanillabp.cockpit.tasklist.UserTaskVisibility.TaskFacts;
 import io.vanillabp.cockpit.tasklist.model.UserTask;

@@ -39,8 +39,8 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.CommandStartedEvent;
 
-import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationToken;
 import io.vanillabp.cockpit.gui.api.v1.UpdateStreamFixtures.Person;
+import io.vanillabp.cockpit.support.security.jwt.JwtAuthenticationToken;
 import io.vanillabp.cockpit.tasklist.UserTaskVisibility;
 import io.vanillabp.cockpit.tasklist.api.UserTaskStreamAudience;
 import io.vanillabp.cockpit.workflowlist.WorkflowVisibility;

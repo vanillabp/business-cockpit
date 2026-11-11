@@ -23,11 +23,11 @@ import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
-import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationTokenMapper;
-import io.vanillabp.cockpit.commons.security.jwt.JwtMapper;
-import io.vanillabp.cockpit.commons.security.jwt.JwtProperties;
 import io.vanillabp.cockpit.devshell.simulator.usermanagement.JwtServerSecurityContextRepository;
 import io.vanillabp.cockpit.devshell.simulator.usermanagement.UserController;
+import io.vanillabp.cockpit.support.security.jwt.JwtAuthenticationTokenMapper;
+import io.vanillabp.cockpit.support.security.jwt.JwtMapper;
+import io.vanillabp.cockpit.support.security.jwt.JwtProperties;
 
 /**
  * The security setup of the dev shell simulator. The made-up users log in with one shared

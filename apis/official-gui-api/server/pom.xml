@@ -45,10 +45,30 @@
       <groupId>jakarta.servlet</groupId>
       <artifactId>jakarta.servlet-api</artifactId>
     </dependency>
+    <!--
+      Everything the generated sources import beyond Spring, named one by one. The module used to
+      reach it through the cockpit's 'commons' artifact, which is gone. Its successor 'support'
+      carries none of it, because nothing generated here checks a login or calls a REST API.
+    -->
     <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>commons</artifactId>
-      <version>${project.version}</version>
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.openapitools</groupId>
+      <artifactId>jackson-databind-nullable</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.swagger.core.v3</groupId>
+      <artifactId>swagger-annotations</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jspecify</groupId>
+      <artifactId>jspecify</artifactId>
     </dependency>
   </dependencies>
 

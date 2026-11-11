@@ -25,13 +25,13 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.context.support.GenericWebApplicationContext;
 
 import io.vanillabp.cockpit.bpms.BpmsApiProperties;
-import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationToken;
-import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationTokenMapper;
-import io.vanillabp.cockpit.commons.security.jwt.JwtMapper;
-import io.vanillabp.cockpit.commons.security.jwt.JwtProperties;
-import io.vanillabp.cockpit.commons.security.jwt.JwtSecurityContextRepository;
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
+import io.vanillabp.cockpit.support.security.jwt.JwtAuthenticationToken;
+import io.vanillabp.cockpit.support.security.jwt.JwtAuthenticationTokenMapper;
+import io.vanillabp.cockpit.support.security.jwt.JwtMapper;
+import io.vanillabp.cockpit.support.security.jwt.JwtProperties;
+import io.vanillabp.cockpit.support.security.jwt.JwtSecurityContextRepository;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.users.UserDetailsProvider;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 

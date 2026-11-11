@@ -29,7 +29,7 @@ import org.springframework.data.mongodb.core.index.IndexInfo;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 
-import io.vanillabp.cockpit.commons.exceptions.BcInvalidRequestException;
+import io.vanillabp.cockpit.exceptions.BcInvalidRequestException;
 import io.vanillabp.integration.test.utils.ContainerImages;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 

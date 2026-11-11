@@ -11,7 +11,6 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.bson.Document;
-import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -46,14 +45,14 @@ import io.vanillabp.cockpit.bpms.SuspensionOfARecord;
 import io.vanillabp.cockpit.bpms.SuspensionRule;
 import io.vanillabp.cockpit.bpms.WhatAnEndReports;
 import io.vanillabp.cockpit.bpms.WhoSeesAUserTask;
-import io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException;
-import io.vanillabp.cockpit.commons.mongo.OptimisticLockingUtils;
-import io.vanillabp.cockpit.commons.mongo.changestreams.ChangeStreamUtils;
-import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
-import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
 import io.vanillabp.cockpit.config.startup.CockpitConfiguration;
 import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
 import io.vanillabp.cockpit.config.startup.SortIndexLimit;
+import io.vanillabp.cockpit.mongo.OptimisticLockingUtils;
+import io.vanillabp.cockpit.mongo.changestreams.ChangeStreamUtils;
+import io.vanillabp.cockpit.mongo.updateinfo.UpdateInformationAware;
+import io.vanillabp.cockpit.support.security.BcUnauthorizedException;
+import io.vanillabp.cockpit.support.security.usercontext.UserContext;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskEndReason;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
@@ -68,6 +67,7 @@ import io.vanillabp.cockpit.util.kwic.KwicService;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Reads and changes the user tasks the cockpit stores. It has two kinds of callers: the GUI API,
@@ -78,6 +78,7 @@ import jakarta.annotation.PreDestroy;
  * {@link UserTaskChangedNotification} for the open browsers.
  */
 @Service
+@Slf4j
 public class UserTaskService {
 
   /**
@@ -134,9 +135,6 @@ public class UserTaskService {
       "businessId", "title", "bpmnTaskId", "taskDefinition", "taskDefinitionTitle", "uiUriType",
       "assignee", "candidateUsers", "candidateGroups", PROPERTY_DUEDATE, "followUpDate",
       "detailsFulltextSearch", "endReason", "note", "suspendedAt", "suspendedBy");
-
-  @Autowired
-  private Logger logger;
 
   @Autowired
   private ApplicationEventPublisher applicationEventPublisher;
@@ -241,7 +239,7 @@ public class UserTaskService {
         FIELDS_OF_THE_LIST, MapKeyDotReplacement.configuredIn(environment));
     sortIndexes = new SortIndexes(
         UserTask.COLLECTION_NAME, listPaths, SortIndexLimit.configuredIn(
-            environment), CockpitConfiguration.MONGODB_SORT_INDEXES_PER_COLLECTION, mongoTemplate, logger);
+            environment), CockpitConfiguration.MONGODB_SORT_INDEXES_PER_COLLECTION, mongoTemplate, log);
     sortIndexes.learnExistingIndexes();
 
   }
@@ -1359,7 +1357,7 @@ public class UserTaskService {
 
     final var stored = getUserTask(userTaskId);
     if (stored == null) {
-      logger.info(
+      log.info(
           "Leaving out the reported {} of user task '{}' at {}: the cockpit does not know the task. "
               + "Its creation brings it, and the next report about its suspension marks it.",
           kindOfReport,
@@ -1373,7 +1371,7 @@ public class UserTaskService {
       return save(stored);
     }
     if (outcome != SuspensionOfARecord.Outcome.REPEATED) {
-      logger.info(
+      log.info(
           "Keeping user task '{}' as it is: the reported {} happened at {}, and what is stored is about {}",
           userTaskId,
           kindOfReport,
@@ -1404,7 +1402,7 @@ public class UserTaskService {
       final OffsetDateTime eventTimestamp,
       final UserTask stored) {
 
-    logger.info(
+    log.info(
         "Keeping user task '{}' as it is: the reported {} happened at {}, and what is stored is about {}",
         userTaskId,
         kindOfReport,
@@ -1690,7 +1688,7 @@ public class UserTaskService {
   /**
    * The conditions of the filters of a list request, after their paths are checked.
    *
-   * @throws io.vanillabp.cockpit.commons.exceptions.BcInvalidRequestException if a path breaks
+   * @throws io.vanillabp.cockpit.exceptions.BcInvalidRequestException if a path breaks
    *         the rule of {@link ListPaths}
    */
   private List<? extends CriteriaDefinition> filterCriteria(

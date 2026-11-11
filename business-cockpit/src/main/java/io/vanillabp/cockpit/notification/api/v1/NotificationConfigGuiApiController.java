@@ -7,7 +7,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
 import io.vanillabp.cockpit.gui.api.v1.NotificationConfiguration;
 import io.vanillabp.cockpit.gui.api.v1.NotificationMedium;
 import io.vanillabp.cockpit.gui.api.v1.NotificationWorkflow;
@@ -16,6 +15,7 @@ import io.vanillabp.cockpit.gui.api.v1.RecipientConfiguration;
 import io.vanillabp.cockpit.gui.api.v1.RecipientMediumConfiguration;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowNotificationConfiguration;
 import io.vanillabp.cockpit.notification.NotificationService;
+import io.vanillabp.cockpit.support.security.usercontext.UserContext;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.UserTaskVisibility;
 import io.vanillabp.cockpit.tasklist.model.UserTask;

@@ -8,7 +8,7 @@ import org.springframework.data.mongodb.core.messaging.Message;
 
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
 
-import io.vanillabp.cockpit.commons.mongo.changestreams.OperationType;
+import io.vanillabp.cockpit.mongo.changestreams.OperationType;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.util.events.NotificationEvent;
 
