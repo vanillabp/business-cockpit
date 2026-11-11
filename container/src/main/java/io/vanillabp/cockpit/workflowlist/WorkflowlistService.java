@@ -10,6 +10,7 @@ import io.vanillabp.cockpit.workflowlist.model.WorkflowRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -149,7 +150,8 @@ public class WorkflowlistService {
             final Collection<SearchQuery> searchQueries,
             final String sort,
             final boolean sortAscending,
-            final WorkflowlistService.RetrieveItemsMode mode) {
+            final WorkflowlistService.RetrieveItemsMode mode,
+            final List<String> limitResultToWorkflowModuleIds) {
 
         return getWorkflows(
                 pageNumber,
@@ -162,7 +164,8 @@ public class WorkflowlistService {
                 businessIds,
                 searchQueries,
                 sort,
-                sortAscending);
+                sortAscending,
+                limitResultToWorkflowModuleIds);
     }
 
     public Mono<Page<Workflow>> getWorkflows(
@@ -176,7 +179,8 @@ public class WorkflowlistService {
             final Collection<String> businessIds,
             final Collection<SearchQuery> searchQueries,
             final String sort,
-            final boolean sortAscending) {
+            final boolean sortAscending,
+            final List<String> limitResultToWorkflowModuleIds) {
 
         final var orderBySort = getWorkflowListOrder(sort, sortAscending);
         final var pageRequest = PageRequest
@@ -196,7 +200,7 @@ public class WorkflowlistService {
                         accessibleToGroups,
                         endedSince,
                         mode,
-                        null,
+                        SearchCriteriaHelper.getWorkflowModuleIdCriteria(limitResultToWorkflowModuleIds),
                         businessIds));
         final var searchCriteria = SearchCriteriaHelper.buildSearchCriteria(searchQueries);
         if (searchCriteria != null) {
@@ -308,7 +312,8 @@ public class WorkflowlistService {
             final Collection<SearchQuery> searchQueries,
             final String sort,
             final boolean sortAscending,
-            final RetrieveItemsMode mode) {
+            final RetrieveItemsMode mode,
+            final List<String> limitResultToWorkflowModuleIds) {
 
         final var orderBySort = getWorkflowListOrder(sort, sortAscending);
         final var pageRequest = PageRequest
@@ -327,8 +332,8 @@ public class WorkflowlistService {
                         accessibleToGroups,
                         initialTimestamp,
                         effectiveMode,
-                        null,
-			null));
+                        SearchCriteriaHelper.getWorkflowModuleIdCriteria(limitResultToWorkflowModuleIds),
+                        null));
         final var searchCriteria = SearchCriteriaHelper.buildSearchCriteria(searchQueries);
         if (searchCriteria != null) {
             searchCriteria.forEach(query::addCriteria);
@@ -445,15 +450,19 @@ public class WorkflowlistService {
             final Collection<String> accessibleToGroups,
             final Collection<SearchQuery> searchQueries,
             final String path,
-            final String query) {
+            final String query,
+            final List<String> limitResultToWorkflowModuleIds) {
 
         if (!StringUtils.hasText(query)
                 || (query.length() < 3)) {
             return Flux.empty();
         }
 
-        final var searchCriteria = new LinkedList<Criteria>();
+        final var searchCriteria = new ArrayList<Criteria>();
         searchCriteria.add(new Criteria(path).regex(query, "i"));
+        SearchCriteriaHelper
+                .addWorkflowModuleIdCriteria(searchCriteria, limitResultToWorkflowModuleIds);
+
         final var match =
                 buildWorkflowlistCriteria(
                         includeDanglingWorkflows,

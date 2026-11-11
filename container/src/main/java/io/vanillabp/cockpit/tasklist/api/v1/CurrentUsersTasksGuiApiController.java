@@ -26,7 +26,10 @@ import reactor.core.publisher.Mono;
  * </ul>
  */
 @RestController("currentUsersTasksGuiApiController")
-@RequestMapping(path = "/gui/api/v1/current-user")
+@RequestMapping(path =  {
+        "/gui/api/v1/current-user",
+        "/gui/api/v1/mine"
+})
 public class CurrentUsersTasksGuiApiController extends AbstractUserTaskListGuiApiController {
 
 	@Autowired
@@ -44,14 +47,15 @@ public class CurrentUsersTasksGuiApiController extends AbstractUserTaskListGuiAp
 			final Collection<SearchQuery> searchQueries,
 			final String sort,
 			final boolean sortAscending,
-			final UserTaskService.RetrieveItemsMode mode) {
+			final UserTaskService.RetrieveItemsMode mode,
+            final List<String> workflowModuleIds) {
 
 		return userTaskService.getUserTasks(
-				false,
+				true,
 				false,
 				List.of(currentUser.getId()),
 				List.of(currentUser.getId()),
-				null,
+				currentUser.getAuthorities(),
 				List.of(currentUser.getId()),
 				pageNumber,
 				pageSize,
@@ -59,7 +63,8 @@ public class CurrentUsersTasksGuiApiController extends AbstractUserTaskListGuiAp
 				searchQueries,
 				sort,
 				sortAscending,
-				mode);
+				mode,
+                workflowModuleIds);
 
 	}
 
@@ -72,14 +77,15 @@ public class CurrentUsersTasksGuiApiController extends AbstractUserTaskListGuiAp
 			final Collection<SearchQuery> searchQueries,
 			final String sort,
 			final boolean sortAscending,
-			final UserTaskService.RetrieveItemsMode mode) {
+			final UserTaskService.RetrieveItemsMode mode,
+            final List<String> workflowModuleIds) {
 
 		return userTaskService.getUserTasksUpdated(
-				false,
+				true,
 				false,
 				List.of(currentUser.getId()),
 				List.of(currentUser.getId()),
-				null,
+                currentUser.getAuthorities(),
 				List.of(currentUser.getId()),
 				size,
 				knownUserTasksIds,
@@ -87,7 +93,8 @@ public class CurrentUsersTasksGuiApiController extends AbstractUserTaskListGuiAp
 				searchQueries,
 				sort,
 				sortAscending,
-				mode);
+				mode,
+                workflowModuleIds);
 
 	}
 
@@ -97,17 +104,19 @@ public class CurrentUsersTasksGuiApiController extends AbstractUserTaskListGuiAp
 			OffsetDateTime endedSince,
 			List<SearchQuery> searchQueries,
 			String path,
-			String query) {
+			String query,
+            final List<String> workflowModuleIds) {
 
 		return userTaskService.kwic(
-				false,
+				true,
 				false,
 				List.of(currentUser.getId()),
 				List.of(currentUser.getId()),
-				null,
+                currentUser.getAuthorities(),
 				List.of(currentUser.getId()),
 				endedSince,
 				searchQueries,
+                workflowModuleIds,
 				path,
 				query
 		);

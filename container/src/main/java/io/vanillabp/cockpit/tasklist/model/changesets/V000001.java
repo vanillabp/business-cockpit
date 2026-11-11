@@ -7,11 +7,13 @@ import io.vanillabp.cockpit.commons.mongo.changesets.ChangesetConfiguration;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
+import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.bson.types.BasicBSONList;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
@@ -28,6 +30,7 @@ public class V000001 {
     private static final String INDEX_WORKFLOWMODULE_URI = "_workflowModuleUri";
     private static final String INDEX_ENDED_AT = "_endedAt";
     private static final String INDEX_READ_BY = "_readBy";
+    private static final String INDEX_WORKFLOWMODULE_AND_ENDED_AT_ID = Workflow.COLLECTION_NAME + "_workflowModuleIdAndEndedAt";
 
     @Autowired
     private PersonAndGroupMapper personAndGroupMapper;
@@ -369,6 +372,22 @@ public class V000001 {
                 .block();
 
         return null;
+
+    }
+
+    @Changeset(order = 18)
+    public String createWorkflowModuleIdAndEndedAtIndex(
+            final ReactiveMongoTemplate mongo) {
+
+        mongo
+                .indexOps(UserTask.COLLECTION_NAME)
+                .ensureIndex(new Index()
+                        .on("workflowModuleId", Sort.Direction.ASC)
+                        .on("endedAt", Sort.Direction.ASC)
+                        .named(INDEX_WORKFLOWMODULE_AND_ENDED_AT_ID))
+                .block();
+
+        return "{ dropIndexes: '" + UserTask.COLLECTION_NAME + "', index: '" + INDEX_WORKFLOWMODULE_AND_ENDED_AT_ID + "' }";
 
     }
 

@@ -44,7 +44,8 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 			final Collection<SearchQuery> searchQueries,
 			final String sort,
 			final boolean sortAscending,
-			final UserTaskService.RetrieveItemsMode mode) {
+			final UserTaskService.RetrieveItemsMode mode,
+            final List<String> workflowModuleIds) {
 
 		return userTaskService.getUserTasks(
 				true,
@@ -59,7 +60,8 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 				searchQueries,
 				sort,
 				sortAscending,
-				mode);
+				mode,
+                workflowModuleIds);
 
 	}
 
@@ -72,7 +74,8 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 			final Collection<SearchQuery> searchQueries,
 			final String sort,
 			final boolean sortAscending,
-			final UserTaskService.RetrieveItemsMode mode) {
+			final UserTaskService.RetrieveItemsMode mode,
+            final List<String> workflowModuleIds) {
 
 		return userTaskService.getUserTasksUpdated(
 				true,
@@ -87,7 +90,8 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 				searchQueries,
 				sort,
 				sortAscending,
-				mode);
+				mode,
+                workflowModuleIds);
 
 	}
 
@@ -97,7 +101,8 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 			OffsetDateTime endedSince,
 			List<SearchQuery> searchQueries,
 			String path,
-			String query) {
+			String query,
+            final List<String> workflowModuleIds) {
 
 		return userTaskService.kwic(
 				true,
@@ -108,6 +113,7 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 				List.of(currentUser.getId()),
 				endedSince,
 				searchQueries,
+                workflowModuleIds,
 				path,
 				query
 		);

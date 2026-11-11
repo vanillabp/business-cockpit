@@ -46,7 +46,8 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
             final List<SearchQuery> searchQueries,
             final String sort,
             final boolean sortAscending,
-            final WorkflowlistService.RetrieveItemsMode mode);
+            final WorkflowlistService.RetrieveItemsMode mode,
+            final List<String> workflowModuleIds);
 
     @Override
     public Mono<ResponseEntity<Workflows>> getWorkflows(
@@ -75,7 +76,8 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
                                 mapper.toModel(entry.getT2().getSearchQueries()),
                                 entry.getT2().getSort(),
                                 entry.getT2().getSortAscending(),
-                        entry.getT2().getMode() != null ? mapper.toModel(entry.getT2().getMode()): WorkflowlistService.RetrieveItemsMode.All))
+                                entry.getT2().getMode() != null ? mapper.toModel(entry.getT2().getMode()): WorkflowlistService.RetrieveItemsMode.All,
+                                entry.getT2().getWorkflowModuleIds()))
                 .map(workflows -> mapper.toApi(workflows, timestamp, requestId))
                 .map(ResponseEntity::ok);
 
@@ -89,7 +91,8 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
             final List<SearchQuery> searchQueries,
             final String sort,
             final boolean sortAscending,
-            final WorkflowlistService.RetrieveItemsMode mode);
+            final WorkflowlistService.RetrieveItemsMode mode,
+            final List<String> workflowModuleIds);
 
     @Override
     public Mono<ResponseEntity<Workflows>> getWorkflowsUpdate(
@@ -115,7 +118,8 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
                                 entry.getT2().getSortAscending(),
                                 entry.getT2().getMode() != null
                                         ? mapper.toModel(entry.getT2().getMode())
-                                        : WorkflowlistService.RetrieveItemsMode.Active))
+                                        : WorkflowlistService.RetrieveItemsMode.Active,
+                                entry.getT2().getWorkflowModuleIds()))
                 .map(ids -> mapper.toApi(ids, timestamp, requestId))
                 .map(ResponseEntity::ok)
                 .switchIfEmpty(Mono.just(ResponseEntity.badRequest().build()));
@@ -178,7 +182,8 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
             final OffsetDateTime endedSince,
             final List<SearchQuery> searchQueries,
             final String path,
-            final String query);
+            final String query,
+            final List<String> workflowModuleIds);
 
     @Override
     public Mono<ResponseEntity<KwicResults>> getKwicResults(
@@ -206,7 +211,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
                                     .stream()
                                     .map(mapper::toModel)
                                     .toList();
-                            return kwic(entry.getT1(), timestamp, searchQueries, effectivePath, query);
+                            return kwic(entry.getT1(), timestamp, searchQueries, effectivePath, query, entry.getT2().getWorkflowModuleIds());
                         })
                 .map(mapper::toApi)
                 .collectList()

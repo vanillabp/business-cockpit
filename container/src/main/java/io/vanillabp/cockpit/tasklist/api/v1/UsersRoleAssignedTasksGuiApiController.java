@@ -44,7 +44,8 @@ public class UsersRoleAssignedTasksGuiApiController extends AbstractUserTaskList
 			final Collection<SearchQuery> searchQueries,
 			final String sort,
 			final boolean sortAscending,
-			final UserTaskService.RetrieveItemsMode mode) {
+			final UserTaskService.RetrieveItemsMode mode,
+            final List<String> workflowModuleIds) {
 
 		return userTaskService.getUserTasks(
 				true,
@@ -59,7 +60,8 @@ public class UsersRoleAssignedTasksGuiApiController extends AbstractUserTaskList
 				searchQueries,
 				sort,
 				sortAscending,
-				mode);
+				mode,
+                workflowModuleIds);
 
 	}
 
@@ -72,7 +74,8 @@ public class UsersRoleAssignedTasksGuiApiController extends AbstractUserTaskList
 			final Collection<SearchQuery> searchQueries,
 			final String sort,
 			final boolean sortAscending,
-			final UserTaskService.RetrieveItemsMode mode) {
+			final UserTaskService.RetrieveItemsMode mode,
+            final List<String> workflowModuleIds) {
 
 		return userTaskService.getUserTasksUpdated(
 				true,
@@ -87,7 +90,8 @@ public class UsersRoleAssignedTasksGuiApiController extends AbstractUserTaskList
 				searchQueries,
 				sort,
 				sortAscending,
-				mode);
+				mode,
+                workflowModuleIds);
 
 	}
 
@@ -96,7 +100,8 @@ public class UsersRoleAssignedTasksGuiApiController extends AbstractUserTaskList
 									OffsetDateTime endedSince,
 									List<SearchQuery> searchQueries,
 									String path,
-									String query) {
+									String query,
+                                    final List<String> workflowModuleIds) {
 
 		return userTaskService.kwic(
 				true,
@@ -107,6 +112,7 @@ public class UsersRoleAssignedTasksGuiApiController extends AbstractUserTaskList
 				List.of(currentUser.getId()),
 				endedSince,
 				searchQueries,
+                workflowModuleIds,
 				path,
 				query
 		);

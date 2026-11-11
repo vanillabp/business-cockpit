@@ -12,13 +12,18 @@ import java.util.Collection;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController("workflowListGuiApiController")
-@RequestMapping(path = "/gui/api/v1")
+@RequestMapping(path = {
+        "/gui/api/v1",
+        "/gui/api/v1/mine"
+})
 public class GuiApiController extends AbstractWorkflowListGuiApiController {
 
     @Autowired
@@ -37,21 +42,28 @@ public class GuiApiController extends AbstractWorkflowListGuiApiController {
             final List<SearchQuery> searchQueries,
             final String sort,
             final boolean sortAscending,
-            final WorkflowlistService.RetrieveItemsMode mode) {
+            final WorkflowlistService.RetrieveItemsMode mode,
+            final List<String> workflowModuleIds) {
 
         return workflowlistService
                 .getWorkflows(
-                        pageNumber,
+                        pageNumber % 100,
                         pageSize,
                         initialTimestamp,
                         true,
-                        null,
-                        null,
+                        List.of(currentUser.getId()),
+                        currentUser.getAuthorities(),
                         businessIds,
                         searchQueries,
                         sort,
                         sortAscending,
-                        mode);
+                        mode,
+                        workflowModuleIds)
+                .map(result -> new PageImpl<>(
+                      result.getContent(),
+                      PageRequest.of(pageNumber, result.getPageable().getPageSize(), result.getPageable().getSort()),
+                      1000000
+                ));
 
     }
 
@@ -64,20 +76,22 @@ public class GuiApiController extends AbstractWorkflowListGuiApiController {
             final List<SearchQuery> searchQueries,
             final String sort,
             final boolean sortAscending,
-            final WorkflowlistService.RetrieveItemsMode mode) {
+            final WorkflowlistService.RetrieveItemsMode mode,
+            final List<String> workflowModuleIds) {
 
         return workflowlistService
                 .getWorkflowsUpdated(
                         true,
-                        null,
-                        null,
+                        List.of(currentUser.getId()),
+                        currentUser.getAuthorities(),
                         size,
                         knownWorkflowsIds,
                         initialTimestamp,
                         searchQueries,
                         sort,
                         sortAscending,
-                        mode);
+                        mode,
+                        workflowModuleIds);
 
     }
 
@@ -121,7 +135,8 @@ public class GuiApiController extends AbstractWorkflowListGuiApiController {
             final OffsetDateTime endedSince,
             final List<SearchQuery> searchQueries,
             final String path,
-            final String query) {
+            final String query,
+            final List<String> workflowModuleIds) {
 
         return workflowlistService
                 .kwic(
@@ -131,7 +146,8 @@ public class GuiApiController extends AbstractWorkflowListGuiApiController {
                         null,
                         searchQueries,
                         path,
-                        query);
+                        query,
+                        workflowModuleIds);
 
     }
 

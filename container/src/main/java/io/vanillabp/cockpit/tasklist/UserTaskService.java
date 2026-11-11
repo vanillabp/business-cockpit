@@ -13,6 +13,7 @@ import io.vanillabp.cockpit.util.kwic.KwicService;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -450,7 +451,8 @@ public class UserTaskService {
             final Collection<SearchQuery> searchQueries,
             final String sort,
             final boolean sortAscending,
-            final RetrieveItemsMode mode) {
+            final RetrieveItemsMode mode,
+            final List<String> limitResultToWorkflowModuleIds) {
 
         return retrieveUserTasks(
                 includeDanglingTasks,
@@ -465,7 +467,7 @@ public class UserTaskService {
                 searchQueries,
                 sort,
                 sortAscending,
-                null,
+                SearchCriteriaHelper.getWorkflowModuleIdCriteria(limitResultToWorkflowModuleIds),
                 mode);
 
     }
@@ -569,6 +571,7 @@ public class UserTaskService {
             final Collection<String> candidatesToBeExcluded,
             final OffsetDateTime initialTimestamp,
             final Collection<SearchQuery> searchQueries,
+            final List<String> limitResultToWorkflowModuleIds,
             final String path,
             final String query) {
 
@@ -577,8 +580,11 @@ public class UserTaskService {
             return Flux.empty();
         }
 
-        final var searchCriteria = new LinkedList<Criteria>();
+        final var searchCriteria = new ArrayList<Criteria>();
         searchCriteria.add(new Criteria(path).regex(query, "i"));
+        SearchCriteriaHelper
+                .addWorkflowModuleIdCriteria(searchCriteria, limitResultToWorkflowModuleIds);
+
         final var match =
                 buildUserTasksCriteria(
                         includeDanglingTasks,
@@ -637,7 +643,8 @@ public class UserTaskService {
             final Collection<SearchQuery> searchQueries,
             final String sort,
             final boolean sortAscending,
-            final RetrieveItemsMode mode) {
+            final RetrieveItemsMode mode,
+            final List<String> limitResultToWorkflowModuleIds) {
 
         final var orderBySort = getUserTaskListOrder(sort, sortAscending);
         final var pageRequest = PageRequest
@@ -659,7 +666,7 @@ public class UserTaskService {
                         candidatesToBeExcluded,
                         initialTimestamp,
                         effectiveMode,
-                        null));
+                        SearchCriteriaHelper.getWorkflowModuleIdCriteria(limitResultToWorkflowModuleIds)));
         final var searchCriteria = SearchCriteriaHelper.buildSearchCriteria(searchQueries);
         if (searchCriteria != null) {
             searchCriteria.forEach(query::addCriteria);

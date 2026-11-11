@@ -5,7 +5,6 @@ import com.mongodb.DBObject;
 import io.vanillabp.cockpit.commons.mongo.changesets.Changeset;
 import io.vanillabp.cockpit.commons.mongo.changesets.ChangesetConfiguration;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
-import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import java.util.List;
 import java.util.Objects;
@@ -31,6 +30,7 @@ public class V000001 {
     private static final String INDEX_ENDED_AT = Workflow.COLLECTION_NAME + "_endedAt";
     private static final String INDEX_FULLTEXT = Workflow.COLLECTION_NAME + "_fulltext";
     private static final String INDEX_BUSINESS_ID = INDEX_CUSTOM_SORT_PREFIX + "businessId";
+    private static final String INDEX_WORKFLOWMODULE_AND_ENDED_AT_ID = Workflow.COLLECTION_NAME + "_workflowModuleIdAndEndedAt";
 
     @Autowired
     private PersonAndGroupMapper personAndGroupMapper;
@@ -337,6 +337,22 @@ public class V000001 {
                         .block());
 
         return null;
+
+    }
+
+    @Changeset(order = 1018)
+    public String createWorkflowModuleIdAndEndedAtIndex(
+            final ReactiveMongoTemplate mongo) {
+
+        mongo
+                .indexOps(Workflow.COLLECTION_NAME)
+                .ensureIndex(new Index()
+                        .on("workflowModuleId", Sort.Direction.ASC)
+                        .on("endedAt", Sort.Direction.ASC)
+                        .named(INDEX_WORKFLOWMODULE_AND_ENDED_AT_ID))
+                .block();
+
+        return "{ dropIndexes: '" + Workflow.COLLECTION_NAME + "', index: '" + INDEX_WORKFLOWMODULE_AND_ENDED_AT_ID + "' }";
 
     }
 
