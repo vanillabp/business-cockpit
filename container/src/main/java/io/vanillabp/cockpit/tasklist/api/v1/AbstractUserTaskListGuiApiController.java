@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -54,7 +53,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 			final Collection<SearchQuery> searchQueries,
 			final String sort,
 			final boolean sortAscending,
-			final UserTaskService.RetrieveItemsMode mode);
+			final UserTaskService.RetrieveItemsMode mode,
+            final List<String> workflowModuleIds);
 
     @Override
     public Mono<ResponseEntity<UserTasks>> getUserTasks(
@@ -77,7 +77,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 						mapper.toModel(entry.getT2().getSearchQueries()),
 						entry.getT2().getSort(),
 						entry.getT2().getSortAscending(),
-						entry.getT2().getMode() != null ? mapper.toModel(entry.getT2().getMode()): UserTaskService.RetrieveItemsMode.All)
+						entry.getT2().getMode() != null ? mapper.toModel(entry.getT2().getMode()): UserTaskService.RetrieveItemsMode.All,
+                        entry.getT2().getWorkflowModuleIds())
 				.map(userTasks -> mapper.toApi(userTasks, timestamp, entry.getT1().getId())))
 				.map(ResponseEntity::ok);
 
@@ -91,7 +92,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 			final Collection<SearchQuery> searchQueries,
 			final String sort,
 			final boolean sortAscending,
-			final UserTaskService.RetrieveItemsMode mode);
+			final UserTaskService.RetrieveItemsMode mode,
+            final List<String> workflowModuleIds);
 
 	@Override
 	public Mono<ResponseEntity<UserTasks>> getUserTasksUpdate(
@@ -116,7 +118,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 										entry.getT1().getSortAscending(),
 										entry.getT1().getMode() != null
 												? mapper.toModel(entry.getT1().getMode())
-												: UserTaskService.RetrieveItemsMode.OpenTasks),
+												: UserTaskService.RetrieveItemsMode.OpenTasks,
+                                        entry.getT1().getWorkflowModuleIds()),
 								Mono.just(entry.getT2())))
 						.map(entry -> mapper.toApi(entry.getT1(), entry.getT2(), user.getId()))
 						.map(ResponseEntity::ok)
@@ -130,7 +133,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
             final OffsetDateTime endedSince,
             final List<SearchQuery> searchQueries,
             final String path,
-            final String query);
+            final String query,
+            final List<String> workflowModuleIds);
 
     @Override
     public Mono<ResponseEntity<KwicResults>> getUserTaskKwicResults(
@@ -152,13 +156,12 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
                            userContext.getUserLoggedInDetailsAsMono(),
                            kwicRequest)
                    .flatMapMany(entry -> {
-                       final var searchQueries = Optional.ofNullable(
-                                                                 entry.getT2().getSearchQueries())
+                       final var searchQueries = Optional.ofNullable(entry.getT2().getSearchQueries())
                                                          .orElse(List.of())
                                                          .stream()
                                                          .map(mapper::toModel)
                                                          .toList();
-                       return kwic(entry.getT1(), timestamp, searchQueries, effectivePath, query);
+                       return kwic(entry.getT1(), timestamp, searchQueries, effectivePath, query, entry.getT2().getWorkflowModuleIds());
                    })
                    .map(mapper::toApi)
                    .collectList()

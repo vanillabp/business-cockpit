@@ -1052,6 +1052,10 @@ components:
           type: boolean
         mode:
           $ref: '#/components/schemas/UserTaskRetrieveMode'
+        workflowModuleIds:
+          type: array
+          items:
+            type: string
     UserTasks:
       type: object
       required:
@@ -1093,6 +1097,10 @@ components:
             type: string
         mode:
           $ref: '#/components/schemas/UserTaskRetrieveMode'
+        workflowModuleIds:
+          type: array
+          items:
+            type: string
     WorkflowsRequest:
       type: object
       properties:
@@ -1117,6 +1125,10 @@ components:
           type: boolean
         mode:
           $ref: '#/components/schemas/WorkflowRetrieveMode'
+        workflowModuleIds:
+          type: array
+          items:
+            type: string
     Workflows:
       type: object
       required:
@@ -1158,6 +1170,10 @@ components:
           type: boolean
         mode:
           $ref: '#/components/schemas/WorkflowRetrieveMode'
+        workflowModuleIds:
+          type: array
+          items:
+            type: string
     KwicRequest:
       type: object
       properties:
@@ -1165,6 +1181,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SearchQuery'
+        workflowModuleIds:
+          type: array
+          items:
+            type: string
     KwicResult:
       type: object
       required:
