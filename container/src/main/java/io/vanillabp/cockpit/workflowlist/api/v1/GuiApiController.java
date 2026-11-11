@@ -18,7 +18,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController("workflowListGuiApiController")
-@RequestMapping(path = "/gui/api/v1")
+@RequestMapping(path = {
+        "/gui/api/v1"
+})
 public class GuiApiController extends AbstractWorkflowListGuiApiController {
 
     @Autowired
@@ -37,7 +39,8 @@ public class GuiApiController extends AbstractWorkflowListGuiApiController {
             final List<SearchQuery> searchQueries,
             final String sort,
             final boolean sortAscending,
-            final WorkflowlistService.RetrieveItemsMode mode) {
+            final WorkflowlistService.RetrieveItemsMode mode,
+            final List<String> workflowModuleIds) {
 
         return workflowlistService
                 .getWorkflows(
@@ -51,7 +54,8 @@ public class GuiApiController extends AbstractWorkflowListGuiApiController {
                         searchQueries,
                         sort,
                         sortAscending,
-                        mode);
+                        mode,
+                        workflowModuleIds);
 
     }
 
@@ -64,7 +68,8 @@ public class GuiApiController extends AbstractWorkflowListGuiApiController {
             final List<SearchQuery> searchQueries,
             final String sort,
             final boolean sortAscending,
-            final WorkflowlistService.RetrieveItemsMode mode) {
+            final WorkflowlistService.RetrieveItemsMode mode,
+            final List<String> workflowModuleIds) {
 
         return workflowlistService
                 .getWorkflowsUpdated(
@@ -77,7 +82,8 @@ public class GuiApiController extends AbstractWorkflowListGuiApiController {
                         searchQueries,
                         sort,
                         sortAscending,
-                        mode);
+                        mode,
+                        workflowModuleIds);
 
     }
 
@@ -121,7 +127,8 @@ public class GuiApiController extends AbstractWorkflowListGuiApiController {
             final OffsetDateTime endedSince,
             final List<SearchQuery> searchQueries,
             final String path,
-            final String query) {
+            final String query,
+            final List<String> workflowModuleIds) {
 
         return workflowlistService
                 .kwic(
@@ -131,7 +138,8 @@ public class GuiApiController extends AbstractWorkflowListGuiApiController {
                         null,
                         searchQueries,
                         path,
-                        query);
+                        query,
+                        workflowModuleIds);
 
     }
 
