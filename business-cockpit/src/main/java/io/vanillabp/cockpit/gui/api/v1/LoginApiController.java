@@ -126,7 +126,6 @@ public class LoginApiController implements LoginApi {
         .map(person -> new User()
             .id(person.getId())
             .email(person.getEmail())
-            .avatar(person.getAvatar())
             .display(person.getDisplay())
             .displayShort(person.getDisplayShort())
             .details(person.getDetails()))

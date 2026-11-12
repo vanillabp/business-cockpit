@@ -460,3 +460,11 @@ and `Done` now. A subclass of `AbstractWorkflowListGuiApiController` which overr
 and a caller of `WorkflowlistService`, use `InProgress` instead of `Active` and `Done` instead of
 `Inactive`. The generated `WorkflowRetrieveMode` of the official GUI API has all five values, so code
 which reads it gets two more cases in a `switch`.
+
+### `avatar` is gone from `Person` and `User`
+
+`Person` and `User` of the GUI API no longer have the number `avatar`. Nothing said what it meant,
+and the cockpit only passed on what your `PersonAndGroupApiMapper` returned. If your mapper set
+`avatar`, remove that line, because the generated `Person` has no `avatar(...)` any more. If your
+user interface shows a picture of a person, load it from an endpoint of your application, and show
+the initials when there is none.

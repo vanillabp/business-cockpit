@@ -897,9 +897,6 @@ components:
           type: string
         email:
           type: string
-        avatar:
-          type: integer
-          format: int32
         details:
           type: object
           additionalProperties: true
