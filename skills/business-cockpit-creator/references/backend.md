@@ -54,7 +54,7 @@ application/
     CockpitApplication.java     the main class
     lists/                      one controller per list of Q-LIST-CONTROLLERS
     security/                   the two security chains and userDetailsProvider
-    users/                      the user directory and its two mappers
+    users/                      the two mappers, and the user directory for configuration
   src/main/resources/config/
     application.yaml            what every environment shares
     application-local.yaml      the values for docker-compose.yaml
@@ -321,28 +321,77 @@ Only the application knows where its users live. The library asks three beans fo
 `DerivedCockpitApplication` in the tests of `container` shows all three on a fixed list of users.
 Where the list comes from is `Q-USER-DIRECTORY`:
 
-- `keycloak`, the default: the users and groups of the Keycloak realm, read through Keycloak's
-  admin REST API with a service account. The library brings no client for it, so the skill writes
-  one in the application. The login and the directory then come from one place, so the ids always
-  match.
+- `keycloak`, the default: the users and groups of the Keycloak realm. The library brings this
+  directory, so the skill writes no `UserDirectoryService` for it, only the configuration, see
+  below. The login and the directory then come from one place, so the ids always match.
 - `configuration`: a list of users with their groups in `application.yaml`, below a prefix of the
   application, read with `@ConfigurationProperties`. With `Q-LOGIN-KIND` `form` it also holds each
   password as a `bcrypt` hash. It is the choice when there is no Keycloak, and the default with
-  `Q-LOGIN-KIND` `form`.
-- `ldap`: the users and groups of a directory, read with Spring LDAP.
+  `Q-LOGIN-KIND` `form`. The skill writes this directory in `users/`.
+- `ldap`: the users and groups of an LDAP directory. The library brings this directory as well. The
+  skill writes the configuration and adds `org.springframework.ldap:spring-ldap-core` to the
+  `pom.xml` of `application`, without a version. The library does not bring Spring LDAP along.
+
+With `keycloak` or `ldap` the two mappers in `users/` take the library's directory as their
+`UserDirectoryService`. Do not write a `UserDirectoryService` next to it: the application does not
+start with two.
 
 The users of the directory and the users of the login must be the same people with the same ids.
 With OIDC the id is the claim of `Q-OIDC-PROVIDER`, by default `preferred_username`.
 
-`getUser` runs on every request. So the generated directory caches each user with its groups for
-five minutes when it reads Keycloak or LDAP. A group taken away there is gone after five minutes at
-most. The directory with `configuration` reads memory and needs no cache. The cockpit keeps no cache
-of its own. What the cockpit does with the answer:
+`getUser` runs on every request. The directories of the library for Keycloak and LDAP keep each
+user with its groups for five minutes, `business-cockpit.user-directory.cache-duration`. A group
+taken away there is gone after five minutes at most. The directory with `configuration` reads memory
+and needs no cache. What the cockpit does with the answer:
 
 - A user the directory does not know keeps the login, but has no groups. The log warns once a
   minute at most for each such user.
-- If `getUser` throws, the request fails and the log shows the error. So let a failure of Keycloak
-  or LDAP throw instead of answering an empty user.
+- If `getUser` throws, the request fails and the log shows the error. The directories of the
+  library do that when Keycloak or LDAP does not answer, and the message says what to check.
+
+The library's directories give the groups only from `getUser`. A search and the list of all users
+give users without groups, because the cockpit reads only their ids.
+
+### The configuration of the library's directories
+
+With `keycloak`, `application.yaml` names the realm and the client of the directory, the secret
+from an environment variable:
+
+```yaml
+business-cockpit:
+  user-directory:
+    type: keycloak
+    keycloak:
+      server-url: ${KEYCLOAK_URL}
+      realm: business-cockpit
+      client-id: business-cockpit-directory
+      client-secret: ${KEYCLOAK_DIRECTORY_SECRET}
+      user-id: username
+```
+
+`user-id` is `username` when the login names the user by `preferred_username`, the default of
+`Q-OIDC-PROVIDER`. It is `id` when the login names the user by `sub`.
+
+With `ldap`:
+
+```yaml
+business-cockpit:
+  user-directory:
+    type: ldap
+    ldap:
+      url: ${LDAP_URL}
+      base: dc=example,dc=com
+      bind-dn: cn=cockpit,ou=services,dc=example,dc=com
+      bind-password: ${LDAP_BIND_PASSWORD}
+      user-search-base: ou=people
+      group-search-base: ou=groups
+```
+
+The other keys have defaults for OpenLDAP: users of the object class `inetOrgPerson` with the id in
+`uid`, and groups which name their members by DN in `member`. Ask the user for the object class and
+the attributes when the directory is an Active Directory. The wiki page
+[Security](https://github.com/vanillabp/business-cockpit/wiki/Security) lists every key. The
+application tells the rest while it starts: a missing key ends the start, with a line to copy.
 
 ## The configuration
 
@@ -441,8 +490,10 @@ writes that file for local development:
   names,
 - a mapper that writes the groups of a user into the claim `groups`,
 - with `Q-USER-DIRECTORY` `keycloak`: a second confidential client, by default
-  `business-cockpit-directory`, with service accounts on and only the roles `view-users` and
-  `query-groups` of `realm-management`, and its secret named in `application-local.yaml`,
+  `business-cockpit-directory`, with service accounts on, only the role `view-users` of
+  `realm-management`, the client scope `kc-admin-api` among its `defaultClientScopes`, and its
+  secret named in `application-local.yaml`. Without that client scope a newer Keycloak refuses the
+  token of the client at its admin REST API,
 - exactly one group and one user with a password, and the user is a member of the group. They are
   a template, not a set of test users.
 

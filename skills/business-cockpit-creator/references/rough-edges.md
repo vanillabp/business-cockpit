@@ -257,17 +257,18 @@ the retaining path of a detached DOM node leads to the library. See
 This description counts on prompts of the `business-cockpit` repository that are not all released
 yet. The cockpit version of the interview (`Q-COCKPIT-VERSION`) must have them:
 
-| Prompt |                                                                                           What it brings                                                                                            |
-|--------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `1504` | `endReason` on user tasks and cases, so a cancelled row can be told from a completed one                                                                                                            |
-| `1505` | `customSettings` on the user, read and written one entry at a time with `GET` and `PUT /app/current-user/settings/{key}`, in the cockpit's own file `api/gui/v1.yaml`                               |
-| `1506` | the count endpoint                                                                                                                                                                                  |
-| `1507` | notes on user tasks and cases                                                                                                                                                                       |
-| `1509` | `OpenTasks` is gone; the open modes are `OpenTasksWithFollowUp` and `OpenTasksWithoutFollowUp`; without `mode` the server takes `OpenTasksWithFollowUp` for user tasks and the open cases for cases |
-| `1510` | the library brings no login; the application writes the security chains and `userDetailsProvider`. Needed by a backend the skill creates, not by the user interface                                 |
-| `1511` | `GET /updates` and the types of its events in the cockpit's own file `api/gui/v1.yaml`, so these types are generated too                                                                            |
-| `1762` | the modes of a case list are `All`, `InProgress` (not ended, suspended cases included) and `Done` (ended)                                                                                           |
-| `1787` | the token carries no groups, the cockpit asks `UserDirectoryService#getUser` on every request, and an OIDC login gets a token. Needed by a backend the skill creates                                |
+| Prompt |                                                                                              What it brings                                                                                              |
+|--------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `1504` | `endReason` on user tasks and cases, so a cancelled row can be told from a completed one                                                                                                                 |
+| `1505` | `customSettings` on the user, read and written one entry at a time with `GET` and `PUT /app/current-user/settings/{key}`, in the cockpit's own file `api/gui/v1.yaml`                                    |
+| `1506` | the count endpoint                                                                                                                                                                                       |
+| `1507` | notes on user tasks and cases                                                                                                                                                                            |
+| `1509` | `OpenTasks` is gone; the open modes are `OpenTasksWithFollowUp` and `OpenTasksWithoutFollowUp`; without `mode` the server takes `OpenTasksWithFollowUp` for user tasks and the open cases for cases      |
+| `1510` | the library brings no login; the application writes the security chains and `userDetailsProvider`. Needed by a backend the skill creates, not by the user interface                                      |
+| `1511` | `GET /updates` and the types of its events in the cockpit's own file `api/gui/v1.yaml`, so these types are generated too                                                                                 |
+| `1762` | the modes of a case list are `All`, `InProgress` (not ended, suspended cases included) and `Done` (ended)                                                                                                |
+| `1766` | the library brings the user directories for Keycloak and LDAP, switched on by `business-cockpit.user-directory.type`. Needed by a backend the skill creates with `Q-USER-DIRECTORY` `keycloak` or `ldap` |
+| `1787` | the token carries no groups, the cockpit asks `UserDirectoryService#getUser` on every request, and an OIDC login gets a token. Needed by a backend the skill creates                                     |
 
 Against an older cockpit the generated client lacks these endpoints and fields, and the build
 fails. That is on purpose: better a failed build than a user interface that guesses.
