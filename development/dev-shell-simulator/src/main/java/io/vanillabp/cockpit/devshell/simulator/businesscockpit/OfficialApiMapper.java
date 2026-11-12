@@ -193,7 +193,6 @@ public abstract class OfficialApiMapper {
   @Mapping(target = "display", expression = "java(person)")
   @Mapping(target = "displayShort", expression = "java(person)")
   @Mapping(target = "email", ignore = true)
-  @Mapping(target = "avatar", ignore = true)
   @Mapping(target = "details", ignore = true)
   public abstract Person toPersonApi(
       String person);
@@ -249,7 +248,6 @@ public abstract class OfficialApiMapper {
   @Mapping(target = "display", expression = "java(person)")
   @Mapping(target = "displayShort", expression = "java(person)")
   @Mapping(target = "email", ignore = true)
-  @Mapping(target = "avatar", ignore = true)
   @Mapping(target = "details", ignore = true)
   public abstract io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Person toPersonModel(
       String person);

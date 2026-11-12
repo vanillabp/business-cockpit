@@ -9,7 +9,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * A person as the simulator stores it: the id, display names, an email address, an avatar and free details.
+ * A person as the simulator stores it: the id, display names, an email address and free details.
  */
 @Getter
 @Setter
@@ -32,9 +32,6 @@ public class Person {
 
   @JsonProperty("email")
   private String email;
-
-  @JsonProperty("avatar")
-  private Integer avatar;
 
   @JsonProperty("details")
   private Map<String, Object> details = new HashMap<>();
