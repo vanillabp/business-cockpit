@@ -267,6 +267,7 @@ yet. The cockpit version of the interview (`Q-COCKPIT-VERSION`) must have them:
 | `1510` | the library brings no login; the application writes the security chains and `userDetailsProvider`. Needed by a backend the skill creates, not by the user interface                                 |
 | `1511` | `GET /updates` and the types of its events in the cockpit's own file `api/gui/v1.yaml`, so these types are generated too                                                                            |
 | `1762` | the modes of a case list are `All`, `InProgress` (not ended, suspended cases included) and `Done` (ended)                                                                                           |
+| `1787` | the token carries no groups, the cockpit asks `UserDirectoryService#getUser` on every request, and an OIDC login gets a token. Needed by a backend the skill creates                                |
 
 Against an older cockpit the generated client lacks these endpoints and fields, and the build
 fails. That is on purpose: better a failed build than a user interface that guesses.
@@ -276,6 +277,10 @@ the library brings no login: the two security chains and the bean `userDetailsPr
 application's, and the generated backend writes all three itself, see
 [backend.md](backend.md#the-login). An older library has a BPMS API chain of its own under the same
 bean name, and the application would not start next to it.
+
+Against a library older than `1787`, the token carries the groups of the login, and the mapper
+cannot handle the principal of an OIDC login, so that login gets no token at all. The generated
+backend needs `1787`.
 
 The OIDC login of [backend.md](backend.md#oidc-the-default) follows the wiki page
 [Security](https://github.com/vanillabp/business-cockpit/wiki/Security), but the cockpit has no

@@ -249,10 +249,12 @@ http
         PassiveJwtSecurityFilter.class);
 ```
 
-The groups of the user come from a claim of the token, by default `groups` (`Q-OIDC-PROVIDER`).
-Map them to authorities with a `GrantedAuthoritiesMapper` of the OAuth2 login, so they reach the
-cockpit's token as its groups. The id of the user is the claim `preferred_username` by default, set
-as `user-name-attribute` of the provider. The provider is configured with the usual Spring Boot keys
+The cockpit's token names the user but carries no groups. The groups come from the user directory
+on every request, see [The user directory](#the-user-directory). So do not write a
+`GrantedAuthoritiesMapper` for the groups of the provider's token: they never reach the cockpit's
+token. The id of the user is the name of the login, the claim set as `user-name-attribute` of the
+provider, `preferred_username` by default (`Q-OIDC-PROVIDER`). It becomes the subject of the
+cockpit's token, and the directory must know the user by it. The provider is configured with the usual Spring Boot keys
 below `spring.security.oauth2.client.registration.<id>` and `.provider.<id>`, the client secret
 from an environment variable. The login paths are Spring Security's: `/oauth2/authorization/<id>` and
 `/login/oauth2/code/<id>`. They go into `Q-LOGIN`.
@@ -281,7 +283,11 @@ a filter of your own for it. Without the header, `Q-HOSTING` `in-front` has no r
 [SKILL.md](../SKILL.md#where-the-user-interface-runs).
 
 The same configuration class writes the bean `userDetailsProvider`, a `JwtUserDetailsProvider`.
-The library needs it and brings none. Without it the application does not start.
+The library needs it and brings none. Without it the application does not start. It needs no
+directory of its own: the library's `jwtMapper` asks the `UserDirectoryService` for the user of
+every request, and the details take the groups, the name and the e-mail address from that answer.
+Do not write a `jwtMapper` of your own. If you have to, pass the `UserDirectoryService` to
+`new JwtAuthenticationTokenMapper(properties, userDirectoryService, groupHierarchyService::resolveGroups)`.
 
 ## The BPMS API
 
@@ -301,8 +307,12 @@ checklist asks that the log names none (`BE-006`).
 
 Only the application knows where its users live. The library asks three beans for it:
 
-- `io.vanillabp.cockpit.users.UserDetailsProvider`: finds users for a search, lists all users and
-  gets one by id. The user interface needs it to propose a task to a person and to show a person.
+- `io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService`: finds users for a
+  search, lists all users and gets one by id. The user interface needs it to propose a task to a
+  person and to show a person. The cockpit also calls `getUser(id)` on every request of a
+  logged-in user, because the token carries no groups. The groups are `getAuthorities()` of the
+  answer: the groups the user is assigned to, without the group hierarchy, which the cockpit
+  resolves itself.
 - `io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper`: turns a user or a group into the
   `Person` and `Group` of the GUI API.
 - `io.vanillabp.cockpit.users.model.PersonAndGroupMapper`: turns them into the person and group
@@ -323,6 +333,16 @@ Where the list comes from is `Q-USER-DIRECTORY`:
 
 The users of the directory and the users of the login must be the same people with the same ids.
 With OIDC the id is the claim of `Q-OIDC-PROVIDER`, by default `preferred_username`.
+
+`getUser` runs on every request. So the generated directory caches each user with its groups for
+five minutes when it reads Keycloak or LDAP. A group taken away there is gone after five minutes at
+most. The directory with `configuration` reads memory and needs no cache. The cockpit keeps no cache
+of its own. What the cockpit does with the answer:
+
+- A user the directory does not know keeps the login, but has no groups. The log warns once a
+  minute at most for each such user.
+- If `getUser` throws, the request fails and the log shows the error. So let a failure of Keycloak
+  or LDAP throw instead of answering an empty user.
 
 ## The configuration
 
