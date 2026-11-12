@@ -804,6 +804,10 @@ It says that a module exists and where it answers. Both are read from the config
 same whenever the entry goes out. A second registration of one module says what the waiting one
 says, so keeping the waiting one is right.
 
+*Changed on 2026-11-12 by decision 88.* The group hierarchy of a module can now change while the
+application runs, so a second registration may say something new. The registration is planned
+through `scheduleReplacingWhatIsStillWaiting` now, see point 9 of decision 88.
+
 An entry which outlives its own payload is sent with its identifiers alone, and a line in the log
 names the case. The platform decided on 2026-09-23 that the retention of the outbox goes by the
 entry. An entry which is still in the outbox keeps its payload, whether it waits or is blocked. A
@@ -3966,6 +3970,12 @@ and `support` brings Spring and OpenFeign, which an extension on Quarkus must no
    `support` brings `spi-for-java` (decision 84).
 8. `group-hierarchy-bean-name` stays refused. The message now says that a bean of type
    `WorkflowModuleGroupHierarchy` does what the key did.
+9. The registration is planned through `PhaseTwoOutbox#scheduleReplacingWhatIsStillWaiting`. A
+   waiting registration has not read the hierarchy yet, so the new one takes its place and the
+   module still registers once. A registration which a dispatch has taken may have read the old
+   hierarchy already. The store never replaces it, so the new one is written beside it and a
+   second registration follows. Plain `schedule` would drop the new one against the one on its
+   way, and the change would never reach the cockpit.
 
 #### What follows
 
@@ -3980,7 +3990,8 @@ and `support` brings Spring and OpenFeign, which an extension on Quarkus must no
 
 - `spi-for-java`: `WorkflowModuleGroupHierarchy` and `WorkflowModuleGroupHierarchyChangedEvent`
 - `extensions-commons/core`: `BusinessCockpitConfiguration` (`readAndValidate`, `groupHierarchyOf`),
-  `BusinessCockpitExtension` (`registerWorkflowModuleAgain`), `ConfigurationKeyCheck`
+  `BusinessCockpitExtension` (`registerWorkflowModuleAgain`, `scheduleRegistration`),
+  `ConfigurationKeyCheck`
 - `extensions-commons/spring-boot`: `BusinessCockpitExtensionAutoConfiguration` and the description
   of `vanillabp.workflow-modules` in `additional-spring-configuration-metadata.json`
 - `extensions-commons/quarkus/runtime`: `BusinessCockpitProducer`
