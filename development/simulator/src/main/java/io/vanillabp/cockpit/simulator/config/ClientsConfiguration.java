@@ -9,8 +9,8 @@ import org.springframework.context.annotation.Scope;
 
 import io.vanillabp.cockpit.bpms.api.v1_1.ApiClient;
 import io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi;
-import io.vanillabp.cockpit.commons.rest.adapter.Client;
-import io.vanillabp.cockpit.commons.rest.adapter.ClientsConfigurationBase;
+import io.vanillabp.cockpit.support.rest.adapter.Client;
+import io.vanillabp.cockpit.support.rest.adapter.ClientsConfigurationBase;
 
 /**
  * Builds the REST client which sends user tasks and workflows to the Business Cockpit.

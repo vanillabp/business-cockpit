@@ -9,11 +9,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 
-import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationToken;
-import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationTokenMapper;
-import io.vanillabp.cockpit.commons.security.jwt.JwtMapper;
-import io.vanillabp.cockpit.commons.security.jwt.JwtSecurityContextRepository;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
+import io.vanillabp.cockpit.support.security.jwt.JwtAuthenticationToken;
+import io.vanillabp.cockpit.support.security.jwt.JwtAuthenticationTokenMapper;
+import io.vanillabp.cockpit.support.security.jwt.JwtMapper;
+import io.vanillabp.cockpit.support.security.jwt.JwtSecurityContextRepository;
 import io.vanillabp.cockpit.workflowmodules.GroupHierarchyService;
 
 /**

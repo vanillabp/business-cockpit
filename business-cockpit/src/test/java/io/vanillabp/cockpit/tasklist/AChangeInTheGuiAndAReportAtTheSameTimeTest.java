@@ -24,7 +24,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.AdditionalAnswers;
-import org.slf4j.LoggerFactory;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory;
@@ -39,9 +38,9 @@ import org.testcontainers.mongodb.MongoDBContainer;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 
-import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeReadConverter;
-import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeWriteConverter;
-import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
+import io.vanillabp.cockpit.mongo.converters.OffsetDateTimeReadConverter;
+import io.vanillabp.cockpit.mongo.converters.OffsetDateTimeWriteConverter;
+import io.vanillabp.cockpit.support.security.usercontext.UserContext;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.model.Person;
@@ -128,7 +127,6 @@ class AChangeInTheGuiAndAReportAtTheSameTimeTest {
     ReflectionTestUtils.setField(service, "userTasks", userTasks);
     ReflectionTestUtils.setField(service, "mongoTemplate", mongoTemplate);
     ReflectionTestUtils.setField(service, "currentUserContext", userContext);
-    ReflectionTestUtils.setField(service, "logger", LoggerFactory.getLogger(UserTaskService.class));
 
     final var outcome = service.reportCreatedUserTask(TASK, CREATED_AT, () -> {
       final var task = new UserTask();

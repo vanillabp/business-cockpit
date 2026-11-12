@@ -2,8 +2,8 @@ package io.vanillabp.cockpit.simulator.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import io.vanillabp.cockpit.commons.rest.adapter.Client;
-import io.vanillabp.cockpit.commons.security.jwt.JwtProperties;
+import io.vanillabp.cockpit.support.rest.adapter.Client;
+import io.vanillabp.cockpit.support.security.jwt.JwtProperties;
 
 /**
  * The simulator's own properties, read from the prefix {@code application}.

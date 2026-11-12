@@ -22,8 +22,8 @@ import org.springframework.mock.env.MockEnvironment;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
-import io.vanillabp.cockpit.commons.security.jwt.JwtUserDetailsProvider;
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetailsProvider;
+import io.vanillabp.cockpit.support.security.jwt.JwtUserDetailsProvider;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetailsProvider;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**

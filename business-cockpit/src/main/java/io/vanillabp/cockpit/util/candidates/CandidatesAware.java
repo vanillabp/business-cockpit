@@ -5,7 +5,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
-import io.vanillabp.cockpit.commons.security.jwt.JwtUserDetails;
+import io.vanillabp.cockpit.support.security.jwt.JwtUserDetails;
 
 /**
  * Something which only some users may see, like a user task or a workflow. Two lists of

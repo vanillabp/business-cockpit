@@ -12,7 +12,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import com.phactum.mongodb.changesets.ChangesetApplier;
 import com.phactum.mongodb.changesets.ChangesetAutoConfiguration;
 
-import io.vanillabp.cockpit.commons.mongo.changestreams.ChangeStreamUtils;
+import io.vanillabp.cockpit.mongo.changestreams.ChangeStreamUtils;
 import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 

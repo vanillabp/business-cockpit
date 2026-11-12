@@ -13,14 +13,11 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.bson.Document;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.slf4j.Logger;
-import org.slf4j.Marker;
-import org.slf4j.event.Level;
-import org.slf4j.helpers.LegacyAbstractLogger;
-import org.slf4j.helpers.MessageFormatter;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory;
@@ -41,12 +38,15 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
 
-import io.vanillabp.cockpit.commons.mongo.MongoDbProperties;
-import io.vanillabp.cockpit.commons.mongo.changestreams.ChangeStreamUtils;
-import io.vanillabp.cockpit.commons.mongo.converters.BigDecimalReadConverter;
-import io.vanillabp.cockpit.commons.mongo.converters.BigDecimalWriteConverter;
-import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeReadConverter;
-import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeWriteConverter;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.AppenderBase;
+import io.vanillabp.cockpit.mongo.MongoDbProperties;
+import io.vanillabp.cockpit.mongo.changestreams.ChangeStreamUtils;
+import io.vanillabp.cockpit.mongo.converters.BigDecimalReadConverter;
+import io.vanillabp.cockpit.mongo.converters.BigDecimalWriteConverter;
+import io.vanillabp.cockpit.mongo.converters.OffsetDateTimeReadConverter;
+import io.vanillabp.cockpit.mongo.converters.OffsetDateTimeWriteConverter;
 import io.vanillabp.cockpit.tasklist.UserTaskChangedNotification;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.users.model.Person;
@@ -145,58 +145,52 @@ class ChangeStreamNotificationsTest {
   /**
    * Records what the change-stream wrapper logs, so a test can assert what a swallowed listener
    * failure tells the next reader. The messages are kept formatted, which is what a log file
-   * shows.
+   * shows. It listens on the logger of {@link ChangeStreamUtils} from the moment it is built until
+   * the test ends.
    */
-  private static class RecordingLogger extends LegacyAbstractLogger {
+  private static class RecordingLogger extends AppenderBase<ILoggingEvent> {
 
     private final Queue<String> warnings = new ConcurrentLinkedQueue<>();
+
+    RecordingLogger() {
+
+      start();
+      logbackLoggerOfTheWrapper().addAppender(this);
+      RECORDERS.add(this);
+
+    }
 
     Queue<String> warnings() {
       return warnings;
     }
 
     @Override
-    protected void handleNormalizedLoggingCall(
-        final Level level,
-        final Marker marker,
-        final String messagePattern,
-        final Object[] arguments,
-        final Throwable throwable) {
+    protected void append(
+        final ILoggingEvent event) {
 
-      if (level == Level.WARN) {
-        warnings.add(MessageFormatter.basicArrayFormat(messagePattern, arguments));
+      if (event.getLevel() == Level.WARN) {
+        warnings.add(event.getFormattedMessage());
       }
 
     }
 
-    @Override
-    protected String getFullyQualifiedCallerName() {
-      return null;
-    }
+  }
 
-    @Override
-    public boolean isTraceEnabled() {
-      return false;
-    }
+  private static final Queue<RecordingLogger> RECORDERS = new ConcurrentLinkedQueue<>();
 
-    @Override
-    public boolean isDebugEnabled() {
-      return false;
-    }
+  private static ch.qos.logback.classic.Logger logbackLoggerOfTheWrapper() {
 
-    @Override
-    public boolean isInfoEnabled() {
-      return false;
-    }
+    return (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(ChangeStreamUtils.class);
 
-    @Override
-    public boolean isWarnEnabled() {
-      return true;
-    }
+  }
 
-    @Override
-    public boolean isErrorEnabled() {
-      return true;
+  @AfterEach
+  void stopRecording() {
+
+    RecordingLogger recorder;
+    while ((recorder = RECORDERS.poll()) != null) {
+      logbackLoggerOfTheWrapper().detachAppender(recorder);
+      recorder.stop();
     }
 
   }
@@ -206,10 +200,9 @@ class ChangeStreamNotificationsTest {
    * every operation type and no lookup of the full document.
    */
   private static ChangeStreamUtils changeStreamUtils(
-      final Logger logger) {
+      final RecordingLogger logger) {
 
     final var changeStreamUtils = new ChangeStreamUtils();
-    ReflectionTestUtils.setField(changeStreamUtils, "logger", logger);
     ReflectionTestUtils.setField(changeStreamUtils, "properties", new MongoDbProperties());
     ReflectionTestUtils.setField(changeStreamUtils, "messageListenerContainer", listenerContainer);
     return changeStreamUtils;

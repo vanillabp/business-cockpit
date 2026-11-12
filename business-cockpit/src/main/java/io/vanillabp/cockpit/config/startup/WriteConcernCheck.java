@@ -14,8 +14,8 @@ import org.springframework.util.StringUtils;
 
 import com.mongodb.WriteConcern;
 
-import io.vanillabp.cockpit.commons.mongo.MongoDbProperties;
-import io.vanillabp.cockpit.commons.mongo.MongoDbProperties.Mode;
+import io.vanillabp.cockpit.mongo.MongoDbProperties;
+import io.vanillabp.cockpit.mongo.MongoDbProperties.Mode;
 
 /**
  * Builds the write concern the cockpit was configured with, and says on every start what the

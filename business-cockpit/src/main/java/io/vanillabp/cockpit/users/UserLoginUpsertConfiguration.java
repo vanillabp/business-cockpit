@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetailsProvider;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetailsProvider;
 
 /**
  * Wires the upsert of a user at login, which does not depend on a security filter chain. Both

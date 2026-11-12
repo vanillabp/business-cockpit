@@ -1,6 +1,6 @@
 package io.vanillabp.cockpit.util;
 
-import io.vanillabp.cockpit.commons.exceptions.BcInvalidRequestException;
+import io.vanillabp.cockpit.exceptions.BcInvalidRequestException;
 
 /**
  * The values a list request of the GUI API may leave out, and what the server takes instead. The

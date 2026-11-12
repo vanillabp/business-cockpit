@@ -8,7 +8,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.springframework.stereotype.Service;
 
-import io.vanillabp.cockpit.commons.security.usercontext.GroupHierarchyResolver;
+import io.vanillabp.cockpit.support.security.usercontext.GroupHierarchyResolver;
 
 /**
  * Keeps the group hierarchy of every registered workflow module in memory and resolves a user's

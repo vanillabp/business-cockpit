@@ -15,7 +15,6 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.slf4j.Logger;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.HttpStatus;
 
@@ -73,7 +72,6 @@ class APathWhichDisagreesWithTheBodyTest {
     });
     final var userTaskService = new UserTaskService();
     set(UserTaskService.class, userTaskService, "userTasks", userTaskRepository);
-    set(UserTaskService.class, userTaskService, "logger", mock(Logger.class));
     set(UserTaskService.class, userTaskService, "mongoTemplate", mock(MongoTemplate.class));
 
     final var workflowRepository = mock(WorkflowRepository.class);
@@ -86,7 +84,6 @@ class APathWhichDisagreesWithTheBodyTest {
     });
     final var workflowlistService = new WorkflowlistService();
     set(WorkflowlistService.class, workflowlistService, "workflowRepository", workflowRepository);
-    set(WorkflowlistService.class, workflowlistService, "logger", mock(Logger.class));
     set(WorkflowlistService.class, workflowlistService, "mongoTemplate", mock(MongoTemplate.class));
 
     bpmsApi = new BpmsApiController();

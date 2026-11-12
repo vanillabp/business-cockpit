@@ -1,16 +1,13 @@
 package io.vanillabp.cockpit.bpms.api.v1_1;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
@@ -20,9 +17,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.slf4j.Logger;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.HttpStatus;
 
@@ -69,7 +66,7 @@ class OrderOfReportsTest {
 
     private final Map<String, Workflow> workflows = new HashMap<>();
 
-    private final Logger logger = mock(Logger.class);
+    private final RecordedLog logger = new RecordedLog(UserTaskService.class, WorkflowlistService.class);
 
     private final BpmsApiController bpmsApi;
 
@@ -94,12 +91,10 @@ class OrderOfReportsTest {
 
         final var userTaskService = new UserTaskService();
         set(UserTaskService.class, userTaskService, "userTasks", userTaskRepository());
-        set(UserTaskService.class, userTaskService, "logger", logger);
         set(UserTaskService.class, userTaskService, "mongoTemplate", mock(MongoTemplate.class));
 
         final var workflowlistService = new WorkflowlistService();
         set(WorkflowlistService.class, workflowlistService, "workflowRepository", workflowRepository());
-        set(WorkflowlistService.class, workflowlistService, "logger", logger);
         set(WorkflowlistService.class, workflowlistService, "mongoTemplate", mock(MongoTemplate.class));
 
         bpmsApi = new BpmsApiController();
@@ -328,6 +323,13 @@ class OrderOfReportsTest {
   }
 
   // --- a completion arriving before the creation it completes -------------------------------
+
+  @AfterEach
+  void stopRecordingTheLog() {
+
+    RecordedLog.stopAll();
+
+  }
 
   @Test
   void aCompletedTaskTheCockpitNeverSawIsStoredAsEnded() {
@@ -634,12 +636,12 @@ class OrderOfReportsTest {
 
     // a change a workflow module sent and nobody finds in the cockpit has to be findable in the
     // log, with the task and both timestamps in it
-    verify(cockpit.logger, atLeastOnce()).info(
-        contains("Keeping user task"),
-        eq("task-1"),
-        eq("change"),
-        eq(CHANGED_AT),
-        eq(ENDED_AT));
+    assertThat(cockpit.logger.infos(
+        "Keeping user task",
+        "task-1",
+        "change",
+        CHANGED_AT,
+        ENDED_AT)).isPositive();
 
   }
 

@@ -12,13 +12,13 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.util.StringUtils;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
 import io.vanillabp.cockpit.notification.AbstractTemplatingNotificationService;
 import io.vanillabp.cockpit.notification.NotificationDeliveryException;
 import io.vanillabp.cockpit.notification.NotificationProperties;
 import io.vanillabp.cockpit.notification.NotificationType;
 import io.vanillabp.cockpit.notification.RecipientConfiguration;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.users.model.User;
 import io.vanillabp.cockpit.users.model.UserRepository;

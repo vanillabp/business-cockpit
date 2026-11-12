@@ -14,8 +14,8 @@ import org.springframework.stereotype.Component;
 
 import com.mongodb.MongoException;
 
-import io.vanillabp.cockpit.commons.exceptions.BcContentTooLargeException;
-import io.vanillabp.cockpit.commons.exceptions.BcInvalidRequestException;
+import io.vanillabp.cockpit.exceptions.BcContentTooLargeException;
+import io.vanillabp.cockpit.exceptions.BcInvalidRequestException;
 import io.vanillabp.cockpit.users.model.User;
 
 /**

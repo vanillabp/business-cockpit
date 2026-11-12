@@ -106,8 +106,9 @@ in [test-coverage-report](./test-coverage-report).
 
 In the order they build on each other:
 
-1. **[commons](./commons)**:<br>Spring Boot functionality used by the cockpit, and usable next to it:
-   the JWT handling, the Kafka settings and the small utilities several modules share.
+1. **[support](./support)**:<br>What the cockpit and a workflow module behind it share: the check of
+   the cockpit's login token, the user and the groups, and a REST client for the APIs of a BPMS or
+   of the cockpit. It brings no MongoDB and no Kafka, so a workflow module can depend on it.
 2. **[apis](./apis)**:<br>The generated clients and servers of the three interfaces the cockpit has:
    `bpms-api` for what workflow modules report, `official-gui-api` for what a user interface reads,
    `workflow-provider-api` for what a workflow module may implement to change the cockpit's behaviour.
@@ -123,8 +124,8 @@ In the order they build on each other:
    and
    [business-cockpit-process-engine-api-adapter](https://github.com/vanillabp/business-cockpit-process-engine-api-adapter).
 5. **[business-cockpit](./business-cockpit)**:<br>The cockpit as a library: services, persistence, GUI
-   API, security extension points and ingestion of what workflow modules report. It builds no
-   runnable jar.
+   API, security extension points and ingestion of what workflow modules report, with the MongoDB,
+   Kafka and error handling helpers only the cockpit needs. It builds no runnable jar.
 6. **[container](./container)**:<br>The runnable microservice, built from the library plus a main
    class, the concrete GUI API controllers and the defaults of a standalone deployment.
 7. **[development](./development)**:<br>The local development environment, and the tools which support

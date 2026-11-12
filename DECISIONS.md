@@ -1352,7 +1352,7 @@ before it is published.
 - story `1351`, which introduced `awaitRequest(pathSuffix, bodyPart)`, story `1373`, which moved
   the 30 waits reading a body onto it, and the commit beside them which added `awaitRequestOf`
 
-### 35. The chain of cockpit repositories is checked once a night, from this repository - the open question answered by decision 52
+### 35. The chain of cockpit repositories is checked once a night, from this repository - the open question answered by decision 52, where the snapshots are read superseded by decision 82
 
 Decided on 2026-10-03, as the default of stories 1396 and 1400. The question below is open and
 belongs to the maintainer.
@@ -3553,3 +3553,91 @@ been a change to released changesets, and those are not changed.
 
 The new changesets which correct the stored rollbacks of the first changesets write every name out
 as text, so they read nothing from outside.
+
+### 82. The chain check reads every snapshot from Maven Central, and needs no token for it
+
+This entry replaces one part of decision 35: where the check reads the published snapshots. The
+rest of decision 35 stays as it is.
+
+#### What was found
+
+Decision 35 says that the chain check reads everything from the GitHub API, Maven Central and
+GitHub Packages. GitHub Packages was there for one library only, `phactum/mongodb-changesets`. Its
+snapshots were published to the GitHub Packages registry of its repository. That registry asks for
+a login even for a public package. So the nightly workflow needed a token with the scope
+`read:packages`, and without it question 4 was answered for the library from its publish runs
+alone.
+
+The library now publishes its snapshots to the snapshot repository of Maven Central, like the
+VanillaBP repositories. Reading them there needs no login.
+
+#### The decision
+
+`bin/check-the-chain.sh` reads the snapshot of every repository it watches from the snapshot
+repository of Maven Central. That includes the MongoDB changeset library. Everything else comes from
+the GitHub API, as before.
+
+The check needs no token for the snapshots. The variables `PACKAGES_TOKEN` and `PACKAGES_USER` are
+gone, and so is the case in question 4 which answered from the publish runs alone. A snapshot which
+cannot be read counts as not answered, like every other question which could not be answered.
+
+#### What it costs
+
+Nothing which the check did before is lost. Central removes a snapshot about 90 days after it was
+published. So a repository which has not published for that long has no snapshot to read, and
+question 4 is not answered for it. The report is then not green, which is right: such a repository
+needs somebody to look at it.
+
+### 83. What a workflow module shares with the cockpit is the module `support`, and nothing else
+
+#### What was found
+
+`commons` held two kinds of classes. Some are tools of the cockpit server alone: the MongoDB
+helpers for change streams, converters and update information, the Kafka settings, the MapStruct
+qualifier and the exceptions with the handler which turns them into HTTP answers. Others are
+needed by a workflow module behind the cockpit's proxy as well: the check of the cockpit's login
+token, the user and the groups of a request, and a REST client for the API of a BPMS or of the
+cockpit. A workflow module which needed only the second kind got the first kind, too, with Spring
+Data MongoDB and two auto-configurations which bound the cockpit's MongoDB settings.
+
+After 1.0 such a cut breaks every application which depends on it. So it is made before.
+
+#### The decision
+
+The module `commons` is gone, and there is no artifact under the old name which points at the new
+ones.
+
+The module `support`, artifact `io.vanillabp.businesscockpit:support`, packages below
+`io.vanillabp.cockpit.support`, takes only what the cockpit and a workflow module both need or
+can use: the packages `security` (the login token and the user context) and `rest`. Spring Web,
+Spring Security and Spring's JWT classes are optional dependencies, and nothing in `support`
+needs MongoDB or Kafka.
+
+Everything else moves into the library module `business-cockpit`, below `io.vanillabp.cockpit`:
+`exceptions`, `kafka`, `mapstruct`, `mongo`, and `DateTimeUtil`, which only the MongoDB converters
+use. The bean which injected an SLF4J logger is gone, and the cockpit's classes use Lombok's
+`@Slf4j`.
+
+A class which turns up later is placed by the same rule: into `support` only when a workflow
+module needs it or can use it as well.
+
+`support` checks the login token through a small interface, `JwtKeySource`. Today its only
+implementation uses the shared HMAC secret. A later switch to the public keys of an identity
+provider adds an implementation and does not change the API of `support`.
+
+#### Where the table had to give way
+
+`BcUnauthorizedException` is in `support`, in `io.vanillabp.cockpit.support.security`, and not
+next to the other exceptions. `UserContext` throws it, and `support` cannot see the library
+module.
+
+The two simulators stand in for a workflow module, so they depend on `support` and not on the
+library module. They had used `NoMappingMethod` and `RestfulExceptionHandler`. The dev shell
+simulator now carries its own copy of `NoMappingMethod`, and the simulator no longer registers the
+exception handler. It throws none of the exceptions the handler knows.
+
+#### What it costs
+
+Every application changes imports, one line per package in `UPGRADE.md`. A workflow module which
+used `RestfulExceptionHandler` or `NoMappingMethod` from `commons` no longer finds them in
+`support`, and has to write its own or depend on the library module.

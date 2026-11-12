@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 
 import org.springframework.util.StringUtils;
 
-import io.vanillabp.cockpit.commons.exceptions.BcInvalidRequestException;
+import io.vanillabp.cockpit.exceptions.BcInvalidRequestException;
 
 /**
  * The paths a client may name in a list request: to sort by, to filter by, or to get suggestions

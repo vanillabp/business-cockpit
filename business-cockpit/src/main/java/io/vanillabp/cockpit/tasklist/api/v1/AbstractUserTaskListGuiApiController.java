@@ -12,8 +12,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.gui.api.v1.Count;
 import io.vanillabp.cockpit.gui.api.v1.Counts;
 import io.vanillabp.cockpit.gui.api.v1.FollowUpDateRequest;
@@ -31,6 +29,8 @@ import io.vanillabp.cockpit.gui.api.v1.UserTasks;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksNoteRequest;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksUpdateRequest;
+import io.vanillabp.cockpit.support.security.usercontext.UserContext;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.tasklist.UserTaskAlreadyCompletedException;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.UserTaskVisibility;

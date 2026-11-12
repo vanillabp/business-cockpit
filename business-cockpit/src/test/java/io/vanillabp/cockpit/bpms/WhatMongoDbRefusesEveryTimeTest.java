@@ -13,7 +13,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.slf4j.LoggerFactory;
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -34,12 +33,12 @@ import org.testcontainers.mongodb.MongoDBContainer;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 
-import io.vanillabp.cockpit.commons.mongo.converters.BigDecimalReadConverter;
-import io.vanillabp.cockpit.commons.mongo.converters.BigDecimalWriteConverter;
-import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeReadConverter;
-import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeWriteConverter;
 import io.vanillabp.cockpit.config.startup.CockpitConfiguration;
 import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
+import io.vanillabp.cockpit.mongo.converters.BigDecimalReadConverter;
+import io.vanillabp.cockpit.mongo.converters.BigDecimalWriteConverter;
+import io.vanillabp.cockpit.mongo.converters.OffsetDateTimeReadConverter;
+import io.vanillabp.cockpit.mongo.converters.OffsetDateTimeWriteConverter;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
@@ -130,7 +129,6 @@ class WhatMongoDbRefusesEveryTimeTest {
         service,
         "userTasks",
         new MongoRepositoryFactory(mongoTemplate).getRepository(UserTaskRepository.class));
-    ReflectionTestUtils.setField(service, "logger", LoggerFactory.getLogger(UserTaskService.class));
     return service;
 
   }

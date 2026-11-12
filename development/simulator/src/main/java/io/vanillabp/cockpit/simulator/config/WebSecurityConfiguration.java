@@ -12,15 +12,15 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
-import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationToken;
-import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationTokenMapper;
-import io.vanillabp.cockpit.commons.security.jwt.JwtMapper;
-import io.vanillabp.cockpit.commons.security.jwt.JwtUserDetailsProvider;
-import io.vanillabp.cockpit.commons.security.jwt.PassiveJwtSecurityFilter;
-import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetailsProvider;
 import io.vanillabp.cockpit.devshell.simulator.config.Properties;
 import io.vanillabp.cockpit.devshell.simulator.usermanagement.UserController;
+import io.vanillabp.cockpit.support.security.jwt.JwtAuthenticationToken;
+import io.vanillabp.cockpit.support.security.jwt.JwtAuthenticationTokenMapper;
+import io.vanillabp.cockpit.support.security.jwt.JwtMapper;
+import io.vanillabp.cockpit.support.security.jwt.JwtUserDetailsProvider;
+import io.vanillabp.cockpit.support.security.jwt.PassiveJwtSecurityFilter;
+import io.vanillabp.cockpit.support.security.usercontext.UserContext;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetailsProvider;
 
 /**
  * The security setup of the simulator. If a request carries a JSON Web Token (JWT), the token is

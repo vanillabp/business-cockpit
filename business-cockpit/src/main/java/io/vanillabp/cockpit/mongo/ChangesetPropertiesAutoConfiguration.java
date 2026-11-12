@@ -1,0 +1,69 @@
+package io.vanillabp.cockpit.mongo;
+
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.context.annotation.Bean;
+import org.springframework.data.mongodb.core.MongoTemplate;
+
+import com.mongodb.client.MongoClient;
+import com.phactum.mongodb.changesets.ChangesetAutoConfiguration;
+import com.phactum.mongodb.changesets.ChangesetProperties;
+
+/**
+ * Hands the MongoDB mode of the cockpit to the changeset library.
+ * <p>
+ * The library reads its own key {@code mongodb.changesets.mode}, and the cockpit has carried the
+ * same information in {@code mongodb.mode} since long before the library existed. Where the
+ * application publishes a {@link ChangesetProperties} bean, the library takes that one and builds
+ * none of its own. So the cockpit's key stays the one which counts, no installation writes the
+ * value twice, and {@code mongodb.changesets.mode} never turns up in a cockpit configuration.
+ * <p>
+ * It is not only convenience. {@link MongoDbProperties} binds the prefix {@code mongodb} with
+ * {@code ignoreUnknownFields = false}, and such a binding refuses every key below its prefix which
+ * none of its own fields takes. {@code mongodb.changesets.mode} is such a key, so an application
+ * which wrote it would not start at all.
+ * <p>
+ * This is a class of its own and not another bean of
+ * {@link BusinessCockpitMongoDbAutoConfiguration}. It has to run before the library's
+ * auto-configuration, and {@link BusinessCockpitMongoDbAutoConfiguration} must not. Moving that
+ * one earlier would put it ahead of the auto-configuration which registers the
+ * {@code MongoTemplate}. Its {@code @ConditionalOnBean(MongoTemplate.class)} would then find
+ * nothing and drop the change-stream container. Only the bean below needs the early order, and
+ * nothing below depends on another bean.
+ */
+// registered through the .imports file, so it has to be an @AutoConfiguration. Only then are
+// @AutoConfigureBefore and @AutoConfigureAfter read
+@AutoConfiguration
+@AutoConfigureBefore(ChangesetAutoConfiguration.class)
+@ConditionalOnClass({
+    MongoClient.class, MongoTemplate.class
+})
+public class ChangesetPropertiesAutoConfiguration {
+
+  /**
+   * Creates the configuration. Spring Boot calls this constructor.
+   */
+  public ChangesetPropertiesAutoConfiguration() {
+  }
+
+  /**
+   * The two enums name the same two kinds of database, so the value is carried over by name. A
+   * name which the library does not know ends the start, which is where a new mode of the cockpit
+   * would be noticed.
+   *
+   * @param properties The MongoDB settings of the cockpit
+   * @return The settings for the changeset library
+   */
+  @Bean
+  public ChangesetProperties mongoDbChangesetProperties(
+      final MongoDbProperties properties) {
+
+    final var changesetProperties = new ChangesetProperties();
+    changesetProperties.setMode(
+        ChangesetProperties.MongoDbMode.valueOf(properties.getMode().name()));
+    return changesetProperties;
+
+  }
+
+}

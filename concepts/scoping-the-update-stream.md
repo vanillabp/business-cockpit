@@ -79,7 +79,7 @@ Zeilen 97 bis 114) werden nie gelesen.
 Am Strom hängt heute eine Liste von Gruppen, die beim Abonnieren eingefroren wird:
 `UpdateEmitter.groups(user.getAuthorities())` (`gui/api/v1/LoginApiController.java`, Zeilen 64
 bis 68). Die Kennung der Person ist darin schon enthalten, verkleidet als Gruppe: `JwtMapper`
-legt `USER_` plus Subjekt in die Authorities (`commons/.../security/jwt/JwtMapper.java`, Zeile 57).
+legt `USER_` plus Subjekt in die Authorities (`support/.../security/jwt/JwtMapper.java`, damals `commons`, Zeile 57).
 
 ## Was der Browser mit einem Ereignis macht
 
@@ -104,7 +104,7 @@ Antwort, in der die Task fehlt.
 
 Heute nirgendwo her. Der Change-Stream wird ohne Vorbild abonniert:
 `fullDocumentBeforeChangeLookup(FullDocumentBeforeChange.OFF)`
-(`commons/src/main/java/io/vanillabp/cockpit/commons/mongo/changestreams/ChangeStreamUtils.java`,
+(`business-cockpit/src/main/java/io/vanillabp/cockpit/mongo/changestreams/ChangeStreamUtils.java`, damals in `commons`,
 Zeile 104). Das Vorbild einzuschalten kostet mehr als eine Zeile: MongoDB will
 `changeStreamPreAndPostImages` an der Sammlung, und der Cosmos-Modus derselben Klasse (Zeilen 87
 bis 95) kann es nicht.

@@ -19,8 +19,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 
-import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
-import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
+import io.vanillabp.cockpit.mongo.updateinfo.UpdateInformationAware;
+import io.vanillabp.cockpit.support.security.usercontext.UserContext;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.model.Person;
@@ -119,7 +119,7 @@ class UserTaskServiceInitiatorTest {
   @Test
   void unauthorizedContext_doesNotFailTheAction() {
     when(currentUserContext.getUserLoggedIn())
-        .thenThrow(new io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException("no context"));
+        .thenThrow(new io.vanillabp.cockpit.support.security.BcUnauthorizedException("no context"));
 
     final var result = service.setFollowUpDate(EVERY_USER_TASK, "task-1", null);
 

@@ -2,7 +2,7 @@ package io.vanillabp.cockpit.workflowmodules;
 
 import java.util.Collection;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 
 /**
  * Which workflow modules one view of the cockpit lets a user reach. The module list is built from

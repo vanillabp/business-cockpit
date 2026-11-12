@@ -1,12 +1,11 @@
 package io.vanillabp.cockpit.bpms.api.v1_1;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -19,9 +18,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.slf4j.Logger;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.HttpStatus;
 
@@ -70,7 +69,7 @@ class SuspendedAndActivatedTest {
 
     private final Map<String, Workflow> workflows = new HashMap<>();
 
-    private final Logger logger = mock(Logger.class);
+    private final RecordedLog logger = new RecordedLog(UserTaskService.class, WorkflowlistService.class);
 
     private final UserTaskRepository userTaskRepository = userTaskRepository();
 
@@ -101,12 +100,10 @@ class SuspendedAndActivatedTest {
 
         final var userTaskService = new UserTaskService();
         set(UserTaskService.class, userTaskService, "userTasks", userTaskRepository);
-        set(UserTaskService.class, userTaskService, "logger", logger);
         set(UserTaskService.class, userTaskService, "mongoTemplate", mock(MongoTemplate.class));
 
         final var workflowlistService = new WorkflowlistService();
         set(WorkflowlistService.class, workflowlistService, "workflowRepository", workflowRepository);
-        set(WorkflowlistService.class, workflowlistService, "logger", logger);
         set(WorkflowlistService.class, workflowlistService, "mongoTemplate", mock(MongoTemplate.class));
 
         bpmsApi = new BpmsApiController();
@@ -341,6 +338,13 @@ class SuspendedAndActivatedTest {
 
   // --- user tasks ---------------------------------------------------------------------------
 
+  @AfterEach
+  void stopRecordingTheLog() {
+
+    RecordedLog.stopAll();
+
+  }
+
   @Test
   void aSuspendedTaskStaysOpenAndCarriesTheMomentAndThePersonOfItsSuspension() {
 
@@ -403,12 +407,12 @@ class SuspendedAndActivatedTest {
 
     assertNull(cockpit.storedTask().getSuspendedAt());
     assertEquals(SUPERVISOR, cockpit.storedTask().getSuspendedBy());
-    verify(cockpit.logger).info(
-        contains("Keeping user task"),
-        eq("task-1"),
-        eq("suspension"),
-        eq(SUSPENDED_AT),
-        eq("a younger suspension or activation"));
+    assertThat(cockpit.logger.infos(
+        "Keeping user task",
+        "task-1",
+        "suspension",
+        SUSPENDED_AT,
+        "a younger suspension or activation")).isEqualTo(1);
 
   }
 
@@ -537,11 +541,11 @@ class SuspendedAndActivatedTest {
 
     assertEquals(HttpStatus.OK, answer.getStatusCode(), "repeating the report would not help");
     assertNull(cockpit.storedTask(), "a suspension says too little to create a task");
-    verify(cockpit.logger).info(
-        contains("the cockpit does not know the task"),
-        eq("suspension"),
-        eq("task-1"),
-        eq(SUSPENDED_AT));
+    assertThat(cockpit.logger.infos(
+        "the cockpit does not know the task",
+        "suspension",
+        "task-1",
+        SUSPENDED_AT)).isEqualTo(1);
 
   }
 
@@ -663,11 +667,11 @@ class SuspendedAndActivatedTest {
 
     assertEquals(HttpStatus.OK, answer.getStatusCode());
     assertNull(cockpit.storedWorkflow());
-    verify(cockpit.logger).info(
-        contains("the cockpit does not know the case"),
-        eq("suspension"),
-        eq("workflow-1"),
-        eq(SUSPENDED_AT));
+    assertThat(cockpit.logger.infos(
+        "the cockpit does not know the case",
+        "suspension",
+        "workflow-1",
+        SUSPENDED_AT)).isEqualTo(1);
 
   }
 

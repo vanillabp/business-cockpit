@@ -14,8 +14,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.vanillabp.cockpit.commons.security.jwt.JwtProperties;
 import io.vanillabp.cockpit.devshell.simulator.config.Properties;
+import io.vanillabp.cockpit.support.security.jwt.JwtProperties;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

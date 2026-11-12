@@ -15,7 +15,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.SecurityFilterChain;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetailsProvider;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetailsProvider;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**

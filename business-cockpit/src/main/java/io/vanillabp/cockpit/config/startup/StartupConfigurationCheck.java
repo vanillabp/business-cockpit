@@ -43,8 +43,8 @@ import org.springframework.core.env.MapPropertySource;
 import org.springframework.stereotype.Component;
 
 import io.vanillabp.cockpit.bpms.BpmsApiAuthority;
-import io.vanillabp.cockpit.commons.security.jwt.JwtCookie;
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetailsProvider;
+import io.vanillabp.cockpit.support.security.jwt.JwtCookie;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetailsProvider;
 
 /**
  * Reports everything a cockpit application still has to configure, on every start and in as few

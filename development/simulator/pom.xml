@@ -80,7 +80,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>commons</artifactId>
+      <artifactId>support</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

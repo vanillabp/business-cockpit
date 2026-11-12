@@ -16,13 +16,13 @@ import org.springframework.data.mongodb.core.convert.MongoCustomConversions;
 import com.mongodb.connection.SslSettings;
 import com.mongodb.management.JMXConnectionPoolListener;
 
-import io.vanillabp.cockpit.commons.mongo.MongoDbProperties;
-import io.vanillabp.cockpit.commons.mongo.converters.BigDecimalReadConverter;
-import io.vanillabp.cockpit.commons.mongo.converters.BigDecimalWriteConverter;
-import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeReadConverter;
-import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeWriteConverter;
 import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
 import io.vanillabp.cockpit.config.startup.WriteConcernCheck;
+import io.vanillabp.cockpit.mongo.MongoDbProperties;
+import io.vanillabp.cockpit.mongo.converters.BigDecimalReadConverter;
+import io.vanillabp.cockpit.mongo.converters.BigDecimalWriteConverter;
+import io.vanillabp.cockpit.mongo.converters.OffsetDateTimeReadConverter;
+import io.vanillabp.cockpit.mongo.converters.OffsetDateTimeWriteConverter;
 
 /**
  * Sets up the connection to MongoDB and the template all of the cockpit writes through.

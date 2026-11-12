@@ -1,6 +1,6 @@
 package io.vanillabp.cockpit.users.model;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 
 /**
  * Turns the ids a workflow module reports into the persons and groups stored with a user task or a

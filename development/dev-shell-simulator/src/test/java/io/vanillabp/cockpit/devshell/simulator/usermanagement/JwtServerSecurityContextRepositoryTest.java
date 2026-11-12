@@ -20,8 +20,8 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.TransientSecurityContext;
 import org.springframework.security.core.userdetails.User;
 
-import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationTokenMapper;
-import io.vanillabp.cockpit.commons.security.jwt.JwtProperties;
+import io.vanillabp.cockpit.support.security.jwt.JwtAuthenticationTokenMapper;
+import io.vanillabp.cockpit.support.security.jwt.JwtProperties;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import jakarta.servlet.http.Cookie;
 

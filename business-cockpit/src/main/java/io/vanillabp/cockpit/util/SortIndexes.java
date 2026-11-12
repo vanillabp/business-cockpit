@@ -101,7 +101,7 @@ public class SortIndexes {
    * Checks one path a client wants to sort by.
    *
    * @param path One path of the field {@code sort}
-   * @throws io.vanillabp.cockpit.commons.exceptions.BcInvalidRequestException if the list cannot
+   * @throws io.vanillabp.cockpit.exceptions.BcInvalidRequestException if the list cannot
    *         be sorted by it
    */
   public void checkPath(

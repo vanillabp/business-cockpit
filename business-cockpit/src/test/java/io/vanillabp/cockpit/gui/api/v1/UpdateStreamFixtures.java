@@ -15,12 +15,12 @@ import org.springframework.scheduling.TaskScheduler;
 
 import com.mongodb.client.MongoClient;
 
-import io.vanillabp.cockpit.commons.mongo.converters.BigDecimalReadConverter;
-import io.vanillabp.cockpit.commons.mongo.converters.BigDecimalWriteConverter;
-import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeReadConverter;
-import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeWriteConverter;
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
+import io.vanillabp.cockpit.mongo.converters.BigDecimalReadConverter;
+import io.vanillabp.cockpit.mongo.converters.BigDecimalWriteConverter;
+import io.vanillabp.cockpit.mongo.converters.OffsetDateTimeReadConverter;
+import io.vanillabp.cockpit.mongo.converters.OffsetDateTimeWriteConverter;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.tasklist.api.UserTaskStreamAudience;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.workflowlist.api.WorkflowStreamAudience;

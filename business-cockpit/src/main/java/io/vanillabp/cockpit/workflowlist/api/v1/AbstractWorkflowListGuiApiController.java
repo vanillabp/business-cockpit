@@ -11,8 +11,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.gui.api.v1.Count;
 import io.vanillabp.cockpit.gui.api.v1.Counts;
 import io.vanillabp.cockpit.gui.api.v1.KwicRequest;
@@ -28,6 +26,8 @@ import io.vanillabp.cockpit.gui.api.v1.Workflows;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowsNoteRequest;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowsRequest;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowsUpdateRequest;
+import io.vanillabp.cockpit.support.security.usercontext.UserContext;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.util.CountKeys;
 import io.vanillabp.cockpit.util.ListPaging;

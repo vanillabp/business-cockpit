@@ -22,14 +22,14 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
-import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationToken;
-import io.vanillabp.cockpit.commons.security.jwt.JwtLogoutSuccessHandler;
-import io.vanillabp.cockpit.commons.security.jwt.JwtMapper;
-import io.vanillabp.cockpit.commons.security.jwt.JwtRenewalFilter;
-import io.vanillabp.cockpit.commons.security.jwt.JwtSecurityContextRepository;
-import io.vanillabp.cockpit.commons.security.jwt.JwtUserDetailsProvider;
-import io.vanillabp.cockpit.commons.security.jwt.PassiveJwtSecurityFilter;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
+import io.vanillabp.cockpit.support.security.jwt.JwtAuthenticationToken;
+import io.vanillabp.cockpit.support.security.jwt.JwtLogoutSuccessHandler;
+import io.vanillabp.cockpit.support.security.jwt.JwtMapper;
+import io.vanillabp.cockpit.support.security.jwt.JwtRenewalFilter;
+import io.vanillabp.cockpit.support.security.jwt.JwtSecurityContextRepository;
+import io.vanillabp.cockpit.support.security.jwt.JwtUserDetailsProvider;
+import io.vanillabp.cockpit.support.security.jwt.PassiveJwtSecurityFilter;
 import io.vanillabp.cockpit.users.UserDetailsProvider;
 
 /**
@@ -138,7 +138,7 @@ public class GuiSecurityConfiguration {
    * @return The provider
    */
   @Bean
-  public io.vanillabp.cockpit.commons.security.usercontext.UserDetailsProvider userDetailsProvider() {
+  public io.vanillabp.cockpit.support.security.usercontext.UserDetailsProvider userDetailsProvider() {
 
     return new JwtUserDetailsProvider();
 

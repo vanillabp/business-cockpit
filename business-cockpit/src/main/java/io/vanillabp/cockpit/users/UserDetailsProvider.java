@@ -3,7 +3,7 @@ package io.vanillabp.cockpit.users;
 import java.util.List;
 import java.util.Optional;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 
 /**
  * The directory of the users a cockpit knows. The application provides it, because only the

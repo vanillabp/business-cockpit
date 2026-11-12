@@ -170,7 +170,7 @@ Simulator löst Gruppen dabei absichtlich nicht auf. Eine Gruppenhierarchie ist 
 Geschäftsanwendung.
 
 Angemeldet wird nicht. Der Simulator schreibt denselben JWT in dasselbe Cookie, das auch das Cockpit
-benutzt, mit demselben Satz Klassen aus `commons`, und der Wechsel des Benutzers ist ein `POST`. Das
+benutzt, mit demselben Satz Klassen aus `support`, und der Wechsel des Benutzers ist ein `POST`. Das
 Geheimnis zum Signieren steht im Klartext in seiner Konfiguration, denn es soll keine Sicherheit
 geben, sondern ein echtes Token in der richtigen Form. Die Datenpfade `/official-api/**` und
 `/bpms/api/**` sind für jeden offen.

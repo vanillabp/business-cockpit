@@ -4,8 +4,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException;
-import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
+import io.vanillabp.cockpit.support.security.BcUnauthorizedException;
+import io.vanillabp.cockpit.support.security.usercontext.UserContext;
 import io.vanillabp.cockpit.users.UserSettings;
 import tools.jackson.databind.json.JsonMapper;
 

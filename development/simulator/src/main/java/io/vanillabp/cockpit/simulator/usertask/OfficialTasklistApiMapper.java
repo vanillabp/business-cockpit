@@ -4,7 +4,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCreatedEvent;
-import io.vanillabp.cockpit.commons.mapstruct.NoMappingMethod;
+import io.vanillabp.cockpit.devshell.simulator.mapstruct.NoMappingMethod;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
 
 /**

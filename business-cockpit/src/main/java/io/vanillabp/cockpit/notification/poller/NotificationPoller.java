@@ -17,7 +17,6 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.scheduling.annotation.Scheduled;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.notification.CaseProcess;
 import io.vanillabp.cockpit.notification.NotificationDeliveryException;
 import io.vanillabp.cockpit.notification.NotificationService;
@@ -25,6 +24,7 @@ import io.vanillabp.cockpit.notification.model.NotificationConfiguration;
 import io.vanillabp.cockpit.notification.model.NotificationOutboxEntry;
 import io.vanillabp.cockpit.notification.model.NotificationOutboxRepository;
 import io.vanillabp.cockpit.notification.model.NotificationPollState;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.model.User;

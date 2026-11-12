@@ -10,8 +10,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.vanillabp.cockpit.commons.security.jwt.JwtUserDetailsProvider;
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.support.security.jwt.JwtUserDetailsProvider;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.tasklist.UserTaskVisibility;
 import io.vanillabp.cockpit.tasklist.api.v1.AbstractUserTaskListGuiApiController;
 import io.vanillabp.cockpit.users.UserDetailsImpl;
@@ -72,7 +72,7 @@ public class DerivedCockpitApplication {
    * none.
    */
   @Bean
-  public io.vanillabp.cockpit.commons.security.usercontext.UserDetailsProvider userDetailsProvider() {
+  public io.vanillabp.cockpit.support.security.usercontext.UserDetailsProvider userDetailsProvider() {
 
     return new JwtUserDetailsProvider();
 

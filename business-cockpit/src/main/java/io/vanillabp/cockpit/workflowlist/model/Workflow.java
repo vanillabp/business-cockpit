@@ -12,7 +12,7 @@ import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import io.vanillabp.cockpit.bpms.SuspendableRecord;
-import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
+import io.vanillabp.cockpit.mongo.updateinfo.UpdateInformationAware;
 import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.util.candidates.CandidatesAware;

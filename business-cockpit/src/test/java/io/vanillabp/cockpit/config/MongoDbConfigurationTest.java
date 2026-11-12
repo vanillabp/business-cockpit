@@ -8,7 +8,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.mongodb.MongoClientSettings;
 
-import io.vanillabp.cockpit.commons.mongo.MongoDbProperties;
+import io.vanillabp.cockpit.mongo.MongoDbProperties;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**

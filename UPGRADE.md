@@ -9,6 +9,66 @@ whole story of a version. This file is the short list of what somebody has to to
 
 ## 0.8.x to 0.9.0
 
+### `commons` is gone: `support` and the library module take its classes
+
+The artifact `io.vanillabp.businesscockpit:commons` no longer exists. There is no artifact under the
+old name which points at the new ones. What a workflow module can use as well went into the new
+artifact `io.vanillabp.businesscockpit:support`. What only the cockpit uses went into the library
+module `io.vanillabp.businesscockpit:business-cockpit`.
+
+A cockpit application depends on `business-cockpit`, which brings `support` along. It changes its
+imports and nothing in its POM. A workflow module or another service which depended on `commons`
+depends on `support` instead. `support` brings no MongoDB and no Kafka.
+
+One line per package. Replace the beginning of each import:
+
+|                              before                               |                               now                               |      artifact      |
+|-------------------------------------------------------------------|-----------------------------------------------------------------|--------------------|
+| `io.vanillabp.cockpit.commons.security.jwt`                       | `io.vanillabp.cockpit.support.security.jwt`                     | `support`          |
+| `io.vanillabp.cockpit.commons.security.usercontext`               | `io.vanillabp.cockpit.support.security.usercontext`             | `support`          |
+| `io.vanillabp.cockpit.commons.rest`                               | `io.vanillabp.cockpit.support.rest`                             | `support`          |
+| `io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException` | `io.vanillabp.cockpit.support.security.BcUnauthorizedException` | `support`          |
+| `io.vanillabp.cockpit.commons.exceptions`                         | `io.vanillabp.cockpit.exceptions`                               | `business-cockpit` |
+| `io.vanillabp.cockpit.commons.kafka`                              | `io.vanillabp.cockpit.kafka`                                    | `business-cockpit` |
+| `io.vanillabp.cockpit.commons.mapstruct`                          | `io.vanillabp.cockpit.mapstruct`                                | `business-cockpit` |
+| `io.vanillabp.cockpit.commons.mongo`                              | `io.vanillabp.cockpit.mongo`                                    | `business-cockpit` |
+| `io.vanillabp.cockpit.commons.utils.DateTimeUtil`                 | `io.vanillabp.cockpit.mongo.converters.DateTimeUtil`            | `business-cockpit` |
+| `io.vanillabp.cockpit.commons.utils.LoggerFactory`                | gone, see below                                                 |                    |
+
+`BcUnauthorizedException` left its siblings, because `UserContext` in `support` throws it and
+`support` cannot see the library module.
+
+The two auto-configurations of the MongoDB package have new names as well. An application which
+names one of them in `spring.autoconfigure.exclude` replaces the name, for the same reason as the
+[changeset auto-configuration](#read-your-springautoconfigureexclude):
+
+|                                    before                                    |                                 now                                  |
+|------------------------------------------------------------------------------|----------------------------------------------------------------------|
+| `io.vanillabp.cockpit.commons.mongo.BusinessCockpitMongoDbAutoConfiguration` | `io.vanillabp.cockpit.mongo.BusinessCockpitMongoDbAutoConfiguration` |
+| `io.vanillabp.cockpit.commons.mongo.ChangesetPropertiesAutoConfiguration`    | `io.vanillabp.cockpit.mongo.ChangesetPropertiesAutoConfiguration`    |
+
+They now come with `business-cockpit` only. A workflow module which had `commons` on its class path
+got both of them, and with them the MongoDB settings of the cockpit. With `support` it gets neither.
+
+### The cockpit no longer injects a `Logger`
+
+`commons` had a bean which handed an SLF4J `Logger` to every field or parameter of that type, and
+the cockpit's auto-configuration imported it. The bean is gone. The cockpit's own classes use
+Lombok's `@Slf4j` now. A class of the application which has `@Autowired Logger logger` fails at
+the start with a missing bean of type `org.slf4j.Logger`. Write
+`private static final Logger logger = LoggerFactory.getLogger(MyClass.class);` or use `@Slf4j`.
+
+### The REST client runs on OpenFeign 13.18 and OkHttp 5
+
+The REST client in `support` moved from OpenFeign 13.14 to 13.18. That version of `feign-okhttp`
+is built against OkHttp 5, whose classes come in the artifact `com.squareup.okhttp3:okhttp-jvm`.
+The package is still `okhttp3`. An application which names OkHttp 4 itself, `okhttp` or
+`logging-interceptor` in a version `4.x`, ends up with both versions on its class path. Remove the
+version, or import `com.squareup.okhttp3:okhttp-bom` in version `5.5.1`.
+
+`feign-form` is part of OpenFeign now. Its coordinate changed from `io.github.openfeign.form:feign-form`
+to `io.github.openfeign:feign-form`, and the package `feign.form` stayed.
+
 ### The MongoDB migration is a library of its own
 
 The cockpit no longer carries the MongoDB changeset mechanism. It uses

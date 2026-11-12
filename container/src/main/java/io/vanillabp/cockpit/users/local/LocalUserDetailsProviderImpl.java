@@ -14,7 +14,7 @@ import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.users.UserDetailsImpl;
 import io.vanillabp.cockpit.users.UserDetailsProvider;
 import jakarta.annotation.PostConstruct;
