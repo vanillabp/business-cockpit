@@ -36,6 +36,9 @@
     <maven.deploy.skip>true</maven.deploy.skip>
     <maven.install.skip>true</maven.install.skip>
     <maven.javadoc.skip>true</maven.javadoc.skip>
+    <!-- the javadoc jar has a skip of its own, and the profile 'release' of the root POM turns it
+         off. Set here, it stays on for this module in a release too. -->
+    <skip.javadoc.jar>true</skip.javadoc.jar>
     <maven.source.skip>true</maven.source.skip>
     <gpg.skip>true</gpg.skip>
     <skip.central.release>true</skip.central.release>

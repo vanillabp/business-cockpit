@@ -31,6 +31,9 @@
   </developers>
 
   <properties>
+    <!-- an application or an adapter builds against this module, so its snapshot carries a
+         javadoc jar as well -->
+    <skip.javadoc.jar>false</skip.javadoc.jar>
     <m2e.apt.activation>jdt_apt</m2e.apt.activation>
   </properties>
 

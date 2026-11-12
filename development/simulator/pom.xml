@@ -30,6 +30,10 @@
 
   <properties>
     <m2e.apt.activation>jdt_apt</m2e.apt.activation>
+    <!-- no application, adapter or blueprint builds against the simulator, so it does not go to
+         Maven Central, as a snapshot or as a release. Its runnable jar is attached to the GitHub
+         release instead. -->
+    <skip.central.release>true</skip.central.release>
   </properties>
 
   <dependencyManagement>
