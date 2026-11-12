@@ -7,6 +7,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -118,10 +119,12 @@ class SecurityChainsTest {
 
     final var configuration = guiConfiguration();
     final var jwtProperties = applicationProperties().getJwt();
-    final JwtMapper<? extends JwtAuthenticationToken> jwtMapper = new JwtAuthenticationTokenMapper(jwtProperties);
+    final var users = new SingleUserDirectoryService();
+    final JwtMapper<? extends JwtAuthenticationToken> jwtMapper = new JwtAuthenticationTokenMapper(jwtProperties, users, Function
+        .identity());
     final var jwtRepository = new JwtSecurityContextRepository(jwtProperties, jwtMapper);
     return configuration.guiHttpSecurity(
-        httpSecurity(), jwtRepository, jwtMapper, new SingleUserDirectoryService());
+        httpSecurity(), jwtRepository, jwtMapper, users);
 
   }
 

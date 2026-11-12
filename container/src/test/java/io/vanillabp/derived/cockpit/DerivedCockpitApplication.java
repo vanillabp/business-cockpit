@@ -70,7 +70,8 @@ public class DerivedCockpitApplication {
 
   /**
    * Who is logged in, read from the login token. The library asks it on every request and brings
-   * none.
+   * none. The token carries no groups: the library's mapper asks the user directory below for them
+   * on every request.
    */
   @Bean
   public UserDetailsProvider userDetailsProvider() {

@@ -134,7 +134,9 @@ public class GuiSecurityConfiguration {
   /**
    * Provides the details of the user who is logged in, read from the JWT. The library needs a
    * bean of this type and brings none, because only the application knows where its users come
-   * from.
+   * from. The JWT names the user but carries no groups. The groups come from the
+   * {@link UserDirectoryService} on every request, so a group taken away there is gone on the next
+   * request.
    *
    * @return The provider
    */

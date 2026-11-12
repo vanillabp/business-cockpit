@@ -369,6 +369,11 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
                         return new JwtUserDetailsProvider();
                     }
 
+                The login token names the user but carries no groups. The cockpit asks the \
+                application's bean of type 'UserDirectoryService' for the groups of the user, \
+                by the subject of the token, on every request. So that bean should cache the \
+                users if it asks a remote system.
+
                 The module 'container' of the Business Cockpit has this bean in its \
                 GuiSecurityConfiguration. The wiki says more: """ + WIKI_SECURITY);
 

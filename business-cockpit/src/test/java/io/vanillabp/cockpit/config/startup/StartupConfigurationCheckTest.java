@@ -273,14 +273,15 @@ class StartupConfigurationCheckTest {
   }
 
   @Test
-  void aMissingUserDetailsProviderStopsTheStartAndShowsTheBean() {
+  void aMissingUserDetailsProviderStopsTheStartAndShowsTheBeanAndWhereTheGroupsComeFrom() {
 
     final var beanFactory = new DefaultListableBeanFactory();
 
     assertThatThrownBy(() -> check.checkTheSecurityOf(configurationWithout(), beanFactory))
         .isInstanceOf(UserDetailsProviderIsMissingException.class)
         .hasMessageContaining(UserDetailsProvider.class.getName())
-        .hasMessageContaining("new JwtUserDetailsProvider()");
+        .hasMessageContaining("new JwtUserDetailsProvider()")
+        .hasMessageContaining("'UserDirectoryService'");
 
   }
 

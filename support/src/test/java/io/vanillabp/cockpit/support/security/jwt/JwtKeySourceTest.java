@@ -43,7 +43,8 @@ class JwtKeySourceTest {
   void theMapperSignsAndChecksThroughTheKeySourceItIsGiven() {
 
     final var recorder = new RecordingKeySource(new HmacJwtKeySource(properties));
-    final var mapper = new JwtAuthenticationTokenMapper(properties, recorder, Function.identity());
+    final var mapper = new JwtAuthenticationTokenMapper(properties, recorder, new UserDirectoryForTests(), Function
+        .identity());
 
     final var token = login(mapper);
     final var auth = mapper.toAuth(token);
@@ -56,7 +57,8 @@ class JwtKeySourceTest {
   @Test
   void theDefaultKeySourceIsTheSharedSecretOfTheSettings() {
 
-    final var token = login(new JwtAuthenticationTokenMapper(properties));
+    final var token = login(
+        new JwtAuthenticationTokenMapper(properties, new UserDirectoryForTests(), Function.identity()));
 
     final var jwt = new HmacJwtKeySource(properties).check(token);
 
@@ -67,9 +69,10 @@ class JwtKeySourceTest {
   @Test
   void aTokenSignedWithAnotherSecretIsRefused() throws Exception {
 
-    final var token = login(new JwtAuthenticationTokenMapper(propertiesWithANewSecret()));
+    final var token = login(
+        new JwtAuthenticationTokenMapper(propertiesWithANewSecret(), new UserDirectoryForTests(), Function.identity()));
 
-    final var mapper = new JwtAuthenticationTokenMapper(properties);
+    final var mapper = new JwtAuthenticationTokenMapper(properties, new UserDirectoryForTests(), Function.identity());
 
     assertThatThrownBy(() -> mapper.toAuth(token)).isInstanceOf(JwtException.class);
 

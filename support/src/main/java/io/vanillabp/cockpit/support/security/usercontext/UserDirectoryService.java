@@ -52,9 +52,22 @@ public interface UserDirectoryService {
 
   /**
    * One user of the directory.
+   * <p>
+   * The cockpit calls this on every request of a logged-in user, because the login token carries
+   * no groups. The groups of the user are the {@link UserDetails#getAuthorities() authorities} of
+   * the result. So a group taken away here is gone on the next request. An implementation which
+   * asks a remote system, like an identity provider or LDAP, should cache the result for a few
+   * minutes. A group taken away then is gone once the cache expires.
+   * <p>
+   * The authorities are the groups the user is assigned to. A group hierarchy, if the application
+   * has one, is resolved by the cockpit and does not belong here.
+   * <p>
+   * The id is the subject of the login token, which is the name of the authentication at the
+   * login. If this method throws, the request of the user fails.
    *
    * @param id The id of the user
-   * @return The user, or empty if the directory does not know the id
+   * @return The user, or empty if the directory does not know the id. Such a user keeps its login
+   *         but has no groups.
    */
   Optional<UserDetails> getUser(
       String id);

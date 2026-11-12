@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.support.security.jwt;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import org.springframework.security.core.GrantedAuthority;
@@ -9,7 +10,10 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 
 /**
- * The details of a user as the claims of a login token (a JSON Web Token, JWT) tell them.
+ * The details of a user logged in by a login token (a JSON Web Token, JWT). The id is the subject
+ * of the token. The name and the e-mail address come from the user directory. If the directory
+ * does not know the user or has no value, they come from the claims of the token. The authorities
+ * are those of the authentication, so the groups the directory gave for this request.
  */
 public class JwtUserDetails implements UserDetails {
 
@@ -45,9 +49,23 @@ public class JwtUserDetails implements UserDetails {
 
   }
 
+  private String fromTheDirectory(
+      final Function<UserDetails, String> value) {
+
+    return authenticationToken
+        .getDirectoryUser()
+        .map(value)
+        .orElse(null);
+
+  }
+
   @Override
   public String getDisplay() {
 
+    final var fromTheDirectory = fromTheDirectory(UserDetails::getDisplay);
+    if (fromTheDirectory != null) {
+      return fromTheDirectory;
+    }
     final var name = getJwt().getClaimAsString("name");
     final var givenName = getJwt().getClaimAsString("given_name");
     final var familyName = getJwt().getClaimAsString("family_name");
@@ -66,6 +84,10 @@ public class JwtUserDetails implements UserDetails {
   @Override
   public String getDisplayShort() {
 
+    final var fromTheDirectory = fromTheDirectory(UserDetails::getDisplayShort);
+    if (fromTheDirectory != null) {
+      return fromTheDirectory;
+    }
     final var name = getJwt().getClaimAsString("name");
     final var givenName = getJwt().getClaimAsString("given_name");
     final var familyName = getJwt().getClaimAsString("family_name");
@@ -95,13 +117,18 @@ public class JwtUserDetails implements UserDetails {
   }
 
   /**
-   * The claim {@code email} of the token. The subject is the user id and no e-mail address.
+   * The e-mail address the directory knows, or else the claim {@code email} of the token. The
+   * subject is the user id and no e-mail address.
    *
-   * @return The e-mail address, or {@code null} if the token carries none
+   * @return The e-mail address, or {@code null} if neither knows one
    */
   @Override
   public String getEmail() {
 
+    final var fromTheDirectory = fromTheDirectory(UserDetails::getEmail);
+    if (fromTheDirectory != null) {
+      return fromTheDirectory;
+    }
     return getJwt().getClaimAsString("email");
 
   }
