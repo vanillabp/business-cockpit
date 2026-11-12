@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
-import io.vanillabp.cockpit.users.UserDetailsProvider;
+import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
 
@@ -35,43 +35,43 @@ public class UserConfiguration {
    * @return The directory, loaded from the simulator
    */
   @Bean
-  @ConditionalOnMissingBean(UserDetailsProvider.class)
+  @ConditionalOnMissingBean(UserDirectoryService.class)
   @Profile("local")
-  public UserDetailsProvider bcUserDetailsProvider() {
+  public UserDirectoryService bcUserDirectoryService() {
 
-    return new LocalUserDetailsProviderImpl(devShellSimulatorUsersUri);
+    return new LocalUserDirectoryServiceImpl(devShellSimulatorUsersUri);
 
   }
 
   /**
    * Shows the demo users in the GUI API.
    *
-   * @param bcUserDetailsProvider The directory of the demo users
+   * @param bcUserDirectoryService The directory of the demo users
    * @return The mapper
    */
   @Bean
   @ConditionalOnMissingBean(PersonAndGroupApiMapper.class)
   @Profile("local")
   public PersonAndGroupApiMapper bcPersonAndGroupApiMapper(
-      final UserDetailsProvider bcUserDetailsProvider) {
+      final UserDirectoryService bcUserDirectoryService) {
 
-    return new LocalPersonAndGroupApiMapperImpl(bcUserDetailsProvider);
+    return new LocalPersonAndGroupApiMapperImpl(bcUserDirectoryService);
 
   }
 
   /**
    * Turns the ids a workflow module reports into stored persons and groups of the demo users.
    *
-   * @param bcUserDetailsProvider The directory of the demo users
+   * @param bcUserDirectoryService The directory of the demo users
    * @return The mapper
    */
   @Bean
   @ConditionalOnMissingBean(PersonAndGroupMapper.class)
   @Profile("local")
   public PersonAndGroupMapper bcPersonAndGroupMapper(
-      final UserDetailsProvider bcUserDetailsProvider) {
+      final UserDirectoryService bcUserDirectoryService) {
 
-    return new LocalPersonAndGroupMapperImpl(bcUserDetailsProvider);
+    return new LocalPersonAndGroupMapperImpl(bcUserDirectoryService);
 
   }
 

@@ -1,7 +1,7 @@
 package io.vanillabp.cockpit.users.local;
 
 import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
-import io.vanillabp.cockpit.users.UserDetailsProvider;
+import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
@@ -13,18 +13,18 @@ import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
  * does not know is stored as it is, without a name.
  */
 public class LocalPersonAndGroupMapperImpl implements PersonAndGroupMapper {
-  private final UserDetailsProvider userDetailsProvider;
+  private final UserDirectoryService userDirectoryService;
 
   /**
    * Creates the mapper on top of the demo users.
    *
-   * @param userDetailsProvider The directory of the demo users, which is asked for the name of
+   * @param userDirectoryService The directory of the demo users, which is asked for the name of
    *          a person by its id
    */
   public LocalPersonAndGroupMapperImpl(
-      final UserDetailsProvider userDetailsProvider) {
+      final UserDirectoryService userDirectoryService) {
 
-    this.userDetailsProvider = userDetailsProvider;
+    this.userDirectoryService = userDirectoryService;
 
   }
 
@@ -34,7 +34,7 @@ public class LocalPersonAndGroupMapperImpl implements PersonAndGroupMapper {
 
     final var result = new Person();
 
-    final var userFound = userDetailsProvider
+    final var userFound = userDirectoryService
         .getUser(personId);
     if (userFound.isEmpty()) {
       result.setId(personId);

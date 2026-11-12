@@ -25,6 +25,7 @@ import io.vanillabp.cockpit.notification.model.NotificationOutboxEntry;
 import io.vanillabp.cockpit.notification.model.NotificationOutboxRepository;
 import io.vanillabp.cockpit.notification.model.NotificationPollState;
 import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.model.User;
@@ -52,7 +53,7 @@ public class NotificationPoller {
   private final UserTaskRepository userTaskRepository;
   private final NotificationOutboxRepository outboxRepository;
   private final List<NotificationService> notificationServices;
-  private final io.vanillabp.cockpit.users.UserDetailsProvider userDirectory;
+  private final UserDirectoryService userDirectory;
   private final int maxDeliveryAttempts;
   private final Duration cleanupSentOlderThan;
   private final NotificationScanner scanner = new NotificationScanner();
@@ -77,7 +78,7 @@ public class NotificationPoller {
       final UserTaskRepository userTaskRepository,
       final NotificationOutboxRepository outboxRepository,
       final List<NotificationService> notificationServices,
-      final io.vanillabp.cockpit.users.UserDetailsProvider userDirectory,
+      final UserDirectoryService userDirectory,
       final int maxDeliveryAttempts,
       final Duration cleanupSentOlderThan) {
 

@@ -8,7 +8,8 @@ own user interface behind the cockpit's proxy depends on this module, and so doe
   signs and checks the token comes from a `JwtKeySource`. Today that is the shared HMAC secret of
   the settings.
 - `io.vanillabp.cockpit.support.security.usercontext`: the user of the current request, the user's
-  groups, and how a group hierarchy adds groups to the ones assigned.
+  groups, and how a group hierarchy adds groups to the ones assigned. `UserDirectoryService` is the
+  directory of all users, which the application provides.
 - `io.vanillabp.cockpit.support.rest`: a REST client built on OpenFeign and OkHttp, with retries,
   a proxy, bearer and OAuth authentication and a trust store of its own. The cockpit's adapters
   and an application use it to call the API of a BPMS or of the cockpit.

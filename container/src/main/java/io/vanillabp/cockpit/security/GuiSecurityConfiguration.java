@@ -30,7 +30,8 @@ import io.vanillabp.cockpit.support.security.jwt.JwtRenewalFilter;
 import io.vanillabp.cockpit.support.security.jwt.JwtSecurityContextRepository;
 import io.vanillabp.cockpit.support.security.jwt.JwtUserDetailsProvider;
 import io.vanillabp.cockpit.support.security.jwt.PassiveJwtSecurityFilter;
-import io.vanillabp.cockpit.users.UserDetailsProvider;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetailsProvider;
+import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 
 /**
  * How a person logs in to this application: once by HTTP basic authentication, and after that by
@@ -68,7 +69,7 @@ public class GuiSecurityConfiguration {
    * @param http The builder of the chain
    * @param jwtSecurityContextRepository Stores the login in the JWT cookie
    * @param jwtMapper Turns a token into an authentication and back
-   * @param userService Provides the users who may log in by basic authentication
+   * @param userDirectoryService Provides the users who may log in by basic authentication
    * @return The chain
    * @throws Exception If Spring Security cannot build the chain
    */
@@ -78,7 +79,7 @@ public class GuiSecurityConfiguration {
       final HttpSecurity http,
       final JwtSecurityContextRepository jwtSecurityContextRepository,
       final JwtMapper<? extends JwtAuthenticationToken> jwtMapper,
-      final UserDetailsProvider userService) throws Exception {
+      final UserDirectoryService userDirectoryService) throws Exception {
 
     final var basicEntryPoint = new BasicAuthenticationEntryPoint();
     basicEntryPoint.setRealmName(properties.getTitleShort());
@@ -96,7 +97,7 @@ public class GuiSecurityConfiguration {
             .authenticated())
         // scoped to this chain, so the BPMS API chain keeps its own set of credentials
         .authenticationManager(new ProviderManager(
-            new DaoAuthenticationProvider(localUserDetailsService(userService))))
+            new DaoAuthenticationProvider(localUserDetailsService(userDirectoryService))))
         .httpBasic(basic -> basic
             // signing in once by basic auth hands out the JWT cookie all further
             // requests authenticate with
@@ -138,16 +139,16 @@ public class GuiSecurityConfiguration {
    * @return The provider
    */
   @Bean
-  public io.vanillabp.cockpit.support.security.usercontext.UserDetailsProvider userDetailsProvider() {
+  public UserDetailsProvider userDetailsProvider() {
 
     return new JwtUserDetailsProvider();
 
   }
 
   private InMemoryUserDetailsManager localUserDetailsService(
-      final UserDetailsProvider userService) {
+      final UserDirectoryService userDirectoryService) {
 
-    final var users = userService
+    final var users = userDirectoryService
         .getAllUsers()
         .stream()
         .map(user -> User.builder()

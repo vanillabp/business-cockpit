@@ -10,8 +10,8 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import io.vanillabp.cockpit.notification.NotificationProperties;
 import io.vanillabp.cockpit.notification.NotificationService;
 import io.vanillabp.cockpit.notification.model.NotificationOutboxRepository;
+import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
-import io.vanillabp.cockpit.users.UserDetailsProvider;
 import io.vanillabp.cockpit.users.model.UserRepository;
 
 /**
@@ -50,7 +50,7 @@ public class NotificationPollerConfiguration {
       final UserTaskRepository userTaskRepository,
       final NotificationOutboxRepository outboxRepository,
       final List<NotificationService> notificationServices,
-      final UserDetailsProvider userDirectory,
+      final UserDirectoryService userDirectory,
       final NotificationProperties notificationProperties) {
 
     return new NotificationPoller(mongoTemplate, userRepository, userTaskRepository, outboxRepository, notificationServices, userDirectory, notificationProperties

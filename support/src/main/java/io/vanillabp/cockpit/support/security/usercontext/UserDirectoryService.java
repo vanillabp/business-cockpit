@@ -1,16 +1,18 @@
-package io.vanillabp.cockpit.users;
+package io.vanillabp.cockpit.support.security.usercontext;
 
 import java.util.List;
 import java.util.Optional;
 
-import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
-
 /**
  * The directory of the users a cockpit knows. The application provides it, because only the
  * application knows where its users are kept. The cockpit uses it to suggest users, for example
- * when a task is assigned, and to find the groups of a user.
+ * when a task is assigned, and to find the groups of a user. A workflow module can use it as
+ * well.
+ *
+ * <p>Do not mix it up with {@link UserDetailsProvider}. That one says who is calling in the
+ * current request. This one knows all users, including those who are not logged in.
  */
-public interface UserDetailsProvider {
+public interface UserDirectoryService {
 
   /**
    * Finds the users whose details contain the given text.

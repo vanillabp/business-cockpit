@@ -31,7 +31,7 @@ import io.vanillabp.cockpit.support.security.jwt.JwtMapper;
 import io.vanillabp.cockpit.support.security.jwt.JwtRenewalFilter;
 import io.vanillabp.cockpit.support.security.jwt.JwtSecurityContextRepository;
 import io.vanillabp.cockpit.support.security.jwt.PassiveJwtSecurityFilter;
-import io.vanillabp.cockpit.users.UserDetailsProvider;
+import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 
 /**
  * The two security chains of {@link DerivedCockpitApplication}, written the way the wiki page
@@ -76,7 +76,7 @@ public class DerivedCockpitSecurity {
       final ApplicationProperties properties,
       final JwtSecurityContextRepository jwtSecurityContextRepository,
       final JwtMapper<? extends JwtAuthenticationToken> jwtMapper,
-      final UserDetailsProvider users) throws Exception {
+      final UserDirectoryService users) throws Exception {
 
     // stands in for the login of an identity provider
     final var persons = new InMemoryUserDetailsManager(users
