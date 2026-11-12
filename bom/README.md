@@ -29,7 +29,7 @@ because a plugin is not managed by a BOM. It is the version of `spring-boot-depe
   names. Without them an application gets OpenFeign 13.6.1, which compiles and then fails at
   runtime. They come first, because the first import of a coordinate wins.
 - The BOMs of Spring Boot and Spring Cloud, and the VanillaBP BOM.
-- `mongodb-changesets` and `protobuf-java`, in the versions the cockpit is built with.
+- `mongodb-changesets`, in the version the cockpit is built with.
 - The artifacts of a derived cockpit: `business-cockpit` and `bpms-protobuf-api`, and the modules
   the library brings with it, `support`, `spi-for-java`, `bpms-api-server` and
   `official-gui-api-server`.
@@ -37,6 +37,11 @@ because a plugin is not managed by a BOM. It is the version of `spring-boot-depe
 What a workflow module uses is not in it. A workflow module gets the cockpit through the cockpit's
 adapter for its BPMS, which is released in a repository of its own. A workflow module may also run
 on Quarkus, and the Spring BOMs would be wrong there.
+
+Protobuf is not pinned. `bpms-protobuf-api` runs on any runtime at least as new as the one it was
+generated with, and the one Spring Boot names is newer. The version which matters is the one the
+Camunda 8 client brings for its gRPC calls, so the pin belongs to the Camunda 8 cockpit adapter. Its
+README says per release line what an application pins.
 
 JUnit, Lombok and MapStruct are not in it either. They are what this repository builds with, and an
 application chooses its own.

@@ -3830,8 +3830,7 @@ It holds:
   coordinate wins
 - `spring-boot-dependencies` and `spring-cloud-dependencies`
 - `vanillabp-bom`, in the version the library imports
-- `mongodb-changesets` and `protobuf-java` with `protobuf-java-util`, in the versions the root
-  `pom.xml` pins
+- `mongodb-changesets`, in the version the root `pom.xml` pins
 - `business-cockpit` and `bpms-protobuf-api`, which the application names, and `support`,
   `spi-for-java`, `bpms-api-server` and `official-gui-api-server`, which the library brings with
   it. All of them with the version of the BOM.
@@ -3844,6 +3843,10 @@ It does not hold:
 - the tools `container`, `simulator` and `dev-shell-simulator`. Nobody builds against them.
 - JUnit, Lombok, MapStruct and the other versions only this repository's build needs. An application
   chooses its own.
+- protobuf. Generated code runs on any runtime at least as new as the one it was generated with, so
+  `bpms-protobuf-api` runs on the version Spring Boot names. The version which matters is the one
+  the Camunda 8 client brings, because its gRPC calls depend on it. That pin belongs to the Camunda 8
+  cockpit adapter, whose README says per release line what an application pins.
 
 #### Why the parent is the release parent
 
