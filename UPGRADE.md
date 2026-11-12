@@ -583,3 +583,15 @@ user with its groups for five minutes, `business-cockpit.user-directory.cache-du
   do, and it stops as well if there is no directory at all. Both messages say what to do.
 
 The wiki page about security says more.
+
+### The update of the list of workflows takes `businessIds`
+
+`PUT /workflow` takes `businessIds` now, the same filter `POST /workflow` has. Before, the update
+left the business ids out, so a list filtered by them got workflows which did not belong to it.
+The field is optional. A user interface which filters by business ids sends them with the update
+too, and one which does not use them changes nothing.
+
+A subclass of `AbstractWorkflowListGuiApiController` which overrides `getWorkflowsUpdated` gets the
+business ids as a new parameter after `initialTimestamp`. A caller of
+`WorkflowlistService.getWorkflowsUpdated` passes them at the same place, or `null` for all
+workflows.

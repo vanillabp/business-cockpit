@@ -91,7 +91,8 @@ class AListWithoutPagingValuesTest {
         .thenReturn(Page.empty());
     when(workflowlistService.getWorkflows(anyInt(), anyInt(), any(), any(), any(), any(), any(), anyBoolean(), any()))
         .thenReturn(Page.empty());
-    when(workflowlistService.getWorkflowsUpdated(any(), anyInt(), any(), any(), any(), any(), anyBoolean(), any()))
+    when(workflowlistService.getWorkflowsUpdated(any(), anyInt(), any(), any(), any(), any(), any(), anyBoolean(),
+        any()))
         .thenReturn(Page.empty());
 
     final var userTasks = new UserTasks();
@@ -233,7 +234,8 @@ class AListWithoutPagingValuesTest {
         + "/workflow"), "{ \"size\": 10, \"knownWorkflowsIds\": [] }");
 
     assertThat(answer.getResponse().getStatus()).isEqualTo(200);
-    verify(workflowlistService).getWorkflowsUpdated(any(), eq(10), eq(List.of()), any(), any(), any(), eq(true), any());
+    verify(workflowlistService).getWorkflowsUpdated(any(), eq(10), eq(List.of()), any(), any(), any(), any(), eq(true),
+        any());
 
   }
 

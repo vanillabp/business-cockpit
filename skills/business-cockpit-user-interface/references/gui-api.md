@@ -205,9 +205,8 @@ mitgelieferte UI hält sich daran, indem es beim Setzen eines Filters den alten 
 Pfad vorher entfernt. Mach es genauso.
 
 Ein Feld, das danach aussieht und es nicht ist: `businessIds` von `WorkflowsRequest` ist ein
-genauer Vergleich auf dem Feld `businessId` und kein Suchmuster. Es wirkt nur auf `POST /workflow`
-und nicht auf die Aktualisierung mit `PUT`, siehe
-[rough-edges.md](rough-edges.md#businessids-verschwindet-bei-der-aktualisierung).
+genauer Vergleich auf dem Feld `businessId` und kein Suchmuster. `POST /workflow`, `PUT /workflow`
+und `POST /workflow/count` nehmen es gleich.
 
 ## Vorschläge für ein Suchfeld
 
@@ -322,8 +321,10 @@ So benutzt es das mitgelieferte UI: nach einem Ereignis aus dem Ereignisstrom fr
 nach so vielen Zeilen, wie es geladen hat, plus einer Reserve, und lässt die Kennungen der Zeilen
 weg, von denen es weiß, dass sie sich geändert haben. Genau die kommen dadurch vollständig zurück.
 
-Zwei Dinge sind bei `PUT` anders als bei `POST`: `page.number` ist immer 0 und `page.size` ist die
-Anzahl der gelieferten Zeilen, und `businessIds` gibt es nicht.
+Bei `PUT` ist `page.number` immer 0 und `page.size` die Anzahl der gelieferten Zeilen. Die Filter
+sind dieselben wie bei `POST`: `searchQueries`, `mode` und bei Fällen `businessIds`. Schick sie
+genauso mit wie bei der ersten Seite, sonst liefert die Aktualisierung Zeilen, die nicht zur Liste
+gehören.
 
 ## Live-Aktualisierung über Server-Sent-Events
 

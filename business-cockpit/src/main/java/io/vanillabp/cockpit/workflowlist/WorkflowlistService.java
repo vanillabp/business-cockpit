@@ -738,6 +738,7 @@ public class WorkflowlistService {
    * @param size How many workflows to return at most
    * @param knownWorkflowIds The ids of the workflows the browser shows already
    * @param initialTimestamp When the user started to page through the list
+   * @param businessIds Only the workflows of these business ids, or {@code null} for all
    * @param searchQueries The filters of the list, or {@code null}
    * @param sort The paths to sort by, separated by commas, or {@code null} for the start
    * @param sortAscending Whether to sort in ascending order
@@ -749,6 +750,7 @@ public class WorkflowlistService {
       final int size,
       final Collection<String> knownWorkflowIds,
       final OffsetDateTime initialTimestamp,
+      final Collection<String> businessIds,
       final Collection<SearchQuery> searchQueries,
       final String sort,
       final boolean sortAscending,
@@ -770,7 +772,7 @@ public class WorkflowlistService {
             initialTimestamp,
             effectiveMode,
             null,
-            null));
+            businessIds));
     final var searchCriteria = filterCriteria(searchQueries);
     if (searchCriteria != null) {
       searchCriteria.forEach(query::addCriteria);

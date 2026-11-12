@@ -455,10 +455,31 @@ public abstract class ItestBase {
       final String workflowId,
       final String what) {
 
+    reportWorkflow(moduleId, token, workflowId, what, null);
+
+  }
+
+  /**
+   * Reports a workflow the way a workflow module does, or its completion, with a business id.
+   *
+   * @param moduleId The workflow module, registered already
+   * @param token The token the test filters its lists by
+   * @param workflowId The id of the workflow
+   * @param what {@code "created"} or {@code "completed"}
+   * @param businessId The business id of the workflow, or {@code null} for none
+   */
+  protected void reportWorkflow(
+      final String moduleId,
+      final String token,
+      final String workflowId,
+      final String what,
+      final String businessId) {
+
     final var response = bpmsV1_1("/workflow/"
         + ("created".equals(what) ? "" : workflowId
             + "/")
-        + what, """
+        + what,
+        """
             {
               "id": "%s",
               "workflowId": "%s",
@@ -470,9 +491,10 @@ public abstract class ItestBase {
               "title": { "en": "Ride request" },
               "uiUriPath": "/remoteEntry.js",
               "uiUriType": "WEBPACK_MF_REACT",
-              "detailsFulltextSearch": "%s"
+              "detailsFulltextSearch": "%s"%s
             }
-            """.formatted(unique("event"), workflowId, isoNow(), moduleId, token));
+            """.formatted(unique("event"), workflowId, isoNow(), moduleId, token,
+            businessId == null ? "" : ", \"businessId\": \"%s\"".formatted(businessId)));
     if (response.statusCode() != 200) {
       throw new IllegalStateException("Could not report the workflow: HTTP "
           + response.statusCode()
