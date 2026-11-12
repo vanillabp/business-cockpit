@@ -106,14 +106,15 @@ in [test-coverage-report](./test-coverage-report).
 
 In the order they build on each other:
 
-1. **[support](./support)**:<br>What the cockpit and a workflow module behind it share: the check of
-   the cockpit's login token, the user and the groups, and a REST client for the APIs of a BPMS or
-   of the cockpit. It brings no MongoDB and no Kafka, so a workflow module can depend on it.
-2. **[apis](./apis)**:<br>The generated clients and servers of the three interfaces the cockpit has:
+1. **[spi-for-java](./spi-for-java)**:<br>The annotations and interfaces a workflow module's business
+   code is written with to report business data about its user tasks and workflows.
+2. **[support](./support)**:<br>What the cockpit and a workflow module behind it share: the SPI
+   above, the check of the cockpit's login token, the user and the groups, and a REST client for the
+   APIs of a BPMS or of the cockpit. It brings no MongoDB and no Kafka. With `support` as its only
+   dependency, a workflow module compiles.
+3. **[apis](./apis)**:<br>The generated clients and servers of the three interfaces the cockpit has:
    `bpms-api` for what workflow modules report, `official-gui-api` for what a user interface reads,
    `workflow-provider-api` for what a workflow module may implement to change the cockpit's behaviour.
-3. **[spi-for-java](./spi-for-java)**:<br>The annotations and interfaces a workflow module's business
-   code is written with to report business data about its user tasks and workflows.
 4. **[extensions-commons](./extensions-commons)**:<br>The platform-neutral half of the integration
    into VanillaBP Version 2, on Spring Boot and on Quarkus. The five halves which know a BPMS live in
    their own repositories and consume this one as a published artifact:
@@ -129,7 +130,9 @@ In the order they build on each other:
 6. **[container](./container)**:<br>The runnable microservice, built from the library plus a main
    class, the concrete GUI API controllers and the defaults of a standalone deployment.
 7. **[development](./development)**:<br>The local development environment, and the tools which support
-   developing a workflow module: the dev shell simulator and the simulator.
+   developing a workflow module: the dev shell simulator and the simulator. Next to them,
+   `workflow-module-on-support-only` proves in every build that a workflow module compiles with
+   `support` as its only dependency.
 8. **[test-coverage-report](./test-coverage-report)**:<br>The aggregated coverage reports and the
    gate which judges them. A build writes each report to `report` below its own directory here, and
    the default branch publishes them as the pages the [coverage badges](#test-coverage) read. The

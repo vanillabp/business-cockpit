@@ -10,7 +10,7 @@
 
   <artifactId>support</artifactId>
   <name>Business Cockpit support</name>
-  <description>What the Business Cockpit and a workflow module behind it share: checking the cockpit's login token, the user and the groups, and a REST client for the APIs of a BPMS or of the cockpit.</description>
+  <description>What the Business Cockpit and a workflow module behind it share: the cockpit's SPI, checking the cockpit's login token, the user and the groups, and a REST client for the APIs of a BPMS or of the cockpit.</description>
 
   <licenses>
     <license>
@@ -43,6 +43,16 @@
   </dependencyManagement>
 
   <dependencies>
+    <!--
+      The annotations and interfaces of the cockpit's SPI, and through it the SPI of VanillaBP. Not
+      optional: with this module as its only dependency, a workflow module compiles. The cockpit's
+      adapter is needed to run the workflow module, so the module's tests take it in test scope.
+    -->
+    <dependency>
+      <groupId>io.vanillabp.businesscockpit</groupId>
+      <artifactId>spi-for-java</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <!--
       The web and security half. It is optional because the application decides which of the two
       it runs: a workflow module which only calls a REST API needs neither, and one which checks

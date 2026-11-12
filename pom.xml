@@ -35,6 +35,7 @@
     See decision 63 in the repository's DECISIONS.md.
   -->
   <modules>
+    <module>spi-for-java</module>
     <module>support</module>
     <module>apis/bpms-api/client</module>
     <module>apis/bpms-api/server</module>
@@ -46,7 +47,7 @@
     <module>container</module>
     <module>development/dev-shell-simulator</module>
     <module>development/simulator</module>
-    <module>spi-for-java</module>
+    <module>development/workflow-module-on-support-only</module>
     <module>extensions-commons</module>
     <!-- last: it aggregates and judges what all modules above produced -->
     <module>test-coverage-report</module>

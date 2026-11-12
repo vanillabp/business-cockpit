@@ -20,6 +20,12 @@ A cockpit application depends on `business-cockpit`, which brings `support` alon
 imports and nothing in its POM. A workflow module or another service which depended on `commons`
 depends on `support` instead. `support` brings no MongoDB and no Kafka.
 
+`support` brings the cockpit's SPI, `io.vanillabp.businesscockpit:spi-for-java`, and through it the
+SPI of VanillaBP. A workflow module which names the SPI itself may keep it or remove it. With
+`support` as its only dependency, a workflow module compiles. To run, it still needs the cockpit's
+adapter for its BPMS, `business-cockpit-*-adapter`. A workflow module which is a library of its own
+takes the adapter in test scope, and the application which runs it brings the adapter.
+
 One line per package. Replace the beginning of each import:
 
 |                              before                               |                                   now                                    |      artifact      |
@@ -29,6 +35,7 @@ One line per package. Replace the beginning of each import:
 | `io.vanillabp.cockpit.commons.rest`                               | `io.vanillabp.cockpit.support.rest`                                      | `support`          |
 | `io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException` | `io.vanillabp.cockpit.support.security.BcUnauthorizedException`          | `support`          |
 | `io.vanillabp.cockpit.users.UserDetailsProvider`                  | `io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService` | `support`          |
+| `io.vanillabp.cockpit.users.UserDetailsImpl`                      | `io.vanillabp.cockpit.support.security.usercontext.UserDetailsImpl`      | `support`          |
 | `io.vanillabp.cockpit.commons.exceptions`                         | `io.vanillabp.cockpit.exceptions`                                        | `business-cockpit` |
 | `io.vanillabp.cockpit.commons.kafka`                              | `io.vanillabp.cockpit.kafka`                                             | `business-cockpit` |
 | `io.vanillabp.cockpit.commons.mapstruct`                          | `io.vanillabp.cockpit.mapstruct`                                         | `business-cockpit` |
@@ -38,6 +45,10 @@ One line per package. Replace the beginning of each import:
 
 `BcUnauthorizedException` left its siblings, because `UserContext` in `support` throws it and
 `support` cannot see the library module.
+
+`UserDetailsImpl` moved to `support` as well. It is the plain implementation of `UserDetails`,
+which the cockpit and a workflow module both need. Before, a workflow module had to write its own
+or depend on the library module.
 
 The directory of the users got a new name on its way to `support`, so it is no longer confused with
 the `UserDetailsProvider` which says who is calling. Its methods stayed. A controller which extends

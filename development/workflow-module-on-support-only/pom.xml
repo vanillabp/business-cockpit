@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.vanillabp.businesscockpit</groupId>
+    <artifactId>business-cockpit-parent</artifactId>
+    <version>0.9.0-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>workflow-module-on-support-only</artifactId>
+  <name>Business Cockpit - a workflow module on support only</name>
+  <description>Proves at every build that a workflow module compiles with the module support as its only dependency.</description>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>VanillaBP</id>
+      <organization>Phactum Softwareentwicklung GmbH</organization>
+      <organizationUrl>https://www.phactum.at</organizationUrl>
+    </developer>
+  </developers>
+
+  <properties>
+    <!-- nothing to publish: the module exists for the compiler only. The release build activates
+         source, javadoc, gpg and central-publishing through the profiles of
+         io.vanillabp:release-parent, and all of them would otherwise sign and upload it. -->
+    <maven.deploy.skip>true</maven.deploy.skip>
+    <maven.install.skip>true</maven.install.skip>
+    <maven.javadoc.skip>true</maven.javadoc.skip>
+    <maven.source.skip>true</maven.source.skip>
+    <gpg.skip>true</gpg.skip>
+    <skip.central.release>true</skip.central.release>
+  </properties>
+
+  <dependencies>
+    <!--
+      The only dependency, and it stays the only one. A second dependency would let the compiler
+      find a class which support does not bring, and the proof would no longer prove anything.
+    -->
+    <dependency>
+      <groupId>io.vanillabp.businesscockpit</groupId>
+      <artifactId>support</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+</project>
