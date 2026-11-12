@@ -45,7 +45,7 @@ about the framework. `Q-BACKEND-FRAMEWORK` is Spring Boot whenever the skill cre
 ## The layout
 
 ```
-pom.xml                         the parent: versions, the BOMs, the two modules
+pom.xml                         the parent: versions, the cockpit's BOM, the two modules
 types/
   pom.xml                       downloads <scope>/bc-types, writes and compiles UiUriTypes.java
 application/
@@ -72,37 +72,53 @@ The module `types` builds the types jar for the workflow modules, see
 ## The parent pom
 
 The library's own parent is `io.vanillabp:release-parent`, which carries no Spring. So the
-library pins its Spring versions through BOMs, and the application has to use the same ones. Take
-them from the root `pom.xml` of the `business-cockpit` repository at the tag of `Q-COCKPIT-VERSION`,
-and import them in the `dependencyManagement` of the parent:
+library pins its versions through BOMs, and the application has to use the same ones. The cockpit
+publishes them as one BOM, `io.vanillabp.businesscockpit:business-cockpit-bom`, in the version of
+the cockpit. The parent imports it in its `dependencyManagement`, with the version of
+`Q-COCKPIT-VERSION` in the property `business-cockpit.version`:
 
-- `org.springframework.boot:spring-boot-dependencies`,
-- `org.springframework.cloud:spring-cloud-dependencies`, because the library brings
-  `spring-cloud-starter-gateway-server-webmvc` for its proxy under `/wm/`,
-- `io.vanillabp:vanillabp-bom`, in the version the library's modules import.
+```xml
+<dependency>
+  <groupId>io.vanillabp.businesscockpit</groupId>
+  <artifactId>business-cockpit-bom</artifactId>
+  <version>${business-cockpit.version}</version>
+  <type>pom</type>
+  <scope>import</scope>
+</dependency>
+```
 
-Pin `spring-boot-maven-plugin` to the version of `spring-boot-dependencies`, the way the library
-does, because no `spring-boot-starter-parent` gives it a version. The parent also sets the Java
-version of `Q-JAVA-VERSION` and the property `ui.version`, the version of the user interface. Both
-modules read `ui.version`: `types` downloads `<scope>/bc-types` of that version, and `application`
-takes the UI jar of that version.
+The BOM brings `spring-boot-dependencies`, `spring-cloud-dependencies` (the library's proxy under
+`/wm/` is `spring-cloud-starter-gateway-server-webmvc`), `io.vanillabp:vanillabp-bom`, the BOMs
+of OpenFeign and OkHttp, `mongodb-changesets`, and the cockpit's own artifacts, among them
+`business-cockpit` and `bpms-protobuf-api`. So the modules name all of them without a version.
+Do not import the Spring BOMs a second time, and do not import one before this BOM. The first
+import of a coordinate wins, and Spring Cloud alone brings an OpenFeign that fails at runtime.
 
-The library depends on `com.phactum.mongodb:mongodb-changesets`. Its releases and its snapshots
-both come from Maven Central, so neither asks for credentials. When a release of
-`mongodb-changesets` exists, the parent pins it in `dependencyManagement`, so a snapshot of the
-library does not bring a snapshot of the changesets with it. Without a release, the snapshot comes
-from the snapshot repository of Maven Central (`https://central.sonatype.com/repository/maven-snapshots/`),
-and the parent names that repository. Propose a release version in `Q-COCKPIT-VERSION`.
+Pin `spring-boot-maven-plugin` to the version of `spring-boot-dependencies` that the BOM imports,
+because a BOM gives no plugin a version and no `spring-boot-starter-parent` does either. Read it
+from `bom/pom.xml` of the `business-cockpit` repository at the tag of `Q-COCKPIT-VERSION`. The
+parent also sets the Java version of `Q-JAVA-VERSION` and the property `ui.version`, the version
+of the user interface. Both modules read `ui.version`: `types` downloads `<scope>/bc-types` of
+that version, and `application` takes the UI jar of that version.
+
+The library depends on `com.phactum.mongodb:mongodb-changesets`, and the BOM pins the version the
+cockpit is built with. Its releases and its snapshots both come from Maven Central, so neither asks
+for credentials. A release of the cockpit names a release of the changesets. A snapshot of the
+cockpit may name a snapshot of the changesets, and the BOM itself is then a snapshot too. Both come
+from the snapshot repository of Maven Central
+(`https://central.sonatype.com/repository/maven-snapshots/`), and the parent names that
+repository only for as long as `Q-COCKPIT-VERSION` is a snapshot. Propose a release version in
+`Q-COCKPIT-VERSION`.
 
 ## The application
 
 The module `application` depends on:
 
-- `io.vanillabp.businesscockpit:business-cockpit` of `Q-COCKPIT-VERSION`,
+- `io.vanillabp.businesscockpit:business-cockpit`, without a version, from the BOM,
 - the UI jar of `Q-UI-JAR` in the version `ui.version`, with scope `runtime`, when `Q-HOSTING` is
   `embedded`,
 - `spring-boot-starter-oauth2-client` when `Q-LOGIN-KIND` is `oidc`,
-- `spring-kafka` and `io.vanillabp.businesscockpit:bpms-protobuf-api` of `Q-COCKPIT-VERSION` when
+- `spring-kafka` and `io.vanillabp.businesscockpit:bpms-protobuf-api`, without a version, when
   `Q-KAFKA` is yes. The library marks both optional.
 - `spring-boot-starter-mail` when `Q-MAIL` is yes. The library marks it optional.
 - for the test, `spring-boot-starter-test` and the MongoDB module of Testcontainers.
