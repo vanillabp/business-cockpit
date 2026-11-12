@@ -15,5 +15,6 @@ Its React and Angular forms are gone, see decision 63 in the repository's
 [DECISIONS.md](../../DECISIONS.md). So a task it reports points at `/remoteEntry.js`, which nothing
 answers. The test data form is a page of the server and still works.
 
-Built as part of the reactor build described in the [root README](../../README.md#building-it), and
-published as `io.vanillabp.businesscockpit:simulator`, with a runnable jar attached to a release.
+Built as part of the reactor build described in the [root README](../../README.md#building-it).
+Its runnable jar is attached to each GitHub release. It is not published to Maven Central, because
+nothing builds against it.

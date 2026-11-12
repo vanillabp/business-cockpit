@@ -94,6 +94,10 @@
          measurement against it on every run but never fails on it, because it marks where
          somebody has to look and not the number a build has to hit today. -->
     <coverage.rule>90</coverage.rule>
+    <!-- true: a snapshot of the module carries no javadoc jar. A module which an application or
+         an adapter builds against sets it to false. The profile 'release' sets it to false for
+         every module. See the plugin 'maven-javadoc-plugin' below. -->
+    <skip.javadoc.jar>true</skip.javadoc.jar>
   </properties>
 
   <dependencyManagement>
@@ -397,21 +401,27 @@
           </execution>
         </executions>
       </plugin>
-      <!-- the sources jar every build attaches. The release parent binds this plugin
-           only in its 'release' profile, and a snapshot is deployed without that profile,
-           so a snapshot could go out with no sources and show decompiled code in the IDE
-           of everyone who builds against it. It is bound here, at the root, and no longer
-           in each module, so a module added later does not have to remember it. Version,
-           phase and the rest of the configuration come from the parent. -->
+      <!-- the javadoc jar of a snapshot, for the modules an application or an adapter builds
+           against. Such a module sets 'skip.javadoc.jar' to false. Every other module goes out
+           as a snapshot with no javadoc jar and no sources jar, so a snapshot sends fewer files
+           to Maven Central. A release builds both jars for every module: the profile 'release'
+           of the parent binds them, and the profile 'release' below turns this skip off.
+           The id is the one of the parent's execution, so a release builds one javadoc jar and
+           not two. The javadoc check of the parent still runs in every build and in every
+           module, so a javadoc error shows up in the pull request and not at the release. -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-source-plugin</artifactId>
+        <artifactId>maven-javadoc-plugin</artifactId>
         <executions>
           <execution>
-            <id>attach-sources</id>
+            <id>attach-javadocs</id>
             <goals>
               <goal>jar</goal>
             </goals>
+            <phase>package</phase>
+            <configuration>
+              <skip>${skip.javadoc.jar}</skip>
+            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -442,5 +452,17 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <!-- the profile of the release build. The parent's profile of the same name attaches the
+           sources jar, the javadoc jar and the signatures. This one only lifts the skip of the
+           javadoc jar, so a release ships one for every module, as Maven Central asks. -->
+      <id>release</id>
+      <properties>
+        <skip.javadoc.jar>false</skip.javadoc.jar>
+      </properties>
+    </profile>
+  </profiles>
 
 </project>

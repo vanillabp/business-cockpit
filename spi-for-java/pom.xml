@@ -29,6 +29,12 @@
     </developer>
   </developers>
 
+  <properties>
+    <!-- an application or an adapter builds against this module, so its snapshot carries a
+         javadoc jar as well -->
+    <skip.javadoc.jar>false</skip.javadoc.jar>
+  </properties>
+
   <dependencies>
     <dependency>
       <!-- a release on purpose, and not a number somebody forgot to raise. Why this module

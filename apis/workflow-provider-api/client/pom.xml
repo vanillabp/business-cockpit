@@ -27,4 +27,10 @@
       <organizationUrl>https://www.phactum.at</organizationUrl>
     </developer>
   </developers>
+
+  <properties>
+    <!-- an application or an adapter builds against this module, so its snapshot carries a
+         javadoc jar as well -->
+    <skip.javadoc.jar>false</skip.javadoc.jar>
+  </properties>
 </project>
