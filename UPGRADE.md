@@ -174,6 +174,13 @@ nothing.
 It was an `OffsetDateTime`. The document is the same either way, a BSON date, so there is no data
 migration. Only code which reads the field in Java is affected.
 
+### `workflow-provider-api-client` and `workflow-provider-api-server` are gone
+
+The artifacts `io.vanillabp.businesscockpit:workflow-provider-api-client` and
+`io.vanillabp.businesscockpit:workflow-provider-api-server` held no code. They are no longer built
+or published. Remove them from your POM if you named them. The OpenAPI file of the workflow
+provider API stays in `apis/workflow-provider-api`.
+
 ### No configuration key changes
 
 The library reads `mongodb.changesets.mode`, and the cockpit hands it the value of its own
