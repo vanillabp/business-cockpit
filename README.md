@@ -46,8 +46,8 @@ Maven Central. A snapshot carries no sources jar. Only the modules which an appl
 adapter builds against carry a javadoc jar: they set the property `skip.javadoc.jar` to false. A
 release carries both jars for every module it publishes. Fewer files make Maven Central answer
 `429 Too Many Requests` less often. When it does, `.mvn/maven.config` makes Maven wait and repeat
-that one request, and the file says how long. `DECISIONS.pending/1823.md` holds the decision and
-the list of modules.
+that one request, and the file says how long. Decision 85 in
+[`DECISIONS.md`](./DECISIONS.md) holds the decision and the list of modules.
 
 ```sh
 mvn spotless:apply
@@ -134,11 +134,14 @@ In the order they build on each other:
    Kafka and error handling helpers only the cockpit needs. It builds no runnable jar.
 6. **[container](./container)**:<br>The runnable microservice, built from the library plus a main
    class, the concrete GUI API controllers and the defaults of a standalone deployment.
-7. **[development](./development)**:<br>The local development environment, and the tools which support
+7. **[bom](./bom)**:<br>The BOM of a derived cockpit application. It names the Spring Boot and
+   Spring Cloud BOMs the cockpit is built against, and the cockpit artifacts of the same release. An
+   application imports it and names no other version of the cockpit.
+8. **[development](./development)**:<br>The local development environment, and the tools which support
    developing a workflow module: the dev shell simulator and the simulator. Next to them,
    `workflow-module-on-support-only` proves in every build that a workflow module compiles with
    `support` as its only dependency.
-8. **[test-coverage-report](./test-coverage-report)**:<br>The aggregated coverage reports and the
+9. **[test-coverage-report](./test-coverage-report)**:<br>The aggregated coverage reports and the
    gate which judges them. A build writes each report to `report` below its own directory here, and
    the default branch publishes them as the pages the [coverage badges](#test-coverage) read. The
    thresholds are properties of the root `pom.xml`, in percent of covered instructions, which is the

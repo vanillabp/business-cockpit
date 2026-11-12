@@ -1429,6 +1429,12 @@ Not compared, and the report says so every night:
   and only the Camunda 8 adapter names it.
 - `lombok.version`. It is gone once the class file exists, so it never meets another repository.
 
+*Changed on 2026-11-06 by story 1770.* The first point names the wrong repository now. The Camunda 8
+adapter is built in `vanillabp/camunda8-adapter` again, with the groupId `io.vanillabp`, and the
+copy in the Camunda Community Hub holds only version 1. The Camunda 8 cockpit adapter follows
+`vanillabp/camunda8-adapter`, and its nightly matrix checks the pins against that repository. They
+are still not compared here, for the same reason.
+
 This repository names its versions `version.<name>`, the adapters name them `<name>.version`. So
 Quarkus is `version.quarkus` here and `quarkus.version` there. The name stays, because every other
 version of this repository follows that pattern, and Renovate reads both names. The script knows
@@ -3798,4 +3804,73 @@ which an application or an adapter builds against has to set it.
 - `development/simulator/pom.xml`, `skip.central.release`, and `development/simulator/README.md`
 - `.mvn/maven.config`
 - `README.md`, the paragraph on what a snapshot of `main` carries
+
+### 86. A derived cockpit imports `business-cockpit-bom`, which holds what the application needs and nothing of the build
+
+#### What was found
+
+A derived cockpit application had to copy the versions of the Spring Boot and Spring Cloud BOMs out
+of the root `pom.xml` of this repository. It fell behind with every release of the cockpit. Worse,
+the two Spring BOMs alone are not enough. Spring Cloud names OpenFeign 13.6.1 and OkHttp 4. With
+them, the REST client of `support` compiles and then fails at runtime with
+`NoClassDefFoundError: feign/codec/JsonDecoder`. The root `pom.xml` imports the BOMs of OpenFeign
+and OkHttp before the Spring BOMs for this reason, and an application has to do the same.
+
+#### The decision
+
+The module `bom` publishes `io.vanillabp.businesscockpit:business-cockpit-bom`, with the same
+version as the rest of this repository. An application imports it in its `dependencyManagement`
+and names no other version of the cockpit or of Spring.
+
+It is a BOM and not a parent, because an application often has a parent of its own already.
+
+It holds:
+
+- the BOMs of OpenFeign and OkHttp, before the Spring BOMs, because the first import of a
+  coordinate wins
+- `spring-boot-dependencies` and `spring-cloud-dependencies`
+- `vanillabp-bom`, in the version the library imports
+- `mongodb-changesets`, in the version the root `pom.xml` pins
+- `business-cockpit` and `bpms-protobuf-api`, which the application names, and `support`,
+  `spi-for-java`, `bpms-api-server` and `official-gui-api-server`, which the library brings with
+  it. All of them with the version of the BOM.
+
+It does not hold:
+
+- what a workflow module uses: `bpms-api-client`, the `extensions-commons` modules and the test
+  support. A workflow module gets the cockpit through the cockpit's adapter for its BPMS, which is
+  released in a repository of its own, and it may run on Quarkus, where the Spring BOMs are wrong.
+- the tools `container`, `simulator` and `dev-shell-simulator`. Nobody builds against them.
+- JUnit, Lombok, MapStruct and the other versions only this repository's build needs. An application
+  chooses its own.
+- protobuf. Protobuf 4 generated code calls `RuntimeVersion.validateProtobufGencodeVersion()` in
+  every static initializer, and the class fails to load when the runtime is older than the gencode.
+  `bpms-protobuf-api` is older than the runtime Spring Boot names, so it needs no pin. The Camunda 8
+  client brings gencode which can be newer than that runtime. That pin belongs to the Camunda 8
+  cockpit adapter, whose README says per release line what an application pins.
+
+#### Why the parent is the release parent
+
+An import hands on the whole effective `dependencyManagement` of a BOM, the inherited part
+included. With `business-cockpit-parent` as its parent, the BOM would pin JUnit, Lombok and
+MapStruct in every application. `io.vanillabp:release-parent` has no `dependencyManagement`, so
+the BOM inherits only how it is published. `vanillabp-bom` does the same.
+
+#### What it costs
+
+The versions of the root `pom.xml` are written a second time in `bom/pom.xml`. Renovate changes
+both in one pull request. A change by hand has to change both.
+
+The release workflow runs `versions:set` with `-DprocessAllModules=true`. Without it, the BOM keeps
+its SNAPSHOT version, because its parent is not the root `pom.xml`, and the release stops at the
+check for SNAPSHOTs.
+
+#### Where this is relied on
+
+- `bom/pom.xml`
+- `bom/README.md`
+- `pom.xml`, the list of modules
+- `.github/workflows/release.yml`, the two steps which run `versions:set`
+- `README.md`, the list of modules
+- the skill `business-cockpit-creator`, `references/backend.md`, the section about the parent pom
 

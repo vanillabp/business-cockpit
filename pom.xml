@@ -35,6 +35,8 @@
     See decision 63 in the repository's DECISIONS.md.
   -->
   <modules>
+    <!-- the BOM of a derived cockpit application. Its parent is not this POM, see its pom.xml. -->
+    <module>bom</module>
     <module>spi-for-java</module>
     <module>support</module>
     <module>apis/bpms-api/client</module>
@@ -155,7 +157,7 @@
         <artifactId>spring-cloud-dependencies</artifactId>
         <!--
           2025.1.x is the first train built against Spring Boot 4. It pins spring-boot.version to 4.0.7,
-          this project runs 4.1.0 - the Boot BOM is imported above, so it wins for everything the two have
+          this project runs 4.1.x - the Boot BOM is imported above, so it wins for everything the two have
           in common. There is no train targeting 4.1 yet; the combination is verified by the gateway proxy
           test recipe rather than by Spring Cloud's own compatibility matrix.
         -->
