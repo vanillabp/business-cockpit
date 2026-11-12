@@ -121,6 +121,12 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   private final Set<String> startedWorkflowModules = ConcurrentHashMap.newKeySet();
 
   /**
+   * Whether the workflow modules were registered at startup. A change of a group hierarchy which
+   * comes earlier is carried by that registration.
+   */
+  private final AtomicBoolean workflowModulesRegistered = new AtomicBoolean(false);
+
+  /**
    * The BPMN processes each workflow module deployed, in the order VanillaBP wired them. They
    * tell the registration of a module which store to go to: one belonging to an aggregate of
    * that module, and not one of another module.
@@ -815,30 +821,85 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
                     workflowModuleId,
                     bpmnProcessesPerWorkflowModule.getOrDefault(workflowModuleId, Set.of())));
 
-    // the one entry of this extension which carries no report and does not replace what waits.
-    // A registration says that a module exists and where it answers, which is read from the
-    // configuration at the dispatch and is the same whenever that happens. A second
-    // registration of one module says exactly what the waiting one says, so keeping the waiting
-    // one is right, and that is what plain scheduling does
+    // set first: a change which comes while the modules are planned is planned once more, and
+    // a second plan of one module is harmless, as scheduleRegistration says
+    workflowModulesRegistered.set(true);
     startedWorkflowModules
         .stream()
         .filter(configuration::reportsToTheCockpit)
-        .forEach(
-            workflowModuleId -> requireTransactionFor(null)
-                .requireNew(() -> outbox
-                    .ofWorkflowModuleRegistration(
+        .forEach(this::scheduleRegistration);
+
+  }
+
+  /**
+   * Registers a workflow module at the cockpit server again, because its group hierarchy
+   * changed. The registration reads the hierarchy from the module's
+   * {@link io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleGroupHierarchy} bean when it is
+   * sent, so the cockpit gets the new one.
+   * <p>
+   * A change which comes before the modules were registered at startup needs nothing. That
+   * registration is still to come, and it reads the hierarchy as it is then.
+   *
+   * @param workflowModuleId The module whose hierarchy changed
+   * @throws IllegalArgumentException If the module reports nothing to the cockpit. The message
+   *           names the modules which do
+   */
+  public void registerWorkflowModuleAgain(
+      final String workflowModuleId) {
+
+    if (!configuration.reportsToTheCockpit(workflowModuleId)) {
+      throw new IllegalArgumentException(
+          """
+              The group hierarchy of workflow module '%s' changed, but that module reports \
+              nothing to the Business Cockpit, so there is nothing to tell the cockpit. Modules \
+              which report are: %s. Check the id of the WorkflowModuleGroupHierarchyChangedEvent."""
+              .formatted(
+                  workflowModuleId, configuration.getWorkflowModuleIds().isEmpty()
+                      ? "none"
+                      : String.join(", ", configuration.getWorkflowModuleIds())));
+    }
+    if (!workflowModulesRegistered.get() || !startedWorkflowModules.contains(workflowModuleId)) {
+      logger
+          .debug(
+              "The group hierarchy of workflow module '{}' changed before the module was registered at the Business Cockpit; the registration at startup will carry it",
+              workflowModuleId);
+      return;
+    }
+    logger
+        .info(
+            "The group hierarchy of workflow module '{}' changed, registering the module at the Business Cockpit again",
+            workflowModuleId);
+    scheduleRegistration(workflowModuleId);
+
+  }
+
+  /**
+   * Plans the registration of one workflow module.
+   * <p>
+   * It is the one entry of this extension which carries no report and does not replace what
+   * waits. A registration says that a module exists, where it answers and which group
+   * hierarchy it has. All of that is read when the entry is dispatched, not when it is planned.
+   * So a second registration of one module says exactly what the waiting one will say, and
+   * keeping the waiting one is right. That is what plain scheduling does.
+   */
+  private void scheduleRegistration(
+      final String workflowModuleId) {
+
+    requireTransactionFor(null)
+        .requireNew(() -> outbox
+            .ofWorkflowModuleRegistration(
+                workflowModuleId,
+                bpmnProcessesPerWorkflowModule
+                    .getOrDefault(workflowModuleId, Set.of()))
+            .schedule(
+                PhaseTwoCall
+                    .of(
+                        BusinessCockpitOperations.registerWorkflowModule(),
                         workflowModuleId,
-                        bpmnProcessesPerWorkflowModule
-                            .getOrDefault(workflowModuleId, Set.of()))
-                    .schedule(
-                        PhaseTwoCall
-                            .of(
-                                BusinessCockpitOperations.registerWorkflowModule(),
-                                workflowModuleId,
-                                BusinessCockpitOperations.EVERY_BPMN_PROCESS,
-                                null,
-                                null,
-                                Map.of()))));
+                        BusinessCockpitOperations.EVERY_BPMN_PROCESS,
+                        null,
+                        null,
+                        Map.of())));
 
   }
 
@@ -1725,7 +1786,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     final var event = new RegisterWorkflowModuleEvent(
         UUID.randomUUID().toString(), OffsetDateTime.now(), source, module.workflowModuleId(), module
             .workflowModuleUri(), RegisterWorkflowModuleEvent.TASK_PROVIDER_API_URI_PATH, RegisterWorkflowModuleEvent.WORKFLOW_PROVIDER_API_URI_PATH, provider == null
-                ? List.of() : provider.getAccessibleToGroups(), module.groupHierarchy());
+                ? List.of()
+                : provider.getAccessibleToGroups(), configuration.groupHierarchyOf(module.workflowModuleId()));
     transport.registerWorkflowModule(event);
 
   }

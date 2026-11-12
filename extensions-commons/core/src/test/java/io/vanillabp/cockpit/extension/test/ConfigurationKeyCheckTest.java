@@ -73,6 +73,7 @@ public class ConfigurationKeyCheckTest {
     final var bean = refusalOf(
         "vanillabp.workflow-modules.taxi.cockpit.group-hierarchy-bean-name");
     assertTrue(bean.contains("WorkflowModuleDetailsProvider"), bean);
+    assertTrue(bean.contains("WorkflowModuleGroupHierarchy"), bean);
 
   }
 

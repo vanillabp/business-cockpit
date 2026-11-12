@@ -11,6 +11,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeSet;
 import java.util.function.Predicate;
 
@@ -20,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import io.vanillabp.cockpit.extension.templating.Templating;
 import io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport;
 import io.vanillabp.integration.adapter.migration.config.MigrationAdapterProperties;
+import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleGroupHierarchy;
 
 /**
  * Everything the Business Cockpit extension was configured with, read once at startup and
@@ -57,6 +59,8 @@ public final class BusinessCockpitConfiguration {
 
   private final Collection<String> configuredAdapterIds;
 
+  private final Map<String, WorkflowModuleGroupHierarchy> groupHierarchyBeans;
+
   private BusinessCockpitConfiguration(
       final boolean userTasksEnabled,
       final boolean workflowListEnabled,
@@ -66,7 +70,8 @@ public final class BusinessCockpitConfiguration {
       final String templateLoaderPath,
       final InitiatorSource initiatorSource,
       final Map<String, WorkflowModuleConfiguration> workflowModules,
-      final Collection<String> configuredAdapterIds) {
+      final Collection<String> configuredAdapterIds,
+      final Map<String, WorkflowModuleGroupHierarchy> groupHierarchyBeans) {
 
     this.userTasksEnabled = userTasksEnabled;
     this.workflowListEnabled = workflowListEnabled;
@@ -77,6 +82,7 @@ public final class BusinessCockpitConfiguration {
     this.initiatorSource = initiatorSource;
     this.workflowModules = Map.copyOf(workflowModules);
     this.configuredAdapterIds = List.copyOf(configuredAdapterIds);
+    this.groupHierarchyBeans = Map.copyOf(groupHierarchyBeans);
 
   }
 
@@ -233,6 +239,44 @@ public final class BusinessCockpitConfiguration {
   }
 
   /**
+   * The group hierarchy a workflow module registers with, as it is now. It comes from the
+   * module's {@link WorkflowModuleGroupHierarchy} bean where the application has one, and from
+   * the key <code>group-hierarchy</code> of the module otherwise. The bean is asked on every call,
+   * so a registration after a change carries the new hierarchy.
+   *
+   * @param workflowModuleId The module
+   * @return For each group, the groups it stands for. Empty where nothing was configured
+   */
+  public Map<String, Collection<String>> groupHierarchyOf(
+      final String workflowModuleId) {
+
+    final var bean = groupHierarchyBeans.get(workflowModuleId);
+    if (bean == null) {
+      return workflowModule(workflowModuleId).groupHierarchy();
+    }
+    final var answer = bean.getGroupHierarchy();
+    if (answer == null) {
+      return Map.of();
+    }
+    // a hierarchy built at runtime may hold a gap, and a gap would fail the copy of the
+    // registration, again and again, while the outbox repeats it
+    final var hierarchy = new LinkedHashMap<String, Collection<String>>();
+    answer.forEach((
+        group,
+        targets) -> {
+      if (group != null) {
+        hierarchy
+            .put(
+                group, targets == null
+                    ? List.of()
+                    : targets.stream().filter(Objects::nonNull).toList());
+      }
+    });
+    return hierarchy;
+
+  }
+
+  /**
    * Who answers the initiator of the reports of one workflow.
    * <p>
    * The most specific level wins: the workflow, then its workflow module, then the
@@ -279,6 +323,36 @@ public final class BusinessCockpitConfiguration {
       final CockpitSettings settings,
       final boolean templatingAvailable,
       final boolean transportProvidedByTheApplication) {
+
+    return readAndValidate(
+        properties, settings, templatingAvailable, transportProvidedByTheApplication, List.of());
+
+  }
+
+  /**
+   * Reads and validates the whole configuration, for an application which may take the group
+   * hierarchy of a workflow module from a bean.
+   *
+   * @param properties The core's resolved properties, which know the workflow modules of the
+   *          application and the adapters it configured
+   * @param settings What the application wrote below <code>vanillabp.cockpit</code> and below
+   *          the <code>cockpit</code> sections of its workflow modules
+   * @param templatingAvailable Whether a template engine is on the classpath at all
+   * @param transportProvidedByTheApplication Whether the application brought a transport of its
+   *          own
+   * @param groupHierarchyBeans Every {@link WorkflowModuleGroupHierarchy} bean of the
+   *          application. The platform finds them. Each one has to answer for a workflow module
+   *          which reports to the cockpit and does not configure <code>group-hierarchy</code>
+   * @return The configuration
+   * @throws IllegalStateException If anything is missing or contradictory. The message lists
+   *           every defect found, each with the key which fixes it
+   */
+  public static BusinessCockpitConfiguration readAndValidate(
+      final MigrationAdapterProperties properties,
+      final CockpitSettings settings,
+      final boolean templatingAvailable,
+      final boolean transportProvidedByTheApplication,
+      final Collection<WorkflowModuleGroupHierarchy> groupHierarchyBeans) {
 
     final var defects = new LinkedList<String>();
 
@@ -337,6 +411,9 @@ public final class BusinessCockpitConfiguration {
                       workflowModuleId, workflowModule, templating, initiatorSource, defects));
         });
 
+    final var groupHierarchyBeansByModule = groupHierarchyBeansByModule(
+        groupHierarchyBeans, properties.getWorkflowModules().keySet(), modules, defects);
+
     if (!defects.isEmpty()) {
       throw new IllegalStateException(
           """
@@ -368,7 +445,86 @@ public final class BusinessCockpitConfiguration {
 
     return new BusinessCockpitConfiguration(
         userTasksEnabled, workflowListEnabled, rest, kafka, transportProvidedByTheApplication, templateLoaderPath, initiatorSource, modules, configuredAdapterIdsOf(
-            properties));
+            properties), groupHierarchyBeansByModule);
+
+  }
+
+  /**
+   * Assigns each {@link WorkflowModuleGroupHierarchy} bean to the workflow module it answers for.
+   * A bean which answers for no module of the application, for a module which reports nothing to
+   * the cockpit or for a module which configures <code>group-hierarchy</code> as well is a
+   * defect. So are two beans for one module, because the hierarchy has one source only.
+   *
+   * @param beans The beans the platform found
+   * @param workflowModuleIds Every workflow module of the application
+   * @param reportingModules The modules which report to the cockpit, with their settings
+   * @param defects Where a defect of the configuration is collected
+   * @return The beans by workflow module id
+   */
+  private static Map<String, WorkflowModuleGroupHierarchy> groupHierarchyBeansByModule(
+      final Collection<WorkflowModuleGroupHierarchy> beans,
+      final Collection<String> workflowModuleIds,
+      final Map<String, WorkflowModuleConfiguration> reportingModules,
+      final List<String> defects) {
+
+    final var byModule = new LinkedHashMap<String, WorkflowModuleGroupHierarchy>();
+    if (beans == null) {
+      return byModule;
+    }
+    for (final var bean : beans) {
+      final var beanType = bean.getClass().getName();
+      final var workflowModuleId = bean.getWorkflowModuleId();
+      if (!workflowModuleIds.contains(workflowModuleId)) {
+        defects
+            .add(
+                """
+                    The bean %s gives the group hierarchy of workflow module '%s', but the \
+                    application has no workflow module of that name. Its workflow modules are: %s. \
+                    Let getWorkflowModuleId() answer one of them, or remove the bean."""
+                    .formatted(
+                        beanType, workflowModuleId, workflowModuleIds.isEmpty()
+                            ? "none"
+                            : String.join(", ", workflowModuleIds)));
+        continue;
+      }
+      final var module = reportingModules.get(workflowModuleId);
+      if (module == null) {
+        defects
+            .add(
+                """
+                    The bean %s gives the group hierarchy of workflow module '%s', but that module \
+                    reports nothing to the Business Cockpit. Set '%s' to let it report, or remove \
+                    the bean."""
+                    .formatted(
+                        beanType, workflowModuleId, ConfigurationKeys
+                            .workflowModuleKey(
+                                workflowModuleId, ConfigurationKeys.WORKFLOW_MODULE_URI)));
+        continue;
+      }
+      if (!module.groupHierarchy().isEmpty()) {
+        defects
+            .add(
+                """
+                    Workflow module '%s' has two group hierarchies: the key '%s' and the bean %s. \
+                    The hierarchy has one source only. Remove the key to take the hierarchy from \
+                    the bean, or remove the bean to take it from the configuration."""
+                    .formatted(
+                        workflowModuleId, ConfigurationKeys
+                            .workflowModuleKey(workflowModuleId, ConfigurationKeys.GROUP_HIERARCHY),
+                        beanType));
+        continue;
+      }
+      final var previous = byModule.putIfAbsent(workflowModuleId, bean);
+      if (previous != null) {
+        defects
+            .add(
+                """
+                    Two beans give the group hierarchy of workflow module '%s': %s and %s. The \
+                    hierarchy has one source only, so let one bean answer for the module."""
+                    .formatted(workflowModuleId, previous.getClass().getName(), beanType));
+      }
+    }
+    return byModule;
 
   }
 

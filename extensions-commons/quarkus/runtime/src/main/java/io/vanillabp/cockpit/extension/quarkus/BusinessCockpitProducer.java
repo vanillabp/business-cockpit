@@ -30,6 +30,8 @@ import io.vanillabp.integration.extension.spi.service.AggregateServiceFactory;
 import io.vanillabp.integration.spi.PhaseOperationRegistry;
 import io.vanillabp.spi.cockpit.BusinessCockpitService;
 import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
+import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleGroupHierarchy;
+import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleGroupHierarchyChangedEvent;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
@@ -105,6 +107,7 @@ public class BusinessCockpitProducer {
    * @param properties VanillaBP's resolved configuration
    * @param settings What the application wrote below the cockpit's own sections
    * @param transports Every bean of the transport type this application has
+   * @param groupHierarchies The beans giving the group hierarchy of a workflow module
    * @return The configuration
    */
   @Produces
@@ -113,12 +116,14 @@ public class BusinessCockpitProducer {
   public BusinessCockpitConfiguration businessCockpitConfiguration(
       final MigrationAdapterProperties properties,
       final CockpitSettings settings,
-      @Any final InjectableInstance<BusinessCockpitTransport> transports) {
+      @Any final InjectableInstance<BusinessCockpitTransport> transports,
+      @Any final Instance<WorkflowModuleGroupHierarchy> groupHierarchies) {
 
     return BusinessCockpitConfiguration
         .readAndValidate(
             properties, settings, Templating.engineAvailable(), transportProvidedByTheApplication(
-                transports));
+                transports),
+            groupHierarchies.stream().toList());
 
   }
 
@@ -275,6 +280,21 @@ public class BusinessCockpitProducer {
       final BusinessCockpitExtension extension) {
 
     extension.registerStartedWorkflowModules();
+
+  }
+
+  /**
+   * Registers a workflow module at the cockpit server again once the application says that its
+   * group hierarchy changed.
+   *
+   * @param event Which workflow module changed its hierarchy
+   * @param extension The extension
+   */
+  void registerAgainWhenTheGroupHierarchyChanged(
+      @Observes final WorkflowModuleGroupHierarchyChangedEvent event,
+      final BusinessCockpitExtension extension) {
+
+    extension.registerWorkflowModuleAgain(event.workflowModuleId());
 
   }
 

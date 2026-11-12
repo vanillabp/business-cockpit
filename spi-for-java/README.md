@@ -24,13 +24,13 @@ Everything lives below `io.vanillabp.spi.cockpit`. The module depends on nothing
 own SPI, so a workflow module can compile against it without inheriting anything else. A workflow
 module usually gets it through the module [support](../support), which depends on it.
 
-|      Package      |                                                                      What it holds                                                                       |
-|-------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `usertask`        | `@UserTaskDetailsProvider` and its repeatable container, the details a method returns, the prefilled details it is handed, and the notification settings |
-| `workflow`        | `@WorkflowDetailsProvider` and the same pair of details interfaces for a business case                                                                   |
-| `details`         | `@DetailsEvent`, the parameter saying which lifecycle event caused the call                                                                              |
-| `workflowmodules` | `WorkflowModuleDetailsProvider`, the bean saying which groups may see a workflow module                                                                  |
-| (root)            | `BusinessCockpitService`, which a workflow service injects to report a change of its own                                                                 |
+|      Package      |                                                                                               What it holds                                                                                                |
+|-------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `usertask`        | `@UserTaskDetailsProvider` and its repeatable container, the details a method returns, the prefilled details it is handed, and the notification settings                                                   |
+| `workflow`        | `@WorkflowDetailsProvider` and the same pair of details interfaces for a business case                                                                                                                     |
+| `details`         | `@DetailsEvent`, the parameter saying which lifecycle event caused the call                                                                                                                                |
+| `workflowmodules` | `WorkflowModuleDetailsProvider`, the bean saying which groups may see a workflow module, and `WorkflowModuleGroupHierarchy` with its event, for a group hierarchy which changes while the application runs |
+| (root)            | `BusinessCockpitService`, which a workflow service injects to report a change of its own                                                                                                                   |
 
 Both details provider annotations carry a `version` attribute, and it picks the method by the
 deployed version of the BPMN process. It is written the way `@WorkflowTask` writes it, version tags
