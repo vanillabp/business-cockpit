@@ -166,6 +166,16 @@
       <optional>true</optional>
     </dependency>
     <dependency>
+      <!--
+        The LDAP directory the cockpit brings reads with Spring LDAP. It is optional, so only an
+        application which sets business-cockpit.user-directory.type to ldap adds it. The startup
+        check says so if it is missing. The version comes from the Spring Boot BOM.
+      -->
+      <groupId>org.springframework.ldap</groupId>
+      <artifactId>spring-ldap-core</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
       <groupId>jakarta.validation</groupId>
       <artifactId>jakarta.validation-api</artifactId>
     </dependency>
@@ -263,6 +273,15 @@
       -->
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers-kafka</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!--
+        The directories for Keycloak and LDAP are tested against a real Keycloak and a real LDAP
+        server, each in a GenericContainer. The version comes from the testcontainers BOM.
+      -->
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

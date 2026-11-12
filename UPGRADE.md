@@ -566,3 +566,20 @@ frequent first. Words found equally often come in alphabetical order. Before, th
 
 If your user interface sorted the suggestions itself or showed them from the end of the list, show
 them in the order they come instead.
+
+### A user directory for Keycloak and for LDAP comes with the cockpit
+
+If your directory reads the users of a Keycloak realm or of an LDAP directory, you can drop it and
+let the cockpit bring one. Set `business-cockpit.user-directory.type` to `keycloak` or `ldap`. The
+next start names every value the directory still needs, with an example. The directory keeps each
+user with its groups for five minutes, `business-cockpit.user-directory.cache-duration`.
+
+- The LDAP directory needs `org.springframework.ldap:spring-ldap-core`. The cockpit does not bring
+  it along, so add it. The Spring Boot BOM names its version.
+- The Keycloak directory needs no library. It logs in with a client whose service account has the
+  role `view-users` of `realm-management`. Newer releases of Keycloak also need the client scope
+  `kc-admin-api` among the default client scopes of that client.
+- Do not keep a bean of type `UserDirectoryService` of your own next to it. The start stops if you
+  do, and it stops as well if there is no directory at all. Both messages say what to do.
+
+The wiki page about security says more.

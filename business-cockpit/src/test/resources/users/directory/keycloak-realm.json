@@ -1,0 +1,74 @@
+{
+  "realm": "business-cockpit",
+  "enabled": true,
+  "groups": [
+    { "name": "approvers" },
+    { "name": "clerks" }
+  ],
+  "clients": [
+    {
+      "clientId": "business-cockpit-directory",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "directory-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "defaultClientScopes": [ "basic", "kc-admin-api" ]
+    },
+    {
+      "clientId": "without-rights",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "without-rights-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "defaultClientScopes": [ "basic", "kc-admin-api" ]
+    }
+  ],
+  "users": [
+    {
+      "username": "jane",
+      "enabled": true,
+      "email": "jane.doe@example.com",
+      "emailVerified": true,
+      "firstName": "Jane",
+      "lastName": "Doe",
+      "groups": [ "/approvers", "/clerks" ]
+    },
+    {
+      "username": "john",
+      "enabled": true,
+      "email": "john.doe@example.com",
+      "emailVerified": true,
+      "firstName": "John",
+      "lastName": "Doe",
+      "groups": [ "/clerks" ]
+    },
+    {
+      "username": "former",
+      "enabled": false,
+      "email": "former.doe@example.com",
+      "emailVerified": true,
+      "firstName": "Former",
+      "lastName": "Doe",
+      "groups": [ "/approvers" ]
+    },
+    {
+      "username": "service-account-business-cockpit-directory",
+      "enabled": true,
+      "serviceAccountClientId": "business-cockpit-directory",
+      "clientRoles": {
+        "realm-management": [ "view-users" ]
+      }
+    },
+    {
+      "username": "service-account-without-rights",
+      "enabled": true,
+      "serviceAccountClientId": "without-rights"
+    }
+  ]
+}

@@ -34,6 +34,7 @@ import javax.crypto.KeyGenerator;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.BeanClassLoaderAware;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.context.EnvironmentAware;
@@ -41,10 +42,13 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.ClassUtils;
 
 import io.vanillabp.cockpit.bpms.BpmsApiAuthority;
 import io.vanillabp.cockpit.support.security.jwt.JwtCookie;
 import io.vanillabp.cockpit.support.security.usercontext.UserDetailsProvider;
+import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
+import io.vanillabp.cockpit.users.directory.UserDirectoryConfiguration;
 
 /**
  * Reports everything a cockpit application still has to configure, on every start and in as few
@@ -68,11 +72,12 @@ import io.vanillabp.cockpit.support.security.usercontext.UserDetailsProvider;
  * developer to copy, because guessing a key is the one thing this check can do for them.</li>
  * <li>A missing security chain is a warning. The library brings none, and the application decides
  * how it is protected. A missing user details provider stops the start, because nothing works
- * without it.</li>
+ * without it. So does a missing user directory, a second one, or settings of the directory the
+ * cockpit brings which cannot work.</li>
  * </ul>
  */
 @Component
-public class StartupConfigurationCheck implements BeanFactoryPostProcessor, EnvironmentAware {
+public class StartupConfigurationCheck implements BeanFactoryPostProcessor, EnvironmentAware, BeanClassLoaderAware {
 
   private static final Logger logger = LoggerFactory.getLogger(StartupConfigurationCheck.class);
 
@@ -99,6 +104,8 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
 
   private ConfigurableEnvironment environment;
 
+  private ClassLoader classLoader = ClassUtils.getDefaultClassLoader();
+
   /**
    * Creates the check. Spring creates it as a bean, and Spring passes the environment in later.
    */
@@ -110,6 +117,14 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
       final Environment environment) {
 
     this.environment = (ConfigurableEnvironment) environment;
+
+  }
+
+  @Override
+  public void setBeanClassLoader(
+      final ClassLoader classLoader) {
+
+    this.classLoader = classLoader;
 
   }
 
@@ -137,9 +152,11 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
     failOnAnUnusableMapKeyDotReplacement(environment);
     failOnAnUnusableJwtLifetime(environment);
     failOnAnUnusableSortIndexLimit(environment);
+    failOnAnUnusableUserDirectory(environment);
     generateAJwtKeyIfNoneIsConfigured(environment);
     warnAboutALoginWhichIsNeverRenewed(environment);
     warnAboutKafkaIngestion(environment);
+    warnAboutUserDirectorySettingsWhichAreNotRead(environment);
     warnAboutTheRemainingValues(environment);
 
   }
@@ -230,6 +247,36 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
         .ifPresent(reason -> {
           throw new SortIndexLimitIsNotUsableException(reason);
         });
+
+  }
+
+  /**
+   * The directory is asked only when a logged-in user sends a request. A setting which cannot work
+   * is reported now instead.
+   */
+  private void failOnAnUnusableUserDirectory(
+      final Environment environment) {
+
+    final var unusable = UserDirectorySettings.whatIsWrongWith(environment, classLoader);
+    if (!unusable.isEmpty()) {
+      throw new UserDirectoryIsNotUsableException(unusable);
+    }
+
+  }
+
+  private void warnAboutUserDirectorySettingsWhichAreNotRead(
+      final Environment environment) {
+
+    final var notRead = UserDirectorySettings.sectionsWhichAreNotRead(environment);
+    if (notRead.isEmpty()) {
+      return;
+    }
+    logger.warn("""
+        The settings below '{}' are not read, because '{}' is '{}'. Set '{}' to the directory \
+        they belong to, or remove them.""",
+        String.join("' and '", notRead), UserDirectorySettings.TYPE,
+        CockpitConfiguration.valueOf(environment, UserDirectorySettings.TYPE).orElse(""),
+        UserDirectorySettings.TYPE);
 
   }
 
@@ -339,6 +386,7 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
       final ConfigurableListableBeanFactory beanFactory) {
 
     failOnAMissingUserDetailsProvider(beanFactory);
+    failOnAMissingOrASecondUserDirectory(environment, beanFactory);
     if (!beanFactory.containsBean(GUI_CHAIN)) {
       warnAboutTheMissingGuiChain();
     }
@@ -376,6 +424,54 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
 
                 The module 'container' of the Business Cockpit has this bean in its \
                 GuiSecurityConfiguration. The wiki says more: """ + WIKI_SECURITY);
+
+  }
+
+  /**
+   * Without a directory the start would fail anyway, but with a message about a parameter of a
+   * bean the developer never wrote. With two of them it would fail the same way.
+   */
+  private void failOnAMissingOrASecondUserDirectory(
+      final Environment environment,
+      final ConfigurableListableBeanFactory beanFactory) {
+
+    final var directories = List.of(beanFactory.getBeanNamesForType(UserDirectoryService.class, true, false));
+    final var type = UserDirectorySettings.typeIn(environment);
+
+    if (directories.isEmpty()) {
+      throw new UserDirectoryIsNotUsableException(
+          "The Business Cockpit cannot start. The application has no bean of type '"
+              + UserDirectoryService.class.getName()
+              + "'. The cockpit asks it for the groups of the user on every request, and for the "
+              + "users it proposes when a task is assigned.", """
+                  Let the cockpit bring one, for Keycloak or for LDAP:
+
+                      %s: keycloak
+
+                  The next start says which other values the directory needs. Or add a bean of \
+                  type 'UserDirectoryService' of your own. The wiki says more: %s"""
+                  .formatted(UserDirectorySettings.TYPE, WIKI_SECURITY));
+    }
+
+    if (type.isEmpty() || (directories.size() < 2)) {
+      return;
+    }
+    final var ownDirectories = directories
+        .stream()
+        .filter(name -> !name.equals(UserDirectoryConfiguration.KEYCLOAK_BEAN))
+        .filter(name -> !name.equals(UserDirectoryConfiguration.LDAP_BEAN))
+        .toList();
+    throw new UserDirectoryIsNotUsableException(
+        "The Business Cockpit cannot start. '"
+            + UserDirectorySettings.TYPE
+            + "' asks the cockpit to bring the user directory for '"
+            + UserDirectorySettings.nameOf(type.get())
+            + "', and the application has a bean of type 'UserDirectoryService' of its own as "
+            + "well: '"
+            + String.join("', '", ownDirectories)
+            + "'.", "Remove the property '"
+                + UserDirectorySettings.TYPE
+                + "' to keep your own directory, or remove your bean to use the one the cockpit brings.");
 
   }
 
