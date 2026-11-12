@@ -42,7 +42,7 @@ public class KwicService {
    * @param matchCriteria Limits the search to the documents the user may see
    * @param searchQueries The filters the user set in the list, or {@code null}
    * @param path The field to look for words in
-   * @param query The text typed so far, used as part of a regular expression
+   * @param query The text typed so far, taken literally
    * @return The words found, sorted by how often they were found and then by the word
    */
   public List<KwicResult> getKwicAggregatedResults(
@@ -55,7 +55,7 @@ public class KwicService {
     final var searchQueryCriterias = SearchCriteriaHelper.buildSearchCriteria(searchQueries);
 
     final var groupedQuery = "(\\S*"
-        + query
+        + SearchCriteriaHelper.literally(query)
         + "\\S*)"; // find entire words
     final var aggOperations = new ArrayList<AggregationOperation>();
     // limit results according to regexp and predefined limitations

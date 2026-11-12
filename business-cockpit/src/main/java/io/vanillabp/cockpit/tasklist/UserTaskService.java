@@ -1012,7 +1012,7 @@ public class UserTaskService {
     }
 
     final var searchCriteria = new LinkedList<Criteria>();
-    searchCriteria.add(new Criteria(path).regex(query, "i"));
+    searchCriteria.add(new Criteria(path).regex(SearchCriteriaHelper.literally(query), "i"));
     final var match = buildUserTasksCriteria(
         visibility,
         initialTimestamp,

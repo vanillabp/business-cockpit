@@ -22,8 +22,8 @@ public class SearchCriteriaHelper {
   }
 
   /**
-   * Creates one criterion per filter. The query of a filter is a regular expression. A filter
-   * without a path searches the full text and the note.
+   * Creates one criterion per filter. The query of a filter is plain text: a field matches if it
+   * contains the text. A filter without a path searches the full text and the note.
    *
    * @param searchQueries The filters, or {@code null}
    * @return The criteria, an empty list if there are no filters
@@ -53,11 +53,57 @@ public class SearchCriteriaHelper {
 
     final var options = query.caseInsensitive() ? "i" : "";
     if (StringUtils.hasText(query.path())) {
-      return Criteria.where(query.path()).regex(query.query(), options);
+      return Criteria.where(query.path()).regex(literally(query.query()), options);
     }
     return new FullText(new Criteria().orOperator(
-        Criteria.where("detailsFulltextSearch").regex(query.query(), options),
-        Criteria.where(NotesOfTheCockpit.FIELD).regex(query.query(), options)));
+        Criteria.where("detailsFulltextSearch").regex(literally(query.query()), options),
+        Criteria.where(NotesOfTheCockpit.FIELD).regex(literally(query.query()), options)));
+
+  }
+
+  /**
+   * Turns what a user typed into a regular expression which matches exactly that text. Every
+   * place which puts a user's input into a regular expression for MongoDB uses this method.
+   * <p>
+   * Without it, a character like {@code .}, {@code (} or {@code +} would not find itself, and a
+   * user could send a pattern like {@code (a+)+$} which keeps the database busy for a long time.
+   * <p>
+   * MongoDB runs the expression with its own engine, PCRE, not with Java's. So this method does
+   * not use {@link java.util.regex.Pattern#quote(String)}. It puts a backslash in front of every
+   * ASCII punctuation character. Both engines read a backslash in front of such a character as
+   * "this character itself". Letters, digits, spaces and everything outside ASCII stay as they
+   * are.
+   *
+   * @param text What the user typed, or {@code null}
+   * @return A regular expression which matches the text, an empty string for {@code null}
+   */
+  public static String literally(
+      final String text) {
+
+    if (text == null) {
+      return "";
+    }
+    final var result = new StringBuilder(text.length() * 2);
+    text.chars().forEach(character -> {
+      if (needsABackslash(character)) {
+        result.append('\\');
+      }
+      result.append((char) character);
+    });
+    return result.toString();
+
+  }
+
+  /**
+   * ASCII punctuation, which holds every character with a meaning in a regular expression.
+   */
+  private static boolean needsABackslash(
+      final int character) {
+
+    if ((character >= 128) || Character.isLetterOrDigit(character)) {
+      return false;
+    }
+    return !Character.isWhitespace(character) && !Character.isISOControl(character);
 
   }
 

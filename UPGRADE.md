@@ -544,3 +544,16 @@ If the hierarchy changes while the application runs, keep the bean instead, and 
 
 A module with the bean and the key `group-hierarchy` does not start, and neither does a bean for a
 module which reports nothing to the cockpit.
+
+### The search takes the text literally
+
+A search in the list of user tasks or of workflows finds the text the user typed, and the
+suggestions of a search field do the same. Before, the cockpit sent the text to MongoDB as a regular
+expression. Now characters like `.`, `(`, `+`, `*` and `\` find themselves. So `Mei.r` no longer
+finds `Meier`, and `4.7` no longer finds `437`. A pattern like `(a+)+$` is searched for as text and
+can no longer keep the database busy. Whether the search ignores case stays as it was.
+
+If your user interface or a caller of `UserTaskService` or `WorkflowlistService` sent a pattern,
+it gets no result for it any more. Send the plain text instead.
+`SearchQuery.query()` is plain text now. If code of your own builds a regular expression from what
+a user typed, call `SearchCriteriaHelper.literally(...)` the same way.
