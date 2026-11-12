@@ -4040,3 +4040,59 @@ regular expression without an anchor, so no index helps with it. A limit of 10,0
 - If the search for suggestions ever gets too slow, the place to work on is the `$match` and the
   `$regexFindAll`, not the order.
 
+### 90. The cockpit brings a user directory for Keycloak and for LDAP, switched on by a property, with no library nobody asked for
+
+#### What was found
+
+Every cockpit had to write its own `UserDirectoryService`. Most of them read Keycloak or LDAP, and
+each one wrote the same code again. Since the login token carries no groups, see decision 87, that
+code runs on every request. So each of them also had to get the cache right, and what to do with a
+user the directory does not know, and with a directory which does not answer.
+
+#### The decision
+
+1. The library module `business-cockpit` has two directories, `KeycloakUserDirectoryService` and
+   `LdapUserDirectoryService`. `business-cockpit.user-directory.type` chooses one of them,
+   `keycloak` or `ldap`. Without the property the cockpit brings none, and nothing changes for an
+   application with a directory of its own.
+2. Nobody gets a library they did not ask for. The Keycloak directory talks to the admin REST API
+   of Keycloak with Spring's `RestClient`, which the cockpit has anyway. It needs no Keycloak admin
+   client, and so no RESTEasy and no second Jackson. The LDAP directory reads with Spring LDAP,
+   which is an optional dependency. An application which chooses `ldap` adds it, and the startup
+   check says so if it is missing.
+3. The startup check reads every value of the chosen directory before the first bean is built. A
+   value which is missing or cannot work stops the start, all of them in one message, each with a
+   line to copy. A second `UserDirectoryService` next to the one the cockpit brings stops the start,
+   and so does no directory at all.
+4. Both directories keep the answer of `getUser` for `business-cockpit.user-directory.cache-duration`,
+   five minutes by default. The answer that a user is unknown is kept as well, so an unknown user
+   does not send every request to the directory. A failure is not kept. It goes on as
+   `UserDirectoryFailedException`, so the request fails, as decision 87 wants it, and the message
+   says what to check.
+5. Only `getUser` gives the groups. `findUsers` and `getAllUsers` answer users without groups. They
+   are for proposing a user, the cockpit reads only the id of each user in them, and a group per
+   user would cost one more request to the directory for every user in the list. These lists are not
+   cached.
+6. A user who is disabled in Keycloak counts as unknown. It keeps its login but has no groups, and
+   it is not proposed.
+7. The id of a Keycloak user in the cockpit is its user name by default,
+   `business-cockpit.user-directory.keycloak.user-id: username`. That is what a workflow module
+   names in a BPMN model, and the claim a login by OpenID Connect is usually configured with. `id` chooses the
+   internal id of Keycloak, which is the claim `sub`, for a login which keeps Spring Security's
+   default.
+8. The groups are the names of the groups. For Keycloak these are the names of the groups the user
+   is a direct member of. For LDAP they are the value of `group-name-attribute`, `cn` by default, of
+   every group below `group-search-base` which names the DN of the user in `group-member-attribute`,
+   `member` by default. A group hierarchy is resolved by the cockpit, as before.
+
+#### What follows
+
+- The login and the directory have to agree on the id. For Keycloak, `user-id` has to match the
+  claim the login names the user by.
+- An LDAP search for users looks at the id, the e-mail address and the full name, `cn` by default.
+  Some LDAP servers cannot search every attribute by a part of its value, LLDAP for example, and
+  these three are the ones they all can.
+- A Keycloak of a newer release accepts a token for its admin REST API only if the token names the
+  API as its audience. The client of the directory needs the client scope `kc-admin-api` among its
+  default client scopes. The message of a refused request says so.
+
