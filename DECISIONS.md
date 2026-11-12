@@ -3753,17 +3753,21 @@ one in Maven 3.9:
 
 |                        property                         |   value   |                             what it means                             |
 |---------------------------------------------------------|-----------|-----------------------------------------------------------------------|
-| `aether.connector.http.retryHandler.count`              | `8`       | how often one request is repeated                                     |
+| `aether.connector.http.retryHandler.count`              | `2`       | how often one request is repeated                                     |
 | `aether.connector.http.retryHandler.interval`           | `15000`   | the pause before repeat n is n times this, in milliseconds            |
-| `aether.connector.http.retryHandler.intervalMax`        | `600000`  | a longer pause, also one asked for by `Retry-After`, ends the repeats |
+| `aether.connector.http.retryHandler.intervalMax`        | `2100000` | a longer pause, also one asked for by `Retry-After`, ends the repeats |
 | `aether.connector.http.retryHandler.serviceUnavailable` | `429,503` | the answers which are repeated                                        |
 | `aether.connector.basic.parallelPut`                    | `false`   | one upload after the other instead of five at once                    |
 
 The resolver reads the header `Retry-After`, as seconds or as a date, and waits that long instead
-of its own pause. Without the header, one request waits 15, 30, 45 and so on up to 120 seconds, 9
-minutes for all eight repeats. With the header, it is at most eight times ten minutes. The maximum
-was two minutes at first, and the first publish with it still ended at once: Cloudflare, in front
-of Central, counts the requests of the address a GitHub runner shares with others. Without the
+of its own pause. Maven Central answers a GitHub runner with 429 and a `Retry-After` of about half
+an hour. Its limit counts the requests of the runner's address, which other users share, and a
+request during the block makes the block longer. So the resolver waits out the whole pause once,
+up to 35 minutes, and repeats a request at most twice. A publish which runs into the block takes
+half an hour longer instead of failing. The first values, eight repeats and at most two and then
+ten minutes, never waited at all: the pause Central asked for was longer than the maximum, and the
+resolver gives up at once in that case. Without a `Retry-After`, the pause before repeat n is n
+times 15 seconds. Without the
 file, the resolver repeats three times within 30 seconds. The file applies to every build, on a
 laptop and in a pull request as well, and that is meant. Uploading one file after the other makes a
 publish slower by seconds, and it sends Central one request at a time instead of five.
