@@ -227,10 +227,10 @@ fragen.
 Die Suche ist hier immer unabhängig von Groß- und Kleinschreibung, auch wenn eine `SearchQuery`
 etwas anderes sagt.
 
-Die Antwort hat höchstens 21 Einträge, und es sind nicht die 21 häufigsten, sondern die ersten 21,
-die die Datenbank findet. Sortiert sind sie nach Anzahl aufsteigend, bei gleicher Anzahl nach Wort.
-Das mitgelieferte UI zeigt bei 21 Einträgen einen Hinweis, dass es mehr als zwanzig Treffer gibt,
-statt die Liste zu zeigen.
+Die Antwort hat höchstens 21 Einträge. Es sind die 21 häufigsten Wörter, die häufigsten zuerst. Bei
+gleicher Anzahl stehen sie alphabetisch, Großbuchstaben vor Kleinbuchstaben. Zeig sie in dieser
+Reihenfolge. Bei 21 Einträgen gibt es vielleicht mehr. Ob du dann zusätzlich einen Hinweis zeigst,
+entscheidest du.
 
 Die Anzahl zählt Vorkommen des Wortes, nicht Zeilen. Ein Wort, das in einer Aufgabe zweimal steht,
 zählt zweimal.

@@ -97,19 +97,6 @@ entschieden, und so bleibt es.
 Wer offene Aufgaben mit einer Wiedervorlage in der Zukunft will, nimmt `OpenTaskOnlyFollowUp`. Wer
 die ohne Wiedervorlage oder mit einer fälligen will, nimmt `OpenTasksWithoutFollowUp`.
 
-## Die Vorschläge sind nicht die häufigsten
-
-Die Antwort auf eine KWIC-Abfrage hat höchstens 21 Einträge, und die Grenze greift in der Datenbank,
-bevor sortiert wird. Es sind also die ersten 21, die gefunden werden, und nicht die 21 häufigsten.
-Sortiert werden sie danach aufsteigend nach Anzahl, das seltenste Wort zuerst.
-
-Das mitgelieferte UI zeigt bei 21 Einträgen deshalb einen Hinweis "mehr als zwanzig Treffer" statt
-der Liste. Tu etwas Ähnliches, sonst zeigst du dem Benutzer eine beliebige Auswahl als wäre sie die
-beste.
-
-Die Anzahl zählt Vorkommen eines Wortes, nicht Zeilen, und sie zählt nur innerhalb der Zeilen, die
-den übrigen Bedingungen entsprechen.
-
 ## Der Ereignisstrom geht an alle
 
 Jeder verbundene Browser bekommt jedes Ereignis, auch zu einer Aufgabe, die dieser Benutzer nicht

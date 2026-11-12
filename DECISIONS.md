@@ -3987,3 +3987,56 @@ and `support` brings Spring and OpenFeign, which an extension on Quarkus must no
 - `UPGRADE.md`, `spi-for-java/README.md` and the wiki pages "Configuration" and "Migrating from
   version 1"
 
+### 89. The suggestions of a search field are the 21 words found most often, the most frequent first
+
+#### What was found
+
+A search field asks `OPTIONS /usertask` or `OPTIONS /workflow` for suggestions (KWIC, "keyword in
+context"). `KwicService` finds every word which contains the typed text, groups the words and
+counts them. It then cut the list to 21 right after the `$group`, without a `$sort`. MongoDB gives
+no order after a `$group`, so these were any 21 words, not the 21 most frequent. The service then
+sorted them in Java with the rarest word first.
+
+With 33 words to suggest, the most frequent word was missing from the answer, and the answer
+started with a word found once.
+
+#### The decision
+
+1. After the `$group` comes a `$sort` on the count, the largest first, and then on the word itself,
+   in ascending order. The order of the words is the binary order MongoDB uses without a
+   collation, so an upper case letter comes before a lower case letter. The second key makes the
+   answer the same every time when two words are found equally often.
+2. Then comes `$limit 21`. The answer holds at most 21 words: a user interface shows 20 and takes a
+   twenty-first word as the sign that there are more. No key sets the number.
+3. The order of the database is the order of the answer. The service sorts nothing in Java.
+4. Every row which matches is read. There is no limit on the rows before the `$group`, and
+   `allowDiskUse` is not set. A limit on the rows would make the answer "the most frequent among
+   the first rows found" again.
+
+#### What it costs
+
+The `$group` was there before and already read every matching row. A `$sort` directly followed by a
+`$limit` keeps only the best 21 words in memory, so the sort adds almost nothing. The expensive
+part is the `$match` and the `$regexFindAll` on every row it lets through.
+
+Measured on MongoDB 8.2 with 50,000 user tasks, a common part of a word, and 21 of 429 different
+words in the answer:
+
+|           Who asks            | Rows read | Time before | Time after |
+|-------------------------------|----------:|------------:|-----------:|
+| A user with three groups      |     6,672 |       46 ms |      42 ms |
+| Every user task, no condition |    43,292 |      282 ms |     260 ms |
+
+The difference between before and after is noise. The conditions of the visibility use the
+indexes `_visibility_*`, and "not ended" uses the index on `endedAt`. The condition on the text is a
+regular expression without an anchor, so no index helps with it. A limit of 10,000 rows before the
+`$group` brought the second case down to about 60 ms. That is not worth giving up the meaning of
+"most frequent".
+
+#### What follows
+
+- A user interface shows the answer in the order it comes. It may still show a hint when there are
+  21 words.
+- If the search for suggestions ever gets too slow, the place to work on is the `$match` and the
+  `$regexFindAll`, not the order.
+

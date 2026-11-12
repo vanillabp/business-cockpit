@@ -996,7 +996,7 @@ public class UserTaskService {
    * @param searchQueries The filters the user set in the list, or {@code null}
    * @param path The field to look for words in
    * @param query The text typed so far
-   * @return The words found, at most 21
+   * @return The words found most often, at most 21, the most frequent first
    */
   public List<KwicResult> kwic(
       final UserTaskVisibility visibility,
@@ -1012,7 +1012,7 @@ public class UserTaskService {
     }
 
     final var searchCriteria = new LinkedList<Criteria>();
-    searchCriteria.add(new Criteria(path).regex(query, "i"));
+    searchCriteria.add(new Criteria(path).regex(SearchCriteriaHelper.literally(query), "i"));
     final var match = buildUserTasksCriteria(
         visibility,
         initialTimestamp,
