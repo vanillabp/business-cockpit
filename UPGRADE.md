@@ -86,6 +86,15 @@ version, or import `com.squareup.okhttp3:okhttp-bom` in version `5.5.1`.
 `feign-form` is part of OpenFeign now. Its coordinate changed from `io.github.openfeign.form:feign-form`
 to `io.github.openfeign:feign-form`, and the package `feign.form` stayed.
 
+The REST client fetches its OAuth token without Apache Oltu, and `support` no longer brings
+`org.apache.oltu.oauth2:org.apache.oltu.oauth2.client`. An application which uses Oltu itself names
+it in its own POM. The classes `OAuthClient` and `OAuthOkHttpClient` in the package
+`io.vanillabp.cockpit.support.rest.adapter.oauth` are gone, because their methods took Oltu types.
+`OauthBearerTokenHandler` stays. With `authentication.oauth.basic: true`, the token request sends
+`grant_type` in the form body now, and no longer in the query string, as RFC 6749 asks. A missing
+`authentication.oauth.client-id` or `client-secret` is reported when the REST client is built,
+which is usually at the start of the application, and no longer at the first request.
+
 ### The MongoDB migration is a library of its own
 
 The cockpit no longer carries the MongoDB changeset mechanism. It uses
