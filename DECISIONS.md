@@ -3843,9 +3843,10 @@ It does not hold:
 - the tools `container`, `simulator` and `dev-shell-simulator`. Nobody builds against them.
 - JUnit, Lombok, MapStruct and the other versions only this repository's build needs. An application
   chooses its own.
-- protobuf. Generated code runs on any runtime at least as new as the one it was generated with, so
-  `bpms-protobuf-api` runs on the version Spring Boot names. The version which matters is the one
-  the Camunda 8 client brings, because its gRPC calls depend on it. That pin belongs to the Camunda 8
+- protobuf. Protobuf 4 generated code calls `RuntimeVersion.validateProtobufGencodeVersion()` in
+  every static initializer, and the class fails to load when the runtime is older than the gencode.
+  `bpms-protobuf-api` is older than the runtime Spring Boot names, so it needs no pin. The Camunda 8
+  client brings gencode which can be newer than that runtime. That pin belongs to the Camunda 8
   cockpit adapter, whose README says per release line what an application pins.
 
 #### Why the parent is the release parent

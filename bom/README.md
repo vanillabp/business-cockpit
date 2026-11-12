@@ -38,10 +38,12 @@ What a workflow module uses is not in it. A workflow module gets the cockpit thr
 adapter for its BPMS, which is released in a repository of its own. A workflow module may also run
 on Quarkus, and the Spring BOMs would be wrong there.
 
-Protobuf is not pinned. `bpms-protobuf-api` runs on any runtime at least as new as the one it was
-generated with, and the one Spring Boot names is newer. The version which matters is the one the
-Camunda 8 client brings for its gRPC calls, so the pin belongs to the Camunda 8 cockpit adapter. Its
-README says per release line what an application pins.
+Protobuf is not pinned. Protobuf 4 generated code calls
+`RuntimeVersion.validateProtobufGencodeVersion()` in every static initializer, and the class fails
+to load when the runtime is older than the gencode. A newer runtime is fine. `bpms-protobuf-api`
+is older than the runtime Spring Boot names, so it needs no pin. The Camunda 8 client brings
+gencode which can be newer than that runtime, so the pin belongs to the Camunda 8 cockpit adapter.
+Its README says per release line what an application pins.
 
 JUnit, Lombok and MapStruct are not in it either. They are what this repository builds with, and an
 application chooses its own.
