@@ -32,7 +32,7 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * configured URI reads.
  */
 @ExtendWith(SuppressOutputExtension.class)
-class LocalUserDetailsProviderImplTest {
+class LocalUserDirectoryServiceImplTest {
 
   private static final String USERS = """
       [
@@ -98,9 +98,9 @@ class LocalUserDetailsProviderImplTest {
 
   }
 
-  private LocalUserDetailsProviderImpl loadedProvider() {
+  private LocalUserDirectoryServiceImpl loadedProvider() {
 
-    final var provider = new LocalUserDetailsProviderImpl(usersUri);
+    final var provider = new LocalUserDirectoryServiceImpl(usersUri);
     provider.loadAllUsersFromDevShellSimulator();
     return provider;
 
@@ -218,7 +218,7 @@ class LocalUserDetailsProviderImplTest {
 
     final var failure = assertThrows(
         RuntimeException.class,
-        () -> new LocalUserDetailsProviderImpl(usersUri).loadAllUsersFromDevShellSimulator());
+        () -> new LocalUserDirectoryServiceImpl(usersUri).loadAllUsersFromDevShellSimulator());
 
     assertTrue(failure.getMessage().contains("Is it up and running at"));
     assertTrue(failure.getMessage().contains("dev-shell-simulator.users-uri"));

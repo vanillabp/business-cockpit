@@ -12,10 +12,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.vanillabp.cockpit.support.security.jwt.JwtUserDetailsProvider;
 import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.support.security.usercontext.UserDetailsProvider;
+import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 import io.vanillabp.cockpit.tasklist.UserTaskVisibility;
 import io.vanillabp.cockpit.tasklist.api.v1.AbstractUserTaskListGuiApiController;
 import io.vanillabp.cockpit.users.UserDetailsImpl;
-import io.vanillabp.cockpit.users.UserDetailsProvider;
 import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
@@ -72,16 +73,16 @@ public class DerivedCockpitApplication {
    * none.
    */
   @Bean
-  public io.vanillabp.cockpit.support.security.usercontext.UserDetailsProvider userDetailsProvider() {
+  public UserDetailsProvider userDetailsProvider() {
 
     return new JwtUserDetailsProvider();
 
   }
 
   @Bean
-  public UserDetailsProvider theUsersOfThisApplication() {
+  public UserDirectoryService theUsersOfThisApplication() {
 
-    return new UserDetailsProvider() {
+    return new UserDirectoryService() {
 
       @Override
       public List<UserDetails> findUsers(
@@ -138,7 +139,7 @@ public class DerivedCockpitApplication {
 
   @Bean
   public PersonAndGroupApiMapper personsAndGroupsOfTheApi(
-      final UserDetailsProvider users) {
+      final UserDirectoryService users) {
 
     return new PersonAndGroupApiMapper() {
 

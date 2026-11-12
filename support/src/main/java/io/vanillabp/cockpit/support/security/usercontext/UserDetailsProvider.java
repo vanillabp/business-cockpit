@@ -5,6 +5,9 @@ import org.springframework.security.core.Authentication;
 /**
  * Finds the details of a user out of a Spring Security authentication. Each way to log in brings
  * its own provider.
+ *
+ * <p>It knows only the user who is calling. To look up any other user, use the
+ * {@link UserDirectoryService}.
  */
 public interface UserDetailsProvider {
 

@@ -31,11 +31,11 @@ import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksUpdateRequest;
 import io.vanillabp.cockpit.support.security.usercontext.UserContext;
 import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 import io.vanillabp.cockpit.tasklist.UserTaskAlreadyCompletedException;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.UserTaskVisibility;
 import io.vanillabp.cockpit.tasklist.api.UserTaskStreamAudience;
-import io.vanillabp.cockpit.users.UserDetailsProvider;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
 import io.vanillabp.cockpit.util.CountKeys;
@@ -84,7 +84,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 
   /** The directory of the users, for the search for a user to assign. */
   @Autowired
-  protected UserDetailsProvider userDetailsProvider;
+  protected UserDirectoryService userDirectoryService;
 
   /** Reads and changes the stored tasks. */
   @Autowired
@@ -624,9 +624,9 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
     final var trimmedQuery = StringUtils.trimAllWhitespace(query);
     final Collection<UserDetails> users;
     if (!StringUtils.hasText(trimmedQuery) || (trimmedQuery.length() < 3)) {
-      users = userDetailsProvider.getAllUsers();
+      users = userDirectoryService.getAllUsers();
     } else {
-      users = userDetailsProvider.findUsers(trimmedQuery);
+      users = userDirectoryService.findUsers(trimmedQuery);
     }
 
     final var result = new UserSearchResult();

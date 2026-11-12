@@ -28,9 +28,9 @@ import io.vanillabp.cockpit.notification.NotificationService;
 import io.vanillabp.cockpit.notification.NotificationType;
 import io.vanillabp.cockpit.notification.model.NotificationOutboxEntry;
 import io.vanillabp.cockpit.notification.model.NotificationOutboxRepository;
+import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
-import io.vanillabp.cockpit.users.UserDetailsProvider;
 import io.vanillabp.cockpit.users.model.UserRepository;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
@@ -63,7 +63,7 @@ class NotificationPollerDeliveryTest {
 
     poller = new NotificationPoller(
         mock(MongoTemplate.class), mock(UserRepository.class), userTasks, outbox, List
-            .of(service), mock(UserDetailsProvider.class), 120, Duration.ofHours(48));
+            .of(service), mock(UserDirectoryService.class), 120, Duration.ofHours(48));
   }
 
   private NotificationOutboxEntry entry(

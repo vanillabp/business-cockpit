@@ -15,8 +15,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 import io.vanillabp.cockpit.users.UserDetailsImpl;
-import io.vanillabp.cockpit.users.UserDetailsProvider;
 import jakarta.annotation.PostConstruct;
 
 /**
@@ -27,9 +27,9 @@ import jakarta.annotation.PostConstruct;
  * If the simulator cannot be reached, the cockpit does not start, and the message says which
  * property points to it.
  */
-public class LocalUserDetailsProviderImpl implements UserDetailsProvider {
+public class LocalUserDirectoryServiceImpl implements UserDirectoryService {
 
-  private static final Logger log = LoggerFactory.getLogger(LocalUserDetailsProviderImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(LocalUserDirectoryServiceImpl.class);
 
   private final List<UserDetails> users = new LinkedList<>();
 
@@ -44,7 +44,7 @@ public class LocalUserDetailsProviderImpl implements UserDetailsProvider {
    * @param devShellSimulatorUsersUri The address the simulator serves its users at. The users
    *          are read from <code>/all</code> below it
    */
-  public LocalUserDetailsProviderImpl(
+  public LocalUserDirectoryServiceImpl(
       final String devShellSimulatorUsersUri) {
 
     this.devShellSimulatorUsersUri = devShellSimulatorUsersUri;

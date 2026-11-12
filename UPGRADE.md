@@ -22,21 +22,27 @@ depends on `support` instead. `support` brings no MongoDB and no Kafka.
 
 One line per package. Replace the beginning of each import:
 
-|                              before                               |                               now                               |      artifact      |
-|-------------------------------------------------------------------|-----------------------------------------------------------------|--------------------|
-| `io.vanillabp.cockpit.commons.security.jwt`                       | `io.vanillabp.cockpit.support.security.jwt`                     | `support`          |
-| `io.vanillabp.cockpit.commons.security.usercontext`               | `io.vanillabp.cockpit.support.security.usercontext`             | `support`          |
-| `io.vanillabp.cockpit.commons.rest`                               | `io.vanillabp.cockpit.support.rest`                             | `support`          |
-| `io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException` | `io.vanillabp.cockpit.support.security.BcUnauthorizedException` | `support`          |
-| `io.vanillabp.cockpit.commons.exceptions`                         | `io.vanillabp.cockpit.exceptions`                               | `business-cockpit` |
-| `io.vanillabp.cockpit.commons.kafka`                              | `io.vanillabp.cockpit.kafka`                                    | `business-cockpit` |
-| `io.vanillabp.cockpit.commons.mapstruct`                          | `io.vanillabp.cockpit.mapstruct`                                | `business-cockpit` |
-| `io.vanillabp.cockpit.commons.mongo`                              | `io.vanillabp.cockpit.mongo`                                    | `business-cockpit` |
-| `io.vanillabp.cockpit.commons.utils.DateTimeUtil`                 | `io.vanillabp.cockpit.mongo.converters.DateTimeUtil`            | `business-cockpit` |
-| `io.vanillabp.cockpit.commons.utils.LoggerFactory`                | gone, see below                                                 |                    |
+|                              before                               |                                   now                                    |      artifact      |
+|-------------------------------------------------------------------|--------------------------------------------------------------------------|--------------------|
+| `io.vanillabp.cockpit.commons.security.jwt`                       | `io.vanillabp.cockpit.support.security.jwt`                              | `support`          |
+| `io.vanillabp.cockpit.commons.security.usercontext`               | `io.vanillabp.cockpit.support.security.usercontext`                      | `support`          |
+| `io.vanillabp.cockpit.commons.rest`                               | `io.vanillabp.cockpit.support.rest`                                      | `support`          |
+| `io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException` | `io.vanillabp.cockpit.support.security.BcUnauthorizedException`          | `support`          |
+| `io.vanillabp.cockpit.users.UserDetailsProvider`                  | `io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService` | `support`          |
+| `io.vanillabp.cockpit.commons.exceptions`                         | `io.vanillabp.cockpit.exceptions`                                        | `business-cockpit` |
+| `io.vanillabp.cockpit.commons.kafka`                              | `io.vanillabp.cockpit.kafka`                                             | `business-cockpit` |
+| `io.vanillabp.cockpit.commons.mapstruct`                          | `io.vanillabp.cockpit.mapstruct`                                         | `business-cockpit` |
+| `io.vanillabp.cockpit.commons.mongo`                              | `io.vanillabp.cockpit.mongo`                                             | `business-cockpit` |
+| `io.vanillabp.cockpit.commons.utils.DateTimeUtil`                 | `io.vanillabp.cockpit.mongo.converters.DateTimeUtil`                     | `business-cockpit` |
+| `io.vanillabp.cockpit.commons.utils.LoggerFactory`                | gone, see below                                                          |                    |
 
 `BcUnauthorizedException` left its siblings, because `UserContext` in `support` throws it and
 `support` cannot see the library module.
+
+The directory of the users got a new name on its way to `support`, so it is no longer confused with
+the `UserDetailsProvider` which says who is calling. Its methods stayed. A controller which extends
+`AbstractUserTaskListGuiApiController` finds it in the field `userDirectoryService` instead of
+`userDetailsProvider`.
 
 The two auto-configurations of the MongoDB package have new names as well. An application which
 names one of them in `spring.autoconfigure.exclude` replaces the name, for the same reason as the

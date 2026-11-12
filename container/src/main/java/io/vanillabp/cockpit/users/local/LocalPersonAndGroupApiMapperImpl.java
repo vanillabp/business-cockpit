@@ -2,7 +2,7 @@ package io.vanillabp.cockpit.users.local;
 
 import io.vanillabp.cockpit.gui.api.v1.Group;
 import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
-import io.vanillabp.cockpit.users.UserDetailsProvider;
+import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
 
@@ -12,18 +12,18 @@ import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
  * with group ids only.
  */
 public class LocalPersonAndGroupApiMapperImpl implements PersonAndGroupApiMapper {
-  private final UserDetailsProvider userDetailsProvider;
+  private final UserDirectoryService userDirectoryService;
 
   /**
    * Creates the mapper on top of the demo users.
    *
-   * @param userDetailsProvider The directory of the demo users, which is asked for the name of
+   * @param userDirectoryService The directory of the demo users, which is asked for the name of
    *          a person by its id
    */
   public LocalPersonAndGroupApiMapperImpl(
-      final UserDetailsProvider userDetailsProvider) {
+      final UserDirectoryService userDirectoryService) {
 
-    this.userDetailsProvider = userDetailsProvider;
+    this.userDirectoryService = userDirectoryService;
 
   }
 
@@ -57,7 +57,7 @@ public class LocalPersonAndGroupApiMapperImpl implements PersonAndGroupApiMapper
   public io.vanillabp.cockpit.gui.api.v1.Person toApiPerson(
       final String personId) {
 
-    final var userFound = userDetailsProvider
+    final var userFound = userDirectoryService
         .getUser(personId);
     return userFound
         .map(this::userToApiPerson)

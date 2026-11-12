@@ -5,7 +5,7 @@ import java.util.List;
 import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 
 /**
- * A plain holder of the details of a user, for a {@link UserDetailsProvider} which builds them
+ * A plain holder of the details of a user, for a {@link io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService} which builds them
  * itself.
  */
 public class UserDetailsImpl implements UserDetails {

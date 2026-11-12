@@ -32,7 +32,7 @@ import io.vanillabp.cockpit.support.security.jwt.JwtMapper;
 import io.vanillabp.cockpit.support.security.jwt.JwtProperties;
 import io.vanillabp.cockpit.support.security.jwt.JwtSecurityContextRepository;
 import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
-import io.vanillabp.cockpit.users.UserDetailsProvider;
+import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
@@ -121,7 +121,7 @@ class SecurityChainsTest {
     final JwtMapper<? extends JwtAuthenticationToken> jwtMapper = new JwtAuthenticationTokenMapper(jwtProperties);
     final var jwtRepository = new JwtSecurityContextRepository(jwtProperties, jwtMapper);
     return configuration.guiHttpSecurity(
-        httpSecurity(), jwtRepository, jwtMapper, new SingleUserDetailsProvider());
+        httpSecurity(), jwtRepository, jwtMapper, new SingleUserDirectoryService());
 
   }
 
@@ -242,7 +242,7 @@ class SecurityChainsTest {
         BpmsApiSecurityConfiguration.class, "bpmsApiHttpSecurity", HttpSecurity.class);
     final var guiOrder = orderOf(
         GuiSecurityConfiguration.class, "guiHttpSecurity", HttpSecurity.class,
-        JwtSecurityContextRepository.class, JwtMapper.class, UserDetailsProvider.class);
+        JwtSecurityContextRepository.class, JwtMapper.class, UserDirectoryService.class);
 
     assertThat(bpmsApiOrder).isLessThan(guiOrder);
 
@@ -258,7 +258,7 @@ class SecurityChainsTest {
 
     assertThat(GuiSecurityConfiguration.class
         .getDeclaredMethod("guiHttpSecurity", HttpSecurity.class,
-            JwtSecurityContextRepository.class, JwtMapper.class, UserDetailsProvider.class)
+            JwtSecurityContextRepository.class, JwtMapper.class, UserDirectoryService.class)
         .getAnnotation(Bean.class))
         .isNotNull();
     assertThat(BpmsApiSecurityConfiguration.class
@@ -289,7 +289,7 @@ class SecurityChainsTest {
 
   }
 
-  private static class SingleUserDetailsProvider implements UserDetailsProvider {
+  private static class SingleUserDirectoryService implements UserDirectoryService {
 
     @Override
     public List<UserDetails> findUsers(
