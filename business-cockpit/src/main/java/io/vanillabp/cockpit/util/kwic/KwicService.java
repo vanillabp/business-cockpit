@@ -2,9 +2,10 @@ package io.vanillabp.cockpit.util.kwic;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Order;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
@@ -22,6 +23,12 @@ import io.vanillabp.cockpit.util.SearchQuery;
 @Service
 public class KwicService {
 
+  /**
+   * How many words a search returns at most. A user interface shows twenty and takes a
+   * twenty-first word as the sign that there are more.
+   */
+  public static final int MAX_RESULTS = 21;
+
   private final MongoTemplate mongoTemplate;
 
   /**
@@ -35,15 +42,16 @@ public class KwicService {
   }
 
   /**
-   * Finds the words in a field which contain the text typed so far. The search ignores case, and
-   * at most 21 words are returned.
+   * Finds the words in a field which contain the text typed so far. The search ignores case. It
+   * returns the {@value #MAX_RESULTS} words found most often, the most frequent first.
    *
    * @param searchCollectionClass The document class whose collection is searched
    * @param matchCriteria Limits the search to the documents the user may see
    * @param searchQueries The filters the user set in the list, or {@code null}
    * @param path The field to look for words in
    * @param query The text typed so far, taken literally
-   * @return The words found, sorted by how often they were found and then by the word
+   * @return The words found, the most frequent first. Words found equally often are in
+   *         alphabetical order, upper case before lower case.
    */
   public List<KwicResult> getKwicAggregatedResults(
       final Class<?> searchCollectionClass,
@@ -75,7 +83,12 @@ public class KwicService {
     aggOperations.add(Aggregation.unwind("captures"));
     // group and count words found
     aggOperations.add(Aggregation.group("captures").count().as("count"));
-    aggOperations.add(Aggregation.limit(21));
+    // MongoDB gives no order after a group, so a limit without a sort keeps any words.
+    // A limit right after a sort keeps only the best few words in memory.
+    aggOperations.add(Aggregation.sort(Sort.by(
+        Order.desc("count"),
+        Order.asc("_id"))));
+    aggOperations.add(Aggregation.limit(MAX_RESULTS));
 
     return mongoTemplate
         .aggregate(
@@ -84,11 +97,6 @@ public class KwicService {
             ),
             searchCollectionClass,
             KwicResult.class)
-        .getMappedResults()
-        .stream()
-        .sorted(Comparator
-            .comparingInt(KwicResult::count)
-            .thenComparing(KwicResult::item))
-        .toList();
+        .getMappedResults();
   }
 }

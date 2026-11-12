@@ -557,3 +557,12 @@ If your user interface or a caller of `UserTaskService` or `WorkflowlistService`
 it gets no result for it any more. Send the plain text instead.
 `SearchQuery.query()` is plain text now. If code of your own builds a regular expression from what
 a user typed, call `SearchCriteriaHelper.literally(...)` the same way.
+
+### The suggestions of a search field are the most frequent words
+
+`OPTIONS /usertask` and `OPTIONS /workflow` answer with the 21 words found most often, the most
+frequent first. Words found equally often come in alphabetical order. Before, the answer held any
+21 words, and the rarest came first.
+
+If your user interface sorted the suggestions itself or showed them from the end of the list, show
+them in the order they come instead.
