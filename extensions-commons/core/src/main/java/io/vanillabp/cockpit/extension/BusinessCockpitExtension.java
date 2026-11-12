@@ -876,11 +876,18 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   /**
    * Plans the registration of one workflow module.
    * <p>
-   * It is the one entry of this extension which carries no report and does not replace what
-   * waits. A registration says that a module exists, where it answers and which group
-   * hierarchy it has. All of that is read when the entry is dispatched, not when it is planned.
-   * So a second registration of one module says exactly what the waiting one will say, and
-   * keeping the waiting one is right. That is what plain scheduling does.
+   * A registration says that a module exists, where it answers and which group hierarchy it
+   * has. All of that is read when the entry is dispatched, not when it is planned. The entry
+   * carries no report.
+   * <p>
+   * Still, the new entry replaces a waiting one and is not dropped in favour of it. A waiting
+   * entry says the same as the new one only until a dispatch takes it. From then on it may have
+   * read the hierarchy already, and a change after that read is not in it. The store never
+   * replaces an entry which a dispatch has taken. The new entry is then written beside it, and a
+   * second registration with the new hierarchy follows. Plain scheduling would drop the new
+   * entry against the one on its way, and the cockpit would never hear of the change. An entry
+   * which still waits is replaced by one which says the same, so a module still registers once
+   * where nothing has been sent yet.
    */
   private void scheduleRegistration(
       final String workflowModuleId) {
@@ -891,7 +898,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
                 workflowModuleId,
                 bpmnProcessesPerWorkflowModule
                     .getOrDefault(workflowModuleId, Set.of()))
-            .schedule(
+            .scheduleReplacingWhatIsStillWaiting(
                 PhaseTwoCall
                     .of(
                         BusinessCockpitOperations.registerWorkflowModule(),
@@ -899,7 +906,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
                         BusinessCockpitOperations.EVERY_BPMN_PROCESS,
                         null,
                         null,
-                        Map.of())));
+                        Map.of())
+                    .replacingWhatIsStillWaiting()));
 
   }
 
