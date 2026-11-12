@@ -141,7 +141,8 @@ Gegen ein laufendes Cockpit mit mindestens einem Workflow-Modul:
 2. Das Formular einer Aufgabe aus dem Modul lädt und zeigt die Daten der Aufgabe.
 3. Eine Änderung an einer Aufgabe, die jemand anderes auslöst, erscheint ohne Neuladen.
 4. Übernehmen und Zurückgeben wirken, und die Zeile zeigt es danach.
-5. Blättern, Sortieren und Suchen liefern, was sie sollen, auch über gemeldete Geschäftsdaten.
+5. Blättern, Sortieren und Suchen liefern, was sie sollen, auch über gemeldete Geschäftsdaten. Nach
+   einer Live-Aktualisierung zeigt eine gefilterte Liste nur Zeilen, die zum Filter passen.
 6. Eine Aufgabe eines Moduls vom Typ `EXTERNAL` öffnet die fremde Seite und hält die Liste heil.
 
 Ein Test, der ein erzeugtes UI gegen die GUI-API fährt, ist der einzige Weg, ein Auseinanderlaufen

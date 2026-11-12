@@ -244,6 +244,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
    * @param size How many workflows to return at most
    * @param knownWorkflowsIds The ids of the workflows the browser shows already
    * @param initialTimestamp When the user started to page through the list
+   * @param businessIds Only the workflows of these business ids, or {@code null} for all
    * @param searchQueries The filters of the list, or {@code null}
    * @param sort The paths to sort by, separated by commas, or {@code null}
    * @param sortAscending Whether to sort in ascending order
@@ -255,6 +256,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
       final int size,
       final Collection<String> knownWorkflowsIds,
       final OffsetDateTime initialTimestamp,
+      final List<String> businessIds,
       final List<SearchQuery> searchQueries,
       final String sort,
       final boolean sortAscending,
@@ -265,6 +267,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
         size,
         knownWorkflowsIds,
         initialTimestamp,
+        businessIds,
         searchQueries,
         sort,
         sortAscending,
@@ -290,6 +293,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
         workflowsUpdateRequest.getSize(),
         workflowsUpdateRequest.getKnownWorkflowsIds(),
         timestamp,
+        workflowsUpdateRequest.getBusinessIds(),
         mapper.toModel(workflowsUpdateRequest.getSearchQueries()),
         workflowsUpdateRequest.getSort(),
         ListPaging.sortAscending(workflowsUpdateRequest.getSortAscending()),

@@ -24,6 +24,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import io.vanillabp.cockpit.support.security.jwt.JwtUserDetailsProvider;
 import io.vanillabp.cockpit.support.security.usercontext.UserDetailsProvider;
+import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
@@ -194,6 +195,8 @@ class StartupConfigurationCheckTest {
     }
     beanFactory.registerBeanDefinition(
         "userDetailsProvider", new RootBeanDefinition(JwtUserDetailsProvider.class));
+    beanFactory.registerBeanDefinition(
+        "userDirectoryService", new RootBeanDefinition(UserDirectoryService.class));
     return beanFactory;
 
   }

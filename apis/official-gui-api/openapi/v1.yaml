@@ -1487,6 +1487,14 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SearchQuery'
+        businessIds:
+          type: array
+          items:
+            type: string
+          description: >-
+            Only the workflows of these business ids, the same as in 'POST /workflow'. Send the
+            business ids of the first page, or the update brings workflows which do not belong to
+            the list.
         sort:
           type: string
           description: >-

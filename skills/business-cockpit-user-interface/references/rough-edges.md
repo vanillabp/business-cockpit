@@ -81,13 +81,6 @@ Die Bedingungen einer Abfrage werden mit UND verknüpft, aber zwei Bedingungen a
 nimmt die Abfrage nicht an. Setze beim Filtern also immer den alten Eintrag für diesen Pfad zurück,
 bevor du den neuen hinzufügst. So macht es das mitgelieferte UI.
 
-## `businessIds` verschwindet bei der Aktualisierung
-
-`businessIds` wirkt nur auf `POST /workflow`. `WorkflowsUpdateRequest` hat das Feld nicht, und die
-Aktualisierung übergibt an dieser Stelle nichts. Eine Liste, die nach Geschäftskennungen gefiltert
-ist, bekommt bei der Aktualisierung also auch Fälle, die nicht dazugehören. Filtere danach selbst
-nach, wenn du diesen Filter benutzt.
-
 ## `OpenTasksWithFollowUp` ist nur ein anderer Name
 
 Der Name klingt nach einem Filter auf die Wiedervorlage. Es gibt keinen: der Modus ist ein anderer

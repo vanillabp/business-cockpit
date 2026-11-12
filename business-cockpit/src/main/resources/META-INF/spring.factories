@@ -5,4 +5,5 @@ io.vanillabp.cockpit.config.startup.MapKeyDotReplacementIsNotUsableFailureAnalyz
 io.vanillabp.cockpit.config.startup.JwtLifetimeIsNotUsableFailureAnalyzer,\
 io.vanillabp.cockpit.config.startup.SortIndexLimitIsNotUsableFailureAnalyzer,\
 io.vanillabp.cockpit.config.startup.RemovedPropertyIsSetFailureAnalyzer,\
-io.vanillabp.cockpit.config.startup.UserDetailsProviderIsMissingFailureAnalyzer
+io.vanillabp.cockpit.config.startup.UserDetailsProviderIsMissingFailureAnalyzer,\
+io.vanillabp.cockpit.config.startup.UserDirectoryIsNotUsableFailureAnalyzer
