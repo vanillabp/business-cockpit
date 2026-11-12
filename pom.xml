@@ -35,6 +35,8 @@
     See decision 63 in the repository's DECISIONS.md.
   -->
   <modules>
+    <!-- the BOM of a derived cockpit application. Its parent is not this POM, see its pom.xml. -->
+    <module>bom</module>
     <module>spi-for-java</module>
     <module>support</module>
     <module>apis/bpms-api/client</module>

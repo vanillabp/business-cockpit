@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!--
+    The parent is the release parent and not 'business-cockpit-parent', on purpose. An application
+    which imports a BOM gets its effective dependencyManagement, and that includes everything the
+    BOM inherits. With 'business-cockpit-parent' as the parent, every derived cockpit would get the
+    versions of JUnit, Lombok and MapStruct which this repository builds with. The release parent
+    has no dependencyManagement of its own. 'mvn help:effective-pom -pl bom' shows what the BOM
+    really hands on.
+
+    Because of this parent, the release workflow sets the version with
+    'versions:set -DprocessAllModules=true'. Without it, this module would keep its SNAPSHOT version.
+  -->
+  <parent>
+    <groupId>io.vanillabp</groupId>
+    <artifactId>release-parent</artifactId>
+    <version>2.0.0</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>io.vanillabp.businesscockpit</groupId>
+  <artifactId>business-cockpit-bom</artifactId>
+  <version>0.9.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>VanillaBP business cockpit BOM</name>
+  <description>The versions a derived cockpit application needs: the Spring Boot and Spring Cloud BOMs
+    the cockpit is built against, and the cockpit artifacts of the same release. Import it in the
+    dependencyManagement of the application.</description>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>VanillaBP</id>
+      <organization>Phactum Softwareentwicklung GmbH</organization>
+      <organizationUrl>https://www.phactum.at</organizationUrl>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:https://github.com/vanillabp/business-cockpit.git</connection>
+    <developerConnection>scm:git:https://github.com/vanillabp/business-cockpit.git</developerConnection>
+    <url>https://github.com/vanillabp/business-cockpit/tree/main</url>
+  </scm>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!--
+      The versions below are the ones of the root pom.xml, written a second time, because this
+      module cannot inherit them. Renovate changes every place a version is written, so one pull
+      request moves both. A change by hand has to change both too.
+    -->
+    <version.vanillabp>2.0.0-SNAPSHOT</version.vanillabp>
+    <version.mongodb-changesets>1.0.0-SNAPSHOT</version.mongodb-changesets>
+    <version.protobuf>4.31.1</version.protobuf>
+    <!--
+      The Spotless run of the root module formats this pom.xml, because it includes every
+      pom.xml. This module does not inherit the plugin, so a Spotless goal started on it has
+      nothing to run and is skipped.
+    -->
+    <spotless.check.skip>true</spotless.check.skip>
+    <spotless.apply.skip>true</spotless.apply.skip>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <!--
+        The first import of a coordinate wins. Spring Cloud names OpenFeign 13.6.1, and the
+        module 'support' needs a newer one: its Jackson 3 codec fails with
+        'NoClassDefFoundError: feign/codec/JsonDecoder' on 13.6.1, and it fails only at runtime.
+        So the OpenFeign BOM comes before the Spring BOMs.
+      -->
+      <dependency>
+        <groupId>io.github.openfeign</groupId>
+        <artifactId>feign-bom</artifactId>
+        <version>13.18</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!--
+        Before the Spring BOMs for the same reason. feign-okhttp reads OkHttp 5. Another BOM still
+        names OkHttp 4, and then two jars carry the package okhttp3.
+      -->
+      <dependency>
+        <groupId>com.squareup.okhttp3</groupId>
+        <artifactId>okhttp-bom</artifactId>
+        <version>5.5.1</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!--
+        The application pins spring-boot-maven-plugin to this version too. No
+        spring-boot-starter-parent gives the plugin a version.
+      -->
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-dependencies</artifactId>
+        <version>4.1.2</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!-- the cockpit proxies the workflow modules with the Spring Cloud gateway -->
+      <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-dependencies</artifactId>
+        <version>2025.1.4</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.vanillabp</groupId>
+        <artifactId>vanillabp-bom</artifactId>
+        <version>${version.vanillabp}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!-- the database migration of the cockpit -->
+      <dependency>
+        <groupId>com.phactum.mongodb</groupId>
+        <artifactId>mongodb-changesets</artifactId>
+        <version>${version.mongodb-changesets}</version>
+      </dependency>
+      <!--
+        bpms-protobuf-api was generated and tested with this version, and the root pom.xml pins it.
+        Spring Boot names a newer one. Generated code refuses to run on an older runtime, so an
+        application which needs a newer runtime may name one.
+      -->
+      <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java</artifactId>
+        <version>${version.protobuf}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java-util</artifactId>
+        <version>${version.protobuf}</version>
+      </dependency>
+      <!-- the cockpit as a library, which the application depends on -->
+      <dependency>
+        <groupId>io.vanillabp.businesscockpit</groupId>
+        <artifactId>business-cockpit</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <!-- reads the reports of the workflow modules from Kafka -->
+      <dependency>
+        <groupId>io.vanillabp.businesscockpit</groupId>
+        <artifactId>bpms-protobuf-api</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <!--
+        The library brings these with it. They are named here so a second path to one of them
+        cannot bring another version of the cockpit into the application.
+      -->
+      <dependency>
+        <groupId>io.vanillabp.businesscockpit</groupId>
+        <artifactId>support</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.vanillabp.businesscockpit</groupId>
+        <artifactId>spi-for-java</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.vanillabp.businesscockpit</groupId>
+        <artifactId>bpms-api-server</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.vanillabp.businesscockpit</groupId>
+        <artifactId>official-gui-api-server</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+</project>

@@ -102,9 +102,11 @@ jobs:
         run: |
           git checkout -b release/${{ github.event.inputs.release_version }} origin/main
 
+      # '-DprocessAllModules=true' also sets the version of 'bom', whose parent is not the root
+      # POM. The same holds for the next snapshot version further down.
       - name: Set Maven release version
         run: |
-          mvn --no-transfer-progress versions:set -DnewVersion=${{ github.event.inputs.release_version }}
+          mvn --no-transfer-progress versions:set -DprocessAllModules=true -DnewVersion=${{ github.event.inputs.release_version }}
           find . -name pom.xml.versionsBackup -delete
 
       # A version on Maven Central never changes. Below that line nobody can use this version
@@ -234,7 +236,7 @@ jobs:
 
       - name: Set next snapshot version
         run: |
-          mvn --no-transfer-progress versions:set -DnewVersion=${{ env.NEXT_SNAPSHOT }}
+          mvn --no-transfer-progress versions:set -DprocessAllModules=true -DnewVersion=${{ env.NEXT_SNAPSHOT }}
           find . -name pom.xml.versionsBackup -delete
 
       # The Java snapshot goes to the snapshot repository of Maven Central through the profile
