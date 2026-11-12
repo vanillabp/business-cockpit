@@ -3874,3 +3874,45 @@ check for SNAPSHOTs.
 - `README.md`, the list of modules
 - the skill `business-cockpit-creator`, `references/backend.md`, the section about the parent pom
 
+### 87. The login token carries no groups, the user directory gives them on every request and caches them
+
+#### What was found
+
+A login wrote the groups of the user into the claim `authorities` of the token, and a renewal copied
+every claim of the old token into the new one. The cockpit read the groups from that claim. So a
+group taken away in the directory stayed with the user until the login ended, by default after
+seven days. Every cockpit which followed the templates was affected.
+
+A login by OpenID Connect got no token at all. The mapper cast the principal to a Spring Security
+`User`, and the principal of such a login is an `OidcUser`.
+
+#### The decision
+
+1. A token names the user in its subject and the time of the login in `auth_time`. It names no
+   groups. The subject is `getName()` of the authentication of the login. For a login by user name
+   and password that is the user name. For a login by OpenID Connect it is the claim Spring Security
+   is configured to name the user by, `sub` by default. Every later request uses the same id.
+2. `JwtAuthenticationTokenMapper` takes the `UserDirectoryService`. For every request it calls
+   `getUser(subject)`. The groups are `getAuthorities()` of the answer, passed through the group
+   hierarchy, plus the authority `USER_` and the id. The answer is kept in the
+   `JwtAuthenticationToken`, so `JwtUserDetails` reads the name and the e-mail address from it and
+   needs no directory of its own.
+3. A user the directory does not know keeps the login, but has no groups, only the authority
+   `USER_` and the id. The mapper warns about such a user once a minute at most, not on every
+   request.
+4. If the directory throws, the mapper logs an error and the request fails. Going on without
+   groups would show the user less than it may see, and nobody would know why.
+5. A token of an older version which still carries `authorities` stays valid, and the claim is
+   not read. A renewal drops it. Nobody is logged out by the update.
+6. The cockpit keeps no cache of its own. The directory caches the users, and the Javadoc of
+   `UserDirectoryService#getUser` recommends it, because the method runs on every request. A group
+   taken away is then gone on the next request, or once the cache of the directory expires.
+
+#### What follows
+
+- A cockpit or a workflow module which builds a `JwtAuthenticationTokenMapper` itself passes a
+  `UserDirectoryService`. The constructors without one are gone.
+- The directory has to know the user by the subject of the token.
+- The dev-shell simulator offers its configured users as a `UserDirectoryService`, so its own
+  mapper and the simulator find the groups.
+
