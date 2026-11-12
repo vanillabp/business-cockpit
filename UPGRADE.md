@@ -468,3 +468,45 @@ and the cockpit only passed on what your `PersonAndGroupApiMapper` returned. If 
 `avatar`, remove that line, because the generated `Person` has no `avatar(...)` any more. If your
 user interface shows a picture of a person, load it from an endpoint of your application, and show
 the initials when there is none.
+
+### The groups of a user come from the directory, not from the login token
+
+The login token names the user and the time of the login, but no groups any more. On every request
+the cockpit asks your bean of type `UserDirectoryService` for the user, by the subject of the token,
+and takes the groups from `getAuthorities()` of the answer. So a group you take away in the
+directory is gone on the next request. Before, it stayed until the login ended, which by default is
+seven days.
+
+`getUser` now runs on every request of a logged-in user. If your directory asks a remote system,
+like an identity provider or LDAP, let it cache the users for a few minutes. If `getUser` throws, the
+request fails with an error in the log. A user the directory does not know keeps the login, but has
+no groups.
+
+A token written by 0.8.x still names the groups in the claim `authorities`. It stays valid, so
+nobody is logged out by the update. The claim is not read, and a renewal drops it.
+
+The subject of a new token is `getName()` of the authentication of the login. For a login by user
+name and password that is the user name, as before. For a login by OpenID Connect it is the claim
+Spring Security names the user by, `sub` unless you configure `user-name-attribute`. Before, a
+login by OpenID Connect got no token at all. The directory has to know the user by this id.
+
+What to change:
+
+- If you use the library's `jwtMapper` bean, nothing. It takes your `UserDirectoryService`.
+- If you build a `JwtAuthenticationTokenMapper` yourself, in the cockpit or in a workflow module,
+  pass a `UserDirectoryService`:
+
+  ```java
+  new JwtAuthenticationTokenMapper(properties, userDirectoryService, groupHierarchyService::resolveGroups)
+  ```
+
+  The constructors without a directory are gone. Pass `Function.identity()` if you have no group
+  hierarchy. A workflow module which reads the cockpit's token needs a `UserDirectoryService` of
+  its own for this.
+
+- `new JwtUserDetailsProvider()` stays as it is. Name, short name and e-mail address now come from
+  the directory and, where it has none, from the claims of the token.
+
+- A `GrantedAuthoritiesMapper` which copies the groups of an OpenID Connect login into the
+  authentication is no longer needed. Those groups do not reach the token.
+

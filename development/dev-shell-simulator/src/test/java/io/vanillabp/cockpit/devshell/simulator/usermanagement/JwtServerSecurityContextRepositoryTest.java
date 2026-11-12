@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Base64;
 import java.util.List;
+import java.util.function.Function;
 
 import javax.crypto.KeyGenerator;
 
@@ -47,8 +48,12 @@ class JwtServerSecurityContextRepositoryTest {
     properties.getCookie().setExpiresDuration("PT2H");
     properties.getCookie().setSameSite(SameSite.STRICT);
 
+    final var users = new io.vanillabp.cockpit.devshell.simulator.config.Properties(List.of(
+        io.vanillabp.cockpit.devshell.simulator.usermanagement.User.builder().id("john").groups(List.of("ADMIN"))
+            .build()));
     repository = new JwtServerSecurityContextRepository(
-        properties, new JwtAuthenticationTokenMapper(properties));
+        properties, new JwtAuthenticationTokenMapper(properties, new SimulatedUserDirectoryService(users), Function
+            .identity()));
 
   }
 
@@ -66,6 +71,7 @@ class JwtServerSecurityContextRepositoryTest {
     final var authentication = deferred.get().getAuthentication();
     assertThat(authentication.getName()).isEqualTo("john");
     assertThat(authentication.getAuthorities())
+        .as("the token carries no groups, they come from the configured users")
         .extracting(GrantedAuthority::getAuthority)
         .contains("ADMIN");
 

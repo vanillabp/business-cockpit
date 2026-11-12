@@ -28,7 +28,9 @@ import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 public abstract class JwtMapper<D extends AbstractAuthenticationToken> {
 
   /**
-   * The claim which holds the groups and other authorities of the user.
+   * The claim in which older versions wrote the groups of the user. A token carries no groups any
+   * more, they come from the user directory on every request. A renewal drops the claim, and
+   * nothing reads it.
    */
   public static final String AUTHORITIES_CLAIM = "authorities";
 
@@ -133,7 +135,7 @@ public abstract class JwtMapper<D extends AbstractAuthenticationToken> {
   }
 
   /**
-   * Adds the claims of a new token which come from the login, like the user id and the groups.
+   * Adds the claims of a new token which come from the login, like the user id.
    *
    * @param claimsSetBuilder The claims of the token being built
    * @param context          The security context of the login
@@ -196,8 +198,9 @@ public abstract class JwtMapper<D extends AbstractAuthenticationToken> {
    * A new token for a login which is still in use, or empty if the token does not need one yet.
    * <p>
    * A token is renewed once less than half of {@code expires-duration} is left. The new token
-   * carries the same claims, so the same user with the same groups, and it lives
-   * {@code expires-duration} again. It never lives past the login time plus
+   * carries the same claims, so the same user, and it lives {@code expires-duration} again. Only
+   * the claim {@value #AUTHORITIES_CLAIM} of an older version is dropped: the groups come from the
+   * user directory, and a renewed token must not keep groups the directory took away. It never lives past the login time plus
    * {@code max-login-duration}. When that limit leaves no more time than the old token has, there
    * is nothing to renew, and the login ends when the old token expires.
    * <p>
@@ -238,7 +241,10 @@ public abstract class JwtMapper<D extends AbstractAuthenticationToken> {
 
       final var claimsSet = JwtClaimsSet
           .builder()
-          .claims(claims -> claims.putAll(jwt.getClaims()))
+          .claims(claims -> {
+            claims.putAll(jwt.getClaims());
+            claims.remove(AUTHORITIES_CLAIM);
+          })
           .expiresAt(renewedExpiresAt)
           .id(UUID.randomUUID().toString())
           .issuedAt(now)

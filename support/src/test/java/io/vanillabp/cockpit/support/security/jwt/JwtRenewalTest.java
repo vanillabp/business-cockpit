@@ -8,6 +8,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 
 import javax.crypto.KeyGenerator;
 
@@ -38,8 +39,8 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * A login which is used stays alive, up to its maximum. A token is renewed in the second half of
- * its lifetime, with the same claims and a lifetime which never goes past the login time plus
- * {@code max-login-duration}.
+ * its lifetime, with the same claims except the groups of an older version, and a lifetime which
+ * never goes past the login time plus {@code max-login-duration}.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class JwtRenewalTest {
@@ -64,7 +65,8 @@ class JwtRenewalTest {
         .encodeToString(KeyGenerator.getInstance("HmacSha256").generateKey().getEncoded()));
     properties.getCookie().setExpiresDuration(EXPIRES.toString());
     properties.getCookie().setMaxLoginDuration(MAX_LOGIN.toString());
-    mapper = new JwtAuthenticationTokenMapper(properties);
+    mapper = new JwtAuthenticationTokenMapper(properties, new UserDirectoryForTests().with("john", "ADMIN"), Function
+        .identity());
 
   }
 
@@ -121,21 +123,36 @@ class JwtRenewalTest {
 
   }
 
+  /**
+   * The old token was written by an older version and still names the groups. The renewed one
+   * names the same user but no groups, so it cannot keep a group the directory took away.
+   */
   @Test
-  void aRenewedTokenCarriesTheSameUserAndGroups() {
+  void aRenewedTokenCarriesTheSameUserButNoGroups() {
 
     final var loginAt = Instant.now().minus(Duration.ofHours(7));
     final var old = decode(token(loginAt, loginAt, loginAt.plus(EXPIRES)));
+    assertThat(old.hasClaim(JwtMapper.AUTHORITIES_CLAIM)).isTrue();
 
-    final var jwt = decode(mapper.renew(old).orElseThrow().getKey());
+    final var renewed = mapper.renew(old).orElseThrow().getKey();
+    final var jwt = decode(renewed);
 
     assertThat(jwt.getSubject()).isEqualTo("john");
     assertThat(jwt.getAudience()).containsExactly("bc");
     assertThat(jwt.getClaimAsString("iss")).isEqualTo("bc");
-    assertThat(jwt.getClaimAsStringList(JwtMapper.AUTHORITIES_CLAIM)).containsExactly("ADMIN");
-    assertThat(mapper.toAuth(mapper.renew(old).orElseThrow().getKey()).getAuthorities())
+    assertThat(jwt.hasClaim(JwtMapper.AUTHORITIES_CLAIM))
+        .as("the groups come from the directory, not from the token")
+        .isFalse();
+    assertThat(mapper.toAuth(renewed).getAuthorities())
         .extracting(Object::toString)
-        .contains("ADMIN", "USER_john");
+        .containsExactlyInAnyOrder("ADMIN", "USER_john");
+
+  }
+
+  @Test
+  void aNewLoginWritesNoGroups() {
+
+    assertThat(decode(login()).hasClaim(JwtMapper.AUTHORITIES_CLAIM)).isFalse();
 
   }
 

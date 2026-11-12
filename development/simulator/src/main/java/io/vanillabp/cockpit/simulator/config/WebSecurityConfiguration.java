@@ -13,6 +13,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
 import io.vanillabp.cockpit.devshell.simulator.config.Properties;
+import io.vanillabp.cockpit.devshell.simulator.usermanagement.SimulatedUserDirectoryService;
 import io.vanillabp.cockpit.devshell.simulator.usermanagement.UserController;
 import io.vanillabp.cockpit.support.security.jwt.JwtAuthenticationToken;
 import io.vanillabp.cockpit.support.security.jwt.JwtAuthenticationTokenMapper;
@@ -21,6 +22,7 @@ import io.vanillabp.cockpit.support.security.jwt.JwtUserDetailsProvider;
 import io.vanillabp.cockpit.support.security.jwt.PassiveJwtSecurityFilter;
 import io.vanillabp.cockpit.support.security.usercontext.UserContext;
 import io.vanillabp.cockpit.support.security.usercontext.UserDetailsProvider;
+import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 
 /**
  * The security setup of the simulator. If a request carries a JSON Web Token (JWT), the token is
@@ -41,7 +43,7 @@ public class WebSecurityConfiguration {
   }
 
   /**
-   * Reads the details of the current user from the JWT.
+   * Reads the details of the current user from the JWT and the groups from the user directory.
    *
    * @return The provider
    */
@@ -93,14 +95,32 @@ public class WebSecurityConfiguration {
   }
 
   /**
-   * Turns a JWT into an authentication token for Spring Security.
+   * The users of the dev shell simulator as a user directory. The JWT carries no groups, so the
+   * groups of a user come from here.
    *
+   * @param devShellProperties The properties of the dev shell simulator, which list the users
+   * @return The directory
+   */
+  @Bean
+  public UserDirectoryService userDirectoryService(
+      final Properties devShellProperties) {
+
+    return new SimulatedUserDirectoryService(devShellProperties);
+
+  }
+
+  /**
+   * Turns a JWT into an authentication token for Spring Security. The groups of the user come
+   * from the directory.
+   *
+   * @param userDirectoryService Gives the groups of the user
    * @return The mapper
    */
   @Bean
-  public JwtMapper<? extends JwtAuthenticationToken> jwtMapper() {
+  public JwtMapper<? extends JwtAuthenticationToken> jwtMapper(
+      final UserDirectoryService userDirectoryService) {
 
-    return new JwtAuthenticationTokenMapper(properties.getJwt(), Function.identity());
+    return new JwtAuthenticationTokenMapper(properties.getJwt(), userDirectoryService, Function.identity());
 
   }
 

@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 
 import javax.crypto.KeyGenerator;
 
@@ -60,7 +61,8 @@ class JwtSecurityContextRepositoryTest {
     properties.getCookie().setSameSite(SameSite.STRICT);
 
     repository = new JwtSecurityContextRepository(
-        properties, new JwtAuthenticationTokenMapper(properties));
+        properties, new JwtAuthenticationTokenMapper(properties, new UserDirectoryForTests().with("john",
+            "ADMIN"), Function.identity()));
 
   }
 

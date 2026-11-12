@@ -14,6 +14,7 @@ import io.vanillabp.cockpit.support.security.jwt.JwtAuthenticationToken;
 import io.vanillabp.cockpit.support.security.jwt.JwtAuthenticationTokenMapper;
 import io.vanillabp.cockpit.support.security.jwt.JwtMapper;
 import io.vanillabp.cockpit.support.security.jwt.JwtSecurityContextRepository;
+import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 import io.vanillabp.cockpit.workflowmodules.GroupHierarchyService;
 
 /**
@@ -79,19 +80,22 @@ public class WebSecurityConfiguration {
   }
 
   /**
-   * Turns a login token into the authentication of a user and back. The groups of the user are
-   * completed by the group hierarchy. An application can bring its own mapper instead.
+   * Turns a login token into the authentication of a user and back. The token carries no groups.
+   * The groups come from the user directory on every request and are completed by the group
+   * hierarchy. An application can bring its own mapper instead.
    *
+   * @param userDirectoryService  Gives the groups of the user
    * @param groupHierarchyService Resolves the groups a group belongs to
    * @return The mapper
    */
   @Bean
   @ConditionalOnMissingBean
   public JwtMapper<? extends JwtAuthenticationToken> jwtMapper(
+      final UserDirectoryService userDirectoryService,
       final GroupHierarchyService groupHierarchyService) {
 
     return new JwtAuthenticationTokenMapper(
-        properties.getJwt(), groupHierarchyService::resolveGroups);
+        properties.getJwt(), userDirectoryService, groupHierarchyService::resolveGroups);
 
   }
 

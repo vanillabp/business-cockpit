@@ -24,10 +24,12 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
 import io.vanillabp.cockpit.devshell.simulator.usermanagement.JwtServerSecurityContextRepository;
+import io.vanillabp.cockpit.devshell.simulator.usermanagement.SimulatedUserDirectoryService;
 import io.vanillabp.cockpit.devshell.simulator.usermanagement.UserController;
 import io.vanillabp.cockpit.support.security.jwt.JwtAuthenticationTokenMapper;
 import io.vanillabp.cockpit.support.security.jwt.JwtMapper;
 import io.vanillabp.cockpit.support.security.jwt.JwtProperties;
+import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 
 /**
  * The security setup of the dev shell simulator. The made-up users log in with one shared
@@ -137,21 +139,37 @@ public class SecurityConfig {
   }
 
   /**
-   * Turns a JWT into an authentication token and back. Groups are not resolved here, the
-   * business application maps them.
+   * The configured users as a user directory. The JWT carries no groups, so the groups of a user
+   * come from here.
+   *
+   * @param properties The properties which list the users
+   * @return The directory
+   */
+  @Bean
+  @ConditionalOnMissingBean
+  public UserDirectoryService simulatedUserDirectoryService(
+      final Properties properties) {
+
+    return new SimulatedUserDirectoryService(properties);
+
+  }
+
+  /**
+   * Turns a JWT into an authentication token and back. The groups come from the directory as
+   * they are. A group hierarchy is not resolved here, the business application does that.
    *
    * @param jwtProperties The settings of the JWT
+   * @param userDirectoryService Gives the groups of the user
    * @return The mapper
    */
   @Bean
   @ConditionalOnMissingBean
   public JwtMapper<? extends AbstractAuthenticationToken> jwtMapper(
-      final JwtProperties jwtProperties) {
+      final JwtProperties jwtProperties,
+      final UserDirectoryService userDirectoryService) {
 
     return new JwtAuthenticationTokenMapper(
-        jwtProperties,
-        // no group resolving in Dev-Shell-Simulator - mapping of groups is done via business application
-        Function.identity());
+        jwtProperties, userDirectoryService, Function.identity());
 
   }
 
