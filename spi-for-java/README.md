@@ -20,8 +20,9 @@ the module.
 
 ## What is here
 
-Everything lives below `io.vanillabp.spi.cockpit`, and the module depends on nothing but the JDK, so
-that a workflow module can compile against it without inheriting anything.
+Everything lives below `io.vanillabp.spi.cockpit`. The module depends on nothing but VanillaBP's
+own SPI, so a workflow module can compile against it without inheriting anything else. A workflow
+module usually gets it through the module [support](../support), which depends on it.
 
 |      Package      |                                                                      What it holds                                                                       |
 |-------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -40,7 +41,8 @@ the same one.
 ## What a change to it costs
 
 This module is compiled against by every application using the cockpit, and it is read by
-`extensions-commons` and, through it, by the five BPMS halves in their own repositories. An
+`extensions-commons` and, through it, by the five BPMS halves in their own repositories. It must
+never depend on `support`, because `support` depends on it. An
 addition is cheap, a rename is not, and a change to what a details provider may declare as a
 parameter has to be followed in `BusinessCockpitHandlers` of `extensions-commons`.
 

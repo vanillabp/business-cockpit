@@ -1,12 +1,11 @@
-package io.vanillabp.cockpit.users;
+package io.vanillabp.cockpit.support.security.usercontext;
 
 import java.util.List;
 
-import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
-
 /**
- * A plain holder of the details of a user, for a {@link io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService} which builds them
- * itself.
+ * A plain holder of the details of a user. Code which builds the details itself, like a
+ * {@link UserDirectoryService}, can use it in the cockpit and in a workflow module alike. So neither
+ * has to write its own implementation of {@link UserDetails}.
  */
 public class UserDetailsImpl implements UserDetails {
   private String id;
@@ -61,4 +60,4 @@ public class UserDetailsImpl implements UserDetails {
   public List<String> getAuthorities() {
     return authorities;
   }
-};
+}
