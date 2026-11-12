@@ -1429,6 +1429,12 @@ Not compared, and the report says so every night:
   and only the Camunda 8 adapter names it.
 - `lombok.version`. It is gone once the class file exists, so it never meets another repository.
 
+*Changed on 2026-11-06 by story 1770.* The first point names the wrong repository now. The Camunda 8
+adapter is built in `vanillabp/camunda8-adapter` again, with the groupId `io.vanillabp`, and the
+copy in the Camunda Community Hub holds only version 1. The Camunda 8 cockpit adapter follows
+`vanillabp/camunda8-adapter`, and its nightly matrix checks the pins against that repository. They
+are still not compared here, for the same reason.
+
 This repository names its versions `version.<name>`, the adapters name them `<name>.version`. So
 Quarkus is `version.quarkus` here and `quarkus.version` there. The name stays, because every other
 version of this repository follows that pattern, and Renovate reads both names. The script knows
