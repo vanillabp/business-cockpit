@@ -46,8 +46,8 @@ Maven Central. A snapshot carries no sources jar. Only the modules which an appl
 adapter builds against carry a javadoc jar: they set the property `skip.javadoc.jar` to false. A
 release carries both jars for every module it publishes. Fewer files make Maven Central answer
 `429 Too Many Requests` less often. When it does, `.mvn/maven.config` makes Maven wait and repeat
-that one request, and the file says how long. `DECISIONS.pending/1823.md` holds the decision and
-the list of modules.
+that one request, and the file says how long. Decision 85 in
+[`DECISIONS.md`](./DECISIONS.md) holds the decision and the list of modules.
 
 ```sh
 mvn spotless:apply
