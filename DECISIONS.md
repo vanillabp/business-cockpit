@@ -244,7 +244,8 @@ These keys do not come back. One reason each:
 - `jwt.hmacSHA256-base64` and `jwt.cookie.*`: version 1 bound them and read them nowhere, and the
   cockpit server configures its own tokens.
 - `group-hierarchy-bean-name`: the hierarchy is configuration, and which groups may see a workflow
-  module is answered by the `WorkflowModuleDetailsProvider` bean.
+  module is answered by the `WorkflowModuleDetailsProvider` bean. A hierarchy which changes while the
+  application runs comes from a bean, see decision 88.
 - `workerId`: it named the instance a report came from, and the extension takes the host name for
   that and asks for nothing.
 - `spring.application.name`: only the Camunda 8 exporter path read it, and that path is gone.
@@ -3680,6 +3681,8 @@ The module `development/workflow-module-on-support-only` proves it in every buil
 `support` and on nothing else, and it compiles a workflow service with the annotations of both SPIs
 and a class of its own which implements `UserDetails`. It is neither installed nor published.
 
+`WorkflowModuleGroupHierarchy` moved from `support` to `spi-for-java`, see decision 88.
+
 #### What it costs
 
 `support` is no longer free of the SPI. A change to `spi-for-java` is now a change to what `support`
@@ -3915,4 +3918,72 @@ A login by OpenID Connect got no token at all. The mapper cast the principal to 
 - The directory has to know the user by the subject of the token.
 - The dev-shell simulator offers its configured users as a `UserDirectoryService`, so its own
   mapper and the simulator find the groups.
+
+### 88. The group hierarchy of a workflow module may come from a bean, and the bean's interface is part of the cockpit's SPI
+
+#### What was found
+
+Version 1 had the key `group-hierarchy-bean-name`. It named a bean which gave the hierarchy of a
+workflow module, and some applications used it to change the hierarchy while they ran. One team
+worked out its roles and rights that way in a test environment. It changed them in a simulator,
+and copied the result into its configuration once it was done.
+
+Version 2 refuses the key at startup, because "the hierarchy is configuration" (decision 14). So
+an application which upgraded lost that way. The cockpit server already accepts a second
+registration of a module and takes the hierarchy of the newest one.
+
+The interface `WorkflowModuleGroupHierarchy` was in `support`, and nothing read it. The extension
+cannot read it there either. `extensions-commons` depends on `spi-for-java` and not on `support`,
+and `support` brings Spring and OpenFeign, which an extension on Quarkus must not get.
+
+#### The decision
+
+1. A workflow module takes its group hierarchy either from the key
+   `vanillabp.workflow-modules.<id>.cockpit.group-hierarchy` or from a bean implementing
+   `io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleGroupHierarchy`. Never from both.
+2. The bean names its module through `getWorkflowModuleId()`, the way `WorkflowModuleDetailsProvider`
+   does. A bean name which carries the module id was the other choice. It was not taken, because a
+   name is easy to get wrong and nothing could tell that it is wrong.
+3. The application ends at startup, with a message which says what to change, when
+   - a bean answers for a workflow module the application does not have,
+   - a bean answers for a module which reports nothing to the cockpit,
+   - a module has a bean and the key `group-hierarchy` as well, and the message names both,
+   - two beans answer for one module.
+4. The extension asks the bean each time it sends the registration of the module, not when it plans
+   it. A registration is sent once at startup and again for every
+   `WorkflowModuleGroupHierarchyChangedEvent`, which the application publishes with the id of the
+   module. On Spring Boot that is an application event, on Quarkus a CDI event. The event is a plain
+   record, so the same class serves both platforms. An event for a module which reports nothing
+   fails the publisher with a message naming the modules which do.
+5. A change which comes before the startup registration needs nothing, because that registration
+   is still to come and reads the hierarchy as it is then.
+6. The extension keeps no copy of the hierarchy, so there is no cache to clear after a change. The
+   workflow module resolves the groups of a request with its own `JwtAuthenticationTokenMapper` and
+   group resolver, and the Javadoc of the interface tells it to ask the bean on every request.
+7. The interface moves from `support` to `spi-for-java`, into the package
+   `io.vanillabp.spi.cockpit.workflowmodules`, next to `WorkflowModuleDetailsProvider`. The event
+   lives there as well. A workflow module which depends on `support` still gets both, because
+   `support` brings `spi-for-java` (decision 84).
+8. `group-hierarchy-bean-name` stays refused. The message now says that a bean of type
+   `WorkflowModuleGroupHierarchy` does what the key did.
+
+#### What follows
+
+- The interface changes its package and gains `getWorkflowModuleId()`. Nothing used it in version
+  2 so far, and an application which used it in version 1 changes its import and adds the method.
+- `CockpitServer` of `extensions-commons-test-support` has a new method `registrations()`, which
+  lists every registration it received.
+- `BusinessCockpitConfiguration.readAndValidate` has a second form which takes the beans. The form
+  without them stays, and reads as if the application had none.
+
+#### Where it applies
+
+- `spi-for-java`: `WorkflowModuleGroupHierarchy` and `WorkflowModuleGroupHierarchyChangedEvent`
+- `extensions-commons/core`: `BusinessCockpitConfiguration` (`readAndValidate`, `groupHierarchyOf`),
+  `BusinessCockpitExtension` (`registerWorkflowModuleAgain`), `ConfigurationKeyCheck`
+- `extensions-commons/spring-boot`: `BusinessCockpitExtensionAutoConfiguration` and the description
+  of `vanillabp.workflow-modules` in `additional-spring-configuration-metadata.json`
+- `extensions-commons/quarkus/runtime`: `BusinessCockpitProducer`
+- `UPGRADE.md`, `spi-for-java/README.md` and the wiki pages "Configuration" and "Migrating from
+  version 1"
 

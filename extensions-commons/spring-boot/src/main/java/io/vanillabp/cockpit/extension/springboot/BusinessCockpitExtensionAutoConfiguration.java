@@ -15,6 +15,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.ResolvableType;
 
 import io.vanillabp.cockpit.extension.BusinessCockpitAssembly;
@@ -37,6 +38,8 @@ import io.vanillabp.integration.extension.spi.service.AggregateServiceFactory;
 import io.vanillabp.integration.spi.PhaseOperationRegistry;
 import io.vanillabp.spi.cockpit.BusinessCockpitService;
 import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
+import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleGroupHierarchy;
+import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleGroupHierarchyChangedEvent;
 
 /**
  * Registers the Business Cockpit extension on Spring Boot.
@@ -98,18 +101,21 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
    * @param properties VanillaBP's resolved configuration
    * @param settings What the application wrote below the cockpit's own sections
    * @param applicationContext Where the transport beans of the application are looked for
+   * @param groupHierarchies The beans giving the group hierarchy of a workflow module
    * @return The configuration
    */
   @Bean
   public BusinessCockpitConfiguration businessCockpitConfiguration(
       final MigrationAdapterProperties properties,
       final CockpitSettings settings,
-      final ApplicationContext applicationContext) {
+      final ApplicationContext applicationContext,
+      final ObjectProvider<WorkflowModuleGroupHierarchy> groupHierarchies) {
 
     return BusinessCockpitConfiguration
         .readAndValidate(
             properties, settings, Templating.engineAvailable(), transportProvidedByTheApplication(
-                applicationContext));
+                applicationContext),
+            groupHierarchies.stream().toList());
 
   }
 
@@ -241,6 +247,22 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
       final BusinessCockpitExtension extension) {
 
     return new BusinessCockpitWiringService(extension);
+
+  }
+
+  /**
+   * Registers a workflow module at the cockpit server again once the application says that its
+   * group hierarchy changed.
+   *
+   * @param event Which workflow module changed its hierarchy
+   */
+  @EventListener
+  public void registerAgainWhenTheGroupHierarchyChanged(
+      final WorkflowModuleGroupHierarchyChangedEvent event) {
+
+    if (extension != null) {
+      extension.registerWorkflowModuleAgain(event.workflowModuleId());
+    }
 
   }
 

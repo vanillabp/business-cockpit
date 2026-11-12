@@ -332,6 +332,18 @@ public final class CockpitServer {
   }
 
   /**
+   * Every registration of a workflow module which arrived, in the order it arrived. Unlike
+   * {@link #received()}, a call of {@link #forgetRequests()} keeps them.
+   *
+   * @return The registrations
+   */
+  public static List<Request> registrations() {
+
+    return requestsOf(ask(REGISTRATIONS_PATH, ""));
+
+  }
+
+  /**
    * Waits for the registration of a workflow module, which happened while the application started
    * and is therefore remembered separately from everything a single test provokes.
    *

@@ -28,20 +28,26 @@ takes the adapter in test scope, and the application which runs it brings the ad
 
 One line per package. Replace the beginning of each import:
 
-|                              before                               |                                   now                                    |      artifact      |
-|-------------------------------------------------------------------|--------------------------------------------------------------------------|--------------------|
-| `io.vanillabp.cockpit.commons.security.jwt`                       | `io.vanillabp.cockpit.support.security.jwt`                              | `support`          |
-| `io.vanillabp.cockpit.commons.security.usercontext`               | `io.vanillabp.cockpit.support.security.usercontext`                      | `support`          |
-| `io.vanillabp.cockpit.commons.rest`                               | `io.vanillabp.cockpit.support.rest`                                      | `support`          |
-| `io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException` | `io.vanillabp.cockpit.support.security.BcUnauthorizedException`          | `support`          |
-| `io.vanillabp.cockpit.users.UserDetailsProvider`                  | `io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService` | `support`          |
-| `io.vanillabp.cockpit.users.UserDetailsImpl`                      | `io.vanillabp.cockpit.support.security.usercontext.UserDetailsImpl`      | `support`          |
-| `io.vanillabp.cockpit.commons.exceptions`                         | `io.vanillabp.cockpit.exceptions`                                        | `business-cockpit` |
-| `io.vanillabp.cockpit.commons.kafka`                              | `io.vanillabp.cockpit.kafka`                                             | `business-cockpit` |
-| `io.vanillabp.cockpit.commons.mapstruct`                          | `io.vanillabp.cockpit.mapstruct`                                         | `business-cockpit` |
-| `io.vanillabp.cockpit.commons.mongo`                              | `io.vanillabp.cockpit.mongo`                                             | `business-cockpit` |
-| `io.vanillabp.cockpit.commons.utils.DateTimeUtil`                 | `io.vanillabp.cockpit.mongo.converters.DateTimeUtil`                     | `business-cockpit` |
-| `io.vanillabp.cockpit.commons.utils.LoggerFactory`                | gone, see below                                                          |                    |
+|                                      before                                      |                                   now                                    |      artifact      |
+|----------------------------------------------------------------------------------|--------------------------------------------------------------------------|--------------------|
+| `io.vanillabp.cockpit.commons.security.jwt`                                      | `io.vanillabp.cockpit.support.security.jwt`                              | `support`          |
+| `io.vanillabp.cockpit.commons.security.usercontext.WorkflowModuleGroupHierarchy` | `io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleGroupHierarchy`  | `spi-for-java`     |
+| `io.vanillabp.cockpit.commons.security.usercontext`                              | `io.vanillabp.cockpit.support.security.usercontext`                      | `support`          |
+| `io.vanillabp.cockpit.commons.rest`                                              | `io.vanillabp.cockpit.support.rest`                                      | `support`          |
+| `io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException`                | `io.vanillabp.cockpit.support.security.BcUnauthorizedException`          | `support`          |
+| `io.vanillabp.cockpit.users.UserDetailsProvider`                                 | `io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService` | `support`          |
+| `io.vanillabp.cockpit.users.UserDetailsImpl`                                     | `io.vanillabp.cockpit.support.security.usercontext.UserDetailsImpl`      | `support`          |
+| `io.vanillabp.cockpit.commons.exceptions`                                        | `io.vanillabp.cockpit.exceptions`                                        | `business-cockpit` |
+| `io.vanillabp.cockpit.commons.kafka`                                             | `io.vanillabp.cockpit.kafka`                                             | `business-cockpit` |
+| `io.vanillabp.cockpit.commons.mapstruct`                                         | `io.vanillabp.cockpit.mapstruct`                                         | `business-cockpit` |
+| `io.vanillabp.cockpit.commons.mongo`                                             | `io.vanillabp.cockpit.mongo`                                             | `business-cockpit` |
+| `io.vanillabp.cockpit.commons.utils.DateTimeUtil`                                | `io.vanillabp.cockpit.mongo.converters.DateTimeUtil`                     | `business-cockpit` |
+| `io.vanillabp.cockpit.commons.utils.LoggerFactory`                               | gone, see below                                                          |                    |
+
+`WorkflowModuleGroupHierarchy` went to the cockpit's SPI, which `support` brings, because the
+adapter reads it. The section
+[`group-hierarchy-bean-name` becomes a bean](#group-hierarchy-bean-name-becomes-a-bean) says
+what else changed about it.
 
 `BcUnauthorizedException` left its siblings, because `UserContext` in `support` throws it and
 `support` cannot see the library module.
@@ -519,3 +525,22 @@ What to change:
 - A `GrantedAuthoritiesMapper` which copies the groups of an OpenID Connect login into the
   authentication is no longer needed. Those groups do not reach the token.
 
+### `group-hierarchy-bean-name` becomes a bean
+
+The adapter no longer reads `vanillabp.workflow-modules.<id>.cockpit.group-hierarchy-bean-name`,
+and the start ends if the key is set. Write a fixed hierarchy below
+`vanillabp.workflow-modules.<id>.cockpit.group-hierarchy`.
+
+If the hierarchy changes while the application runs, keep the bean instead, and remove the key:
+
+- Import `io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleGroupHierarchy`.
+- Add the method `getWorkflowModuleId()`. It returns the id of the module the bean answers for.
+  The adapter finds the bean by its type and this id, and no longer by its name.
+- After a change, publish a `WorkflowModuleGroupHierarchyChangedEvent` with the id of the module.
+  On Spring Boot use the `ApplicationEventPublisher`. The adapter then registers the module at the
+  cockpit again, with the new hierarchy.
+- If your module resolves the groups of a request with this hierarchy, ask the bean on every
+  request. The adapter keeps no copy, so there is no cache to clear.
+
+A module with the bean and the key `group-hierarchy` does not start, and neither does a bean for a
+module which reports nothing to the cockpit.

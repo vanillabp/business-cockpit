@@ -76,7 +76,9 @@ public final class ConfigurationKeyCheck {
     gone
         .put(
             "group-hierarchy-bean-name",
-            "the hierarchy is configuration, and which groups may see a workflow module is answered by the WorkflowModuleDetailsProvider bean");
+            "write a fixed hierarchy below 'group-hierarchy'. For a hierarchy which changes while the application runs, add a bean of type "
+                + "io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleGroupHierarchy instead. Which groups may see a workflow module "
+                + "is answered by the WorkflowModuleDetailsProvider bean");
     return Map.copyOf(gone);
 
   }

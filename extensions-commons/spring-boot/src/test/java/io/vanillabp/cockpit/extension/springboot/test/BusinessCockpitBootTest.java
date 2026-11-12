@@ -23,6 +23,7 @@ import io.vanillabp.cockpit.extension.springboot.brokenparts.OverlappingVersions
 import io.vanillabp.cockpit.extension.springboot.brokenparts.ProxiedOverlappingVersionsService;
 import io.vanillabp.cockpit.extension.springboot.brokenparts.TwiceServingProviderService;
 import io.vanillabp.cockpit.extension.springboot.brokenparts.TwoMethodsForEveryUserTaskService;
+import io.vanillabp.cockpit.extension.springboot.hierarchy.ChangingGroupHierarchy;
 import io.vanillabp.cockpit.extension.springboot.writinghandler.ExtensionWithAWritingHandler;
 import io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport;
 import io.vanillabp.integration.test.utils.CapturedOutput;
@@ -363,6 +364,21 @@ public class BusinessCockpitBootTest {
     assertTrue(message.contains("system"), message);
     // why it is worth ending a boot over: the value cannot be added to a case afterwards
     assertTrue(message.contains("for good"), message);
+
+  }
+
+  @Test
+  @DisplayName("A group hierarchy from a bean and from the key ends the boot, and both are named")
+  public void aGroupHierarchyFromABeanAndTheKeyIsRefused() {
+
+    // the test application configures group-hierarchy, and the extra class brings the bean
+    final var message = failureOfBooting(
+        "cockpit-two-group-hierarchies", TestApplication.class, ChangingGroupHierarchy.class);
+
+    assertTrue(
+        message.contains("vanillabp.workflow-modules.test-module.cockpit.group-hierarchy"),
+        message);
+    assertTrue(message.contains(ChangingGroupHierarchy.class.getName()), message);
 
   }
 
