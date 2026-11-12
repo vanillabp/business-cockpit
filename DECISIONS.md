@@ -3693,3 +3693,4 @@ version of it.
 - `container`: `LocalUserDirectoryServiceImpl` and the test application `DerivedCockpitApplication`,
   which import `UserDetailsImpl` from its new package
 - The wiki pages "Building a custom Business Cockpit" and "Connecting a workflow module"
+
