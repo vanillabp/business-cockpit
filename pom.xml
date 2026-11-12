@@ -40,7 +40,6 @@
     <module>apis/bpms-api/client</module>
     <module>apis/bpms-api/server</module>
     <module>apis/bpms-api/protobuf</module>
-    <module>apis/workflow-provider-api/server</module>
     <module>apis/official-gui-api/server</module>
     <module>business-cockpit</module>
     <module>container</module>

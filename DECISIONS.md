@@ -3724,7 +3724,7 @@ against. These modules set the property `skip.javadoc.jar` to false:
 
 Every other published module goes out as a snapshot with its jar and its POM only: `container` and
 `dev-shell-simulator` (an application, read as a runnable jar), the generated servers
-`bpms-api-server`, `workflow-provider-api-server` and `official-gui-api-server`,
+`bpms-api-server` and `official-gui-api-server`,
 `bpms-protobuf-api`, and `extensions-commons-test-support`, which the adapters use in their tests
 only.
 
@@ -3738,8 +3738,9 @@ The javadoc check stays in every build and every module. It is the execution `ch
 the parent, and it does not depend on the jar. So a javadoc error still fails the pull request, and
 not only the release.
 
-The module `workflow-provider-api-client` is gone. It held no code, so it had no javadoc jar either,
-and Central refuses a release in which a jar has none.
+The modules `workflow-provider-api-client` and `workflow-provider-api-server` are gone. They held
+no code, so they had no javadoc jar either, and Central refuses a release in which a jar has none.
+The API itself, the OpenAPI file in `apis/workflow-provider-api`, stays.
 
 What nothing builds against is not published. Before a module is taken off Maven Central, the five
 adapter repositories and the blueprints are searched for its coordinates, and what anybody uses
@@ -3754,13 +3755,15 @@ one in Maven 3.9:
 |---------------------------------------------------------|-----------|-----------------------------------------------------------------------|
 | `aether.connector.http.retryHandler.count`              | `8`       | how often one request is repeated                                     |
 | `aether.connector.http.retryHandler.interval`           | `15000`   | the pause before repeat n is n times this, in milliseconds            |
-| `aether.connector.http.retryHandler.intervalMax`        | `120000`  | a longer pause, also one asked for by `Retry-After`, ends the repeats |
+| `aether.connector.http.retryHandler.intervalMax`        | `600000`  | a longer pause, also one asked for by `Retry-After`, ends the repeats |
 | `aether.connector.http.retryHandler.serviceUnavailable` | `429,503` | the answers which are repeated                                        |
 | `aether.connector.basic.parallelPut`                    | `false`   | one upload after the other instead of five at once                    |
 
 The resolver reads the header `Retry-After`, as seconds or as a date, and waits that long instead
 of its own pause. Without the header, one request waits 15, 30, 45 and so on up to 120 seconds, 9
-minutes for all eight repeats. With the header, it is at most eight times two minutes. Without the
+minutes for all eight repeats. With the header, it is at most eight times ten minutes. The maximum
+was two minutes at first, and the first publish with it still ended at once: Cloudflare, in front
+of Central, counts the requests of the address a GitHub runner shares with others. Without the
 file, the resolver repeats three times within 30 seconds. The file applies to every build, on a
 laptop and in a pull request as well, and that is meant. Uploading one file after the other makes a
 publish slower by seconds, and it sends Central one request at a time instead of five.
@@ -3784,7 +3787,8 @@ which an application or an adapter builds against has to set it.
   `business-cockpit/pom.xml`, `extensions-commons/core/pom.xml`,
   `extensions-commons/spring-boot/pom.xml`, `extensions-commons/quarkus/runtime/pom.xml`,
   `extensions-commons/quarkus/deployment/pom.xml` and `apis/bpms-api/client/pom.xml`
-- `pom.xml`, the list of modules, which no longer names `apis/workflow-provider-api/client`
+- `pom.xml`, the list of modules, which no longer names `apis/workflow-provider-api/client` and
+  `apis/workflow-provider-api/server`
 - the property set to true in `test-coverage-report/pom.xml` and
   `development/workflow-module-on-support-only/pom.xml`
 - `development/simulator/pom.xml`, `skip.central.release`, and `development/simulator/README.md`
