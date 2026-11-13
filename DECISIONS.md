@@ -4311,3 +4311,23 @@ other's templates away.
 - The default directory is found by asking the class loader for it. A jar which leaves out the
   entries of its directories would hide it. The Maven jar plugin writes them.
 
+### 96. A BPMS may prefill the comment of a task and a workflow, and the details provider's comment wins
+
+#### What was found
+
+A case is cancelled where somebody stops it in the engine. A case which ends on a path of its model is
+completed, also where that path means that the customer withdrew, and the aggregate says what the
+outcome was. Somebody who stops a process instance in Camunda 7 can give a reason, and the cockpit had
+no place to show it.
+
+#### What the cockpit does now
+
+`WorkflowDetailsPrefill` and `UserTaskDetailsPrefill` have a field `comment`. The extension writes it
+into the report before the details provider runs. So the provider sees it with `getComment()`, and a
+provider which calls `setComment` replaces it. A provider which returns details of its own whose
+`getComment()` is `null` says nothing about the comment, and the prefilled one stays. That is the rule
+every other value of returned details follows: a value which is not `null` replaces what the adapter
+filled in.
+
+The constructors of both records without the comment stay. An adapter built against the records of
+before keeps working and prefills no comment.
