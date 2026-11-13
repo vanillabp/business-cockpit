@@ -23,9 +23,10 @@ This file is about working on the cockpit itself.
 4. [Build and Run the Business Cockpit](#build-and-run-the-business-cockpit)
 5. [Simulation Service](#simulation-service)
 
-The Business Cockpit is a Java Spring Boot application without a user interface. One thing has to
-run before it starts: a [MongoDB cluster](#mongodb). The provided compose configuration also brings
-two services which the cockpit does not need to run. They are there to develop and test particular
+The Business Cockpit is a Java Spring Boot application without a user interface. Two things have
+to run before it starts: a [MongoDB cluster](#mongodb), and a simulator which serves the users of
+the profile `local` (see [Build and Run](#build-and-run-the-business-cockpit)). The provided
+compose configuration also brings two services which the cockpit does not need to run. They are there to develop and test particular
 features: [Mailpit](#notification-e-mails-mailpit) for notification e-mails, and a
 [single-node Kafka](#kafka) for reporting BPMS events over Kafka instead of REST. You need Kafka only
 with a real business service, because the simulation service brings its own broker.
@@ -73,7 +74,7 @@ The e-mail medium of the business cockpit is switched off by default. To activat
 at Mailpit add the Spring profile `mailpit`:
 
 ```sh
-java -Dspring.profiles.active=local,mailpit -jar target/business-cockpit-*-runnable.jar
+java -Dspring.profiles.active=local,mailpit -jar target/container-*-runnable.jar
 ```
 
 The profile also shortens the notification interval to 10 seconds, so testing does not mean waiting
@@ -115,7 +116,7 @@ The business cockpit consumes those events using the Spring profile `kafka`, whi
 bootstrap servers as well as the topic names `workflows`, `user-tasks` and `modules`:
 
 ```sh
-java -DworkerId=local -Dspring.profiles.active=local,kafka,mailpit -jar target/business-cockpit-*-runnable.jar
+java -DworkerId=local -Dspring.profiles.active=local,kafka,mailpit -jar target/container-*-runnable.jar
 ```
 
 *Hint:* `workerId` is mandatory for consuming Kafka events
@@ -151,10 +152,11 @@ one off as well - useful for a broker which is not at `localhost:9092`.
 ## Build and Run the Business Cockpit
 
 The business cockpit is developed with Java 21 and Spring Boot 4 (Spring MVC on virtual threads).
-Build it with Maven, from the root of the repository:
+Build it with Maven, from the root of the repository. The profile `build-runnable-jars` adds the
+runnable jar, a plain `mvn install` does not build it:
 
 ```sh
-mvn install
+mvn install -Pbuild-runnable-jars
 ```
 
 After the build succeeded the service can be started:
@@ -163,6 +165,11 @@ After the build succeeded the service can be started:
 cd container
 java -Dspring.profiles.active=local -jar target/container-*-runnable.jar
 ```
+
+With the profile `local` the cockpit loads its users from `http://localhost:8079/dev-shell/user`
+when it starts, and it does not start if nothing answers there. So start the
+[simulation service](#simulation-service) or the dev shell simulator first. Both listen on port 8079
+and serve the users.
 
 The runnable jar is built from `container`, the business cockpit as an application. The module next
 to it, `business-cockpit`, is the same functionality as a library, and it is what a custom cockpit
@@ -177,7 +184,7 @@ local run is user `test` with password `test`. Every user of the dev shell simul
 To build again after a change, build the modules you touched and what they depend on:
 
 ```sh
-mvn -pl business-cockpit,container -am install
+mvn -pl business-cockpit,container -am install -Pbuild-runnable-jars
 ```
 
 ## Simulation Service
