@@ -4222,3 +4222,92 @@ of this repository is published, until they change it.
   `UPGRADE.md`
 - the wiki pages which name the artifact
 
+### 93. The defaults of the dev shell simulator are not in an application.yaml
+
+#### What was found
+
+The simulator kept its defaults in `application.yaml`: the port, the H2 data source, the schema
+update and the key of the login token. An application which extends `DevShellSimulator` has an
+`application.yaml` of its own, and Spring Boot reads only the first file of that name on the class
+path. So the application lost the defaults and had to repeat them, and a default changed in the
+simulator never reached it.
+
+#### The decision
+
+1. The defaults live in `dev-shell-simulator-defaults.yaml`. The `EnvironmentPostProcessor`
+   `DevShellSimulatorDefaults` adds the file as the source with the lowest priority, after Spring
+   Boot has read the configuration of the application.
+2. It does so only for an application which is `DevShellSimulator` or extends it. Another
+   application which has the jar on its class path keeps its configuration as it is.
+3. The documentation does not ask the extending application for a `spring.config.import`. With the
+   post-processor it has to do nothing.
+
+#### What follows
+
+- The simulator has no `application.yaml` any more. A value which belongs to every run of the
+  simulator goes into `dev-shell-simulator-defaults.yaml`.
+
+### 94. The dev shell simulator shows what organizes a user task through an API of its own
+
+#### What was found
+
+A report about a user task carries `excludedCandidateUsers`, `admittedUsers` and
+`notificationDelivery`. The simulator dropped all three, because the official API has no field for
+them. So a developer could not see what his module reports, and a test of a workflow module which
+wanted to check these values had to record the reports itself before they reached the simulator.
+
+#### The decision
+
+1. The simulator keeps the three values with the user task, and it keeps the last report which
+   created, updated or ended the task, exactly as it came in. A suspension or an activation does not
+   replace that report.
+2. `GET /simulator-api/usertask/{userTaskId}/report` answers that report as JSON, or 404 for a user
+   task the simulator does not hold. Like the other APIs of the simulator, it needs no login.
+3. The official API does not get the three values. A user interface does not need them, and
+   `admittedUsers` and `excludedCandidateUsers` do not belong in every list.
+
+#### What follows
+
+- The path `/simulator-api` belongs to the simulator alone. No cockpit answers it, so only a dev
+  shell or a test may call it.
+
+### 95. A workflow module finds its templates in a directory of its own, with nothing configured
+
+#### What was found
+
+`vanillabp.cockpit.template-loader-path` existed once per application, and without it no template
+was rendered at all. A workflow module is meant to bring everything it needs and to rely on nothing
+the application configures. It also keeps all of its resources below a directory of its own name,
+`src/main/resources/<workflow-module-id>`. Its templates had to live elsewhere, or the module had to
+set the key of the application in its own file. Two modules which set it differently took each
+other's templates away.
+
+#### The decision
+
+1. A workflow module keeps its templates in `<workflow-module-id>/business-cockpit-templates` of the
+   classpath. Where that directory exists and Freemarker is on the classpath, the module's templates
+   are rendered with nothing configured. This holds for every template, also for the ones about no
+   single task, like the title of a workflow and the two texts a search matches against. They lie
+   right in that directory.
+2. `vanillabp.workflow-modules.<workflow-module-id>.cockpit.template-loader-path` names another
+   directory for one module. It is checked like the key of the application: it says where it is, and
+   it needs Freemarker.
+3. `vanillabp.cockpit.template-loader-path` keeps working for every module which names no directory
+   of its own, with the module's `template-path` below it, as before. Where it is set, the default
+   directory is not looked at. So an application which uses it today renders what it rendered
+   before.
+4. A module without the default directory and without a key has no templates. That is no defect. It
+   has to say `bpmn-description-language`, as before, and the message names the default directory
+   and the module's key.
+5. The template names Freemarker gets start with the id of the workflow module. One loader sends
+   each name to the directory of its module. So the modules share one cache and never see each
+   other's templates.
+
+#### What follows
+
+- `template-path` of a module only means something below the directory of the application. Below a
+  directory of the module's own, or below the default directory, the workflow and the user task
+  still name their segments.
+- The default directory is found by asking the class loader for it. A jar which leaves out the
+  entries of its directories would hide it. The Maven jar plugin writes them.
+
