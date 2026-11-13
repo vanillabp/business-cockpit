@@ -65,8 +65,8 @@ public class SecurityConfig {
   }
 
   /**
-   * The filter chain for the official API and the BPMS API. Every request is allowed, because
-   * the simulator only runs on a developer's machine.
+   * The filter chain for the official API, the BPMS API and the simulator's own API. Every
+   * request is allowed, because the simulator only runs on a developer's machine.
    *
    * @param http The builder of the filter chain
    * @return The filter chain
@@ -80,7 +80,8 @@ public class SecurityConfig {
     return http.securityMatchers(
         c -> c.requestMatchers(
             "/official-api/**", // Tasklist-API
-            "/bpms/api/**" // BPMS-API
+            "/bpms/api/**", // BPMS-API
+            "/simulator-api/**" // what only the simulator answers
         ))
         .csrf(AbstractHttpConfigurer::disable)
         .cors(Customizer.withDefaults())

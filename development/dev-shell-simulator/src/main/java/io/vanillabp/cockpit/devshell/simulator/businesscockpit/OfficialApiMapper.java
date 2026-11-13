@@ -8,6 +8,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import io.vanillabp.cockpit.bpms.api.v1.RegisterWorkflowModuleEvent;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskCancelledEvent;
@@ -29,6 +30,7 @@ import io.vanillabp.cockpit.gui.api.v1.UserTaskRetrieveMode;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowRetrieveMode;
 import io.vanillabp.cockpit.gui.api.v1.Workflows;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Converts between the events of the BPMS API, the simulator's stored model and the official
@@ -39,6 +41,10 @@ import io.vanillabp.cockpit.gui.api.v1.Workflows;
 public abstract class OfficialApiMapper {
 
   private static final String GROUP_HIERARCHY_MAPPING = "groupHierarchyMapping";
+
+  /** Writes a report the way the BPMS API reads it, see {@link #asReport(Object)}. */
+  @Autowired
+  protected JsonMapper jsonMapper;
 
   /**
    * Creates the mapper. MapStruct's generated subclass calls it.
@@ -269,6 +275,25 @@ public abstract class OfficialApiMapper {
         .stream()
         .map(this::toPersonModel)
         .collect(Collectors.toList());
+
+  }
+
+  /**
+   * A report of the BPMS API as JSON values, the way it came in. The simulator keeps it to show
+   * it to the developer.
+   *
+   * @param event The report
+   * @return The fields of the report and their values, or {@code null} if no report was given
+   */
+  @NoMappingMethod
+  @SuppressWarnings("unchecked")
+  protected Map<String, Object> asReport(
+      final Object event) {
+
+    if (event == null) {
+      return null;
+    }
+    return jsonMapper.convertValue(event, Map.class);
 
   }
 
@@ -563,6 +588,9 @@ public abstract class OfficialApiMapper {
   @Mapping(target = "uiUri", source = "uiUriPath")
   @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(event.getWorkflowModuleId()))")
   @Mapping(target = "read", ignore = true)
+  @Mapping(target = "admittedUsers", ignore = true)
+  @Mapping(target = "notificationDelivery", ignore = true)
+  @Mapping(target = "lastReport", expression = "java(asReport(event))")
   public abstract io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.UserTask toModel(
       UserTaskCreatedOrUpdatedEvent event);
 
@@ -587,6 +615,9 @@ public abstract class OfficialApiMapper {
   @Mapping(target = "uiUri", ignore = true)
   @Mapping(target = "workflowModuleUri", ignore = true)
   @Mapping(target = "read", ignore = true)
+  @Mapping(target = "admittedUsers", ignore = true)
+  @Mapping(target = "notificationDelivery", ignore = true)
+  @Mapping(target = "lastReport", expression = "java(asReport(event))")
   public abstract void ontoModel(
       @MappingTarget io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.UserTask userTask,
       UserTaskCreatedOrUpdatedEvent event);
@@ -612,6 +643,7 @@ public abstract class OfficialApiMapper {
   @Mapping(target = "uiUri", source = "uiUriPath")
   @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(event.getWorkflowModuleId()))")
   @Mapping(target = "read", ignore = true)
+  @Mapping(target = "lastReport", expression = "java(asReport(event))")
   public abstract io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.UserTask toModel(
       UserTaskCreatedEvent event);
 
@@ -636,6 +668,7 @@ public abstract class OfficialApiMapper {
   @Mapping(target = "uiUri", ignore = true)
   @Mapping(target = "workflowModuleUri", ignore = true)
   @Mapping(target = "read", ignore = true)
+  @Mapping(target = "lastReport", expression = "java(asReport(event))")
   public abstract void ontoModel(
       @MappingTarget io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.UserTask userTask,
       UserTaskUpdatedEvent event);
@@ -661,6 +694,10 @@ public abstract class OfficialApiMapper {
   @Mapping(target = "uiUri", ignore = true)
   @Mapping(target = "workflowModuleUri", ignore = true)
   @Mapping(target = "read", ignore = true)
+  @Mapping(target = "excludedCandidateUsers", ignore = true)
+  @Mapping(target = "admittedUsers", ignore = true)
+  @Mapping(target = "notificationDelivery", ignore = true)
+  @Mapping(target = "lastReport", expression = "java(asReport(event))")
   public abstract void ontoModel(
       @MappingTarget io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.UserTask userTask,
       io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCompletedEvent event);
@@ -686,6 +723,10 @@ public abstract class OfficialApiMapper {
   @Mapping(target = "uiUri", ignore = true)
   @Mapping(target = "workflowModuleUri", ignore = true)
   @Mapping(target = "read", ignore = true)
+  @Mapping(target = "excludedCandidateUsers", ignore = true)
+  @Mapping(target = "admittedUsers", ignore = true)
+  @Mapping(target = "notificationDelivery", ignore = true)
+  @Mapping(target = "lastReport", expression = "java(asReport(event))")
   public abstract void ontoModel(
       @MappingTarget io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.UserTask userTask,
       io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCancelledEvent event);
@@ -726,6 +767,10 @@ public abstract class OfficialApiMapper {
   @Mapping(target = "title", ignore = true)
   @Mapping(target = "uiUriType", ignore = true)
   @Mapping(target = "detailsFulltextSearch", ignore = true)
+  @Mapping(target = "excludedCandidateUsers", ignore = true)
+  @Mapping(target = "admittedUsers", ignore = true)
+  @Mapping(target = "notificationDelivery", ignore = true)
+  @Mapping(target = "lastReport", expression = "java(asReport(event))")
   public abstract void ontoModel(
       @MappingTarget io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.UserTask userTask,
       UserTaskCompletedEvent event);
@@ -766,6 +811,10 @@ public abstract class OfficialApiMapper {
   @Mapping(target = "title", ignore = true)
   @Mapping(target = "uiUriType", ignore = true)
   @Mapping(target = "detailsFulltextSearch", ignore = true)
+  @Mapping(target = "excludedCandidateUsers", ignore = true)
+  @Mapping(target = "admittedUsers", ignore = true)
+  @Mapping(target = "notificationDelivery", ignore = true)
+  @Mapping(target = "lastReport", expression = "java(asReport(event))")
   public abstract void ontoModel(
       @MappingTarget io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.UserTask userTask,
       UserTaskCancelledEvent event);

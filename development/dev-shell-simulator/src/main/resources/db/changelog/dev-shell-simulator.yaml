@@ -181,3 +181,22 @@ databaseChangeLog:
               - column:
                   name: GROUP_HIERARCHY
                   type: json
+  - changeSet:
+      id: add_what_organizes_a_user_task
+      author: vanillabp
+      changes:
+        - addColumn:
+            tableName: SIMULATOR_USERTASK
+            columns:
+              - column:
+                  name: EXCLUDED_CANDIDATE_USERS
+                  type: json
+              - column:
+                  name: ADMITTED_USERS
+                  type: json
+              - column:
+                  name: NOTIFICATION_DELIVERY
+                  type: varchar(255)
+              - column:
+                  name: LAST_REPORT
+                  type: json
