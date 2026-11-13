@@ -34,7 +34,7 @@ public class WorkflowModuleSettingsTest {
 
     return new WorkflowModuleConfiguration(
         MODULE_ID, "http://localhost", "EXTERNAL", "/ui", List.of("en"), "en", Map
-            .of(), MODULE_ID, workflow == null ? Map.of()
+            .of(), MODULE_ID, null, workflow == null ? Map.of()
                 : Map.of(PROCESS_ID, workflow), InitiatorSource.BY_APPLICATION);
 
   }
@@ -81,7 +81,7 @@ public class WorkflowModuleSettingsTest {
   public void nothingAnywhereIsNothing() {
 
     final var module = new WorkflowModuleConfiguration(
-        MODULE_ID, "http://localhost", "EXTERNAL", "/ui", null, null, Map.of(), MODULE_ID, Map.of(PROCESS_ID,
+        MODULE_ID, "http://localhost", "EXTERNAL", "/ui", null, null, Map.of(), MODULE_ID, null, Map.of(PROCESS_ID,
             new WorkflowConfiguration(PROCESS_ID, null, null, null, Map.of(), null)), null);
 
     assertEquals(List.of(), module.i18nLanguages(PROCESS_ID));

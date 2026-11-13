@@ -187,7 +187,10 @@ public class CockpitOverlayProperties {
     /** Whether workflows are reported at all. */
     private String workflowListEnabled;
 
-    /** The directory the templates are loaded from. */
+    /**
+     * The directory below which every workflow module has its templates. The description for the
+     * IDE is written in the additional metadata, because it names keys with placeholders.
+     */
     private String templateLoaderPath;
 
     /** Who answers the initiator of a report. */
@@ -1426,16 +1429,17 @@ public class CockpitOverlayProperties {
       if ((cockpit.getWorkflowModuleUri() == null) && (cockpit.getUiUriType() == null) && (cockpit
           .getUiUriPath() == null) && (cockpit.getI18nLanguages() == null) && (cockpit
               .getBpmnDescriptionLanguage() == null) && (cockpit
-                  .getTemplatePath() == null) && (cockpit.getInitiatorSource() == null) && ((cockpit
-                      .getGroupHierarchy() == null) || cockpit.getGroupHierarchy()
-                          .isEmpty())) {
+                  .getTemplatePath() == null) && (cockpit.getTemplateLoaderPath() == null) && (cockpit
+                      .getInitiatorSource() == null) && ((cockpit
+                          .getGroupHierarchy() == null) || cockpit.getGroupHierarchy()
+                              .isEmpty())) {
         return null;
       }
       return new CockpitSettings.Cockpit(
           cockpit.getWorkflowModuleUri(), cockpit.getUiUriType(), cockpit.getUiUriPath(), cockpit
               .getI18nLanguages(), cockpit
                   .getBpmnDescriptionLanguage(), cockpit.getTemplatePath(), cockpit
-                      .getGroupHierarchy(), cockpit.getInitiatorSource());
+                      .getTemplateLoaderPath(), cockpit.getGroupHierarchy(), cockpit.getInitiatorSource());
 
     }
 
@@ -1463,6 +1467,9 @@ public class CockpitOverlayProperties {
 
     /** The segment this module contributes to the template lookup path. */
     private String templatePath;
+
+    /** The directory of this module's templates. */
+    private String templateLoaderPath;
 
     /** Which groups a group stands for. */
     private Map<String, List<String>> groupHierarchy;
@@ -1611,6 +1618,29 @@ public class CockpitOverlayProperties {
         final String templatePath) {
 
       this.templatePath = templatePath;
+
+    }
+
+    /**
+     * The directory of this module's templates.
+     *
+     * @return The directory, with the place in front of it
+     */
+    public String getTemplateLoaderPath() {
+
+      return templateLoaderPath;
+
+    }
+
+    /**
+     * The directory of this module's templates.
+     *
+     * @param templateLoaderPath The directory, with the place in front of it
+     */
+    public void setTemplateLoaderPath(
+        final String templateLoaderPath) {
+
+      this.templateLoaderPath = templateLoaderPath;
 
     }
 

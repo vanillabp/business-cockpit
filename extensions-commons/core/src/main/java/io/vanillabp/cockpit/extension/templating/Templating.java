@@ -9,9 +9,9 @@ import java.util.Optional;
  * Renders the texts the Business Cockpit shows from templates the workflow module ships.
  * <p>
  * Templating is optional in two ways, and both end here. The application may have no template
- * engine on its classpath, or it may have one and configure no template directory. In either
- * case {@link #none()} is used and every render answers empty, and the cockpit then reports the
- * names written in the BPMN files instead.
+ * engine on its classpath, or no workflow module may have templates. In either case
+ * {@link #none()} is used and every render answers empty, and the cockpit then reports the names
+ * written in the BPMN files instead.
  */
 public interface Templating {
 
@@ -98,6 +98,39 @@ public interface Templating {
         locale,
         templateContext,
         additionalValues) -> Optional.empty();
+
+  }
+
+  /**
+   * Whether a directory exists on the classpath, in a jar or in a directory of classes.
+   *
+   * @param directory The directory, without a place in front of it and without a leading slash
+   * @return Whether the class loader which loads the templates finds it
+   */
+  static boolean isOnTheClasspath(
+      final String directory) {
+
+    final var classLoader = classLoader();
+    // a jar lists a directory with a trailing slash, a directory of classes answers either way
+    return (classLoader.getResource(directory
+        + "/") != null) || (classLoader.getResource(directory) != null);
+
+  }
+
+  /**
+   * The class loader templates are read with: the one of the application, which is the context
+   * class loader of the thread which builds the cockpit's beans. In tests and in the development
+   * mode of Quarkus the classes of this extension are loaded by a parent of the class loader which
+   * sees the resources of the application. So the class loader of this class would not find the
+   * templates of a workflow module there.
+   *
+   * @return The class loader of the application, or the one of this class where the thread has
+   *         none
+   */
+  static ClassLoader classLoader() {
+
+    final var contextClassLoader = Thread.currentThread().getContextClassLoader();
+    return contextClassLoader != null ? contextClassLoader : Templating.class.getClassLoader();
 
   }
 

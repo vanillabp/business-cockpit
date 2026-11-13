@@ -1,5 +1,7 @@
 package io.vanillabp.cockpit.extension;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.TimeZone;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -10,6 +12,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import io.vanillabp.cockpit.extension.config.BusinessCockpitConfiguration;
 import io.vanillabp.cockpit.extension.config.ConfigurationKeys;
+import io.vanillabp.cockpit.extension.config.TemplateDirectory;
+import io.vanillabp.cockpit.extension.config.WorkflowModuleConfiguration;
 import io.vanillabp.cockpit.extension.templating.FreemarkerTemplating;
 import io.vanillabp.cockpit.extension.templating.Templating;
 import io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport;
@@ -96,8 +100,8 @@ public final class BusinessCockpitAssembly {
    * Builds the renderer of the titles.
    *
    * @param configuration The validated configuration
-   * @return The renderer of the titles, {@link Templating#none()} where the application
-   *         configured no template directory
+   * @return The renderer of the titles, {@link Templating#none()} where no workflow module has
+   *         a template directory
    */
   public static Templating templatingOf(
       final BusinessCockpitConfiguration configuration) {
@@ -105,7 +109,15 @@ public final class BusinessCockpitAssembly {
     if (!configuration.isTemplating()) {
       return Templating.none();
     }
-    return freemarker(configuration.getTemplateLoaderPath());
+    final var directoryPerWorkflowModule = new LinkedHashMap<String, TemplateDirectory>();
+    configuration
+        .getWorkflowModuleIds()
+        .stream()
+        .map(configuration::workflowModule)
+        .filter(WorkflowModuleConfiguration::hasTemplates)
+        .forEach(module -> directoryPerWorkflowModule
+            .put(module.workflowModuleId(), module.templateDirectory()));
+    return freemarker(directoryPerWorkflowModule);
 
   }
 
@@ -113,9 +125,9 @@ public final class BusinessCockpitAssembly {
    * Loaded only where templates are configured, for the same reason the Kafka transport is.
    */
   private static Templating freemarker(
-      final String templateLoaderPath) {
+      final Map<String, TemplateDirectory> directoryPerWorkflowModule) {
 
-    return new FreemarkerTemplating(templateLoaderPath);
+    return new FreemarkerTemplating(directoryPerWorkflowModule);
 
   }
 

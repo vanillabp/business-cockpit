@@ -2,7 +2,9 @@ package io.vanillabp.cockpit.extension.templating;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Reader;
 import java.io.StringWriter;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -12,6 +14,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import freemarker.cache.ClassTemplateLoader;
+import freemarker.cache.FileTemplateLoader;
+import freemarker.cache.TemplateLoader;
 import freemarker.cache.TemplateLookupStrategy;
 import freemarker.ext.beans.BeansWrapper;
 import freemarker.template.Configuration;
@@ -19,6 +23,7 @@ import freemarker.template.Template;
 import freemarker.template.TemplateNotFoundException;
 import freemarker.template.Version;
 import io.vanillabp.cockpit.extension.config.ConfigurationKeys;
+import io.vanillabp.cockpit.extension.config.TemplateDirectory;
 
 /**
  * {@link Templating} on Freemarker, configured the way the Business Cockpit needs it.
@@ -57,7 +62,7 @@ public class FreemarkerTemplating implements Templating {
       configuration
           .setTemplateLoader(
               new ClassTemplateLoader(
-                  FreemarkerTemplating.class.getClassLoader(), classpathBase(templateLoaderPath)));
+                  Templating.classLoader(), classpathBase(templateLoaderPath)));
       return;
     }
     final var directory = templateLoaderPath.substring(Templating.FILE_PREFIX.length());
@@ -72,6 +77,138 @@ public class FreemarkerTemplating implements Templating {
               .formatted(
                   directory,
                   ConfigurationKeys.globalKey(ConfigurationKeys.TEMPLATE_LOADER_PATH)), e);
+    }
+
+  }
+
+  /**
+   * Creates the templating for the workflow modules of an application, each with its own
+   * directory.
+   * <p>
+   * The first segment of every template name is the id of a workflow module. It chooses the
+   * directory, and the rest of the name is looked for below it. {@link EventTitles#lookupPaths}
+   * builds the names that way.
+   *
+   * @param directoryPerWorkflowModule Where the templates of each module are, by module id
+   * @throws IllegalStateException If a directory of the file system cannot be read. That is a
+   *           configuration defect, and it is reported at startup and not at the first event
+   */
+  public FreemarkerTemplating(
+      final Map<String, TemplateDirectory> directoryPerWorkflowModule) {
+
+    this(newConfiguration());
+    final var loaders = new LinkedHashMap<String, TemplateLoader>();
+    final var below = new LinkedHashMap<String, String>();
+    directoryPerWorkflowModule
+        .forEach((
+            workflowModuleId,
+            directory) -> {
+          loaders.put(workflowModuleId, loaderOf(directory.loaderPath(), directory.key()));
+          below.put(workflowModuleId, directory.below());
+        });
+    configuration.setTemplateLoader(new WorkflowModuleTemplateLoader(loaders, below));
+
+  }
+
+  private static TemplateLoader loaderOf(
+      final String templateLoaderPath,
+      final String key) {
+
+    if (templateLoaderPath.startsWith(Templating.CLASSPATH_PREFIX) || templateLoaderPath
+        .startsWith(Templating.EVERY_CLASSPATH_PREFIX)) {
+      return new ClassTemplateLoader(
+          Templating.classLoader(), classpathBase(templateLoaderPath));
+    }
+    final var directory = templateLoaderPath.substring(Templating.FILE_PREFIX.length());
+    try {
+      return new FileTemplateLoader(new File(directory));
+    } catch (final IOException e) {
+      throw new IllegalStateException(
+          """
+              The directory '%s' configured as the Business Cockpit's template loader path cannot \
+              be read. Point '%s' at a directory holding the templates, or remove it and let the \
+              cockpit report the names written in the BPMN."""
+              .formatted(directory, key), e);
+    }
+
+  }
+
+  /**
+   * Sends the name of a template to the directory of the workflow module the name starts with.
+   * Freemarker keeps one cache for all modules, and the module id in front keeps the names of two
+   * modules apart.
+   */
+  private static final class WorkflowModuleTemplateLoader implements TemplateLoader {
+
+    /** A template found in the directory of one module, with the loader which found it. */
+    private record Source(
+                          TemplateLoader loader,
+                          Object source) {
+    }
+
+    private final Map<String, TemplateLoader> loaders;
+
+    private final Map<String, String> below;
+
+    private WorkflowModuleTemplateLoader(
+        final Map<String, TemplateLoader> loaders,
+        final Map<String, String> below) {
+
+      this.loaders = Map.copyOf(loaders);
+      this.below = Map.copyOf(below);
+
+    }
+
+    @Override
+    public Object findTemplateSource(
+        final String name) throws IOException {
+
+      final var slash = name.indexOf('/');
+      if (slash < 0) {
+        return null;
+      }
+      final var workflowModuleId = name.substring(0, slash);
+      final var loader = loaders.get(workflowModuleId);
+      if (loader == null) {
+        return null;
+      }
+      final var path = below.get(workflowModuleId);
+      final var rest = name.substring(slash + 1);
+      final var source = loader.findTemplateSource(path.isEmpty()
+          ? rest
+          : path
+              + "/"
+              + rest);
+      return source == null ? null : new Source(loader, source);
+
+    }
+
+    @Override
+    public long getLastModified(
+        final Object templateSource) {
+
+      final var source = (Source) templateSource;
+      return source.loader().getLastModified(source.source());
+
+    }
+
+    @Override
+    public Reader getReader(
+        final Object templateSource,
+        final String encoding) throws IOException {
+
+      final var source = (Source) templateSource;
+      return source.loader().getReader(source.source(), encoding);
+
+    }
+
+    @Override
+    public void closeTemplateSource(
+        final Object templateSource) throws IOException {
+
+      final var source = (Source) templateSource;
+      source.loader().closeTemplateSource(source.source());
+
     }
 
   }

@@ -1,0 +1,1 @@
+Assess the risk of loan ${loan.number}

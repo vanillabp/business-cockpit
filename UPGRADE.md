@@ -260,6 +260,23 @@ Your existing cases keep what they have. Nothing is filled in afterwards, becaus
 out later who started a case which ran without an initiator. That is also why the key has no
 default: a value which cannot be filled in later is worth one line of configuration.
 
+### A workflow module keeps its templates in its own directory
+
+A workflow module now finds its title templates in `<workflow-module-id>/business-cockpit-templates`
+of the classpath, with nothing configured. All of them go there, also `workflow-title.ftl`,
+`workflow-fulltext-search.ftl` and a `task-fulltext-search.ftl` which serves every task. A module
+which keeps them somewhere else names the directory in its own
+`vanillabp.workflow-modules.<moduleId>.cockpit.template-loader-path`.
+
+`vanillabp.cockpit.template-loader-path` keeps working for every module which names no directory of
+its own. While it is set, the default directory is not looked at, so nothing changes for an
+application which uses it. To move a module's templates into the default directory, remove the key
+from the application, or give the other modules a `template-loader-path` of their own.
+
+One thing may change without a key: a module with Freemarker on its classpath, without the key of
+the application, and with a directory `<moduleId>/business-cockpit-templates` which held something
+else. Its templates are rendered now. Before, the cockpit showed the BPMN names.
+
 ### `uiUriType` is a string, and the address is the user interface's business
 
 `uiUriType` was an enum with two values in four published schemas. It is a plain string now, in

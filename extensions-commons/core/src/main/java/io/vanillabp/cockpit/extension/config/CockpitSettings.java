@@ -244,7 +244,10 @@ public record CockpitSettings(
    * @param uiUriPath Where this module's forms are served from
    * @param i18nLanguages The languages titles are reported in
    * @param bpmnDescriptionLanguage The language the names in the BPMN files are written in
-   * @param templatePath The segment this module contributes to the template lookup path
+   * @param templatePath The segment this module contributes to the template lookup path of the
+   *          application
+   * @param templateLoaderPath The directory of this module's templates, or <code>null</code>
+   *          where the application's directory or the default directory is used
    * @param groupHierarchy Which groups a group stands for
    * @param initiatorSource Who answers the initiator of this module's reports, or
    *          <code>null</code> where the application decides
@@ -256,6 +259,7 @@ public record CockpitSettings(
                         List<String> i18nLanguages,
                         String bpmnDescriptionLanguage,
                         String templatePath,
+                        String templateLoaderPath,
                         Map<String, List<String>> groupHierarchy,
                         String initiatorSource) {
 
