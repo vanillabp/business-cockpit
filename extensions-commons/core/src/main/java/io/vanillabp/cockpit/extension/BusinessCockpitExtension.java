@@ -1208,6 +1208,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     // the reports of SUSPENDED and ACTIVATED
     event.setSuspendedAt(prefill.get().suspendedAt());
     event.setSuspendedBy(prefill.get().suspendedBy());
+    // set before the details provider runs, so a comment of the module replaces it
+    event.setComment(prefill.get().comment());
     handlers
         .invoke(
             HandlerCall
@@ -1861,6 +1863,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     // the reports of SUSPENDED and ACTIVATED
     event.setSuspendedAt(prefill.suspendedAt());
     event.setSuspendedBy(prefill.suspendedBy());
+    // set before the details provider runs, so a comment of the module replaces it
+    event.setComment(prefill.comment());
     if (prefill.workflowId() != null) {
       event.setWorkflowId(prefill.workflowId());
     }

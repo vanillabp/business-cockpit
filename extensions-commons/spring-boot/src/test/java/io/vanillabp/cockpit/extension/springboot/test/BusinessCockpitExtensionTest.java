@@ -91,6 +91,7 @@ public class BusinessCockpitExtensionTest {
     bridge.writesTheWorkflowAfter(0);
     bridge.reportsAChangedUserTaskRightAway(true);
     bridge.writesTheTaskAfter(0);
+    bridge.prefillsAComment(null);
     bridge.forgetLookups();
 
   }
@@ -520,6 +521,49 @@ public class BusinessCockpitExtensionTest {
     // sent with what the entry itself carried
     final var request = CockpitServer.awaitRequest("/usertask/task-1/completed", "bpms-event-18");
     assertFalse(request.body().contains("\"customer\":\"Anna\""), request.body());
+
+  }
+
+  @Test
+  @DisplayName("A cancelled task carries the comment the BPMS prefilled where its provider sets none")
+  public void aCancelledTaskCarriesThePrefilledComment() {
+
+    final var aggregate = aStartedWorkflow();
+    bridge.prefillsAComment("the customer withdrew");
+
+    transactions
+        .executeWithoutResult(status -> publisher
+            .publishUserTaskEvent(
+                userTaskOf(aggregate, "approve"), UserTaskEventKind.CANCELED, "bpms-event-1847-1",
+                OffsetDateTime.now(), EventTransaction.CURRENT));
+
+    final var request = CockpitServer.awaitRequest("/usertask/task-1/cancelled", "bpms-event-1847-1");
+    assertTrue(request.body().contains("\"comment\":\"the customer withdrew\""), request.body());
+
+  }
+
+  @Test
+  @DisplayName("A comment the workflow's provider sets replaces the comment the BPMS prefilled")
+  public void theCommentOfTheModuleWins() {
+
+    final var aggregate = aStartedWorkflow();
+    bridge.prefillsAComment("the customer withdrew");
+
+    transactions
+        .executeWithoutResult(status -> publisher
+            .publishWorkflowEvent(
+                new WorkflowReference(
+                    RecordingBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, "1", aggregate
+                        .getId()
+                        .toString(), RecordingBpmsBridge.WORKFLOW_ID),
+                WorkflowEventKind.CANCELLED, "bpms-event-1847-2", OffsetDateTime.now(),
+                EventTransaction.CURRENT));
+
+    final var request = CockpitServer
+        .awaitRequest("/workflow/workflow-1/cancelled", "bpms-event-1847-2");
+    // the provider of this test always writes "workflow of" and the customer into the comment
+    assertTrue(request.body().contains("\"comment\":\"workflow of Anna\""), request.body());
+    assertFalse(request.body().contains("the customer withdrew"), request.body());
 
   }
 

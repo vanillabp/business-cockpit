@@ -114,7 +114,11 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
       return;
     }
     setInitiator(details.getInitiator());
-    setComment(details.getComment());
+    // an object of its own which has no comment says nothing about it. The comment the BPMS
+    // prefilled, the reason somebody cancelled the process instance with, then stays
+    if (details.getComment() != null) {
+      setComment(details.getComment());
+    }
     setDetails(details.getDetails());
     setDetailsFulltextSearch(details.getDetailsFulltextSearch());
     setTemplateContext(details.getTemplateContext());

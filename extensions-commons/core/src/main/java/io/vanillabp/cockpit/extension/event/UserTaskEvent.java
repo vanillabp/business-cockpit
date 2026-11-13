@@ -153,7 +153,11 @@ public class UserTaskEvent implements PrefilledUserTaskDetails, UserTask {
       return;
     }
     setInitiator(details.getInitiator());
-    setComment(details.getComment());
+    // an object of its own which has no comment says nothing about it. The comment the BPMS
+    // prefilled, the reason somebody cancelled the process instance with, then stays
+    if (details.getComment() != null) {
+      setComment(details.getComment());
+    }
     setAssignee(details.getAssignee());
     setCandidateUsers(details.getCandidateUsers());
     setCandidateGroups(details.getCandidateGroups());

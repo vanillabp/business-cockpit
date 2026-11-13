@@ -24,6 +24,9 @@ import java.time.OffsetDateTime;
  *          activation change what it shows
  * @param suspendedBy Who suspended or activated the process instance the last time, where the
  *          BPMS tells it with the event at hand. Read the same way as <code>suspendedAt</code>
+ * @param comment What the cockpit stores as the comment of the workflow unless the details
+ *          provider sets one of its own. A BPMS fills it where somebody wrote a reason while
+ *          cancelling the process instance in the engine, and leaves it empty otherwise
  */
 public record WorkflowDetailsPrefill(
                                      String bpmnProcessVersion,
@@ -32,7 +35,33 @@ public record WorkflowDetailsPrefill(
                                      String initiator,
                                      OffsetDateTime createdAt,
                                      OffsetDateTime suspendedAt,
-                                     String suspendedBy) {
+                                     String suspendedBy,
+                                     String comment) {
+
+  /**
+   * The values without a comment, which is how a BPMS half built them before the comment was
+   * asked for. The comment is then empty.
+   *
+   * @param bpmnProcessVersion See the record
+   * @param businessId See the record
+   * @param bpmnProcessName See the record
+   * @param initiator See the record
+   * @param createdAt See the record
+   * @param suspendedAt See the record
+   * @param suspendedBy See the record
+   */
+  public WorkflowDetailsPrefill(
+      final String bpmnProcessVersion,
+      final String businessId,
+      final String bpmnProcessName,
+      final String initiator,
+      final OffsetDateTime createdAt,
+      final OffsetDateTime suspendedAt,
+      final String suspendedBy) {
+
+    this(bpmnProcessVersion, businessId, bpmnProcessName, initiator, createdAt, suspendedAt, suspendedBy, null);
+
+  }
 
   /**
    * The values without the suspension of the process instance, which is how a BPMS half built

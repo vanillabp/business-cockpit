@@ -45,6 +45,11 @@ public interface UserTaskDetails {
    * A short text the cockpit stores with the task. Lists of tasks can be sorted and filtered by
    * it.
    *
+   * <p>Where somebody cancels the process instance in the engine and writes a reason, the
+   * prefilled details carry that reason here. A details provider which sets a comment of its own
+   * replaces it. Camunda 7 and the engines which follow it give such a reason. Camunda 8 and the
+   * Process-Engine-API have none, so there the value stays empty until the provider sets one.
+   *
    * @return The comment, or <code>null</code>
    */
   String getComment();
