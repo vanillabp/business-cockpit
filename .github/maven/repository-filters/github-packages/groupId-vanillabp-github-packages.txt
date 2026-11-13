@@ -1,0 +1,7 @@
+io.vanillabp
+io.vanillabp.adapter
+io.vanillabp.businesscockpit
+io.vanillabp.quarkus
+io.vanillabp.quarkus.extension
+io.vanillabp.springboot
+io.vanillabp.springboot.extension

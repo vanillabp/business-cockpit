@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  What the workflows of this repository give Maven. Every Maven call of a workflow names
+  this file with '-s'. On your own machine you do not need it.
+
+  Three servers. All read their credentials from environment variables:
+  - 'vanillabp-central' is the Central Portal, for the snapshot repository of Maven Central.
+    Only the step which publishes sets its two variables.
+  - 'github-packages' is GitHub Packages of this repository. The GITHUB_TOKEN of the run may
+    write there, because the publishing job asks for 'packages: write'. Only the step which
+    publishes sets GITHUB_TOKEN.
+  - 'vanillabp-github-packages' reads the snapshots of all repositories of the vanillabp
+    organization. The workflow sets VBP_PACKAGES_READ_TOKEN to the GITHUB_TOKEN of the run,
+    and every job which runs Maven asks for 'packages: read'. GitHub Packages needs a token
+    even for public packages.
+  The profile 'publish-snapshots' of the POM uses the first two.
+
+  Where the snapshots of the other VanillaBP repositories come from is decided by the
+  environment variable VBP_SNAPSHOTS_FROM, which the workflow takes from the Actions
+  variable VANILLABP_SNAPSHOTS_FROM of the organization:
+  - 'central' (the variable is not set): from the snapshot repository of Maven Central, which
+    io.vanillabp:release-parent names as 'central-snapshots'.
+  - 'github-packages': from GitHub Packages. Maven Central is then not asked for any VanillaBP
+    snapshot, so its rate limit (HTTP 429) cannot stop the build. Should GitHub Packages fail,
+    the organization clears the variable, and every build reads from Maven Central again,
+    without a push.
+
+  In both cases the files in .github/maven/repository-filters/<VBP_SNAPSHOTS_FROM> say which
+  groups Maven may ask a repository for: a file 'groupId-<repository id>.txt' lists them, one
+  exact groupId per line, and a repository without such a file is asked for everything. A
+  group which a build starts to read from 'central-snapshots' goes into both files for that
+  repository. Outside a runner, GITHUB_WORKSPACE and VBP_SNAPSHOTS_FROM are empty, the
+  filter finds no file, and it lets everything through.
+
+  The file lives outside .github/workflows on purpose: a change to a workflow file needs a
+  token with a special scope, a change here does not.
+-->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+    <servers>
+        <server>
+            <id>vanillabp-central</id>
+            <username>${env.MAVEN_USERNAME}</username>
+            <password>${env.MAVEN_PASSWORD}</password>
+        </server>
+        <server>
+            <id>github-packages</id>
+            <username>${env.GITHUB_ACTOR}</username>
+            <password>${env.GITHUB_TOKEN}</password>
+        </server>
+        <server>
+            <id>vanillabp-github-packages</id>
+            <username>${env.GITHUB_ACTOR}</username>
+            <password>${env.VBP_PACKAGES_READ_TOKEN}</password>
+        </server>
+    </servers>
+    <activeProfiles>
+        <activeProfile>repository-filters</activeProfile>
+    </activeProfiles>
+    <profiles>
+        <profile>
+            <id>repository-filters</id>
+            <properties>
+                <aether.remoteRepositoryFilter.groupId>true</aether.remoteRepositoryFilter.groupId>
+                <aether.remoteRepositoryFilter.groupId.basedir>${env.GITHUB_WORKSPACE}/.github/maven/repository-filters/${env.VBP_SNAPSHOTS_FROM}</aether.remoteRepositoryFilter.groupId.basedir>
+            </properties>
+        </profile>
+        <profile>
+            <id>snapshots-from-github-packages</id>
+            <activation>
+                <property>
+                    <name>env.VBP_SNAPSHOTS_FROM</name>
+                    <value>github-packages</value>
+                </property>
+            </activation>
+            <repositories>
+                <!-- one URL for the packages of every repository of the organization -->
+                <repository>
+                    <id>vanillabp-github-packages</id>
+                    <url>https://maven.pkg.github.com/vanillabp/*</url>
+                    <releases>
+                        <enabled>false</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                </repository>
+            </repositories>
+        </profile>
+    </profiles>
+</settings>

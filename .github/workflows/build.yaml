@@ -7,6 +7,15 @@ on:
   # proves. See nightly-build.yaml.
   workflow_call:
 
+# Where Maven reads the snapshots of the other VanillaBP repositories from, see
+# .github/maven/settings.xml: from GitHub Packages once the organization sets the Actions
+# variable VANILLABP_SNAPSHOTS_FROM to 'github-packages', else from the snapshot repository of
+# Maven Central. Reading GitHub Packages needs a token even for public packages. The
+# GITHUB_TOKEN of the run is enough, because every job which runs Maven asks for
+# 'packages: read'.
+env:
+  VBP_SNAPSHOTS_FROM: "${{ vars.VANILLABP_SNAPSHOTS_FROM == 'github-packages' && 'github-packages' || 'central' }}"
+  VBP_PACKAGES_READ_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 # A group per pull request. GitHub keeps at most one waiting run per group, and a
 # newer run takes the place of the one that waits. The replaced run ends as
 # 'cancelled' without ever starting a job, so the pull request is left with no
@@ -30,6 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: read
     steps:
       - uses: actions/checkout@v7
       # the Maven the publish of main runs with, see publish-snapshots.yaml for why it is not
@@ -63,7 +73,7 @@ jobs:
         #
         # Every snapshot this build reads, the MongoDB changeset library included, comes from
         # the snapshot repository of Maven Central, without a login.
-        run: mvn --batch-mode --no-transfer-progress --update-snapshots install
+        run: mvn -s .github/maven/settings.xml --batch-mode --no-transfer-progress --update-snapshots install
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v7

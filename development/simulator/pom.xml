@@ -34,6 +34,8 @@
          Maven Central, as a snapshot or as a release. Its runnable jar is attached to the GitHub
          release instead. -->
     <skip.central.release>true</skip.central.release>
+    <!-- the same for GitHub Packages, where the profile 'publish-snapshots' sends snapshots -->
+    <maven.deploy.skip>true</maven.deploy.skip>
   </properties>
 
   <dependencyManagement>
