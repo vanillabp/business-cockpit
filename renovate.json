@@ -11,6 +11,11 @@
       "description": "mongodb-changesets is a snapshot from the snapshot repository of Maven Central. While it is a snapshot there is no release to look up. The version is raised by hand when a release is cut.",
       "matchPackageNames": ["com.phactum.mongodb:mongodb-changesets"],
       "enabled": false
+    },
+    {
+      "description": "protoc writes the classes of bpms-protobuf-api, and a generated class refuses to load on a protobuf-java older than the protoc which wrote it. Those classes run in other applications, on the protobuf-java their platform manages. So protoc stays at or below the oldest protobuf-java a supported platform manages, and it moves by hand when that platform moves. The POM of apis/bpms-api/protobuf says how. Renovate reads neither 'version.protoc' nor 'protobuf.lowest-platform-runtime' today, because no dependency names them; this rule keeps it so if protoc ever becomes a dependency of the build. protobuf-java itself, 'version.protobuf', is raised as usual: a runtime newer than the generated classes is fine.",
+      "matchPackageNames": ["com.google.protobuf:protoc"],
+      "enabled": false
     }
   ]
 }

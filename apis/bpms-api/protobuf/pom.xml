@@ -32,13 +32,25 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
     <!--
-          protoc and the protobuf-java runtime move together. protoc 23 wrote classes extending
-          GeneratedMessageV3, which protobuf-java 4 marks for removal, and a generated file is the
-          last place anybody can fix that. protoc 4.26 and newer write GeneratedMessage instead.
-          Generated code also names the version which wrote it and refuses to run on an older
-          runtime, so naming a second version here would be a trap.
+          protoc writes the generated classes, and protobuf-java is the runtime they run on. Since
+          protobuf 4 a generated class names the protoc which wrote it and refuses to load on an
+          older runtime. A newer runtime is fine. So protoc must never be newer than the runtime
+          an application has, and that runtime is the one its platform manages, not ours.
+
+          That is why protoc has a version of its own and does not follow version.protobuf, which
+          Renovate raises. It stays at or below the lowest protobuf-java a supported platform
+          manages, written down in protobuf.lowest-platform-runtime: Quarkus 3.40 manages 4.35.0,
+          Spring Boot 4.1 manages 4.34.2 and newer, Spring Boot 4.0 manages none. Raise the floor
+          when the oldest platform moves, and protoc only up to it. ProtocIsNotNewerThanThePlatformsTest
+          fails the build when protoc is above the floor. renovate.json keeps both values away from
+          Renovate.
+
+          protoc 23 wrote classes extending GeneratedMessageV3, which protobuf-java 4 marks for
+          removal, and a generated file is the last place anybody can fix that. protoc 4.26 and
+          newer write GeneratedMessage instead, so protoc stays at 4.26 or newer.
         -->
-    <version.protoc>${version.protobuf}</version.protoc>
+    <version.protoc>4.31.1</version.protoc>
+    <protobuf.lowest-platform-runtime>4.34.2</protobuf.lowest-platform-runtime>
     <protoc-jar-maven-plugin.version>3.11.4</protoc-jar-maven-plugin.version>
   </properties>
 
@@ -51,6 +63,26 @@
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- the output suppression every test class registers. The version is named here and not
+        taken from the VanillaBP BOM: importing that BOM would put it into the published POM of
+        this small API, which applications on any platform read. -->
+      <groupId>io.vanillabp</groupId>
+      <artifactId>test-utils</artifactId>
+      <version>${version.vanillabp}</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
@@ -81,6 +113,15 @@
             </configuration>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <protobuf.lowest-platform-runtime>${protobuf.lowest-platform-runtime}</protobuf.lowest-platform-runtime>
+            <protobuf.generated-sources>${project.build.directory}/generated-sources</protobuf.generated-sources>
+          </systemPropertyVariables>
+        </configuration>
       </plugin>
     </plugins>
   </build>
