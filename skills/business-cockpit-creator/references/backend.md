@@ -340,9 +340,14 @@ The users of the directory and the users of the login must be the same people wi
 With OIDC the id is the claim of `Q-OIDC-PROVIDER`, by default `preferred_username`.
 
 `getUser` runs on every request. The directories of the library for Keycloak and LDAP keep each
-user with its groups for five minutes, `business-cockpit.user-directory.cache-duration`. A group
-taken away there is gone after five minutes at most. The directory with `configuration` reads memory
-and needs no cache. What the cockpit does with the answer:
+user with its groups for 14 hours, `business-cockpit.user-directory.cache-duration`. Every night at
+2 a.m. in the time zone of the server they empty the whole cache,
+`business-cockpit.user-directory.cache-clear-cron`, `-` switches this off. So a group given or
+taken away counts the next day at the latest. A locked account ends earlier, because its login
+token is not refreshed any more. Operations can empty the cache at once with the actuator endpoint
+`userdirectorycache`: a `DELETE` on `/actuator/userdirectorycache`. Like every actuator endpoint it
+is reachable only where operations exposes it. The directory with `configuration` reads memory and
+needs no cache. What the cockpit does with the answer:
 
 - A user the directory does not know keeps the login, but has no groups. The log warns once a
   minute at most for each such user.
