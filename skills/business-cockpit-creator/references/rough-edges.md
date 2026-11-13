@@ -24,10 +24,11 @@ code of the cockpit. Read this before the first screen, not when something does 
 17. [`zone.js` in a module slows every part down](#zonejs-in-a-module-slows-every-part-down)
 18. [A data entry pulls in the framework](#a-data-entry-pulls-in-the-framework)
 19. [A shared chunk carries the framework into a data entry](#a-shared-chunk-carries-the-framework-into-a-data-entry)
-20. [Angular in a shadow root](#angular-in-a-shadow-root)
-21. [Removing a web component before its answer](#removing-a-web-component-before-its-answer)
-22. [A component library keeps destroyed rows](#a-component-library-keeps-destroyed-rows)
-23. [What needs a newer cockpit](#what-needs-a-newer-cockpit)
+20. [Vue in a shadow root](#vue-in-a-shadow-root)
+21. [Angular in a shadow root](#angular-in-a-shadow-root)
+22. [Removing a web component before its answer](#removing-a-web-component-before-its-answer)
+23. [A component library keeps destroyed rows](#a-component-library-keeps-destroyed-rows)
+24. [What needs a newer cockpit](#what-needs-a-newer-cockpit)
 
 ## Assigning makes a candidate
 
@@ -203,9 +204,27 @@ possible, build the data entries in a build of their own, without splitting. The
 modules build with splitting and pass the check, because their data entries share nothing with
 their forms.
 
+## Vue in a shadow root
+
+Vue needs two things that React does not. The Vue blueprint `cockpit-user-task-frontend-vue` shows
+both.
+
+A `<style>` block of a single-file component does not reach the shadow root. The usual Vue build
+puts it into the `<head>` of the page, so the component shows without its styles. Write no `<style>` block. Keep the module's style in a file of
+its own, and let the web component write it into its own shadow root, in a `<style>` element in
+front of the component, as for Angular below. The blueprint's build fails on a `<style>` block, so
+nobody adds one by mistake. With Vite, importing a stylesheet with `?inline` gives the same text.
+
+`vue-tsc` with `strictTemplates` rejects every `data-testid`. That option turns on
+`checkUnknownProps`, and the types of Vue for the DOM know no `data-*` attribute. So the type check
+fails on the test ids the browser tests need. Leave `strictTemplates` off and turn on
+`checkUnknownComponents`, `checkUnknownDirectives` and `checkUnknownEvents` in
+`vueCompilerOptions` instead. A misspelled component, directive or event is still an error.
+
 ## Angular in a shadow root
 
-Angular needs three things that React and Vue do not. The Angular example module of the kit
+Angular needs three things that React does not. Vue shares the first one, see
+[Vue in a shadow root](#vue-in-a-shadow-root). The Angular example module of the kit
 (`examples/angular-module`) shows all of them.
 
 Angular puts the styles of a component into the `<head>` of the page. From there they do not reach
