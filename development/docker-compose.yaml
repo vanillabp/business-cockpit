@@ -2,10 +2,10 @@ version: '3'
 
 services:
   business-cockpit-mongo:
-    # 4.4 has been out of support since February 2024 and the 5.8 driver only barely still speaks
-    # to it. 8.0 is the current LTS. The jump crosses four server majors, so the replica set
-    # initialisation and the user setup in ./mongo/ were re-verified against it.
-    image: mongo:8.3
+    # The replica set initialisation and the user setup in ./mongo/ were checked against 9.0, and
+    # the cockpit ran its changesets, change streams, reads and writes against it. 8.0 does not
+    # start on Linux kernels from 6.19 on (SERVER-121912), so do not go back to it.
+    image: mongo:9.0
     container_name: business-cockpit-mongo
     restart: "no"
     ports:
