@@ -307,8 +307,9 @@ checklist asks that the log names none (`BE-006`).
 
 Only the application knows where its users live. The library asks three beans for it:
 
-- `io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService`: finds users for a
-  search, lists all users and gets one by id. The user interface needs it to propose a task to a
+- `io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService`, from the artifact
+  `business-cockpit-spring-boot-support`, which the library brings: finds users for a search, lists
+  all users and gets one by id. The user interface needs it to propose a task to a
   person and to show a person. The cockpit also calls `getUser(id)` on every request of a
   logged-in user, because the token carries no groups. The groups are `getAuthorities()` of the
   answer: the groups the user is assigned to, without the group hierarchy, which the cockpit
