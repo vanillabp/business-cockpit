@@ -203,8 +203,19 @@ resolve groups on purpose. A group hierarchy is the business application's job.
 
 Nobody logs in. The simulator writes the same JWT into the same cookie the cockpit uses, and switching
 the user is a `POST`. The secret for signing is in plain text in its configuration, because the point
-is not security but a real token in the right shape. The data paths `/official-api/**` and
-`/bpms/api/**` are open to everyone.
+is not security but a real token in the right shape. The data paths `/official-api/**`,
+`/bpms/api/**` and `/simulator-api/**` are open to everyone.
+
+A report about a user task carries more than the GUI API shows: `excludedCandidateUsers`,
+`admittedUsers` and `notificationDelivery`. The simulator keeps them, and
+`GET /simulator-api/usertask/{userTaskId}/report` answers the last report which created, updated or
+ended the task, exactly as the module sent it. No cockpit answers this path, so a dev shell uses it
+only to show the developer what the module reports, and never in a form.
+
+A project which extends the simulator with an application of its own (`extends DevShellSimulator`)
+keeps its defaults: port, H2, schema update and the JWT secret come from
+`dev-shell-simulator-defaults.yaml` with the lowest priority. Its own `application.yaml` names only
+what differs, and the users.
 
 The simulator is an application on purpose, not a set of test data. What it answers must be what the
 cockpit answers, or a form runs here and not there.
