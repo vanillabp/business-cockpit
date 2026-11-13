@@ -94,4 +94,20 @@ public class UserTaskDetailsPrefillTest {
 
   }
 
+  @Test
+  @DisplayName("A BPMS half which builds the values the way it did before says nothing about a comment")
+  public void theValuesOfBeforeLeaveTheCommentEmpty() {
+
+    final var prefill = new UserTaskDetailsPrefill(
+        "1", "workflow-1", null, "4711", "Approve", "Order handling", null, "anna", null, null, null, null, null, null, null, null, null);
+    final var workflow = new WorkflowDetailsPrefill("1", "4711", "Order handling", null, null, null, null);
+
+    assertNull(prefill.comment());
+    assertNull(workflow.comment());
+    assertEquals(
+        "the customer withdrew",
+        UserTaskDetailsPrefill.builder().comment("the customer withdrew").build().comment());
+
+  }
+
 }

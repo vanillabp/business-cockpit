@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -47,6 +48,8 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
   private final AtomicBoolean knowsTheTask = new AtomicBoolean(true);
 
   private final AtomicBoolean prefillsAnInitiator = new AtomicBoolean(true);
+
+  private final AtomicReference<String> prefilledComment = new AtomicReference<>();
 
   private final List<UserTaskReference> userTasksRead = new LinkedList<>();
 
@@ -99,6 +102,18 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
       final boolean prefills) {
 
     prefillsAnInitiator.set(prefills);
+
+  }
+
+  /**
+   * @param comment The comment this engine prefills for a task and a workflow, the way Camunda 7
+   *          hands over the reason somebody cancelled a process instance with. <code>null</code>
+   *          prefills none, which is what every other test expects
+   */
+  public void prefillsAComment(
+      final String comment) {
+
+    prefilledComment.set(comment);
 
   }
 
@@ -233,6 +248,7 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
                 .dueDate(OffsetDateTime.now().plusDays(1))
                 .variables(Map.of("amount", 250))
                 .createdAt(CREATED_AT)
+                .comment(prefilledComment.get())
                 .build());
 
   }
@@ -244,7 +260,8 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
     return Optional
         .of(
             new WorkflowDetailsPrefill(
-                "1", "4711", "Order handling", prefillsAnInitiator.get() ? ENGINE_INITIATOR : null, CREATED_AT));
+                "1", "4711", "Order handling", prefillsAnInitiator.get() ? ENGINE_INITIATOR
+                    : null, CREATED_AT, null, null, prefilledComment.get()));
 
   }
 

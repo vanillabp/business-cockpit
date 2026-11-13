@@ -57,6 +57,9 @@ import io.vanillabp.integration.extension.spi.handler.HandlerMultiInstance;
  * @param suspendedBy Who suspended or activated the process instance of the task the last time,
  *          where the BPMS tells it with the event at hand. Read the same way as
  *          <code>suspendedAt</code>
+ * @param comment What the cockpit stores as the comment of the task unless the details provider
+ *          sets one of its own. A BPMS fills it where somebody wrote a reason while cancelling
+ *          the process instance in the engine, and leaves it empty otherwise
  */
 public record UserTaskDetailsPrefill(
                                      String bpmnProcessVersion,
@@ -75,7 +78,54 @@ public record UserTaskDetailsPrefill(
                                      Map<String, HandlerMultiInstance> multiInstances,
                                      OffsetDateTime createdAt,
                                      OffsetDateTime suspendedAt,
-                                     String suspendedBy) {
+                                     String suspendedBy,
+                                     String comment) {
+
+  /**
+   * The values without a comment, which is how a BPMS half built them before the comment was
+   * asked for. The comment is then empty.
+   *
+   * @param bpmnProcessVersion See the record
+   * @param workflowId See the record
+   * @param subWorkflowId See the record
+   * @param businessId See the record
+   * @param bpmnTaskName See the record
+   * @param bpmnProcessName See the record
+   * @param initiator See the record
+   * @param assignee See the record
+   * @param candidateUsers See the record
+   * @param candidateGroups See the record
+   * @param dueDate See the record
+   * @param followUpDate See the record
+   * @param variables See the record
+   * @param multiInstances See the record
+   * @param createdAt See the record
+   * @param suspendedAt See the record
+   * @param suspendedBy See the record
+   */
+  public UserTaskDetailsPrefill(
+      final String bpmnProcessVersion,
+      final String workflowId,
+      final String subWorkflowId,
+      final String businessId,
+      final String bpmnTaskName,
+      final String bpmnProcessName,
+      final String initiator,
+      final String assignee,
+      final List<String> candidateUsers,
+      final List<String> candidateGroups,
+      final OffsetDateTime dueDate,
+      final OffsetDateTime followUpDate,
+      final Map<String, Object> variables,
+      final Map<String, HandlerMultiInstance> multiInstances,
+      final OffsetDateTime createdAt,
+      final OffsetDateTime suspendedAt,
+      final String suspendedBy) {
+
+    this(
+        bpmnProcessVersion, workflowId, subWorkflowId, businessId, bpmnTaskName, bpmnProcessName, initiator, assignee, candidateUsers, candidateGroups, dueDate, followUpDate, variables, multiInstances, createdAt, suspendedAt, suspendedBy, null);
+
+  }
 
   /**
    * The values without the suspension of the process instance, which is how a BPMS half built
@@ -222,6 +272,8 @@ public record UserTaskDetailsPrefill(
     private OffsetDateTime suspendedAt;
 
     private String suspendedBy;
+
+    private String comment;
 
     private Builder() {
     }
@@ -467,6 +519,22 @@ public record UserTaskDetailsPrefill(
     }
 
     /**
+     * Sets what the cockpit stores as the comment of the task unless the details provider sets
+     * one of its own.
+     *
+     * @param comment The reason somebody wrote while cancelling the process instance in the
+     *          engine, or <code>null</code> where nobody wrote one
+     * @return The builder
+     */
+    public Builder comment(
+        final String comment) {
+
+      this.comment = comment;
+      return this;
+
+    }
+
+    /**
      * Builds the prefill. Fields which were not set stay empty.
      *
      * @return The prefill
@@ -474,7 +542,7 @@ public record UserTaskDetailsPrefill(
     public UserTaskDetailsPrefill build() {
 
       return new UserTaskDetailsPrefill(
-          bpmnProcessVersion, workflowId, subWorkflowId, businessId, bpmnTaskName, bpmnProcessName, initiator, assignee, candidateUsers, candidateGroups, dueDate, followUpDate, variables, multiInstances, createdAt, suspendedAt, suspendedBy);
+          bpmnProcessVersion, workflowId, subWorkflowId, businessId, bpmnTaskName, bpmnProcessName, initiator, assignee, candidateUsers, candidateGroups, dueDate, followUpDate, variables, multiInstances, createdAt, suspendedAt, suspendedBy, comment);
 
     }
 
