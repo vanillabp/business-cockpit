@@ -8,9 +8,10 @@
     <version>0.9.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>support</artifactId>
+  <artifactId>support-parent</artifactId>
+  <packaging>pom</packaging>
   <name>Business Cockpit support</name>
-  <description>What the Business Cockpit and a workflow module behind it share: the cockpit's SPI, checking the cockpit's login token, the user and the groups, and a REST client for the APIs of a BPMS or of the cockpit.</description>
+  <description>What the Business Cockpit and a workflow module behind it share, one module per platform. Today there is the Spring Boot module only.</description>
 
   <licenses>
     <license>
@@ -28,117 +29,8 @@
     </developer>
   </developers>
 
-  <properties>
-    <!-- an application or an adapter builds against this module, so its snapshot carries a
-         javadoc jar as well -->
-    <skip.javadoc.jar>false</skip.javadoc.jar>
-  </properties>
-
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <!-- the io.vanillabp coordinates this module reads, at the version the root POM names.
-          That POM also says why the import is repeated here instead of sitting there. -->
-        <groupId>io.vanillabp</groupId>
-        <artifactId>vanillabp-bom</artifactId>
-        <version>${version.vanillabp}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
-  <dependencies>
-    <!--
-      The annotations and interfaces of the cockpit's SPI, and through it the SPI of VanillaBP. Not
-      optional: with this module as its only dependency, a workflow module compiles. The cockpit's
-      adapter is needed to run the workflow module, so the module's tests take it in test scope.
-    -->
-    <dependency>
-      <groupId>io.vanillabp.businesscockpit</groupId>
-      <artifactId>spi-for-java</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <!--
-      The web and security half. It is optional because the application decides which of the two
-      it runs: a workflow module which only calls a REST API needs neither, and one which checks
-      the cockpit's login token already has both. Nothing here brings MongoDB or Kafka.
-    -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-security</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <!-- reads and writes the login token: Spring's JWT classes and the Nimbus library under them -->
-      <groupId>org.springframework.security</groupId>
-      <artifactId>spring-security-oauth2-jose</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <!-- the REST client half, which every user of the client needs -->
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-beans</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.github.openfeign</groupId>
-      <artifactId>feign-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.github.openfeign</groupId>
-      <artifactId>feign-okhttp</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.github.openfeign</groupId>
-      <!--
-        Jackson 3 variant, classes are feign.jackson3.Jackson3Decoder/Jackson3Encoder. The version comes
-        from the feign-bom imported in the root pom - it has to match feign-core, see the comment there.
-      -->
-      <artifactId>feign-jackson3</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.github.openfeign</groupId>
-      <artifactId>feign-slf4j</artifactId>
-    </dependency>
-    <dependency>
-      <!-- part of OpenFeign since 13.x, so the feign-bom keeps it on the version of feign-core -->
-      <groupId>io.github.openfeign</groupId>
-      <artifactId>feign-form</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.squareup.okhttp3</groupId>
-      <artifactId>logging-interceptor</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.assertj</groupId>
-      <artifactId>assertj-core</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <!-- the mock request and response the security tests hand to a filter or a repository -->
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <!-- the output suppression every test class of this module registers -->
-      <groupId>io.vanillabp</groupId>
-      <artifactId>test-utils</artifactId>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
+  <modules>
+    <!-- a module for Quarkus joins it later, as 'quarkus' -->
+    <module>spring-boot</module>
+  </modules>
 </project>

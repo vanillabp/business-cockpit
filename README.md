@@ -114,8 +114,10 @@ In the order they build on each other:
 1. **[spi-for-java](./spi-for-java)**:<br>The annotations and interfaces a workflow module's business
    code is written with to report business data about its user tasks and workflows.
 2. **[support](./support)**:<br>What the cockpit and a workflow module behind it share: the SPI
-   above, the check of the cockpit's login token, the user and the groups, and a REST client for the
-   APIs of a BPMS or of the cockpit. It brings no MongoDB and no Kafka. With `support` as its only
+   above, the check of the cockpit's login token, the user and the groups, the exceptions for a user
+   task which is unknown or no longer open, and a REST client for the APIs of a BPMS or of the
+   cockpit. It brings no MongoDB and no Kafka. One sub-module per platform, today only
+   `spring-boot`, published as `business-cockpit-spring-boot-support`. With it as its only
    dependency, a workflow module compiles.
 3. **[apis](./apis)**:<br>The generated clients and servers of the three interfaces the cockpit has:
    `bpms-api` for what workflow modules report, `official-gui-api` for what a user interface reads,

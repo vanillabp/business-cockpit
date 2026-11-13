@@ -3,7 +3,7 @@
 # A workflow module on support only
 
 A small workflow module which the build compiles and never runs. Its only dependency is
-[support](../../support). It has a workflow service with the annotations of VanillaBP and of the
+[support](../../support/spring-boot), the artifact `business-cockpit-spring-boot-support`. It has a workflow service with the annotations of VanillaBP and of the
 cockpit's SPI, and a user class of its own which implements `UserDetails`. If a change to `support`
 takes away something a workflow module needs to compile, this module stops the build.
 
