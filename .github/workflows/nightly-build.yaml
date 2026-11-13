@@ -80,6 +80,9 @@ jobs:
     secrets: inherit
     permissions:
       contents: read
+      # the build reads the snapshots of the other VanillaBP repositories from GitHub
+      # Packages, see build.yaml. A called workflow gets no more than its caller allows
+      packages: read
 
   # Opens the issue, comments on it, or says nothing. A job of this workflow rather than a
   # workflow of its own: nothing else calls this workflow, so it can ask for 'issues: write'

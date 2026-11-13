@@ -4,6 +4,15 @@ on:
     branches:
       - 'main'
   workflow_dispatch:
+# Where Maven reads the snapshots of the other VanillaBP repositories from, see
+# .github/maven/settings.xml: from GitHub Packages once the organization sets the Actions
+# variable VANILLABP_SNAPSHOTS_FROM to 'github-packages', else from the snapshot repository of
+# Maven Central. Reading GitHub Packages needs a token even for public packages. The
+# GITHUB_TOKEN of the run is enough, because every job which runs Maven asks for
+# 'packages: read'.
+env:
+  VBP_SNAPSHOTS_FROM: "${{ vars.VANILLABP_SNAPSHOTS_FROM == 'github-packages' && 'github-packages' || 'central' }}"
+  VBP_PACKAGES_READ_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 # Only main writes the shared snapshot coordinates. A snapshot has the same coordinates on
 # every branch, so a push to a branch used to hand every consumer a version of this
 # repository which no pull request had agreed to yet. On 2026-09-22 the branch of a rename
@@ -16,9 +25,16 @@ on:
 # it is merged, runs this workflow by hand on that branch. Then the overwrite is a decision
 # and not a side effect of a push.
 #
-# The snapshots go to the snapshot repository of Maven Central. Anybody can read them there
+# The snapshots go to two places in one build, with the profile 'publish-snapshots' of the
+# POM. GitHub Packages is what the builds of the other VanillaBP repositories read, so they
+# do not ask Maven Central for every snapshot and are not stopped by its rate limit. The
+# snapshot repository of Maven Central stays for everybody else: anybody can read it there
 # without a login. Writing needs the Central Portal token, which the pull-request build never
 # gets.
+#
+# The job runs only where the Actions variable VANILLABP_PUBLISH is 'true'. The vanillabp
+# organization sets it for all its repositories. A fork does not have it, so a fork never
+# publishes.
 #
 # Two concurrency groups: one for main, one shared by the runs started by hand. GitHub keeps
 # at most one waiting run per group, and a newer run of the same group takes the waiting one
@@ -45,11 +61,16 @@ permissions:
   id-token: write
 jobs:
   publish:
+    if: "${{ vars.VANILLABP_PUBLISH == 'true' }}"
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pages: write
       id-token: write
+      # writes the snapshots to GitHub Packages of this repository and reads those of the
+      # other repositories. A pull request from a fork gets a token which can only read,
+      # whatever this line says
+      packages: write
     steps:
       - uses: actions/checkout@v7
       # Maven 3.10 writes 'maven-metadata-local.xml' and '_remote.repositories' into the
@@ -72,23 +93,20 @@ jobs:
           java-version: 25.0.5+8.0.LTS
           distribution: temurin
           cache: maven
-          # the server of the profile 'central-portal' in io.vanillabp:release-parent. The
-          # two names are environment variables, and only the step which publishes sets them
-          server-id: vanillabp-central
-          server-username-env-var: MAVEN_USERNAME
-          server-password-env-var: MAVEN_PASSWORD
       - name: Publish package
         # This run publishes Java artifacts only. The repository holds no user interface, see
         # decision 63 in the repository's DECISIONS.md.
         #
-        # The profile 'central-portal' sends a version ending in -SNAPSHOT straight to the
-        # snapshot repository of Maven Central.
+        # The profile 'publish-snapshots' sends the snapshot to GitHub Packages of this
+        # repository and to the snapshot repository of Maven Central. The runnable jars of
+        # 'build-runnable-jars' go to both as well.
         run: |
-          mvn --batch-mode --no-transfer-progress --update-snapshots \
-          deploy -P build-runnable-jars,central-portal
+          mvn -s .github/maven/settings.xml --batch-mode --no-transfer-progress --update-snapshots \
+          deploy -P build-runnable-jars,publish-snapshots
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_PORTAL_TOKEN_USER }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PORTAL_TOKEN_PW }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Collect the coverage reports for GitHub Pages
         # only from the default branch: the badges of the README read the published reports, so
         # a build of any other branch would let them show a number nobody released
