@@ -126,7 +126,7 @@
     <dependency>
       <!-- the login token, the user context and the REST client, which a workflow module uses too -->
       <groupId>${project.groupId}</groupId>
-      <artifactId>support</artifactId>
+      <artifactId>business-cockpit-spring-boot-support</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

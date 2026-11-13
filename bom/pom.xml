@@ -73,7 +73,7 @@
     <dependencies>
       <!--
         The first import of a coordinate wins. Spring Cloud names OpenFeign 13.6.1, and the
-        module 'support' needs a newer one: its Jackson 3 codec fails with
+        module 'business-cockpit-spring-boot-support' needs a newer one: its Jackson 3 codec fails with
         'NoClassDefFoundError: feign/codec/JsonDecoder' on 13.6.1, and it fails only at runtime.
         So the OpenFeign BOM comes before the Spring BOMs.
       -->
@@ -145,7 +145,7 @@
       -->
       <dependency>
         <groupId>io.vanillabp.businesscockpit</groupId>
-        <artifactId>support</artifactId>
+        <artifactId>business-cockpit-spring-boot-support</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

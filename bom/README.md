@@ -25,13 +25,13 @@ because a plugin is not managed by a BOM. It is the version of `spring-boot-depe
 
 ## What is in it
 
-- The BOMs of OpenFeign and OkHttp. The module `support` needs newer versions than Spring Cloud
+- The BOMs of OpenFeign and OkHttp. The module `business-cockpit-spring-boot-support` needs newer versions than Spring Cloud
   names. Without them an application gets OpenFeign 13.6.1, which compiles and then fails at
   runtime. They come first, because the first import of a coordinate wins.
 - The BOMs of Spring Boot and Spring Cloud, and the VanillaBP BOM.
 - `mongodb-changesets`, in the version the cockpit is built with.
 - The artifacts of a derived cockpit: `business-cockpit` and `bpms-protobuf-api`, and the modules
-  the library brings with it, `support`, `spi-for-java`, `bpms-api-server` and
+  the library brings with it, `business-cockpit-spring-boot-support`, `spi-for-java`, `bpms-api-server` and
   `official-gui-api-server`.
 
 What a workflow module uses is not in it. A workflow module gets the cockpit through the cockpit's

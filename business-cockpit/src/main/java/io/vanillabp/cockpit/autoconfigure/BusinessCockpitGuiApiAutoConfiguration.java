@@ -14,6 +14,7 @@ import io.vanillabp.cockpit.gui.api.v1.UpdateStreams;
 import io.vanillabp.cockpit.gui.api.v1.UserSettingsApiController;
 import io.vanillabp.cockpit.notification.api.v1.NotificationConfigGuiApiController;
 import io.vanillabp.cockpit.support.security.usercontext.UserContextConfiguration;
+import io.vanillabp.cockpit.support.usertask.BcUserTaskExceptionHandler;
 import io.vanillabp.cockpit.tasklist.api.UserTaskStreamAudience;
 import io.vanillabp.cockpit.tasklist.api.v1.TasklistGuiApiMapperImpl;
 import io.vanillabp.cockpit.users.UserSettings;
@@ -27,6 +28,9 @@ import io.vanillabp.cockpit.workflowmodules.api.v1.WorkflowModulesGuiApiMapperIm
  * application shell, the proxy which forwards a request for a workflow module's own screens, and
  * the update streams which tell an open browser about the changes that concern its person.
  * <p>
+ * The answers to the exceptions of a user task come from {@code support}, so a controller of the
+ * application which throws one of them answers like a workflow module does.
+ * <p>
  * The three list endpoints are not here. Which tasks, workflows and modules a user may see is the
  * one question the library does not answer, so an application subclasses the abstract controllers
  * and registers those itself. The mappers below are what those subclasses need.
@@ -34,7 +38,7 @@ import io.vanillabp.cockpit.workflowmodules.api.v1.WorkflowModulesGuiApiMapperIm
 @AutoConfiguration
 @ConditionalOnWebApplication(type = Type.SERVLET)
 @Import({
-    JsonConfiguration.class, LoginApiController.class, MicroserviceProxyConfiguration.class, NotificationConfigGuiApiController.class, RestfulExceptionHandler.class, SpaNoHandlerFoundExceptionHandler.class, TasklistGuiApiMapperImpl.class, UpdateStreams.class, UserContextConfiguration.class, UserSettings.class, UserSettingsApiController.class, UserTaskStreamAudience.class, WorkflowListGuiApiMapperImpl.class, WorkflowStreamAudience.class, WorkflowModulesGuiApiMapperImpl.class
+    BcUserTaskExceptionHandler.class, JsonConfiguration.class, LoginApiController.class, MicroserviceProxyConfiguration.class, NotificationConfigGuiApiController.class, RestfulExceptionHandler.class, SpaNoHandlerFoundExceptionHandler.class, TasklistGuiApiMapperImpl.class, UpdateStreams.class, UserContextConfiguration.class, UserSettings.class, UserSettingsApiController.class, UserTaskStreamAudience.class, WorkflowListGuiApiMapperImpl.class, WorkflowStreamAudience.class, WorkflowModulesGuiApiMapperImpl.class
 })
 public class BusinessCockpitGuiApiAutoConfiguration {
 

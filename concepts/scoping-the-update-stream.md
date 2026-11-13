@@ -79,7 +79,7 @@ Zeilen 97 bis 114) werden nie gelesen.
 Am Strom hängt heute eine Liste von Gruppen, die beim Abonnieren eingefroren wird:
 `UpdateEmitter.groups(user.getAuthorities())` (`gui/api/v1/LoginApiController.java`, Zeilen 64
 bis 68). Die Kennung der Person ist darin schon enthalten, verkleidet als Gruppe: `JwtMapper`
-legt `USER_` plus Subjekt in die Authorities (`support/.../security/jwt/JwtMapper.java`, damals `commons`, Zeile 57).
+legt `USER_` plus Subjekt in die Authorities (`support/spring-boot/.../security/jwt/JwtMapper.java`, damals `commons`, Zeile 57).
 
 ## Was der Browser mit einem Ereignis macht
 

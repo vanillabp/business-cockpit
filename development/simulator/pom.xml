@@ -84,7 +84,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>support</artifactId>
+      <artifactId>business-cockpit-spring-boot-support</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

@@ -51,7 +51,7 @@
     -->
     <dependency>
       <groupId>io.vanillabp.businesscockpit</groupId>
-      <artifactId>support</artifactId>
+      <artifactId>business-cockpit-spring-boot-support</artifactId>
       <version>${project.version}</version>
     </dependency>
   </dependencies>

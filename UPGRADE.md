@@ -13,7 +13,7 @@ whole story of a version. This file is the short list of what somebody has to to
 
 The artifact `io.vanillabp.businesscockpit:commons` no longer exists. There is no artifact under the
 old name which points at the new ones. What a workflow module can use as well went into the new
-artifact `io.vanillabp.businesscockpit:support`. What only the cockpit uses went into the library
+artifact `io.vanillabp.businesscockpit:business-cockpit-spring-boot-support`, called `support` below. What only the cockpit uses went into the library
 module `io.vanillabp.businesscockpit:business-cockpit`.
 
 A cockpit application depends on `business-cockpit`, which brings `support` along. It changes its
@@ -72,6 +72,22 @@ names one of them in `spring.autoconfigure.exclude` replaces the name, for the s
 
 They now come with `business-cockpit` only. A workflow module which had `commons` on its class path
 got both of them, and with them the MongoDB settings of the cockpit. With `support` it gets neither.
+
+### The snapshot artifact `support` is now `business-cockpit-spring-boot-support`
+
+This concerns only a build which used a 0.9.0 snapshot. The module `support` got a level below it,
+because a Quarkus version of it will follow. Its classes moved into the sub-module
+`support/spring-boot`, which is published as
+`io.vanillabp.businesscockpit:business-cockpit-spring-boot-support`. The artifact
+`io.vanillabp.businesscockpit:support` is gone, and no artifact under the old name points at the new
+one. `business-cockpit-bom` manages the new artifact. Replace the `artifactId` in the POM. The
+packages stay `io.vanillabp.cockpit.support...`, so no import changes.
+
+The module now also has `BcUnknownTaskException` and `BcTaskNotOpenException` in
+`io.vanillabp.cockpit.support.usertask`, and `BcUserTaskExceptionHandler`, which answers them with
+`404 Not Found` and `409 Conflict`. A workflow module which wrote its own exceptions for a task id
+it does not know, or for a task which is no longer open, can use these. Nothing registers the
+handler on its own: import it with `@Import(BcUserTaskExceptionHandler.class)`.
 
 ### The cockpit no longer injects a `Logger`
 

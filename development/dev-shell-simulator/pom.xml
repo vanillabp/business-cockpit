@@ -56,7 +56,7 @@
     <dependency>
       <!-- the cockpit's login token, which the simulator issues like the cockpit does -->
       <groupId>${project.groupId}</groupId>
-      <artifactId>support</artifactId>
+      <artifactId>business-cockpit-spring-boot-support</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

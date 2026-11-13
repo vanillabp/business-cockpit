@@ -22,7 +22,7 @@ the module.
 
 Everything lives below `io.vanillabp.spi.cockpit`. The module depends on nothing but VanillaBP's
 own SPI, so a workflow module can compile against it without inheriting anything else. A workflow
-module usually gets it through the module [support](../support), which depends on it.
+module usually gets it through the module [support](../support/spring-boot), which depends on it.
 
 |      Package      |                                                                                               What it holds                                                                                                |
 |-------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
