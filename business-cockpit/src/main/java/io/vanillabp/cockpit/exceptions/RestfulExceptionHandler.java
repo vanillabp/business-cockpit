@@ -13,6 +13,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.method.ParameterErrors;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -272,6 +273,13 @@ public class RestfulExceptionHandler {
   /**
    * Answers every other exception with {@code 500 Internal Server Error} and logs it with its
    * stack trace. The body is the message of the exception.
+   * <p>
+   * An exception of Spring which knows its own answer is the one exception to this. Spring marks
+   * such an exception with {@link ErrorResponse}, for example a request with an HTTP method the
+   * path does not take ({@code 405} with the header {@code Allow}) or with a content type the
+   * path does not read ({@code 415} with the header {@code Accept}). It is a mistake of the
+   * client, so it gets the status and the headers Spring gives it, and the log gets no stack
+   * trace. A {@code 500} would look like a fault of the cockpit.
    *
    * @param exception The exception
    * @return The answer
@@ -280,11 +288,29 @@ public class RestfulExceptionHandler {
   public ResponseEntity<String> handleUnexpectedException(
       final Exception exception) {
 
+    if ((exception instanceof ErrorResponse answer) && !answer.getStatusCode().is5xxServerError()) {
+      return answerOfSpring(exception, answer);
+    }
+
     log.warn("Unexpected exception", exception);
 
     return ResponseEntity
         .internalServerError()
         .body(exception.getMessage());
+
+  }
+
+  private ResponseEntity<String> answerOfSpring(
+      final Exception exception,
+      final ErrorResponse answer) {
+
+    log.debug("Returning HTTP {}: {}", answer.getStatusCode().value(), exception.getMessage());
+
+    return ResponseEntity
+        .status(answer.getStatusCode())
+        .headers(answer.getHeaders())
+        .contentType(MediaType.TEXT_PLAIN)
+        .body(answer.getBody().getDetail());
 
   }
 
