@@ -4107,3 +4107,43 @@ user the directory does not know, and with a directory which does not answer.
   API as its audience. The client of the directory needs the client scope `kc-admin-api` among its
   default client scopes. The message of a refused request says so.
 
+**Addendum:** point 4 is replaced by decision 91.
+
+### 91. Addendum to decision 90: the directories keep a user until the next night, and operations can empty the cache
+
+This text replaces point 4 of decision 90. The rest of
+decision 90 stays as it is.
+
+#### What was found
+
+Point 4 of decision 90 kept the answer of `getUser` for five minutes. So the cockpit asked Keycloak
+or LDAP about every active user twelve times an hour, the whole day. The projects which built such a
+directory themselves keep a user for 14 hours and empty the whole cache every night at 2 a.m. A
+change of the groups then counts the next day at the latest, and nobody there has asked for more. A
+locked account ends earlier anyway, because the login is not refreshed any more once the identity
+provider refuses it. For the rare change which cannot wait, operations empty the cache by hand.
+
+#### The decision
+
+1. Both directories keep the answer of `getUser` for `business-cockpit.user-directory.cache-duration`,
+   14 hours by default. The answer that a user is unknown is kept as well. A failure is not kept.
+   This part of point 4 is unchanged, only the default.
+2. Both directories forget every user they keep at the time
+   `business-cockpit.user-directory.cache-clear-cron` names, a cron expression of Spring with six
+   fields. The default is `0 0 2 * * *`, every night at 2 a.m. in the time zone of the server. `-`
+   switches the clearing off, as it does for Spring's `@Scheduled`. The startup check stops the
+   start on a value which is no cron expression, with a line to copy.
+3. The actuator endpoint `userdirectorycache` forgets every user at once, on a `DELETE`. It is an
+   actuator endpoint so that it lives on the management side of the application. It exists only if
+   the application has Spring Boot Actuator and exposes the endpoint, and it is secured like every
+   other actuator endpoint of the application. The cockpit does not bring Actuator along:
+   `spring-boot-actuator-autoconfigure` is an optional dependency of the library module.
+
+#### What follows
+
+- A user who was unknown when the cockpit first asked stays unknown until the next night, unless
+  operations empty the cache. A user is usually created before the first login, so this is rare.
+- The two security chains of the cockpit do not cover `/actuator`. An application which exposes the
+  endpoint protects it, with a management port of its own or with a security chain for
+  `/actuator/**`. The wiki page Security says so.
+
