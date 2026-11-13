@@ -216,6 +216,12 @@
                  them with 'mvn help:effective-pom' after the parent moves -->
             <configuration>
               <publishingServerId>vanillabp-central</publishingServerId>
+              <!-- where a snapshot goes. Without this URL the plugin takes the snapshot
+                   repository of the POM, and this profile sets that to GitHub Packages. So
+                   the snapshot went to GitHub Packages twice and never to Maven Central.
+                   The profile 'central-portal' needs no URL: there the POM names no
+                   snapshot repository, and the plugin falls back to this one -->
+              <centralSnapshotsUrl>https://central.sonatype.com/repository/maven-snapshots/</centralSnapshotsUrl>
               <skipPublishing>${skip.central.release}</skipPublishing>
               <checksums>required</checksums>
               <skipUpload>${central.skip.upload}</skipUpload>
