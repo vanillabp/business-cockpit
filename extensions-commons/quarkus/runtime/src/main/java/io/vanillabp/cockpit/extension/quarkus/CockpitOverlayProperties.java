@@ -627,6 +627,13 @@ public interface CockpitOverlayProperties {
     Optional<String> templatePath();
 
     /**
+     * The directory of this module's templates.
+     *
+     * @return The directory, with the place in front of it
+     */
+    Optional<String> templateLoaderPath();
+
+    /**
      * Which groups a group stands for.
      *
      * @return The groups each group stands for, by group
@@ -651,14 +658,14 @@ public interface CockpitOverlayProperties {
     default CockpitSettings.Cockpit toSettings() {
 
       if (workflowModuleUri().isEmpty() && uiUriType().isEmpty() && uiUriPath().isEmpty() && i18nLanguages()
-          .isEmpty() && bpmnDescriptionLanguage().isEmpty() && templatePath().isEmpty() && initiatorSource()
-              .isEmpty() && groupHierarchy().isEmpty()) {
+          .isEmpty() && bpmnDescriptionLanguage().isEmpty() && templatePath().isEmpty() && templateLoaderPath()
+              .isEmpty() && initiatorSource().isEmpty() && groupHierarchy().isEmpty()) {
         return null;
       }
       return new CockpitSettings.Cockpit(
           workflowModuleUri().orElse(null), uiUriType().orElse(null), uiUriPath().orElse(null), i18nLanguages()
               .orElse(null), bpmnDescriptionLanguage().orElse(null), templatePath()
-                  .orElse(null), groupHierarchy(), initiatorSource()
+                  .orElse(null), templateLoaderPath().orElse(null), groupHierarchy(), initiatorSource()
                       .orElse(null));
 
     }

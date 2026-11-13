@@ -1,0 +1,1 @@
+Loan ${loan.number} from the application

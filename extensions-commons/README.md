@@ -221,7 +221,7 @@ frameworks.
 
 A workflow module's own defaults file, `<module>.yaml` on the classpath root or below a directory of
 the module's name, carries these keys as well, below everything the application itself writes. That
-is how a module ships a template path it alone knows about.
+is how a module ships a template directory it alone knows about.
 
 One key has no default on purpose: `initiator-source`. It says where the initiator of a report
 comes from. A workflow module which reports to the cockpit and does not set it does not start. Any

@@ -15,10 +15,10 @@ import io.vanillabp.cockpit.extension.event.WorkflowEvent;
  * Fills the texts the cockpit shows: the workflow's title, the task's title, the title of a
  * kind of task, and the text a search matches against.
  * <p>
- * There are two sources, and which one is used is a decision of the whole application rather
- * than of a single event. With a template directory configured, one template per text and per
- * language is rendered. Without one, the names written in the BPMN file are reported, in the
- * one language the module declared its BPMN to be written in.
+ * There are two sources, and which one is used is a decision of the workflow module rather than
+ * of a single event. A module with a template directory renders one template per text and per
+ * language. Without one, the names written in the BPMN file are reported, in the one language
+ * the module declared its BPMN to be written in.
  * <p>
  * A value the details provider already put in wins over both. It is treated as the name of a
  * template first, and it stays the literal text where no template of that name exists. That is
@@ -128,11 +128,14 @@ public final class EventTitles {
   }
 
   /**
-   * The directories a template is looked for in, most specific first: everything below the
-   * module's own path, narrowed by the BPMN process and then by the task definition. Each of
-   * the three levels contributes the segment it configured, and its own id where it configured
-   * none. That is what makes a module's templates land in a directory of the module's name, with
-   * nothing configured.
+   * The directories a template is looked for in, most specific first: the module's own
+   * directory, narrowed by the BPMN process and then by the task definition. The process and the
+   * task contribute the segment they configured, and their own id where they configured none.
+   * <p>
+   * Every path starts with the id of the module. {@link FreemarkerTemplating} reads it to choose
+   * the directory of that module. So a template which belongs to no task or no process, like the
+   * title of a workflow or the text a search matches against, lies right in the module's own
+   * directory, and a more specific one wins where it exists.
    *
    * @param module The workflow module's settings
    * @param bpmnProcessId The BPMN process, may be <code>null</code>
@@ -145,7 +148,7 @@ public final class EventTitles {
       final String taskDefinition) {
 
     final var segments = new LinkedList<String>();
-    segments.add(module.templatePath());
+    segments.add(module.workflowModuleId());
     final var paths = new LinkedList<String>();
     if ((bpmnProcessId != null) && !bpmnProcessId.isBlank()) {
       segments.add(module.templatePathOfWorkflow(bpmnProcessId));

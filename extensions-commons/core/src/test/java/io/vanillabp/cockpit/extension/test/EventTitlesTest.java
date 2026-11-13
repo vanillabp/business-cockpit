@@ -40,7 +40,7 @@ public class EventTitlesTest {
   }
 
   private static final WorkflowModuleConfiguration MODULE = new WorkflowModuleConfiguration(
-      "test-module", "http://localhost", "EXTERNAL", "/ui", List.of("en"), "en", Map.of(), "test-module", Map
+      "test-module", "http://localhost", "EXTERNAL", "/ui", List.of("en"), "en", Map.of(), "test-module", null, Map
           .of(), InitiatorSource.BY_APPLICATION);
 
   /**
@@ -48,7 +48,7 @@ public class EventTitlesTest {
    * user tasks sets its own template directory.
    */
   private static final WorkflowModuleConfiguration MODULE_WITH_A_SPECIAL_WORKFLOW = new WorkflowModuleConfiguration(
-      "test-module", "http://localhost", "EXTERNAL", "/ui", List.of("en"), "en", Map.of(), "test-module", Map
+      "test-module", "http://localhost", "EXTERNAL", "/ui", List.of("en"), "en", Map.of(), "test-module", null, Map
           .of(
               "TestProcess",
               new WorkflowConfiguration(

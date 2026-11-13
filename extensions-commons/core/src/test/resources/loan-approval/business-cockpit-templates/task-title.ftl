@@ -1,0 +1,1 @@
+Loan task ${loan.number}

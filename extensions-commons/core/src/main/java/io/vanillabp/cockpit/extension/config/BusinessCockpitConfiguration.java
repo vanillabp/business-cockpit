@@ -173,10 +173,13 @@ public final class BusinessCockpitConfiguration {
   }
 
   /**
-   * Where the templates for the titles are, as the application wrote it.
+   * Where the templates for the titles are, as the application wrote it. A workflow module may
+   * name a directory of its own, and one which names none has a default directory. So this is
+   * not where every module's templates are, see
+   * {@link WorkflowModuleConfiguration#templateDirectory()}.
    *
-   * @return The directory templates are loaded from, or <code>null</code> where the
-   *         application configured none and the cockpit reports the BPMN names instead
+   * @return The directory below which the modules have their templates, or <code>null</code>
+   *         where the application configured none
    */
   public String getTemplateLoaderPath() {
 
@@ -185,13 +188,13 @@ public final class BusinessCockpitConfiguration {
   }
 
   /**
-   * Tells whether the cockpit renders titles from templates.
+   * Tells whether the cockpit renders titles from templates for at least one workflow module.
    *
    * @return Whether titles are rendered from templates rather than taken from the BPMN names
    */
   public boolean isTemplating() {
 
-    return (templateLoaderPath != null) && !templateLoaderPath.isBlank();
+    return workflowModules.values().stream().anyMatch(WorkflowModuleConfiguration::hasTemplates);
 
   }
 
@@ -370,21 +373,12 @@ public final class BusinessCockpitConfiguration {
         settings.workflowListEnabled(), ConfigurationKeys.WORKFLOW_LIST_ENABLED, true, defects);
 
     final var templateLoaderPath = settings.templateLoaderPath();
-    final var templating = templatingAvailable && (templateLoaderPath != null) && !templateLoaderPath.isBlank();
     refuseATemplateDirectoryWithoutItsPlace(
         templateLoaderPath, ConfigurationKeys.globalKey(ConfigurationKeys.TEMPLATE_LOADER_PATH),
         defects);
-    if (!templatingAvailable && (templateLoaderPath != null) && !templateLoaderPath.isBlank()) {
-      defects.add(
-          """
-              '%s' is set to '%s' but no template engine is on the classpath, so nothing can be \
-              rendered from it. Add the dependency 'org.freemarker:freemarker' to your workflow \
-              module, or remove the property and let the cockpit report the names written in the \
-              BPMN."""
-              .formatted(
-                  ConfigurationKeys.globalKey(ConfigurationKeys.TEMPLATE_LOADER_PATH),
-                  templateLoaderPath));
-    }
+    refuseATemplateDirectoryWithoutAnEngine(
+        templateLoaderPath, ConfigurationKeys.globalKey(ConfigurationKeys.TEMPLATE_LOADER_PATH),
+        templatingAvailable, defects);
 
     final var modules = new LinkedHashMap<String, WorkflowModuleConfiguration>();
     properties
@@ -408,7 +402,8 @@ public final class BusinessCockpitConfiguration {
               .put(
                   workflowModuleId,
                   readWorkflowModule(
-                      workflowModuleId, workflowModule, templating, initiatorSource, defects));
+                      workflowModuleId, workflowModule, templatingAvailable, templateLoaderPath,
+                      initiatorSource, defects));
         });
 
     final var groupHierarchyBeansByModule = groupHierarchyBeansByModule(
@@ -1080,13 +1075,21 @@ public final class BusinessCockpitConfiguration {
   private static WorkflowModuleConfiguration readWorkflowModule(
       final String workflowModuleId,
       final CockpitSettings.WorkflowModule workflowModule,
-      final boolean templating,
+      final boolean templatingAvailable,
+      final String templateLoaderPathOfTheApplication,
       final InitiatorSource initiatorSourceOfTheApplication,
       final List<String> defects) {
 
     final var settings = workflowModule.cockpit() == null
-        ? new CockpitSettings.Cockpit(null, null, null, null, null, null, Map.of(), null)
+        ? new CockpitSettings.Cockpit(null, null, null, null, null, null, null, Map.of(), null)
         : workflowModule.cockpit();
+    final var templatePath = (settings.templatePath() == null) || settings.templatePath().isBlank()
+        ? workflowModuleId
+        : settings.templatePath();
+    final var templateDirectory = templateDirectoryOf(
+        workflowModuleId, settings.templateLoaderPath(), templatePath,
+        templateLoaderPathOfTheApplication, templatingAvailable, defects);
+    final var templating = templateDirectory != null;
 
     final var workflowModuleUri = required(
         workflowModuleId, settings.workflowModuleUri(), ConfigurationKeys.WORKFLOW_MODULE_URI,
@@ -1116,9 +1119,12 @@ public final class BusinessCockpitConfiguration {
           workflow -> workflow.bpmnDescriptionLanguage() != null,
           """
               Without templates the cockpit reports the names written in the BPMN files, and it has \
-              to know which language they are in. Configure '%s' instead to render titles from \
-              templates."""
-              .formatted(ConfigurationKeys.globalKey(ConfigurationKeys.TEMPLATE_LOADER_PATH)));
+              to know which language they are in. To render titles from templates instead, put \
+              them into the directory '%s/%s' of the classpath, or name their directory in '%s'."""
+              .formatted(
+                  workflowModuleId, ConfigurationKeys.DEFAULT_TEMPLATE_DIRECTORY,
+                  ConfigurationKeys
+                      .workflowModuleKey(workflowModuleId, ConfigurationKeys.TEMPLATE_LOADER_PATH)));
     }
     final var bpmnDescriptionLanguage = moduleSaysTheBpmnLanguage
         ? settings.bpmnDescriptionLanguage()
@@ -1138,8 +1144,6 @@ public final class BusinessCockpitConfiguration {
     final var groupHierarchy = new LinkedHashMap<String, Collection<String>>();
     settings.groupHierarchy().forEach(groupHierarchy::put);
 
-    final var templatePath = settings.templatePath();
-
     final var initiatorSource = initiatorSource(
         settings.initiatorSource(),
         ConfigurationKeys
@@ -1150,10 +1154,92 @@ public final class BusinessCockpitConfiguration {
     }
 
     return new WorkflowModuleConfiguration(
-        workflowModuleId, workflowModuleUri, uiUriType, uiUriPath, i18nLanguages, bpmnDescriptionLanguage, groupHierarchy, (templatePath == null) || templatePath
-            .isBlank()
-                ? workflowModuleId
-                : templatePath, workflows, initiatorSource);
+        workflowModuleId, workflowModuleUri, uiUriType, uiUriPath, i18nLanguages, bpmnDescriptionLanguage, groupHierarchy, templatePath, templateDirectory, workflows, initiatorSource);
+
+  }
+
+  /**
+   * Where the templates of one workflow module are. The most specific answer wins:
+   * <ol>
+   * <li>the directory the module names in its own <code>template-loader-path</code>,</li>
+   * <li>the directory of the application, and below it the module's <code>template-path</code>,
+   * which is the module id where nothing was configured,</li>
+   * <li>the default directory <code>&lt;module id&gt;/business-cockpit-templates</code> of the
+   * classpath, where it exists.</li>
+   * </ol>
+   * A module which keeps no templates in the default directory and configures none has no
+   * templates. That is no defect. The cockpit reports the names written in the BPMN instead.
+   *
+   * @param workflowModuleId The workflow module
+   * @param ofTheModule What the module wrote in <code>template-loader-path</code>, possibly
+   *          nothing
+   * @param templatePath The segment of the module below the directory of the application
+   * @param ofTheApplication What the application wrote in <code>template-loader-path</code>,
+   *          possibly nothing
+   * @param templatingAvailable Whether a template engine is on the classpath
+   * @param defects Where a defect of the configuration is collected
+   * @return The directory, or <code>null</code> where the module has no templates
+   */
+  private static TemplateDirectory templateDirectoryOf(
+      final String workflowModuleId,
+      final String ofTheModule,
+      final String templatePath,
+      final String ofTheApplication,
+      final boolean templatingAvailable,
+      final List<String> defects) {
+
+    if ((ofTheModule != null) && !ofTheModule.isBlank()) {
+      final var key = ConfigurationKeys
+          .workflowModuleKey(workflowModuleId, ConfigurationKeys.TEMPLATE_LOADER_PATH);
+      refuseATemplateDirectoryWithoutItsPlace(ofTheModule, key, defects);
+      refuseATemplateDirectoryWithoutAnEngine(ofTheModule, key, templatingAvailable, defects);
+      return templatingAvailable && Templating.saysWhereItIs(ofTheModule)
+          ? new TemplateDirectory(ofTheModule, "", key)
+          : null;
+    }
+    if (!templatingAvailable) {
+      return null;
+    }
+    if ((ofTheApplication != null) && !ofTheApplication.isBlank()) {
+      // a directory without its place is reported once, for the application
+      return Templating.saysWhereItIs(ofTheApplication)
+          ? new TemplateDirectory(
+              ofTheApplication, templatePath, ConfigurationKeys.globalKey(ConfigurationKeys.TEMPLATE_LOADER_PATH))
+          : null;
+    }
+    final var defaultDirectory = workflowModuleId
+        + "/"
+        + ConfigurationKeys.DEFAULT_TEMPLATE_DIRECTORY;
+    return Templating.isOnTheClasspath(defaultDirectory)
+        ? new TemplateDirectory(Templating.CLASSPATH_PREFIX, defaultDirectory, null)
+        : null;
+
+  }
+
+  /**
+   * Refuses a template directory where no template engine could read it.
+   *
+   * @param templateLoaderPath What the application configured, possibly nothing
+   * @param key The property key, spelled the way the application writes it
+   * @param templatingAvailable Whether a template engine is on the classpath
+   * @param defects Where a defect of the configuration is collected
+   */
+  private static void refuseATemplateDirectoryWithoutAnEngine(
+      final String templateLoaderPath,
+      final String key,
+      final boolean templatingAvailable,
+      final List<String> defects) {
+
+    if (templatingAvailable || (templateLoaderPath == null) || templateLoaderPath.isBlank()) {
+      return;
+    }
+    defects.add(
+        """
+            '%s' is set to '%s' but no template engine is on the classpath, so nothing can be \
+            rendered from it. Add the dependency 'org.freemarker:freemarker' to your workflow \
+            module, or remove the property and let the cockpit report the names written in the \
+            BPMN."""
+            .formatted(key, templateLoaderPath));
 
   }
 

@@ -151,5 +151,36 @@ public class UserTask {
   @Column(name = "READ_AT", columnDefinition = "TIMESTAMP WITH TIME ZONE")
   private OffsetDateTime read;
 
+  /**
+   * The users who must not work on the task, although they are candidates. The official API has
+   * no field for it, so only {@code GET /simulator-api/usertask/{id}/report} shows it.
+   */
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(name = "EXCLUDED_CANDIDATE_USERS", columnDefinition = "JSON")
+  private List<String> excludedCandidateUsers = null;
+
+  /**
+   * The users who may see the task although they are no candidates. Like
+   * {@link #excludedCandidateUsers}, it is not part of the official API.
+   */
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(name = "ADMITTED_USERS", columnDefinition = "JSON")
+  private List<String> admittedUsers = null;
+
+  /**
+   * How the workflow module wants notifications about the task to be delivered, as the name of
+   * the value in the BPMS API. {@code null} if the module did not say.
+   */
+  @Column(name = "NOTIFICATION_DELIVERY")
+  private String notificationDelivery;
+
+  /**
+   * The last report of the workflow module about the task which created, updated or ended it,
+   * exactly as it came in. A developer reads it to see what the module sends, including the
+   * fields the official API does not show. A suspension or an activation does not replace it.
+   */
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(name = "LAST_REPORT", columnDefinition = "JSON")
+  private Map<String, Object> lastReport = null;
 
 }

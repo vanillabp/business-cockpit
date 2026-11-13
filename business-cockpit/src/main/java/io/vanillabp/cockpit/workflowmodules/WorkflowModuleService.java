@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 
@@ -67,7 +68,7 @@ public class WorkflowModuleService {
   /**
    * Stores the registration of a workflow module, or updates the one stored before. If another
    * cockpit node writes the same module at the same time, the registration is applied once more
-   * on top of what that node wrote.
+   * on top of what that node wrote. This holds for the first registration of a module too.
    *
    * @param id The id of the workflow module
    * @param uri Where the module answers the cockpit's calls
@@ -89,9 +90,10 @@ public class WorkflowModuleService {
     try {
       return updateWorkflowModule(id, uri, taskProviderApiUriPath, workflowProviderApiUriPath,
           accessibleToGroups, groupHierarchy);
-    } catch (OptimisticLockingFailureException e) {
+    } catch (OptimisticLockingFailureException | DuplicateKeyException e) {
       // another node registered the same module concurrently: read the now current state and
-      // apply the registration once more
+      // apply the registration once more. If the module was not stored yet, both nodes insert,
+      // and the second insert fails with a duplicate key instead of a version conflict.
       return updateWorkflowModule(id, uri, taskProviderApiUriPath, workflowProviderApiUriPath,
           accessibleToGroups, groupHierarchy);
     }

@@ -23,6 +23,8 @@ public final class ConfigurationFixture {
   /** The workflow module every test of this module uses. */
   public static final String WORKFLOW_MODULE = "test-module";
 
+  private String workflowModuleId = WORKFLOW_MODULE;
+
   private final Map<String, String> global = new LinkedHashMap<>();
 
   private final Map<String, String> ofTheWorkflowModule = new LinkedHashMap<>();
@@ -57,6 +59,19 @@ public final class ConfigurationFixture {
         .withWorkflowModule(ConfigurationKeys.UI_URI_PATH, "/remoteEntry.js")
         .withWorkflowModule(ConfigurationKeys.I18N_LANGUAGES, "en,de")
         .withWorkflowModule(ConfigurationKeys.BPMN_DESCRIPTION_LANGUAGE, "en");
+
+  }
+
+  /**
+   * @param workflowModuleId The id the one workflow module of the application has, instead of
+   *          {@link #WORKFLOW_MODULE}
+   * @return The fixture
+   */
+  public ConfigurationFixture withWorkflowModuleId(
+      final String workflowModuleId) {
+
+    this.workflowModuleId = workflowModuleId;
+    return this;
 
   }
 
@@ -164,7 +179,7 @@ public final class ConfigurationFixture {
 
     final var properties = new MigrationAdapterProperties();
     final var module = new WorkflowModuleAdapterProperties();
-    properties.setWorkflowModules(Map.of(WORKFLOW_MODULE, module));
+    properties.setWorkflowModules(Map.of(workflowModuleId, module));
     return properties;
 
   }
@@ -193,7 +208,7 @@ public final class ConfigurationFixture {
                 ConfigurationKeys.TEMPLATE_LOADER_PATH), global.get(
                     ConfigurationKeys.INITIATOR_SOURCE), restOf(), kafkaOf(), new CockpitSettings.ProcessEngineApi(global
                         .get(ConfigurationKeys.REMEMBERED_USER_TASKS)), workflowModule.saysNothing() ? Map.of()
-                            : Map.of(WORKFLOW_MODULE, workflowModule));
+                            : Map.of(workflowModuleId, workflowModule));
 
   }
 
@@ -217,8 +232,9 @@ public final class ConfigurationFixture {
             .get(ConfigurationKeys.UI_URI_TYPE), ofTheWorkflowModule.get(ConfigurationKeys.UI_URI_PATH), listOf(
                 ofTheWorkflowModule.get(ConfigurationKeys.I18N_LANGUAGES)), ofTheWorkflowModule
                     .get(ConfigurationKeys.BPMN_DESCRIPTION_LANGUAGE), ofTheWorkflowModule
-                        .get(ConfigurationKeys.TEMPLATE_PATH), groupHierarchy, ofTheWorkflowModule
-                            .get(ConfigurationKeys.INITIATOR_SOURCE));
+                        .get(ConfigurationKeys.TEMPLATE_PATH), ofTheWorkflowModule
+                            .get(ConfigurationKeys.TEMPLATE_LOADER_PATH), groupHierarchy, ofTheWorkflowModule
+                                .get(ConfigurationKeys.INITIATOR_SOURCE));
 
   }
 

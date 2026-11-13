@@ -80,7 +80,7 @@
     </dependency>
     <dependency>
       <!-- templating is a feature an application switches on by putting Freemarker on its
-        classpath and pointing 'template-path' at its templates -->
+        classpath and keeping its templates in its directory business-cockpit-templates -->
       <groupId>org.freemarker</groupId>
       <artifactId>freemarker</artifactId>
       <optional>true</optional>

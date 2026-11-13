@@ -23,9 +23,10 @@ import java.util.stream.Stream;
  * <p>
  * The levels are asked most specific first, key by key: a user task beats its workflow, and a
  * workflow beats its workflow module. What holds for the whole application, namely the
- * transport, the templates and the two switches, is written once at the top and exists nowhere
- * else. {@link #INITIATOR_SOURCE} is the one key of the top which a workflow module and a single
- * workflow may still answer for themselves.
+ * transport and the two switches, is written once at the top and exists nowhere else.
+ * {@link #INITIATOR_SOURCE} and {@link #TEMPLATE_LOADER_PATH} are the keys of the top which a
+ * workflow module may still answer for itself. A single workflow may answer
+ * {@link #INITIATOR_SOURCE} as well.
  */
 public final class ConfigurationKeys {
 
@@ -74,8 +75,20 @@ public final class ConfigurationKeys {
    */
   public static final String KAFKA_PROPERTIES_PREFIX = "kafka.properties.";
 
-  /** The directory Freemarker loads the extension's templates from. */
+  /**
+   * The directory Freemarker loads the templates from. Below a workflow module it is the directory
+   * of that module's templates. At the top it is the directory below which every module has a
+   * directory of its own, named after its {@link #TEMPLATE_PATH}.
+   */
   public static final String TEMPLATE_LOADER_PATH = "template-loader-path";
+
+  /**
+   * The directory a workflow module keeps its templates in when neither the module nor the
+   * application configures {@link #TEMPLATE_LOADER_PATH}. It lies below a directory named after
+   * the module, on the classpath. So a module keeps all of its resources in a directory of its
+   * own name, and its templates are found with nothing configured.
+   */
+  public static final String DEFAULT_TEMPLATE_DIRECTORY = "business-cockpit-templates";
 
   /** Where the workflow module answers the cockpit's provider APIs. */
   public static final String WORKFLOW_MODULE_URI = "workflow-module-uri";
@@ -218,7 +231,8 @@ public final class ConfigurationKeys {
   public static final List<String> KEYS_OF_A_WORKFLOW_MODULE = List
       .of(
           WORKFLOW_MODULE_URI, UI_URI_TYPE, UI_URI_PATH, I18N_LANGUAGES,
-          BPMN_DESCRIPTION_LANGUAGE, TEMPLATE_PATH, GROUP_HIERARCHY, INITIATOR_SOURCE);
+          BPMN_DESCRIPTION_LANGUAGE, TEMPLATE_PATH, TEMPLATE_LOADER_PATH, GROUP_HIERARCHY,
+          INITIATOR_SOURCE);
 
   /**
    * The keys the extension reads below a single workflow, which are the ones a workflow may

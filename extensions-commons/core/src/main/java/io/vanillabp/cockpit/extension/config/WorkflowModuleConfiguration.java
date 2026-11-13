@@ -25,8 +25,10 @@ import io.vanillabp.integration.extension.spi.settings.SettingsResolution;
  * @param bpmnDescriptionLanguage The language the names in the BPMN files are written in
  * @param groupHierarchy Which groups a group stands for, reported to the cockpit so that it
  *          can resolve a user's permissions
- * @param templatePath The segment this module contributes to the template lookup path, which
- *          is the module id where nothing was configured
+ * @param templatePath The segment this module contributes to the template directory of the
+ *          application, which is the module id where nothing was configured
+ * @param templateDirectory Where this module's templates are, or <code>null</code> where the
+ *          module has no templates and the cockpit reports the names written in the BPMN
  * @param workflows What single workflows of this module said, by BPMN process id
  * @param initiatorSource Who answers the initiator of this module's reports, or
  *          <code>null</code> where the application decides
@@ -40,6 +42,7 @@ public record WorkflowModuleConfiguration(
                                           String bpmnDescriptionLanguage,
                                           Map<String, Collection<String>> groupHierarchy,
                                           String templatePath,
+                                          TemplateDirectory templateDirectory,
                                           Map<String, WorkflowConfiguration> workflows,
                                           InitiatorSource initiatorSource) implements CockpitSection {
 
@@ -112,6 +115,17 @@ public record WorkflowModuleConfiguration(
     return SettingsResolution
         .resolve(
             CockpitSettingsLevels.of(this), workflowModuleId, bpmnProcessId, null, null, key);
+
+  }
+
+  /**
+   * Tells whether this module renders its titles from templates.
+   *
+   * @return Whether the module has a directory of templates
+   */
+  public boolean hasTemplates() {
+
+    return templateDirectory != null;
 
   }
 
