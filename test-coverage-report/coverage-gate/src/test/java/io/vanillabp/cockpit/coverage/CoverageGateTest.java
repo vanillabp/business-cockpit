@@ -76,7 +76,11 @@ public class CoverageGateTest {
           // the backend of the dev shell, which serves made up users and cases while a
           // developer builds a user task form. Same reason as above. It runs on a
           // developer's machine and reaches no user.
-          "dev-shell-simulator");
+          "dev-shell-simulator",
+          // the protobuf API: protoc generates every class of it. Its one test checks the
+          // build, that protoc is not newer than the platforms' protobuf-java, and covers
+          // no code. Coverage of generated classes would say nothing about our code.
+          "bpms-protobuf-api");
 
   @Test
   @DisplayName("Every module producing coverage data is read by an aggregated report")
