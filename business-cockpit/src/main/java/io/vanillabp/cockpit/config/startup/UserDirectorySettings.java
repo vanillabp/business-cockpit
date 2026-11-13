@@ -12,6 +12,7 @@ import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
 import org.springframework.core.env.Environment;
+import org.springframework.scheduling.support.CronExpression;
 import org.springframework.util.ClassUtils;
 
 import io.vanillabp.cockpit.users.directory.KeycloakUserId;
@@ -34,6 +35,9 @@ final class UserDirectorySettings {
 
   static final String CACHE_DURATION = UserDirectoryProperties.PREFIX
       + ".cache-duration";
+
+  static final String CACHE_CLEAR_CRON = UserDirectoryProperties.PREFIX
+      + ".cache-clear-cron";
 
   static final String KEYCLOAK = UserDirectoryProperties.PREFIX
       + ".keycloak";
@@ -110,6 +114,7 @@ final class UserDirectorySettings {
 
     final var wrong = new ArrayList<MissingConfiguration>();
     cacheDurationProblem(environment).ifPresent(wrong::add);
+    cacheClearCronProblem(environment).ifPresent(wrong::add);
     switch (type.get()) {
       case KEYCLOAK -> wrong.addAll(keycloakProblems(environment));
       case LDAP -> wrong.addAll(ldapProblems(environment, classLoader));
@@ -142,6 +147,32 @@ final class UserDirectorySettings {
             + "' is no duration of zero or more. Zero switches the cache off.", CACHE_DURATION
                 + ": "
                 + UserDirectoryProperties.DEFAULT_CACHE_DURATION));
+
+  }
+
+  private static Optional<MissingConfiguration> cacheClearCronProblem(
+      final Environment environment) {
+
+    final var configured = CockpitConfiguration.valueOf(environment, CACHE_CLEAR_CRON);
+    if (configured.isEmpty()) {
+      return Optional.empty();
+    }
+    final var cron = configured
+        .get()
+        .trim();
+    if (cron.equals(UserDirectoryProperties.CACHE_CLEAR_SWITCHED_OFF) || CronExpression.isValidExpression(cron)) {
+      return Optional.empty();
+    }
+    return Optional.of(new MissingConfiguration(
+        CACHE_CLEAR_CRON, "When the directory forgets every user it keeps, as a cron expression of Spring with six "
+            + "fields, in the time zone of the server. The value '"
+            + configured.get()
+            + "' is no such expression. Write '"
+            + UserDirectoryProperties.CACHE_CLEAR_SWITCHED_OFF
+            + "' to switch the clearing off.", CACHE_CLEAR_CRON
+                + ": \""
+                + UserDirectoryProperties.DEFAULT_CACHE_CLEAR_CRON
+                + "\""));
 
   }
 

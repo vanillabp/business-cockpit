@@ -67,6 +67,18 @@ abstract class CachingUserDirectoryService implements UserDirectoryService {
 
   }
 
+  /**
+   * Forgets every user the directory keeps, so the next request of each user asks the directory
+   * again. A group given or taken away counts from then on.
+   *
+   * @return How many users were forgotten
+   */
+  int clearCache() {
+
+    return cachedUsers.clear();
+
+  }
+
   @Override
   public List<UserDetails> findUsers(
       final String query) {

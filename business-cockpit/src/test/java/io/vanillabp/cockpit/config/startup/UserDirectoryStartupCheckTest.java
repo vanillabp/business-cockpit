@@ -236,7 +236,7 @@ class UserDirectoryStartupCheckTest {
 
     assertThatThrownBy(() -> check.checkConfigurationOf(configurationWith(values)))
         .isInstanceOf(UserDirectoryIsNotUsableException.class)
-        .hasMessageContaining("Example: business-cockpit.user-directory.cache-duration: PT5M");
+        .hasMessageContaining("Example: business-cockpit.user-directory.cache-duration: PT14H");
 
   }
 
@@ -249,6 +249,40 @@ class UserDirectoryStartupCheckTest {
 
     final var values = new java.util.HashMap<>(COMPLETE_KEYCLOAK);
     values.put("business-cockpit.user-directory.cache-duration", cacheDuration);
+
+    assertThatCode(() -> check.checkConfigurationOf(configurationWith(values)))
+        .doesNotThrowAnyException();
+
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "every night", "0 2 * * *", "0 0 25 * * *"
+  })
+  void aCacheClearCronWhichCannotWorkStopsTheStart(
+      final String cron) {
+
+    final var values = new java.util.HashMap<>(COMPLETE_KEYCLOAK);
+    values.put("business-cockpit.user-directory.cache-clear-cron", cron);
+
+    assertThatThrownBy(() -> check.checkConfigurationOf(configurationWith(values)))
+        .isInstanceOf(UserDirectoryIsNotUsableException.class)
+        .hasMessageContaining("'"
+            + cron
+            + "'")
+        .hasMessageContaining("Example: business-cockpit.user-directory.cache-clear-cron: \"0 0 2 * * *\"");
+
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "0 0 2 * * *", "0 30 23 * * MON-FRI", "-", " - "
+  })
+  void aCacheClearCronOrTheDashIsAccepted(
+      final String cron) {
+
+    final var values = new java.util.HashMap<>(COMPLETE_KEYCLOAK);
+    values.put("business-cockpit.user-directory.cache-clear-cron", cron);
 
     assertThatCode(() -> check.checkConfigurationOf(configurationWith(values)))
         .doesNotThrowAnyException();

@@ -572,7 +572,10 @@ them in the order they come instead.
 If your directory reads the users of a Keycloak realm or of an LDAP directory, you can drop it and
 let the cockpit bring one. Set `business-cockpit.user-directory.type` to `keycloak` or `ldap`. The
 next start names every value the directory still needs, with an example. The directory keeps each
-user with its groups for five minutes, `business-cockpit.user-directory.cache-duration`.
+user with its groups for 14 hours, `business-cockpit.user-directory.cache-duration`, and forgets
+every user each night at 2 a.m., `business-cockpit.user-directory.cache-clear-cron`. So a group given
+or taken away counts the next day at the latest. The actuator endpoint `userdirectorycache` empties
+the cache at once, if the application has Spring Boot Actuator and exposes the endpoint.
 
 - The LDAP directory needs `org.springframework.ldap:spring-ldap-core`. The cockpit does not bring
   it along, so add it. The Spring Boot BOM names its version.

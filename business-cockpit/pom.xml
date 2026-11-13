@@ -176,6 +176,16 @@
       <optional>true</optional>
     </dependency>
     <dependency>
+      <!--
+        The actuator endpoint which empties the cache of the user directory. It is optional, so the
+        cockpit brings no Actuator along. The endpoint is built only in an application which has
+        Actuator and exposes the endpoint. The version comes from the Spring Boot BOM.
+      -->
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-actuator-autoconfigure</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
       <groupId>jakarta.validation</groupId>
       <artifactId>jakarta.validation-api</artifactId>
     </dependency>

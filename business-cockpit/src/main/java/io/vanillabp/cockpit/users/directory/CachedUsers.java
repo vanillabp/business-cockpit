@@ -80,4 +80,17 @@ final class CachedUsers {
 
   }
 
+  /**
+   * Forgets every user, so the next request of each user asks the directory again.
+   *
+   * @return How many users were forgotten
+   */
+  int clear() {
+
+    final var forgotten = users.size();
+    users.clear();
+    return forgotten;
+
+  }
+
 }

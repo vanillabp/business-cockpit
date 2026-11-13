@@ -46,7 +46,8 @@ class UserDirectoryConfigurationTest {
               .isInstanceOf(KeycloakUserDirectoryService.class);
           final var properties = context.getBean(UserDirectoryProperties.class);
           assertThat(properties.keycloak().userId()).isEqualTo(KeycloakUserId.USERNAME);
-          assertThat(properties.cacheDuration()).hasMinutes(5);
+          assertThat(properties.cacheDuration()).hasHours(14);
+          assertThat(properties.cacheClearCron()).isEqualTo("0 0 2 * * *");
         });
 
   }
