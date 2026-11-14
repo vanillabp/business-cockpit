@@ -91,13 +91,6 @@ public class EveryKeyIsKnownToTheIdeTest {
               WORKFLOW_MODULES
                   + ".*.workflows.*.user-tasks.*", "'<module>.workflows.<process>.user-tasks.<task>.cockpit'", ConfigurationKeys.KEYS_OF_A_USER_TASK));
 
-  /**
-   * The key of the Process-Engine-API half. Its default lives in that repository, and its test
-   * holds the default described here against it.
-   */
-  private static final String DEFAULT_OF_ANOTHER_REPOSITORY = ConfigurationKeys
-      .globalKey(ConfigurationKeys.REMEMBERED_USER_TASKS);
-
   private static Map<String, ConfigurationMetadataProperty> metadata;
 
   private static Map<String, Type> keysBound;
@@ -321,8 +314,7 @@ public class EveryKeyIsKnownToTheIdeTest {
     metadata.forEach((
         name,
         entry) -> {
-      if (!name.startsWith(GLOBAL_LEVEL) || (entry.getDefaultValue() == null) || name
-          .equals(DEFAULT_OF_ANOTHER_REPOSITORY)) {
+      if (!name.startsWith(GLOBAL_LEVEL) || (entry.getDefaultValue() == null)) {
         return;
       }
       final var withTheDefault = new HashMap<>(least);

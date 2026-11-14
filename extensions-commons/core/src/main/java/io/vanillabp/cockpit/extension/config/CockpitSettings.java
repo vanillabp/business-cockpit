@@ -26,8 +26,6 @@ import java.util.Map;
  *          was written. A section which says nothing is a section which is not there, on either
  *          platform
  * @param kafka The Kafka transport, or <code>null</code>
- * @param processEngineApi What the Process-Engine-API half of the cockpit reads, or
- *          <code>null</code>
  * @param workflowModules What single workflow modules wrote, by workflow module id
  */
 public record CockpitSettings(
@@ -37,7 +35,6 @@ public record CockpitSettings(
                               String initiatorSource,
                               Rest rest,
                               Kafka kafka,
-                              ProcessEngineApi processEngineApi,
                               Map<String, WorkflowModule> workflowModules) {
 
   /**
@@ -54,7 +51,7 @@ public record CockpitSettings(
    */
   public static CockpitSettings none() {
 
-    return new CockpitSettings(null, null, null, null, null, null, null, Map.of());
+    return new CockpitSettings(null, null, null, null, null, null, Map.of());
 
   }
 
@@ -189,16 +186,6 @@ public record CockpitSettings(
                        String userTask,
                        String workflow,
                        String workflowModule) {
-  }
-
-  /**
-   * The one setting of the cockpit's Process-Engine-API half. That half reads it. It is
-   * declared here because a key which is not declared fails the boot on Quarkus.
-   *
-   * @param rememberedUserTasks How many delivered user tasks a node remembers
-   */
-  public record ProcessEngineApi(
-                                 String rememberedUserTasks) {
   }
 
   /**

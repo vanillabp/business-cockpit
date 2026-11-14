@@ -49,7 +49,9 @@ class BusinessCockpitExtensionProcessor {
 
   /**
    * Ends the build if a key of one of the cockpit's sections is a key nobody reads. The message
-   * names the key it was nearest to.
+   * names the key it was nearest to. A key at the place per adapter is checked against what the
+   * BPMS halves on the class path announced, see
+   * {@link io.vanillabp.cockpit.extension.spi.AdapterCockpitKeys}.
    * <p>
    * Quarkus refuses such a key by itself while the application starts, because no configuration
    * mapping declares it. That is all Quarkus can say. This check runs while the application is
@@ -66,9 +68,14 @@ class BusinessCockpitExtensionProcessor {
   void refuseAKeyNobodyReads(
       final BuildProducer<ValidationErrorBuildItem> validation) {
 
+    final var config = ConfigProvider.getConfig();
     try {
       ConfigurationKeyCheck
-          .refuseKeysNobodyReads(ConfigProvider.getConfig().getPropertyNames());
+          .refuseKeysNobodyReads(
+              config.getPropertyNames(), adapterId -> config
+                  .getOptionalValue("vanillabp.adapters.%s.type".formatted(adapterId), String.class)
+                  .orElse(adapterId),
+              ConfigurationKeyCheck.keysOfTheBpmsHalves());
     } catch (final IllegalStateException e) {
       validation.produce(new ValidationErrorBuildItem(e));
     }

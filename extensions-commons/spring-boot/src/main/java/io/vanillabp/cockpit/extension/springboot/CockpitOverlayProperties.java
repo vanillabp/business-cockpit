@@ -109,15 +109,12 @@ public class CockpitOverlayProperties {
             workflowModuleId,
             module) -> modules.put(workflowModuleId, module.toSettings()));
     if (cockpit == null) {
-      return new CockpitSettings(null, null, null, null, null, null, null, modules);
+      return new CockpitSettings(null, null, null, null, null, null, modules);
     }
     return new CockpitSettings(
         cockpit.getUserTasksEnabled(), cockpit.getWorkflowListEnabled(), cockpit
             .getTemplateLoaderPath(), cockpit.getInitiatorSource(), restOf(cockpit.getRest()), kafkaOf(
-                cockpit.getKafka()), cockpit.getProcessEngineApi() == null
-                    ? null
-                    : new CockpitSettings.ProcessEngineApi(
-                        cockpit.getProcessEngineApi().getRememberedUserTasks()), modules);
+                cockpit.getKafka()), modules);
 
   }
 
@@ -201,9 +198,6 @@ public class CockpitOverlayProperties {
 
     /** The brokers the events are sent to, and with them the Kafka transport. */
     private Kafka kafka;
-
-    /** What the cockpit's Process-Engine-API half reads. */
-    private ProcessEngineApi processEngineApi;
 
     /**
      * Creates an empty section, which Spring Boot fills when it binds the properties.
@@ -346,29 +340,6 @@ public class CockpitOverlayProperties {
         final Kafka kafka) {
 
       this.kafka = kafka;
-
-    }
-
-    /**
-     * What the cockpit's Process-Engine-API half reads.
-     *
-     * @return The Process-Engine-API section
-     */
-    public ProcessEngineApi getProcessEngineApi() {
-
-      return processEngineApi;
-
-    }
-
-    /**
-     * What the cockpit's Process-Engine-API half reads.
-     *
-     * @param processEngineApi The Process-Engine-API section
-     */
-    public void setProcessEngineApi(
-        final ProcessEngineApi processEngineApi) {
-
-      this.processEngineApi = processEngineApi;
 
     }
 
@@ -1284,45 +1255,6 @@ public class CockpitOverlayProperties {
         final String workflowModule) {
 
       this.workflowModule = workflowModule;
-
-    }
-
-  }
-
-  /**
-   * The one setting of the cockpit's Process-Engine-API half.
-   */
-  public static class ProcessEngineApi {
-
-    /** How many delivered user tasks a node remembers. */
-    private String rememberedUserTasks;
-
-    /**
-     * Creates an empty section, which Spring Boot fills when it binds the properties.
-     */
-    public ProcessEngineApi() {
-    }
-
-    /**
-     * How many delivered user tasks a node remembers.
-     *
-     * @return The number, as text
-     */
-    public String getRememberedUserTasks() {
-
-      return rememberedUserTasks;
-
-    }
-
-    /**
-     * How many delivered user tasks a node remembers.
-     *
-     * @param rememberedUserTasks The number, as text
-     */
-    public void setRememberedUserTasks(
-        final String rememberedUserTasks) {
-
-      this.rememberedUserTasks = rememberedUserTasks;
 
     }
 

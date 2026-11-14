@@ -76,12 +76,6 @@
       "defaultValue": "true"
     },
     {
-      "name": "vanillabp.cockpit.process-engine-api.remembered-user-tasks",
-      "type": "java.lang.String",
-      "description": "How many delivered user tasks one node keeps in memory. Only the Business Cockpit adapter for the Process-Engine-API reads it: that BPMS cannot be asked about a task a second time, so the node keeps what arrived with the delivery until the task is gone. The memory is one per node and shared by every workflow module, so the key is read here only, and a workflow module which writes it at 'vanillabp.workflow-modules.<module>.cockpit.process-engine-api.remembered-user-tasks' ends the start.",
-      "defaultValue": "1000"
-    },
-    {
       "name": "vanillabp.cockpit.rest.log",
       "type": "java.lang.String",
       "description": "A key of VanillaBP 1 which this version does not read. The client logs through SLF4J: set the logger 'io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi' to DEBUG.",

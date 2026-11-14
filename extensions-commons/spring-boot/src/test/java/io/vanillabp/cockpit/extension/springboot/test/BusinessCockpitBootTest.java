@@ -382,6 +382,66 @@ public class BusinessCockpitBootTest {
 
   }
 
+  // the boots below which are meant to fail use the application without a workflow service. A
+  // failed boot of the test application names its aggregate, and the test above reads every
+  // line the class wrote, so it would take that line for a warning about a second writer
+
+  @Test
+  @DisplayName("A neutral key at the place per adapter ends the start and names its place")
+  public void aNeutralKeyAtTheAdapterEndsTheStart() {
+
+    final var message = failureOfBooting(
+        "cockpit-neutral-key-at-the-adapter",
+        new String[]{
+            "vanillabp.adapters.test.cockpit.template-loader-path=classpath:/templates"
+        },
+        BrokenApplication.class);
+
+    assertTrue(message.contains("vanillabp.adapters.test.cockpit.template-loader-path"), message);
+    assertTrue(message.contains("'vanillabp.cockpit.template-loader-path'"), message);
+
+  }
+
+  @Test
+  @DisplayName("A key of a BPMS half below the level it is read at ends the start in the words of the core")
+  public void aKeyOfABpmsHalfAtTheWrongLevelEndsTheStart() {
+
+    final var message = failureOfBooting(
+        "cockpit-key-at-the-wrong-level",
+        new String[]{
+            "vanillabp.workflow-modules.test-module.adapters.test.cockpit.%s=PT1M"
+                .formatted(DummyAdapterCockpitKeys.KEY)
+        },
+        BrokenApplication.class);
+
+    assertTrue(
+        message.contains("The Business Cockpit adapter for 'dummy' reads '%s' at the adapter, but it is configured at:"
+            .formatted(DummyAdapterCockpitKeys.KEY)),
+        message);
+    assertTrue(
+        message.contains("vanillabp.adapters.<adapter-id>.cockpit.%s: PT1M".formatted(DummyAdapterCockpitKeys.KEY)),
+        message);
+
+  }
+
+  @Test
+  @DisplayName("A key of a BPMS half at the level it is read at lets the application start")
+  public void aKeyOfABpmsHalfAtItsLevelLetsTheApplicationStart() {
+
+    try (var application = new SpringApplicationBuilder(TestApplication.class)
+        .web(WebApplicationType.NONE)
+        .properties(
+            "spring.datasource.url=jdbc:h2:mem:cockpit-key-at-its-level;DB_CLOSE_DELAY=-1",
+            "vanillabp.cockpit.rest.base-url=http://localhost:1",
+            "vanillabp.adapters.test.cockpit.%s=PT1M".formatted(DummyAdapterCockpitKeys.KEY))
+        .run()) {
+
+      assertNotNull(application.getBean(BusinessCockpitExtension.class));
+
+    }
+
+  }
+
   @Test
   @DisplayName("A key of version 1 ends the boot and says what became of it, as on Quarkus")
   public void aKeyOfVersionOneIsRefused() {
