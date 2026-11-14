@@ -194,8 +194,13 @@ public final class ConfigurationKeys {
   /** The password of {@link #REST_SSL_TRUSTSTORE_FILENAME}. */
   public static final String REST_SSL_TRUSTSTORE_PASSWORD = REST_PREFIX + SSL_TRUSTSTORE_PASSWORD;
 
-  /** How many delivered user tasks the Process-Engine-API half of the cockpit remembers. */
-  public static final String REMEMBERED_USER_TASKS = "process-engine-api.remembered-user-tasks";
+  /**
+   * Where a snapshot of version 2 read how many delivered user tasks the Process-Engine-API half
+   * of the cockpit remembers. That half reads it below its adapter ids now, and only the BPMS half
+   * knows that key. Written here, the key ends the startup with a message which names the new
+   * place.
+   */
+  public static final String REMEMBERED_USER_TASKS_BEFORE = "process-engine-api.remembered-user-tasks";
 
   /**
    * What both connections are configured with: the one to the cockpit server, below
@@ -218,7 +223,7 @@ public final class ConfigurationKeys {
                   REST_BASIC, REST_USERNAME, REST_PASSWORD, REST_OAUTH_BASE_URL,
                   REST_OAUTH_CLIENT_ID, REST_OAUTH_CLIENT_SECRET, REST_OAUTH_BASIC,
                   KAFKA_BOOTSTRAP_SERVERS, KAFKA_TOPIC_USER_TASK, KAFKA_TOPIC_WORKFLOW,
-                  KAFKA_TOPIC_WORKFLOW_MODULE, REMEMBERED_USER_TASKS, INITIATOR_SOURCE),
+                  KAFKA_TOPIC_WORKFLOW_MODULE, INITIATOR_SOURCE),
           CONNECTION_KEYS.stream().map(REST_PREFIX::concat),
           CONNECTION_KEYS.stream().map(REST_OAUTH_PREFIX::concat))
       .flatMap(keys -> keys)

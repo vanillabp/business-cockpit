@@ -206,9 +206,8 @@ public final class ConfigurationFixture {
         global.get(ConfigurationKeys.USER_TASKS_ENABLED), global.get(ConfigurationKeys.WORKFLOW_LIST_ENABLED), global
             .get(
                 ConfigurationKeys.TEMPLATE_LOADER_PATH), global.get(
-                    ConfigurationKeys.INITIATOR_SOURCE), restOf(), kafkaOf(), new CockpitSettings.ProcessEngineApi(global
-                        .get(ConfigurationKeys.REMEMBERED_USER_TASKS)), workflowModule.saysNothing() ? Map.of()
-                            : Map.of(workflowModuleId, workflowModule));
+                    ConfigurationKeys.INITIATOR_SOURCE), restOf(), kafkaOf(), workflowModule.saysNothing() ? Map.of()
+                        : Map.of(workflowModuleId, workflowModule));
 
   }
 

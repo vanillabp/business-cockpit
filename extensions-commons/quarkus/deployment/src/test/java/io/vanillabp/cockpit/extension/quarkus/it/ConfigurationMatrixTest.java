@@ -153,12 +153,11 @@ public class ConfigurationMatrixTest {
   }
 
   @Test
-  @DisplayName("A Kafka setting keeps the dots it was written with, and so does the half's key")
+  @DisplayName("A Kafka setting keeps the dots it was written with")
   public void theOpenSectionsKeepWhatWasWrittenIntoThem() {
 
     assertEquals("SSL", settings.kafka().properties().get("security.protocol"));
     assertEquals("taxi-ride", settings.kafka().properties().get("client.id"));
-    assertEquals("25", settings.processEngineApi().rememberedUserTasks());
 
   }
 

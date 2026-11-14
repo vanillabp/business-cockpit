@@ -2,8 +2,6 @@ vanillabp:
   cockpit:
     user-tasks-enabled: false
     workflow-list-enabled: false
-    process-engine-api:
-      remembered-user-tasks: 25
     kafka:
       properties:
         security.protocol: SSL

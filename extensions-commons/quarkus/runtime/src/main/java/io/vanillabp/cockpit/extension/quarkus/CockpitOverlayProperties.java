@@ -78,7 +78,7 @@ public interface CockpitOverlayProperties {
     return new CockpitSettings(
         cockpit().userTasksEnabled().orElse(null), cockpit().workflowListEnabled().orElse(null), cockpit()
             .templateLoaderPath().orElse(null), cockpit().initiatorSource().orElse(null), cockpit().rest()
-                .toSettings(), cockpit().kafka().toSettings(), cockpit().processEngineApi().toSettings(), modules);
+                .toSettings(), cockpit().kafka().toSettings(), modules);
 
   }
 
@@ -128,13 +128,6 @@ public interface CockpitOverlayProperties {
      * @return The Kafka section
      */
     Kafka kafka();
-
-    /**
-     * What the cockpit's Process-Engine-API half reads.
-     *
-     * @return The Process-Engine-API section
-     */
-    ProcessEngineApi processEngineApi();
 
   }
 
@@ -503,35 +496,6 @@ public interface CockpitOverlayProperties {
       }
       return new CockpitSettings.Topics(
           userTask().orElse(null), workflow().orElse(null), workflowModule().orElse(null));
-
-    }
-
-  }
-
-  /**
-   * The one setting of the cockpit's Process-Engine-API half, declared here because a key which
-   * no mapping declares ends the boot on this platform.
-   */
-  interface ProcessEngineApi {
-
-    /**
-     * How many delivered user tasks a node remembers.
-     *
-     * @return The number, as text
-     */
-    Optional<String> rememberedUserTasks();
-
-    /**
-     * Turns this section into what the neutral core reads.
-     *
-     * @return This section as the neutral core reads it, or <code>null</code> where nothing was
-     *         written into it
-     */
-    default CockpitSettings.ProcessEngineApi toSettings() {
-
-      return rememberedUserTasks()
-          .map(CockpitSettings.ProcessEngineApi::new)
-          .orElse(null);
 
     }
 

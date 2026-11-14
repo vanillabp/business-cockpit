@@ -12,10 +12,11 @@ import io.vanillabp.integration.extension.spi.settings.SettingsLevel;
  * {@link io.vanillabp.integration.extension.spi.settings.SettingsResolution} knows that for every
  * plug-in, and this class only says which section belongs to which level.
  * <p>
- * The adapter positions answer nothing on purpose. A plug-in may be told something per configured
- * adapter, and the cockpit will want that the day a value has to differ between two clusters of
- * one BPMS type. Until then nothing binds those keys, and a position nothing binds is not a
- * position an application can write.
+ * The adapter positions answer nothing on purpose. The neutral keys are not read per adapter.
+ * During a migration two BPMS run the same workflow, and the cockpit shows it the same way for
+ * both. What a BPMS half reads per adapter, it reads itself, below
+ * <code>vanillabp.adapters.&lt;adapter-id&gt;.cockpit</code>. {@link ConfigurationKeyCheck}
+ * refuses every other key at those positions.
  */
 public final class CockpitSettingsLevels {
 

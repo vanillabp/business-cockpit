@@ -3,7 +3,9 @@ package io.vanillabp.cockpit.extension.springboot;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import org.springframework.beans.factory.DisposableBean;
@@ -82,20 +84,47 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
    * binding and handed on as the neutral object which the core and every BPMS half read.
    * <p>
    * A key in one of the cockpit's sections which the cockpit does not read ends the start first,
-   * as it does on Quarkus. Spring Boot would bind around it, and the setting the developer meant
-   * would simply not happen.
+   * as it does on Quarkus. The same holds for a key at the place per adapter which no BPMS half
+   * reads there. Spring Boot would bind around it, and the setting the developer meant would
+   * simply not happen.
    *
    * @param overlay The cockpit's overlay of the shared <code>vanillabp.*</code> tree
    * @param environment Where the keys the application wrote are found
+   * @param properties VanillaBP's resolved configuration, which knows the type of each adapter id
    * @return The settings
    */
   @Bean
   public CockpitSettings businessCockpitSettings(
       final CockpitOverlayProperties overlay,
-      final ConfigurableEnvironment environment) {
+      final ConfigurableEnvironment environment,
+      final MigrationAdapterProperties properties) {
 
-    ConfigurationKeyCheck.refuseKeysNobodyReads(KeysOfTheConfigurationFiles.of(environment));
+    ConfigurationKeyCheck
+        .refuseKeysNobodyReads(
+            KeysOfTheConfigurationFiles.of(environment), adapterTypes(properties), ConfigurationKeyCheck
+                .keysOfTheBpmsHalves());
     return overlay.toSettings();
+
+  }
+
+  /**
+   * The type of an adapter id. Spring Boot binds an id without its case, so it is compared that
+   * way. An id without a section of its own is its type.
+   *
+   * @param properties VanillaBP's resolved configuration
+   * @return The type of an adapter id
+   */
+  private static Function<String, String> adapterTypes(
+      final MigrationAdapterProperties properties) {
+
+    final var types = properties.adapterTypes();
+    return adapterId -> types
+        .entrySet()
+        .stream()
+        .filter(entry -> entry.getKey().equalsIgnoreCase(adapterId))
+        .map(Map.Entry::getValue)
+        .findFirst()
+        .orElse(adapterId);
 
   }
 

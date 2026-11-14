@@ -76,7 +76,9 @@ answer without building a transport to get it.
 
 ## What a BPMS half implements
 
-Two interfaces in `io.vanillabp.cockpit.extension.spi`, and nothing else.
+Two interfaces in `io.vanillabp.cockpit.extension.spi`. A half which reads keys of its own below
+its adapter ids also implements `AdapterCockpitKeys`, see
+[The place per adapter](#the-place-per-adapter).
 
 `BusinessCockpitBpmsBridge` is what the neutral half asks an engine. One implementation per
 configured adapter id, because during a migration each id holds workflows of its own. It answers
@@ -222,6 +224,24 @@ Spring Boot binds around such a key. So on Spring Boot the extension runs the sa
 `ConfigurationKeyCheck`, while it reads the cockpit's settings, and the start ends with the same
 message. It checks every property source with names except the environment variables, and it
 checks a key in its dashed form, because Spring Boot binds `baseUrl` and `base-url` alike.
+
+### The place per adapter
+
+The check also looks at `vanillabp.adapters.<adapter-id>.cockpit.<key>` and at the same position
+below a workflow module, a workflow and a task (`tasks.<t>` and `user-tasks.<t>`). The neutral half
+reads nothing there. A BPMS half which reads a key there announces it through
+`io.vanillabp.cockpit.extension.spi.AdapterCockpitKeys`: its adapter type, and for each key the
+levels it is read at, an example value and why the other levels are not read. The half names its
+class in `META-INF/services/io.vanillabp.cockpit.extension.spi.AdapterCockpitKeys`. The service
+loader works the same on both platforms, and Quarkus can read it at build time, before any bean
+exists. The half still binds the key itself, as before.
+
+Every other key at the place per adapter gets one of three answers. A neutral key belongs to
+`vanillabp.cockpit` or to a `cockpit` section of the levels below, and the message names that place.
+A key no half of the adapter's type announced is unknown. A key announced for another level gets
+the words of the VanillaBP core for a misplaced key (`MisplacedSettings` in
+`vanillabp-extension-spi`), so a developer reads one kind of message for both. The type of an
+adapter id comes from `vanillabp.adapters.<id>.type`, and an id without it is its own type.
 
 A workflow module's own defaults file, `<module>.yaml` on the classpath root or below a directory of
 the module's name, carries these keys as well, below everything the application itself writes. That
