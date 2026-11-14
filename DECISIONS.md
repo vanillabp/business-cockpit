@@ -4532,3 +4532,64 @@ guessing. On Quarkus nothing changes.
 - `extensions-commons/README.md`, the paragraph about keys no mapping declares.
 - The wiki pages `Configuration` and `Migrating-from-version-1`.
 
+### 101. The place per adapter carries only what a BPMS half reads, and the halves announce their keys
+
+Decided on 2026-11-09 by the maintainer: a cockpit adapter uses the configuration of its BPMS adapter
+and defines below `vanillabp.adapters.<adapter-id>.cockpit.<key>` only what the cockpit itself needs.
+
+This replaces two sentences of decision 14. The first says that the cockpit does not use the
+position per adapter yet, because nothing binds those keys. The second says that
+`process-engine-api.remembered-user-tasks` is a key of the cockpit's own tree. It also replaces the
+paragraph of decision 66 about `vanillabp.cockpit.process-engine-api.remembered-user-tasks`. The rest
+of both decisions stays as it is.
+
+#### What was wrong
+
+The Camunda 8 half already read `suspension-check-interval` below its adapter ids. So the sentence
+"nothing binds those keys" was no longer true. But nothing checked that place either. A typo there,
+a neutral key written there, or a key of a BPMS half written one level too deep did nothing. On
+Quarkus such a key ended the start only if no mapping declared it, and then the message did not say
+which key was meant. On Spring Boot nothing ended the start at all.
+
+`process-engine-api.remembered-user-tasks` stood in the neutral tree, although only one BPMS needs
+it. So the neutral half had to know and bind a key of one BPMS. And there was one memory per node,
+shared by every adapter id of the Process Engine API.
+
+#### The decision
+
+The neutral keys are not read per adapter. During a migration two BPMS run the same workflow, and
+the cockpit shows it the same way for both. So `template-path`, `ui-uri-path` and every other key of
+the neutral tree is refused at the place per adapter, and the message names the place where it is
+read.
+
+A BPMS half which reads keys below its adapter ids announces them through
+`io.vanillabp.cockpit.extension.spi.AdapterCockpitKeys`: its adapter type, and for each key the
+levels at which it reads it, an example value and why the other levels are not read. It names its
+class in a file below `META-INF/services`. The service loader works the same on both platforms, and
+Quarkus can read it while it builds the application, before any bean exists. The half still binds
+its keys itself.
+
+`ConfigurationKeyCheck` looks at `vanillabp.adapters.<adapter-id>.cockpit.<key>` and at the same
+position below a workflow module, a workflow and a task, on both platforms. The task level is
+checked in both spellings, `tasks.<task>` (the platform's) and `user-tasks.<task>` (the one of
+version 1). A key nobody announced for the adapter's type ends the start. A key announced for
+another level ends the start with the words of the VanillaBP core for a misplaced key
+(`MisplacedSettings` of `vanillabp-extension-spi`). The type of an adapter id is the one VanillaBP
+resolves: its `type`, or the id itself.
+
+`process-engine-api.remembered-user-tasks` leaves the neutral tree. The Process-Engine-API half reads
+it below its adapter ids, one memory per adapter id. The old key ends the start with a message
+which names the new place. It is not a key of version 1, so no upgrade guide names it.
+
+#### Where it is referred to
+
+- `ConfigurationKeyCheck`, `ConfigurationKeys` and `CockpitSettingsLevels` in
+  `extensions-commons/core`, in their class comments.
+- `AdapterCockpitKeys` and `AdapterCockpitKey` in `extensions-commons/core`.
+- `BusinessCockpitExtensionAutoConfiguration.businessCockpitSettings` in
+  `extensions-commons/spring-boot`, and `BusinessCockpitExtensionProcessor.refuseAKeyNobodyReads` in
+  `extensions-commons/quarkus/deployment`.
+- `extensions-commons/README.md`, the section "The place per adapter".
+- The wiki page `Configuration`, sections "The place per adapter" and "A key nobody reads ends the
+  start".
+
