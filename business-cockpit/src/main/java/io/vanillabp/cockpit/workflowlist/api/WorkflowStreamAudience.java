@@ -3,7 +3,6 @@ package io.vanillabp.cockpit.workflowlist.api;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -22,8 +21,8 @@ import io.vanillabp.cockpit.workflowlist.model.Workflow;
 
 /**
  * Decides which update streams learn about a changed workflow. Per filtering tick it reads the
- * changed workflows once, with only the fields the visibility looks at, and then asks every stream's
- * views in memory. So the database sees one query per tick, however many tabs are open.
+ * changed workflows once, with only the fields the visibility looks at and the workflow module.
+ * Then it asks every stream's views in memory. So the database sees one query per tick, however many tabs are open.
  */
 public class WorkflowStreamAudience implements UpdateStreamAudience {
 
@@ -60,14 +59,14 @@ public class WorkflowStreamAudience implements UpdateStreamAudience {
   }
 
   @Override
-  public Map<UpdateEmitter, Set<String>> whatEachStreamMaySee(
+  public WhatTheStreamsMaySee whatEachStreamMaySee(
       final Collection<UpdateEmitter> streams,
       final Set<String> changedIds) {
 
     final var changedWorkflows = factsOf(changedIds);
     final var result = new HashMap<UpdateEmitter, Set<String>>();
     if (changedWorkflows.isEmpty()) {
-      return result;
+      return WhatTheStreamsMaySee.NOTHING;
     }
     streams.forEach(stream -> {
       final var views = stream
@@ -85,13 +84,19 @@ public class WorkflowStreamAudience implements UpdateStreamAudience {
         result.put(stream, visible);
       }
     });
-    return result;
+    final var workflowModules = new HashMap<String, String>();
+    changedWorkflows
+        .stream()
+        .filter(workflow -> workflow.workflowModuleId() != null)
+        .forEach(workflow -> workflowModules.put(workflow.id(), workflow.workflowModuleId()));
+    return new WhatTheStreamsMaySee(result, workflowModules);
 
   }
 
   /**
-   * The changed workflows, with the fields the visibility reads. A workflow deleted in the meantime is
-   * missing, and only a stream whose browser shows it learns about it.
+   * The changed workflows, with the fields the visibility reads and the workflow module. A
+   * workflow deleted in the meantime is missing, and only a stream whose browser shows it learns
+   * about it.
    *
    * @param ids The ids of the changed workflows
    * @return The facts of the workflows found

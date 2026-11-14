@@ -147,6 +147,11 @@ paths:
         collects changes and writes them out every half second at most, with at most 100
         elements in one event. Both can be configured below `business-cockpit.gui-sse`.
 
+        Each element names the workflow module of its entity in `workflowModuleId`. A list which
+        shows only some workflow modules, see `workflowModuleIds` in the requests of the lists,
+        skips the elements of other modules. The stream itself is not limited to modules, because
+        a request of a list does not say which tab it comes from.
+
         An element whose `type` is `RELOAD` has an empty `id`. It means: load every list of this
         kind again. The cockpit sends it right after the stream was opened, because the browser
         may show lists the new stream does not know about. It sends it again when the stream had
@@ -255,6 +260,12 @@ components:
           type: integer
           format: int64
           description: When the cockpit noticed the change, in milliseconds since 1970-01-01 UTC
+        workflowModuleId:
+          type: string
+          description: >-
+            The workflow module of the user task. A list limited to some workflow modules uses it to
+            skip the wake-up calls of other modules. It is missing in an element of type `RELOAD`,
+            and when the cockpit no longer holds the user task. Such an element may concern any list.
     UserTaskEvent:
       type: object
       description: What happened to one user task.
@@ -297,6 +308,12 @@ components:
           type: integer
           format: int64
           description: When the cockpit noticed the change, in milliseconds since 1970-01-01 UTC
+        workflowModuleId:
+          type: string
+          description: >-
+            The workflow module of the case. A list limited to some workflow modules uses it to
+            skip the wake-up calls of other modules. It is missing in an element of type `RELOAD`,
+            and when the cockpit no longer holds the case. Such an element may concern any list.
     WorkflowEvent:
       type: object
       description: What happened to one case.

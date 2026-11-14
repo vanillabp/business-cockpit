@@ -68,9 +68,9 @@ class AListWithoutATimestampTest {
     final var userContext = mock(UserContext.class);
     when(userContext.getUserLoggedInDetails()).thenReturn(mock(UserDetails.class));
     userTaskService = mock(UserTaskService.class);
-    when(userTaskService.getUserTasks(any(), anyInt(), anyInt(), any(), any(), any(), anyBoolean(), any()))
+    when(userTaskService.getUserTasks(any(), anyInt(), anyInt(), any(), any(), any(), any(), anyBoolean(), any()))
         .thenReturn(Page.empty());
-    when(userTaskService.getUserTasksUpdated(any(), anyInt(), any(), any(), any(), any(), anyBoolean(), any()))
+    when(userTaskService.getUserTasksUpdated(any(), anyInt(), any(), any(), any(), any(), any(), anyBoolean(), any()))
         .thenReturn(Page.empty());
     mapper = mock(GuiApiMapper.class);
 
@@ -116,7 +116,7 @@ class AListWithoutATimestampTest {
 
     assertThat(send(post("/usertask"), "{ \"pageSize\": 10 }")).isEqualTo(200);
 
-    verify(userTaskService).getUserTasks(any(), eq(0), eq(10), isNull(), any(), any(), anyBoolean(), any());
+    verify(userTaskService).getUserTasks(any(), eq(0), eq(10), isNull(), any(), any(), any(), anyBoolean(), any());
     verify(mapper).toApi(any(Page.class), notNull(), any());
 
   }
@@ -126,7 +126,8 @@ class AListWithoutATimestampTest {
 
     assertThat(send(put("/usertask"), "{ \"size\": 10, \"knownUserTasksIds\": [] }")).isEqualTo(200);
 
-    verify(userTaskService).getUserTasksUpdated(any(), eq(10), any(), isNull(), any(), any(), anyBoolean(), any());
+    verify(userTaskService).getUserTasksUpdated(any(), eq(10), any(), isNull(), any(), any(), any(), anyBoolean(),
+        any());
     verify(mapper).toApi(any(Page.class), notNull(), any());
 
   }
@@ -140,8 +141,8 @@ class AListWithoutATimestampTest {
         .queryParam("initialTimestamp", TIMESTAMP.toString()), "{ \"size\": 10, \"knownUserTasksIds\": [] }"))
         .isEqualTo(200);
 
-    verify(userTaskService).getUserTasks(any(), eq(0), eq(10), eq(TIMESTAMP), any(), any(), anyBoolean(), any());
-    verify(userTaskService).getUserTasksUpdated(any(), eq(10), any(), eq(TIMESTAMP), any(), any(), anyBoolean(),
+    verify(userTaskService).getUserTasks(any(), eq(0), eq(10), eq(TIMESTAMP), any(), any(), any(), anyBoolean(), any());
+    verify(userTaskService).getUserTasksUpdated(any(), eq(10), any(), eq(TIMESTAMP), any(), any(), any(), anyBoolean(),
         any());
 
   }

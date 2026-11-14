@@ -45,6 +45,24 @@ public class SearchCriteriaHelper {
   }
 
   /**
+   * The condition of a list which shows the entries of some workflow modules only. It is a filter
+   * like the others: it narrows what the visibility of the list lets through and never widens it.
+   *
+   * @param workflowModuleIds The ids of the workflow modules, or {@code null}
+   * @return One criterion, or an empty list for {@code null} or no ids. No ids means every workflow
+   *         module, so a request which does not send the limit gets the list it always got.
+   */
+  public static List<Criteria> onlyTheWorkflowModules(
+      final Collection<String> workflowModuleIds) {
+
+    if ((workflowModuleIds == null) || workflowModuleIds.isEmpty()) {
+      return List.of();
+    }
+    return List.of(Criteria.where("workflowModuleId").in(workflowModuleIds));
+
+  }
+
+  /**
    * A filter with a path matches that path. A filter without one searches the full text: the
    * words the workflow module reported, and the note the users keep about the entry.
    */

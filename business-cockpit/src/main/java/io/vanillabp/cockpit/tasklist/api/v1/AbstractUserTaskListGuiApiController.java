@@ -120,6 +120,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
    * @param pageSize How many tasks a page holds
    * @param initialTimestamp When the user started to page through the list, or {@code null} for
    *        the first page, which takes only the tasks which have not ended as open
+   * @param workflowModuleIds Only the tasks of these workflow modules, or {@code null} or none for
+   *        the tasks of every workflow module
    * @param searchQueries The filters of the list, or {@code null}
    * @param sort The paths to sort by, separated by commas, or {@code null}
    * @param sortAscending Whether to sort in ascending order
@@ -131,6 +133,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
       final int pageNumber,
       final int pageSize,
       final OffsetDateTime initialTimestamp,
+      final List<String> workflowModuleIds,
       final Collection<SearchQuery> searchQueries,
       final String sort,
       final boolean sortAscending,
@@ -141,6 +144,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
         pageNumber,
         pageSize,
         initialTimestamp,
+        workflowModuleIds,
         searchQueries,
         sort,
         sortAscending,
@@ -170,6 +174,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
         // request which sends it back gets the same tasks, except one which ended in the instant
         // between taking 'now' and reading the tasks
         initialTimestamp,
+        userTasksRequest.getWorkflowModuleIds(),
         mapper.toModel(userTasksRequest.getSearchQueries()),
         userTasksRequest.getSort(),
         ListPaging.sortAscending(userTasksRequest.getSortAscending()),
@@ -185,12 +190,14 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 
   /**
    * The number of tasks of one list. A subclass may override it to count in another way, and
-   * should then override {@link #getUserTasks(UserTaskVisibility, int, int, OffsetDateTime, Collection, String, boolean, UserTaskService.RetrieveItemsMode)}
+   * should then override {@link #getUserTasks(UserTaskVisibility, int, int, OffsetDateTime, List, Collection, String, boolean, UserTaskService.RetrieveItemsMode)}
    * the same way, so the count agrees with the list.
    *
    * @param visibility Which tasks the user may reach
    * @param initialTimestamp When the user started to page through the list, or {@code null} to
    *        count only the tasks which have not ended
+   * @param workflowModuleIds Only the tasks of these workflow modules, or {@code null} or none for
+   *        the tasks of every workflow module
    * @param searchQueries The filters of the list, or {@code null}
    * @param mode Which tasks the list holds
    * @return The number of tasks
@@ -198,10 +205,12 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
   protected long countUserTasks(
       final UserTaskVisibility visibility,
       final OffsetDateTime initialTimestamp,
+      final List<String> workflowModuleIds,
       final Collection<SearchQuery> searchQueries,
       final UserTaskService.RetrieveItemsMode mode) {
 
-    return userTaskService.countUserTasks(visibility, initialTimestamp, searchQueries, mode);
+    return userTaskService.countUserTasks(
+        visibility, initialTimestamp, workflowModuleIds, searchQueries, mode);
 
   }
 
@@ -225,6 +234,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
                 // same number with an "or" more, and MongoDB then reads the index entries of
                 // every task the user may see, the ended ones included
                 initialTimestamp,
+                filter.getWorkflowModuleIds(),
                 mapper.toModel(filter.getSearchQueries()),
                 filter.getMode() != null
                     ? mapper.toModel(filter.getMode())
@@ -246,6 +256,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
    * @param knownUserTasksIds The ids of the tasks the browser shows already
    * @param initialTimestamp When the user started to page through the list, or {@code null} for a
    *        list which has no timestamp yet, which takes only the tasks which have not ended as open
+   * @param workflowModuleIds Only the tasks of these workflow modules, or {@code null} or none for
+   *        the tasks of every workflow module
    * @param searchQueries The filters of the list, or {@code null}
    * @param sort The paths to sort by, separated by commas, or {@code null}
    * @param sortAscending Whether to sort in ascending order
@@ -257,6 +269,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
       final int size,
       final Collection<String> knownUserTasksIds,
       final OffsetDateTime initialTimestamp,
+      final List<String> workflowModuleIds,
       final Collection<SearchQuery> searchQueries,
       final String sort,
       final boolean sortAscending,
@@ -267,6 +280,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
         size,
         knownUserTasksIds,
         initialTimestamp,
+        workflowModuleIds,
         searchQueries,
         sort,
         sortAscending,
@@ -292,6 +306,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
         userTasksUpdateRequest.getKnownUserTasksIds(),
         // the same as for the first page
         initialTimestamp,
+        userTasksUpdateRequest.getWorkflowModuleIds(),
         mapper.toModel(userTasksUpdateRequest.getSearchQueries()),
         userTasksUpdateRequest.getSort(),
         ListPaging.sortAscending(userTasksUpdateRequest.getSortAscending()),
@@ -333,6 +348,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
    *
    * @param visibility Which tasks the user may reach
    * @param endedSince When the user started to page through the list
+   * @param workflowModuleIds Only the tasks of these workflow modules, or {@code null} or none for
+   *        the tasks of every workflow module
    * @param searchQueries The filters the user set in the list
    * @param path The field to look for words in
    * @param query The text typed so far
@@ -341,11 +358,12 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
   protected List<io.vanillabp.cockpit.util.kwic.KwicResult> kwic(
       final UserTaskVisibility visibility,
       final OffsetDateTime endedSince,
+      final List<String> workflowModuleIds,
       final List<SearchQuery> searchQueries,
       final String path,
       final String query) {
 
-    return userTaskService.kwic(visibility, endedSince, searchQueries, path, query);
+    return userTaskService.kwic(visibility, endedSince, workflowModuleIds, searchQueries, path, query);
 
   }
 
@@ -373,7 +391,13 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
         .map(mapper::toModel)
         .toList();
 
-    final var result = kwic(userTasksVisibleTo(currentUser), timestamp, searchQueries, effectivePath, query)
+    final var result = kwic(
+        userTasksVisibleTo(currentUser),
+        timestamp,
+        kwicRequest.getWorkflowModuleIds(),
+        searchQueries,
+        effectivePath,
+        query)
         .stream()
         .map(mapper::toApi)
         .toList();

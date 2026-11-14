@@ -6,6 +6,7 @@ import static io.vanillabp.cockpit.gui.api.v1.UpdateStreamFixtures.userTasks;
 import static io.vanillabp.cockpit.gui.api.v1.UpdateStreamFixtures.workflow;
 import static io.vanillabp.cockpit.gui.api.v1.UpdateStreamFixtures.workflows;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -319,6 +320,73 @@ class AChangeReachesTheStreamsItConcernsTest {
 
     assertThat(deliveredIds(martin)).isEmpty();
     assertThat(deliveredIds(petra)).containsExactly(addressedToSales);
+
+  }
+
+  /**
+   * The change itself does not say which workflow module the task belongs to. MongoDB reports an
+   * update without the changed document, and giving a task back is such an update. The stream
+   * learns the module from the same read which decides who may see the change.
+   */
+  @Test
+  @DisplayName("A change of a task names the workflow module of the task")
+  void aChangeOfATaskNamesItsWorkflowModule() {
+
+    final var petra = openedAndReloaded(PETRA);
+    final var task = newId();
+    mongoTemplate.insert(userTask(task, "petra", List.of()).append("workflowModuleId", "loans"), userTasks());
+
+    final var change = new GuiEvent(UserTaskStreamAudience.KIND_OF_ENTITY, task, Map.of("id", task));
+    streams.collectChange(change);
+    streams.filterCollectedChanges();
+
+    final var delivered = petra.consumeEvents();
+    assertThat(delivered)
+        .extracting(GuiEvent::getEntityId, GuiEvent::getWorkflowModuleId)
+        .containsExactly(tuple(task, "loans"));
+    assertThat(delivered.get(0).getTimestamp())
+        .as("the time the change was noticed, not the time its module was read")
+        .isEqualTo(change.getTimestamp());
+    assertThat(delivered.get(0).getEvent()).isSameAs(change.getEvent());
+
+  }
+
+  @Test
+  @DisplayName("A change of a workflow names the workflow module of the workflow")
+  void aChangeOfAWorkflowNamesItsWorkflowModule() {
+
+    final var petra = openedAndReloaded(PETRA);
+    final var workflow = newId();
+    mongoTemplate.insert(workflow(workflow, List.of("sales")).append("workflowModuleId", "loans"), workflows());
+
+    changed(WorkflowStreamAudience.KIND_OF_ENTITY, workflow);
+    streams.filterCollectedChanges();
+
+    assertThat(petra.consumeEvents())
+        .extracting(GuiEvent::getEntityId, GuiEvent::getWorkflowModuleId)
+        .containsExactly(tuple(workflow, "loans"));
+
+  }
+
+  /**
+   * A task the cockpit no longer holds cannot be read, so its workflow module is unknown. The
+   * browser still gets the change, because it shows the task, and a list limited to modules has to
+   * look at it.
+   */
+  @Test
+  @DisplayName("A change of a task the cockpit no longer holds names no workflow module")
+  void aChangeOfATaskWhichIsGoneNamesNoWorkflowModule() {
+
+    final var martin = openedAndReloaded(MARTIN);
+    final var task = newId();
+    listShows(MARTIN, UserTaskVisibility.everythingTheUserMayWorkOn(MARTIN), task);
+
+    changed(UserTaskStreamAudience.KIND_OF_ENTITY, task);
+    streams.filterCollectedChanges();
+
+    final var delivered = martin.consumeEvents();
+    assertThat(delivered).extracting(GuiEvent::getEntityId).containsExactly(task);
+    assertThat(delivered.get(0).getWorkflowModuleId()).isNull();
 
   }
 

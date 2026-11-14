@@ -133,7 +133,7 @@ class TheSuggestionsAreTheMostFrequentWordsTest {
     ReflectionTestUtils.setField(service, "listPaths",
         new ListPaths(UserTaskService.FIELDS_OF_THE_LIST, Optional.empty()));
 
-    final var suggestions = service.kwic(UserTaskVisibility.everyUserTask(), null, null, FULL_TEXT, "ord");
+    final var suggestions = service.kwic(UserTaskVisibility.everyUserTask(), null, null, null, FULL_TEXT, "ord");
 
     assertThat(suggestions).containsExactlyElementsOf(theTwentyOneMostFrequentWords());
 
@@ -148,7 +148,7 @@ class TheSuggestionsAreTheMostFrequentWordsTest {
     ReflectionTestUtils.setField(service, "listPaths",
         new ListPaths(WorkflowlistService.FIELDS_OF_THE_LIST, Optional.empty()));
 
-    final var suggestions = service.kwic(null, WorkflowVisibility.everyWorkflow(), null, FULL_TEXT, "ord");
+    final var suggestions = service.kwic(null, WorkflowVisibility.everyWorkflow(), null, null, FULL_TEXT, "ord");
 
     assertThat(suggestions).containsExactlyElementsOf(theTwentyOneMostFrequentWords());
 

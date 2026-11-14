@@ -208,13 +208,21 @@ Ein Feld, das danach aussieht und es nicht ist: `businessIds` von `WorkflowsRequ
 genauer Vergleich auf dem Feld `businessId` und kein Suchmuster. `POST /workflow`, `PUT /workflow`
 und `POST /workflow/count` nehmen es gleich.
 
+Ebenso genau ist `workflowModuleIds`. Jede Liste nimmt es, bei Aufgaben wie bei Fällen, in `POST`,
+`PUT`, im Zählen und in den Vorschlägen für ein Suchfeld. Die Liste zeigt dann nur die Zeilen dieser
+Workflow-Module. Ohne das Feld, und mit einer leeren Liste, zeigt sie die Zeilen aller Module. Das
+Feld schränkt nur ein, was der Benutzer ohnehin sehen darf.
+Gedacht ist es für eine Seite, die zu einer Anwendung gehört und nur deren Aufgaben und Fälle zeigt.
+`POST /workflow/{workflowId}/usertasks` liest es nicht.
+
 ## Vorschläge für ein Suchfeld
 
 `OPTIONS /usertask` und `OPTIONS /workflow` liefern Wörter und ihre Anzahl, auf Englisch "keyword in
 context", kurz KWIC. Ein UI benutzt sie für die Vorschläge unter einem Suchfeld.
 
 Die Abfrage nimmt `query` und wahlweise `path` als Parameter und die bereits gesetzten
-`searchQueries` im Körper. Sie antwortet mit ganzen Wörtern, die `query` enthalten, je Wort eine
+`searchQueries` im Körper, bei einer auf Workflow-Module beschränkten Liste auch
+`workflowModuleIds`. Sie antwortet mit ganzen Wörtern, die `query` enthalten, je Wort eine
 Anzahl. `path` und die Pfade in `searchQueries` folgen derselben Regel wie ein Sortierpfad, sonst
 antwortet der Server mit 400. Bei `path` nennt die Meldung `'path'`.
 
@@ -322,7 +330,8 @@ nach so vielen Zeilen, wie es geladen hat, plus einer Reserve, und lässt die Ke
 weg, von denen es weiß, dass sie sich geändert haben. Genau die kommen dadurch vollständig zurück.
 
 Bei `PUT` ist `page.number` immer 0 und `page.size` die Anzahl der gelieferten Zeilen. Die Filter
-sind dieselben wie bei `POST`: `searchQueries`, `mode` und bei Fällen `businessIds`. Schick sie
+sind dieselben wie bei `POST`: `searchQueries`, `mode`, `workflowModuleIds` und bei Fällen
+`businessIds`. Schick sie
 genauso mit wie bei der ersten Seite, sonst liefert die Aktualisierung Zeilen, die nicht zur Liste
 gehören.
 
@@ -345,6 +354,12 @@ Was darüber kommt:
 `type` ist `INSERT`, `UPDATE`, `DELETE` oder `FOLLOWUP`. `id` ist die Kennung der Aufgabe oder des
 Falls. Mehr steht nicht drin, also sagt ein Ereignis nur, dass sich etwas geändert hat, und nicht
 was. Dein UI fragt danach neu.
+
+Neben `event` trägt jedes Element `workflowModuleId`, das Workflow-Modul der Aufgabe oder des Falls.
+Eine Liste, die nur einige Module zeigt, überspringt damit die Ereignisse der anderen. Der Strom
+selbst ist nicht auf Module beschränkt, weil eine Anfrage nicht sagt, aus welchem Tab sie kommt.
+Fehlt das Feld, kennt das Cockpit das Modul nicht mehr, etwa weil es die Zeile nicht mehr hält. So
+ein Ereignis kann jede Liste betreffen, also behandle es wie eines des eigenen Moduls.
 
 Fünf Eigenschaften des Stroms musst du einplanen:
 

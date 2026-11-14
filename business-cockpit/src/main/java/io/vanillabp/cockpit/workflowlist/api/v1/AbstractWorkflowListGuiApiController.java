@@ -116,6 +116,8 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
    * @param pageSize How many workflows a page holds
    * @param initialTimestamp When the user started to page through the list
    * @param businessIds Only the workflows of these business ids, or {@code null} for all
+   * @param workflowModuleIds Only the workflows of these workflow modules, or {@code null} or none
+   *        for the workflows of every workflow module
    * @param searchQueries The filters of the list, or {@code null}
    * @param sort The paths to sort by, separated by commas, or {@code null}
    * @param sortAscending Whether to sort in ascending order
@@ -128,6 +130,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
       final int pageSize,
       final OffsetDateTime initialTimestamp,
       final List<String> businessIds,
+      final List<String> workflowModuleIds,
       final List<SearchQuery> searchQueries,
       final String sort,
       final boolean sortAscending,
@@ -139,6 +142,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
         initialTimestamp,
         visibility,
         businessIds,
+        workflowModuleIds,
         searchQueries,
         sort,
         sortAscending,
@@ -169,6 +173,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
         ListPaging.pageSize(workflowsRequest.getPageSize()),
         timestamp,
         workflowsRequest.getBusinessIds(),
+        workflowsRequest.getWorkflowModuleIds(),
         mapper.toModel(workflowsRequest.getSearchQueries()),
         workflowsRequest.getSort(),
         ListPaging.sortAscending(workflowsRequest.getSortAscending()),
@@ -184,12 +189,14 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
 
   /**
    * The number of workflows of one list. A subclass may override it to count in another way, and
-   * should then override {@link #getWorkflows(WorkflowVisibility, int, int, OffsetDateTime, List, List, String, boolean, WorkflowlistService.RetrieveItemsMode)}
+   * should then override {@link #getWorkflows(WorkflowVisibility, int, int, OffsetDateTime, List, List, List, String, boolean, WorkflowlistService.RetrieveItemsMode)}
    * the same way, so the count agrees with the list.
    *
    * @param visibility Which workflows the user may reach
    * @param initialTimestamp When the user started to page through the list
    * @param businessIds Only the workflows of these business ids, or {@code null} for all
+   * @param workflowModuleIds Only the workflows of these workflow modules, or {@code null} or none
+   *        for the workflows of every workflow module
    * @param searchQueries The filters of the list, or {@code null}
    * @param mode Which workflows the list holds
    * @return The number of workflows
@@ -198,11 +205,12 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
       final WorkflowVisibility visibility,
       final OffsetDateTime initialTimestamp,
       final List<String> businessIds,
+      final List<String> workflowModuleIds,
       final List<SearchQuery> searchQueries,
       final WorkflowlistService.RetrieveItemsMode mode) {
 
     return workflowlistService.countWorkflows(
-        initialTimestamp, visibility, businessIds, searchQueries, mode);
+        initialTimestamp, visibility, businessIds, workflowModuleIds, searchQueries, mode);
 
   }
 
@@ -226,6 +234,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
                 visibility,
                 timestamp,
                 filter.getBusinessIds(),
+                filter.getWorkflowModuleIds(),
                 mapper.toModel(filter.getSearchQueries()),
                 filter.getMode() != null
                     ? mapper.toModel(filter.getMode())
@@ -245,6 +254,8 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
    * @param knownWorkflowsIds The ids of the workflows the browser shows already
    * @param initialTimestamp When the user started to page through the list
    * @param businessIds Only the workflows of these business ids, or {@code null} for all
+   * @param workflowModuleIds Only the workflows of these workflow modules, or {@code null} or none
+   *        for the workflows of every workflow module
    * @param searchQueries The filters of the list, or {@code null}
    * @param sort The paths to sort by, separated by commas, or {@code null}
    * @param sortAscending Whether to sort in ascending order
@@ -257,6 +268,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
       final Collection<String> knownWorkflowsIds,
       final OffsetDateTime initialTimestamp,
       final List<String> businessIds,
+      final List<String> workflowModuleIds,
       final List<SearchQuery> searchQueries,
       final String sort,
       final boolean sortAscending,
@@ -268,6 +280,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
         knownWorkflowsIds,
         initialTimestamp,
         businessIds,
+        workflowModuleIds,
         searchQueries,
         sort,
         sortAscending,
@@ -294,6 +307,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
         workflowsUpdateRequest.getKnownWorkflowsIds(),
         timestamp,
         workflowsUpdateRequest.getBusinessIds(),
+        workflowsUpdateRequest.getWorkflowModuleIds(),
         mapper.toModel(workflowsUpdateRequest.getSearchQueries()),
         workflowsUpdateRequest.getSort(),
         ListPaging.sortAscending(workflowsUpdateRequest.getSortAscending()),
@@ -465,6 +479,8 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
    *
    * @param visibility Which workflows the user may reach
    * @param endedSince When the user started to page through the list
+   * @param workflowModuleIds Only the workflows of these workflow modules, or {@code null} or none
+   *        for the workflows of every workflow module
    * @param searchQueries The filters the user set in the list
    * @param path The field to look for words in
    * @param query The text typed so far
@@ -473,11 +489,13 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
   protected List<io.vanillabp.cockpit.util.kwic.KwicResult> kwic(
       final WorkflowVisibility visibility,
       final OffsetDateTime endedSince,
+      final List<String> workflowModuleIds,
       final List<SearchQuery> searchQueries,
       final String path,
       final String query) {
 
-    return workflowlistService.kwic(endedSince, visibility, searchQueries, path, query);
+    return workflowlistService.kwic(
+        endedSince, visibility, workflowModuleIds, searchQueries, path, query);
 
   }
 
@@ -506,7 +524,12 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
         .toList();
 
     final var result = kwic(
-        workflowsVisibleTo(currentUser), timestamp, searchQueries, effectivePath, query)
+        workflowsVisibleTo(currentUser),
+        timestamp,
+        kwicRequest.getWorkflowModuleIds(),
+        searchQueries,
+        effectivePath,
+        query)
         .stream()
         .map(mapper::toApi)
         .toList();

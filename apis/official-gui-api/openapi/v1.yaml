@@ -1366,6 +1366,15 @@ components:
           description: The direction of every path in 'sort'. Without it the server sorts ascending.
         mode:
           $ref: '#/components/schemas/UserTaskRetrieveMode'
+        workflowModuleIds:
+          type: array
+          items:
+            type: string
+          description: >-
+            Only the user tasks of these workflow modules. Without it, or with an empty array, the
+            list shows the user tasks of every workflow module. The limit only narrows what the user
+            may see anyway, it never shows more. 'POST /workflow/{workflowId}/usertasks' does not
+            read it.
     UserTasks:
       type: object
       required:
@@ -1414,6 +1423,13 @@ components:
             type: string
         mode:
           $ref: '#/components/schemas/UserTaskRetrieveMode'
+        workflowModuleIds:
+          type: array
+          items:
+            type: string
+          description: >-
+            The same limit as in 'POST /usertask'. Send the workflow module ids of the first page,
+            or the update brings user tasks which do not belong to the list.
     WorkflowsRequest:
       type: object
       properties:
@@ -1451,6 +1467,14 @@ components:
           description: The direction of every path in 'sort'. Without it the server sorts ascending.
         mode:
           $ref: '#/components/schemas/WorkflowRetrieveMode'
+        workflowModuleIds:
+          type: array
+          items:
+            type: string
+          description: >-
+            Only the workflows of these workflow modules. Without it, or with an empty array, the
+            list shows the workflows of every workflow module. The limit only narrows what the user
+            may see anyway, it never shows more.
     Workflows:
       type: object
       required:
@@ -1509,6 +1533,13 @@ components:
           description: The direction of every path in 'sort'. Without it the server sorts ascending.
         mode:
           $ref: '#/components/schemas/WorkflowRetrieveMode'
+        workflowModuleIds:
+          type: array
+          items:
+            type: string
+          description: >-
+            The same limit as in 'POST /workflow'. Send the workflow module ids of the first page,
+            or the update brings workflows which do not belong to the list.
     UserTaskCountFilter:
       type: object
       description: >-
@@ -1527,6 +1558,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SearchQuery'
+        workflowModuleIds:
+          type: array
+          items:
+            type: string
+          description: >-
+            Counts only the user tasks of these workflow modules, the same as in 'POST /usertask'.
     UserTaskCountsRequest:
       type: object
       required:
@@ -1561,6 +1598,12 @@ components:
           items:
             type: string
           description: Counts only the workflows of these business ids, the same as in 'POST /workflow'.
+        workflowModuleIds:
+          type: array
+          items:
+            type: string
+          description: >-
+            Counts only the workflows of these workflow modules, the same as in 'POST /workflow'.
     WorkflowCountsRequest:
       type: object
       required:
@@ -1607,6 +1650,13 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SearchQuery'
+        workflowModuleIds:
+          type: array
+          items:
+            type: string
+          description: >-
+            Suggests only words of the user tasks or workflows of these workflow modules, the same
+            limit as in the list.
     KwicResult:
       type: object
       required:

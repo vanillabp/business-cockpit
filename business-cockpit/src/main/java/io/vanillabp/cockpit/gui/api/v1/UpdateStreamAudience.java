@@ -38,13 +38,14 @@ public interface UpdateStreamAudience {
 
   /**
    * Of the ids changed since the last tick, the ones each stream may see through one of its
-   * views. A stream which may see none of them may be left out of the answer.
+   * views, and the workflow module of each changed entity. Both come from the one query of the
+   * tick.
    *
    * @param streams The open streams
    * @param changedIds The ids of the entities which changed since the last tick
-   * @return For each stream, the ids it may see
+   * @return What each stream may see, and the workflow modules
    */
-  Map<UpdateEmitter, Set<String>> whatEachStreamMaySee(
+  WhatTheStreamsMaySee whatEachStreamMaySee(
       Collection<UpdateEmitter> streams,
       Set<String> changedIds);
 
@@ -54,5 +55,22 @@ public interface UpdateStreamAudience {
    * @return The event to send
    */
   GuiEvent reloadEvent();
+
+  /**
+   * The answer of {@link #whatEachStreamMaySee(Collection, Set)}.
+   *
+   * @param idsEachStreamMaySee For each stream, the ids it may see. A stream which may see none of
+   *        them may be missing
+   * @param workflowModuleOfEachEntity The workflow module of each changed entity, by its id. An
+   *        entity the cockpit no longer holds is missing
+   */
+  record WhatTheStreamsMaySee(
+                              Map<UpdateEmitter, Set<String>> idsEachStreamMaySee,
+                              Map<String, String> workflowModuleOfEachEntity) {
+
+    /** The answer for a tick in which nothing the audience could read changed. */
+    public static final WhatTheStreamsMaySee NOTHING = new WhatTheStreamsMaySee(Map.of(), Map.of());
+
+  }
 
 }

@@ -53,6 +53,9 @@ class TheUpdateStreamAsItsOpenApiFileSaysTest extends ItestBase {
     assertThat(JsonPath.<String>read(reload.data(), "$[0].event.id"))
         .as("a reload is about no single task")
         .isEmpty();
+    assertThat(JsonPath.<Map<String, Object>>read(reload.data(), "$[0]"))
+        .as("a reload is about no workflow module")
+        .doesNotContainKey("workflowModuleId");
 
   }
 
@@ -71,8 +74,9 @@ class TheUpdateStreamAsItsOpenApiFileSaysTest extends ItestBase {
     await().untilAsserted(() -> assertThat(elementsAbout(userTaskId, "UserTask", lines))
         .isNotEmpty());
     final var element = elementsAbout(userTaskId, "UserTask", lines).get(0);
-    assertThat(element).containsOnlyKeys("event", "source", "timestamp");
+    assertThat(element).containsOnlyKeys("event", "source", "timestamp", "workflowModuleId");
     assertThat(element.get("source")).isEqualTo("UserTask");
+    assertThat(element.get("workflowModuleId")).isEqualTo(moduleId);
     assertThat(element.get("timestamp")).isInstanceOf(Number.class);
     assertThat(element.get("event")).isEqualTo(Map.of(
         "id", userTaskId, "name", "UserTask", "type", "INSERT"));
@@ -108,8 +112,9 @@ class TheUpdateStreamAsItsOpenApiFileSaysTest extends ItestBase {
     await().untilAsserted(() -> assertThat(elementsAbout(workflowId, "Workflow", lines))
         .isNotEmpty());
     final var element = elementsAbout(workflowId, "Workflow", lines).get(0);
-    assertThat(element).containsOnlyKeys("event", "source", "timestamp");
+    assertThat(element).containsOnlyKeys("event", "source", "timestamp", "workflowModuleId");
     assertThat(element.get("source")).isEqualTo("Workflow");
+    assertThat(element.get("workflowModuleId")).isEqualTo(moduleId);
     assertThat(element.get("timestamp")).isInstanceOf(Number.class);
     assertThat(element.get("event")).isEqualTo(Map.of(
         "id", workflowId, "name", "Workflow", "type", "INSERT"));
