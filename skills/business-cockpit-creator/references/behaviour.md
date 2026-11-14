@@ -126,13 +126,140 @@ and the short form of the name.
 
 - On mouse-over of the avatar: the long form of the name, the user id and the email address.
 - On mouse-over of the name: an overview of all rights of the user and where each right comes from,
-  based on the group hierarchy mapping (`GroupHierarchyMapping`). **Placeholder:** a later
-  version of this skill specifies this part. Until then, generate an empty slot for it and no
-  overview.
+  see [The rights of the user](#the-rights-of-the-user).
 
 Below the user come the menu entries: the screens of the interview, the notification settings and
 the entries of modules. Below the entries comes the language switch (`Q-LANGUAGE-SWITCH`), and at
 the end the logout.
+
+### The rights of the user
+
+The organisation gives a user groups in its identity provider, for example `AccountManagement`. A
+workflow module turns groups into more groups and into rights with its group hierarchy
+(`GroupHierarchyMapping`). Each entry of the hierarchy says: a member of this group also gets these
+groups and rights. The module configures it under
+`vanillabp.workflow-modules.<id>.cockpit.group-hierarchy`, or names a bean that gives it with
+`group-hierarchy-bean-name`. It sends the hierarchy to the cockpit when it registers. Users often do
+not know why they may do something, or why not. The overview answers that.
+
+This is how project M does it: `RoleMappingsController`, `GroupHierarchyAware` and
+`BusinessCockpitRoles` in `workflow-commons/businesscockpit`, the hierarchy in `ordermanagement.yaml`,
+and the component `user-role-tooltip` of its cockpit. The cockpit itself does not offer the data
+yet, see [Where the data comes from](#where-the-data-comes-from).
+
+#### How it opens
+
+The overview opens below the user's name when the mouse moves over the name. It closes when the
+mouse leaves both the name and the overview. The mouse can move into the overview, so the user can
+scroll a long table and select a name to copy it. The overview looks like the details of the
+avatar, aligned to the right edge of the name. It is at most about two thirds of the window high
+and scrolls inside when it is longer.
+
+The data is asked on the first mouse-over, not when the application starts. It is kept until the
+page is loaded again. While it loads, the overview shows "Loading …".
+
+#### What it shows
+
+From top to bottom:
+
+1. The title "Roles and rights".
+2. One sentence: "The organisation gives you roles. Rights decide what you may do in an
+   application. Each application defines its own rights and derives them from your roles."
+3. For each workflow module with a group hierarchy: the name of the module as a heading, and a
+   table with the columns "Name", "Kind" and "Given by".
+
+The rows of the table of one module:
+
+- A group the identity provider gives the user directly: kind "Role", given by "Organisation".
+  Project M writes the name of its identity provider here, `EntraID`.
+- For every group of the user with an entry in the hierarchy, one row per target of the entry: the
+  name of the target, and the group of the entry as "Given by". The kind is "Role" if the target
+  has an entry of its own in the hierarchy, so it stands for more. Otherwise the kind is "Right".
+- A target the identity provider also gives the user directly is not shown again as a target. It
+  has its one row with "Organisation".
+- A target that comes from two groups has two rows, one for each group. This is wanted: the user
+  sees every way a right comes to them.
+
+Each row shows one step only. A right that comes over several steps shows the group of the last
+step, and that group has its own row. So the user follows the chain upwards, row by row. An
+example with the hierarchy of project M, shortened, for a user the organisation gives
+`M3Flow.AccountManagement`:
+
+|           Name           | Kind  |         Given by         |
+|--------------------------|-------|--------------------------|
+| M3Flow.AccountManagement | Role  | Organisation             |
+| M3Flow.User              | Role  | M3Flow.AccountManagement |
+| OMGNT_ORDER_SALES_Abort  | Right | M3Flow.AccountManagement |
+| OMGNT_ORDER_ViewOrders   | Right | M3Flow.User              |
+
+Roles come first, then rights, and each part is in the alphabetical order of the name. Project M
+sorts by the prefix of its roles, `M3Flow.`. The kind tells the same without a naming rule. The
+names are ids and are shown as they are, not translated. The title, the sentence, the column titles
+and the kinds are translated.
+
+The overview shows only what the user has. Entries of groups the user does not have are left out.
+A module without a hierarchy is left out. A module whose data does not load is left out, and the
+others still show. If no module is left, the overview shows one sentence: "No roles or rights are
+known."
+
+The cockpit merges the hierarchies of all modules, so a group that one module's hierarchy gives
+counts in every module. Such a group has its own row only in the table of the module that gives
+it. In the other tables it shows only as "Given by".
+
+#### Where the data comes from
+
+**Dependency:** the cockpit does not offer the data for this overview today. What it offers:
+
+- `GET /gui/api/v1/app/current-user` returns `groups`: all groups of the user after the
+  hierarchies of all modules are applied. It does not say which groups the identity provider gave
+  and which a hierarchy added, nor from which group they came.
+- The cockpit stores the hierarchy of every module it gets with the registration, but no endpoint
+  of the GUI API returns it. `GET /gui/api/v1/workflow-module` returns only `id`, `version` and
+  `uri`.
+
+The overview needs one more endpoint of the cockpit, which a later story adds. The cockpit is the
+right place: it has the hierarchies of all modules and asks the user directory for the groups the
+organisation gives. One request is enough, instead of one per module. Proposed: `GET
+/gui/api/v1/app/current-user/group-hierarchy`, with this answer:
+
+```json
+{
+  "modules": [
+    {
+      "workflowModuleId": "ordermanagement",
+      "entries": [
+        {
+          "group": "M3Flow.AccountManagement",
+          "givenByOrganisation": true,
+          "targets": ["M3Flow.User", "OMGNT_ORDER_SALES_Abort"]
+        },
+        {
+          "group": "M3Flow.User",
+          "givenByOrganisation": false,
+          "targets": ["OMGNT_ORDER_ViewOrders"]
+        }
+      ]
+    }
+  ],
+  "givenByOrganisation": ["M3Flow.AccountManagement"]
+}
+```
+
+`entries` holds only the entries of groups the user has. `givenByOrganisation` at the top lists all
+groups the identity provider gives, also those without an entry in any hierarchy. The story that
+adds the endpoint decides the final names. Follow that story when it is done.
+
+Project M has no such endpoint in the cockpit. Each of its modules answers
+`GET <uri>/api/v1/business-cockpit/role-mappings` itself, and the user interface asks every module
+at its `uri`. The answer has `workflowModule`, the name of the module, and `roleMappings`: for each
+group `role`, `currentUser`, `assignedInEntraId` and the `targets`, each with `target` and `type`
+(`ROLE` or `PERMISSION`). The fields carry the same facts as the proposed answer above. M also lets
+a user with the right `BC_ViewAllRoleMapping` see the entries of groups they do not have. The
+overview of this skill shows only the user's own rights.
+
+Until the cockpit offers the endpoint, the overview shows what there is: the groups from
+`current-user` in alphabetical order, with the column "Name" only, and the sentence "Where your
+roles and rights come from is not known yet." It does not guess the kind or the origin.
 
 ## Counts
 
@@ -300,6 +427,17 @@ The first 20 rows are a good try, no guarantee. A row further down may bring a c
 did not have, and then the header changes after all. Keep the change small: add the column at the
 place its `priority` gives it, and do not rebuild the list.
 
+A list often has more columns than the browser window has room for. Then the list scrolls
+horizontally, and the header scrolls with it.
+
+A scroll bar must not make the list jump. Many browsers show a scroll bar only when it is needed,
+and then it takes room instead of lying over the content. While the list loads, the vertical scroll
+bar appears, the list gets about 10 pixels narrower, and a list that reacts to its width draws
+itself again. The same happens with the height when the horizontal scroll bar appears. So reserve
+the room for both scroll bars always, whether the list scrolls or not. In CSS that is
+`scrollbar-gutter: stable` for the vertical bar and `overflow-x: scroll` for the horizontal one. No
+change of size that a scroll bar causes may start a new draw of the list.
+
 ### The rules of the merge
 
 - The columns are merged by `path`. When rows of different kinds bring the same `path`, the column
@@ -329,8 +467,12 @@ Each `type` expects a different structure at `path`, and the cockpit draws it li
 | `i18n`      | a map with language codes as keys and texts as values | the text in the language of the user interface, falling back to the default language                                                                                                                                                            |
 | `person`    | a `Person`                                            | `displayShort`, else `email`, else `id`. On mouse-over: `display`, an empty line, `id`, `email`                                                                                                                                                 |
 | `date`      | a string `YYYY-MM-DD`                                 | the localised date                                                                                                                                                                                                                              |
-| `date-time` | a string in ISO 8601 extended format                  | the localised date and, next to it, the localised hour and minute. On mouse-over also the seconds                                                                                                                                               |
+| `date-time` | a string in ISO 8601 extended format                  | the localised date, a space and the localised hour and minute. Never a `T` between date and time, as in the ISO value. On mouse-over also the seconds, in the same form                                                                         |
 | `time`      | a string `hh:mm[:ss]`                                 | the localised hour and minute. On mouse-over also the seconds, if present                                                                                                                                                                       |
+
+The rule of `date-time` holds wherever the user interface shows a date with a time: in the fixed
+columns, in the header and on mouse-over. It shows the localised date, a space and the localised
+time, and never the `T` of the ISO 8601 value.
 
 Without `type` the cell is drawn like `value`. An object at the path is shown as a short note that
 this column needs a type, not as `[object Object]`.
