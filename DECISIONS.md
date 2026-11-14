@@ -4434,3 +4434,64 @@ it as one of its own modules.
 
 No code cites this decision yet. Once it has a number, the Javadoc of `GuiEvent` and of
 `SearchCriteriaHelper.onlyTheWorkflowModules` may point at it.
+
+### 99. The cockpit tells the user signed in where each of their groups and rights comes from, in one answer for all workflow modules
+
+Decided on 2026-11-14 by the maintainer, who took the defaults of the questions.
+
+#### What was missing
+
+A workflow module turns the groups the organisation gives a user into more groups and rights,
+with its group hierarchy. The cockpit merges the hierarchies of all modules and uses the result
+for every permission. `GET /gui/api/v1/app/current-user` returns only that result. A user who
+wonders why they may do something, or why not, cannot find out, and a user interface cannot show
+it: no endpoint returned the stored hierarchies, and nothing said which groups the organisation
+gives and which a hierarchy adds.
+
+An application built before had each workflow module answer the question itself, and its user
+interface asked every module at its own address.
+
+#### The decision
+
+The cockpit answers `GET /gui/api/v1/app/current-user/group-hierarchy` with:
+
+- `givenByOrganisation`: every group the user directory gives the user directly, sorted.
+- `modules`: one element for each registered workflow module with a group hierarchy, sorted by
+  `workflowModuleId`. Each has the `entries` of groups the user has, with `group`,
+  `givenByOrganisation` and the sorted `targets`.
+
+Three choices go with it:
+
+1. One endpoint in the cockpit and not one per workflow module. The cockpit stores the hierarchy
+   of every module anyway, and the user interface needs one request instead of one per module. A
+   module which is not reachable does not leave a gap.
+2. Only the user signed in. The path names no user, and there is no right to see the entries of
+   groups somebody else has. Such a right can come later as a separate endpoint if it is needed.
+3. The module is named by its id. The cockpit knows no other name of a module today. A display
+   name can come later with the registration.
+
+"Groups the user has" are the authorities of the request, so the answer agrees with every
+permission check of the cockpit. An entry may come into effect through a group which another
+module's hierarchy gives, because the hierarchies are merged. "Given by the organisation" are the
+groups of the user directory: the cockpit's own sign-in keeps the directory's answer with the
+authentication, and any other sign-in asks the `UserDirectoryService` bean. Without a directory
+the list is empty.
+
+The path is in the cockpit's own GUI API file, next to `current-user`, and not in the official GUI
+API file. The official file holds what the dev-shell simulator plays, and the overview of rights
+belongs to the menu of the cockpit, not to a component of a workflow module. So the simulator
+does not answer the path.
+
+#### Where it applies
+
+- `business-cockpit/src/main/resources/api/gui/v1.yaml`: the path and the schemas
+  `GroupHierarchyOfUser`, `GroupHierarchyOfWorkflowModule` and `GroupHierarchyEntryOfUser`
+- `business-cockpit/src/main/java/io/vanillabp/cockpit/gui/api/v1/UserRightsApiController.java`
+- `GroupHierarchyService.getGroupHierarchies`
+- `BusinessCockpitGuiApiAutoConfiguration`, which imports the controller
+- `container/src/test/java/io/vanillabp/cockpit/itest/TheGroupHierarchyOfTheUserTest.java`
+- `UPGRADE.md`, "Where the rights of a user come from"
+- `development/dev-shell-simulator/README.md`, what the simulator does not answer
+- `skills/business-cockpit-user-interface/references/gui-api.md`, "Woher die Rechte des Benutzers
+  kommen"
+
