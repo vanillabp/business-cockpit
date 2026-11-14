@@ -11,15 +11,16 @@ Erzeuge dir deinen Client aus der OpenAPI-Beschreibung. Schreibe ihn nicht von H
 
 1. [Anmelden und angemeldet bleiben](#anmelden-und-angemeldet-bleiben)
 2. [Die Endpunkte](#die-endpunkte)
-3. [Seitenweise lesen](#seitenweise-lesen)
-4. [Sortieren](#sortieren)
-5. [Filtern über gemeldete Geschäftsdaten](#filtern-über-gemeldete-geschäftsdaten)
-6. [Vorschläge für ein Suchfeld](#vorschläge-für-ein-suchfeld)
-7. [Welche Zeilen überhaupt kommen](#welche-zeilen-überhaupt-kommen)
-8. [Der Zeitstempel, der eine Liste stabil hält](#der-zeitstempel-der-eine-liste-stabil-hält)
-9. [Die zweite Form derselben Abfrage](#die-zweite-form-derselben-abfrage)
-10. [Live-Aktualisierung über Server-Sent-Events](#live-aktualisierung-über-server-sent-events)
-11. [Was das Cockpit ausliefert](#was-das-cockpit-ausliefert)
+3. [Woher die Rechte des Benutzers kommen](#woher-die-rechte-des-benutzers-kommen)
+4. [Seitenweise lesen](#seitenweise-lesen)
+5. [Sortieren](#sortieren)
+6. [Filtern über gemeldete Geschäftsdaten](#filtern-über-gemeldete-geschäftsdaten)
+7. [Vorschläge für ein Suchfeld](#vorschläge-für-ein-suchfeld)
+8. [Welche Zeilen überhaupt kommen](#welche-zeilen-überhaupt-kommen)
+9. [Der Zeitstempel, der eine Liste stabil hält](#der-zeitstempel-der-eine-liste-stabil-hält)
+10. [Die zweite Form derselben Abfrage](#die-zweite-form-derselben-abfrage)
+11. [Live-Aktualisierung über Server-Sent-Events](#live-aktualisierung-über-server-sent-events)
+12. [Was das Cockpit ausliefert](#was-das-cockpit-ausliefert)
 
 ## Anmelden und angemeldet bleiben
 
@@ -107,11 +108,68 @@ Die Endpunkte selbst, alle relativ zum Basispfad:
 | `GET /workflow-module`, `GET /workflow-module/{id}`                      | die Workflow-Module, die der Benutzer sehen darf                          |
 | `GET /notifications/media`, `/config`, `/recipient-config`, `/workflows` | die Benachrichtigungen des Benutzers                                      |
 | `GET /app/info`, `GET /app/current-user`                                 | die Anwendung und der Benutzer                                            |
+| `GET /app/current-user/group-hierarchy`                                  | woher jede Gruppe und jedes Recht des Benutzers kommt, siehe unten        |
 | `GET /updates`                                                           | der Ereignisstrom, siehe unten                                            |
 
 Die beiden Formen jeder Aktion, eine für eine Aufgabe und eine für eine Liste von Kennungen, machen
 dasselbe. Die Mehrfachform ist da, damit eine Mehrfachauswahl in der Liste nicht zu zwanzig Anfragen
 führt.
+
+## Woher die Rechte des Benutzers kommen
+
+Die Organisation gibt einem Benutzer Gruppen in ihrem Benutzerverzeichnis, etwa im
+Identity-Provider. Ein Workflow-Modul macht daraus mit seiner Gruppenhierarchie weitere Gruppen und
+Rechte und schickt die Hierarchie bei der Registrierung mit. Das Cockpit führt die Hierarchien aller
+Module zusammen. `groups` von `GET /app/current-user` ist schon das Ergebnis, und woher eine Gruppe
+kommt, sieht man ihr dort nicht mehr an.
+
+`GET /gui/api/v1/app/current-user/group-hierarchy` nimmt das Ergebnis wieder auseinander, für eine
+Übersicht der Rechte im Menü:
+
+```json
+{
+  "givenByOrganisation": ["M3Flow.AccountManagement"],
+  "modules": [
+    {
+      "workflowModuleId": "ordermanagement",
+      "entries": [
+        {
+          "group": "M3Flow.AccountManagement",
+          "givenByOrganisation": true,
+          "targets": ["M3Flow.User", "OMGNT_ORDER_SALES_Abort"]
+        },
+        {
+          "group": "M3Flow.User",
+          "givenByOrganisation": false,
+          "targets": ["OMGNT_ORDER_ViewOrders"]
+        }
+      ]
+    }
+  ]
+}
+```
+
+- `givenByOrganisation` oben nennt jede Gruppe, die das Benutzerverzeichnis direkt gibt, auch eine
+  ohne Eintrag in irgendeiner Hierarchie.
+- `modules` hat ein Element je registriertem Workflow-Modul mit Gruppenhierarchie, nach der
+  Modul-Id sortiert. Ein Modul ohne Hierarchie fehlt. Einen anderen Namen eines Moduls als die Id
+  kennt das Cockpit nicht, also zeigt dein UI die Id.
+- `entries` hat nur die Einträge von Gruppen, die der Benutzer hat, nach der Gruppe sortiert, die
+  Ziele ebenso. Ein Eintrag kann über eine Gruppe greifen, die die Hierarchie eines anderen Moduls
+  gibt, so wie das Cockpit die Hierarchien auch für die Berechtigungen zusammenführt. Hat die
+  Hierarchie eines Moduls keinen Eintrag für den Benutzer, kommt das Modul mit leeren `entries`.
+- Ob ein Ziel selbst wieder für mehr steht, also eine Rolle und kein Recht ist, sagt ein Eintrag
+  mit diesem Ziel als `group`, in welchem Modul auch immer.
+
+Die Antwort gilt nur für den angemeldeten Benutzer. Nach einem anderen fragen geht nicht. Ohne
+Anmeldung antwortet der Pfad mit 401. Er ist nicht wie `current-user` offen.
+
+Holt eine Anwendung ihre Benutzer nicht aus dem Benutzerverzeichnis des Cockpits, kann das Cockpit
+nicht sagen, was die Organisation gibt. Dann ist `givenByOrganisation` leer und jeder Eintrag sagt
+`false`.
+
+Der Dev-Shell-Simulator beantwortet den Pfad nicht. Die Übersicht gehört zum Menü des Cockpits und
+nicht zu einer Komponente eines Moduls, und der Simulator spielt nur, was eine Komponente braucht.
 
 ## Seitenweise lesen
 

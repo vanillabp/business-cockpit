@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.notification.poller;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,7 @@ import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.model.User;
 import io.vanillabp.cockpit.users.model.UserRepository;
+import io.vanillabp.cockpit.workflowmodules.GroupHierarchyService;
 
 /**
  * Works out once per interval which notifications are due, and sends them.
@@ -54,6 +56,7 @@ public class NotificationPoller {
   private final NotificationOutboxRepository outboxRepository;
   private final List<NotificationService> notificationServices;
   private final UserDirectoryService userDirectory;
+  private final GroupHierarchyService groupHierarchy;
   private final int maxDeliveryAttempts;
   private final Duration cleanupSentOlderThan;
   private final NotificationScanner scanner = new NotificationScanner();
@@ -69,6 +72,8 @@ public class NotificationPoller {
    * @param outboxRepository     the outbox the notifications wait in until they are sent
    * @param notificationServices every medium the cockpit offers; none means the poller stays idle
    * @param userDirectory        the user directory, to find the authorities of a user
+   * @param groupHierarchy       completes the authorities of a user with the groups they stand
+   *                             for, the same way it does for a request of the browser
    * @param maxDeliveryAttempts  how often the delivery of one bulk is attempted
    * @param cleanupSentOlderThan how old a sent outbox entry has to be before it is deleted
    */
@@ -79,6 +84,7 @@ public class NotificationPoller {
       final NotificationOutboxRepository outboxRepository,
       final List<NotificationService> notificationServices,
       final UserDirectoryService userDirectory,
+      final GroupHierarchyService groupHierarchy,
       final int maxDeliveryAttempts,
       final Duration cleanupSentOlderThan) {
 
@@ -88,6 +94,7 @@ public class NotificationPoller {
     this.outboxRepository = outboxRepository;
     this.notificationServices = notificationServices;
     this.userDirectory = userDirectory;
+    this.groupHierarchy = groupHierarchy;
     this.maxDeliveryAttempts = maxDeliveryAttempts;
     this.cleanupSentOlderThan = cleanupSentOlderThan;
 
@@ -233,8 +240,15 @@ public class NotificationPoller {
           String userId) {
         // the user directory caches the authorities, because they are resolved on
         // every request of a browser. So a lookup per user is cheap and no cache of our
-        // own is needed
-        return userDirectory.getUser(userId).map(UserDetails::getAuthorities).orElse(null);
+        // own is needed. The group hierarchy completes them, as it does for the request
+        // of a browser. Otherwise a user who sees a task through a group they stand for
+        // would see it in the list and get no notification about it
+        return userDirectory
+            .getUser(userId)
+            .map(UserDetails::getAuthorities)
+            .map(groupHierarchy::resolveGroups)
+            .<List<String>>map(ArrayList::new)
+            .orElse(null);
       }
 
       @Override
