@@ -657,3 +657,11 @@ module of each changed entity. The records `UserTaskVisibility.TaskFacts` and
 
 Two new changesets index `workflowModuleId` together with `endedAt` in the collections `usertask`
 and `workflow`.
+
+### Where the rights of a user come from
+
+`GET /gui/api/v1/app/current-user/group-hierarchy` is new. It answers the user signed in with the
+groups the user directory gives them, and for each workflow module with a group hierarchy the
+entries of the user's groups. So a user interface can show where each group and right comes from.
+Nothing breaks. A chain of your own needs nothing new, as long as it does not open
+`/gui/api/v1/app/current-user/**`.

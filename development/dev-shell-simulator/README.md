@@ -17,6 +17,10 @@ Spring Boot application rather than a mock inside the dev shell: what it answers
 cockpit answers, or a form works here and not there. It holds everything in H2, in memory unless a
 file is configured.
 
+It does not answer what only the cockpit's own frame needs, such as
+`/gui/api/v1/app/current-user/group-hierarchy`, which tells the menu of the cockpit where the rights
+of the user come from. No component of a workflow module asks for it.
+
 Built as part of the reactor build described in the [root README](../../README.md#building-it), and
 published as `io.vanillabp.businesscockpit:dev-shell-simulator`, with a runnable jar attached to a
 release.
