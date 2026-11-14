@@ -8,7 +8,8 @@ The GUI API is everything a cockpit user interface gets from the server. It live
 - `apis/official-gui-api/openapi/v1.yaml`, the `official-gui-api`: the lists, a user task, a case,
   the workflow modules and the notifications.
 - `business-cockpit/src/main/resources/api/gui/v1.yaml`, the cockpit's own file: `GET /app/info`,
-  `GET /app/current-user`, the user settings and the update stream.
+  `GET /app/current-user`, where the rights of the user come from, the user settings and the update
+  stream.
 
 The rule between the two: the `official-gui-api` holds what the dev shell simulator fakes, and
 what the simulator does not offer, such as the current user, the settings and the update stream,
@@ -195,10 +196,11 @@ The endpoints, all relative to the base path:
 | `GET /workflow-module`, `GET /workflow-module/{id}`                      | the workflow modules the user may see                                                                      |
 | `GET /notifications/media`, `/config`, `/recipient-config`, `/workflows` | the notification settings of the user; `PUT` on `/config` and `/recipient-config/{mediumType}` stores them |
 | `GET /app/info`, `GET /app/current-user`                                 | the application and the user                                                                               |
+| `GET /app/current-user/group-hierarchy`                                  | where each group and right of the user comes from, see `behaviour.md`                                      |
 | `GET /app/current-user/settings/{key}`, `PUT` on the same path           | read and write one entry of `customSettings`, added by prompt `1505`                                       |
 | `GET /updates`                                                           | the update stream, see below                                                                               |
 
-The last three rows are in the cockpit's own file, all the others in the `official-gui-api`. They
+The last four rows are in the cockpit's own file, all the others in the `official-gui-api`. They
 exist only under `/gui/api/v1`, not under the other two base paths.
 
 The two forms of each action, one for one task and one for a list of ids, do the same. The list

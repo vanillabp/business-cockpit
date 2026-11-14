@@ -307,8 +307,7 @@ The OIDC login of [backend.md](backend.md#oidc-the-default) follows the wiki pag
 test for it yet. The second part of `1510`, a login with OAuth2, is still to come. Until then the
 end-to-end test of the login in the generated project is the proof (`BE-007`).
 
-One thing is still to come and has no prompt yet: an endpoint that says which groups and rights the
-user has and from which group each comes, for the overview in the menu. Today `current-user` gives
-only all groups after the hierarchies are applied, and no GUI endpoint returns the hierarchies the
-cockpit stores. Until the endpoint comes, the overview lists the groups without their origin
-(`NAV-023`), see [behaviour.md](behaviour.md#where-the-data-comes-from).
+The overview of the rights in the menu reads `GET /gui/api/v1/app/current-user/group-hierarchy`,
+which came with `1858`. A library older than `1858` answers that path with 404, and the overview
+cannot show where a right comes from. The generated project needs `1858`, see
+[behaviour.md](behaviour.md#where-the-data-comes-from).
