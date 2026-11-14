@@ -13,6 +13,7 @@ import io.vanillabp.cockpit.notification.model.NotificationOutboxRepository;
 import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.model.UserRepository;
+import io.vanillabp.cockpit.workflowmodules.GroupHierarchyService;
 
 /**
  * Registers the {@link NotificationPoller}. The poller only starts working once at least one
@@ -39,6 +40,8 @@ public class NotificationPollerConfiguration {
    * @param outboxRepository       the outbox the notifications wait in until they are sent
    * @param notificationServices   every medium the cockpit offers; none means the poller stays idle
    * @param userDirectory          the user directory, to find the authorities of a user
+   * @param groupHierarchy         the group hierarchy the login uses as well, so a user is
+   *                               notified about every task the task list shows them
    * @param notificationProperties the notification settings, with the delivery limits
    * @return the poller
    */
@@ -51,9 +54,10 @@ public class NotificationPollerConfiguration {
       final NotificationOutboxRepository outboxRepository,
       final List<NotificationService> notificationServices,
       final UserDirectoryService userDirectory,
+      final GroupHierarchyService groupHierarchy,
       final NotificationProperties notificationProperties) {
 
-    return new NotificationPoller(mongoTemplate, userRepository, userTaskRepository, outboxRepository, notificationServices, userDirectory, notificationProperties
+    return new NotificationPoller(mongoTemplate, userRepository, userTaskRepository, outboxRepository, notificationServices, userDirectory, groupHierarchy, notificationProperties
         .getMaxDeliveryAttempts(), notificationProperties.getCleanupSentOlderThan());
 
   }

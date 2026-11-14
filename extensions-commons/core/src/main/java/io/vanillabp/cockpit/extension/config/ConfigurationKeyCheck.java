@@ -556,14 +556,9 @@ public final class ConfigurationKeyCheck {
       if (key.startsWith(ConfigurationKeys.KAFKA_PROPERTIES_PREFIX)) {
         return null;
       }
-      final var moved = MOVED
-          .entrySet()
-          .stream()
-          .filter(entry -> sameKey(entry.getKey(), key))
-          .map(Map.Entry::getValue)
-          .findFirst();
-      if (moved.isPresent()) {
-        return "  - '%s' is no longer read there: %s.".formatted(name, moved.get());
+      final var movedTo = whereItMoved(key);
+      if (movedTo != null) {
+        return "  - '%s' is no longer read there: %s.".formatted(name, movedTo);
       }
       return defectOf(name, key, ConfigurationKeys.GLOBAL_KEYS, "the whole application");
     }
@@ -603,6 +598,17 @@ public final class ConfigurationKeyCheck {
       return "  - '%s' is a key of version 1 of the Business Cockpit which version 2 does not read: %s."
           .formatted(propertyName, whatBecameOfIt);
     }
+    final var movedTo = whereItMoved(key);
+    if (movedTo != null) {
+      return "  - '%s' is no longer read there: %s.".formatted(propertyName, movedTo);
+    }
+    // a key the cockpit reads for the whole application, written for one module or workflow. The
+    // developer knows the key and has put it in the wrong place, so the place is what they need.
+    // At the top this cannot be true, because a key of the top was accepted above
+    if (ConfigurationKeys.GLOBAL_KEYS.contains(key)) {
+      return "  - '%s' is read for the whole application only, not for %s. Write it once as '%s'."
+          .formatted(propertyName, whatTheLevelIs, ConfigurationKeys.globalKey(key));
+    }
     final var nearest = nearest(key, keysOfTheLevel);
     if (nearest != null) {
       return "  - '%s' is no setting of the Business Cockpit. Did you mean '%s'?"
@@ -611,6 +617,24 @@ public final class ConfigurationKeyCheck {
     }
     return "  - '%s' is no setting the Business Cockpit reads for %s. Those are: %s."
         .formatted(propertyName, whatTheLevelIs, String.join(", ", keysOfTheLevel));
+
+  }
+
+  /**
+   * @param key What an application wrote, at any level of the neutral tree
+   * @return Where it is read now, where a snapshot of version 2 read it somewhere else, else
+   *         <code>null</code>
+   */
+  private static String whereItMoved(
+      final String key) {
+
+    return MOVED
+        .entrySet()
+        .stream()
+        .filter(entry -> sameKey(entry.getKey(), key))
+        .map(Map.Entry::getValue)
+        .findFirst()
+        .orElse(null);
 
   }
 

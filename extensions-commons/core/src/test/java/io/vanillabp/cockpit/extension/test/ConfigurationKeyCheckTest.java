@@ -83,6 +83,29 @@ public class ConfigurationKeyCheckTest {
   }
 
   @Test
+  @DisplayName("A key of the whole application written for a module names where it belongs")
+  public void aKeyOfTheWholeApplicationNamesWhereItBelongs() {
+
+    final var ofAModule = refusalOf(
+        "vanillabp.workflow-modules.taxi.cockpit.process-engine-api.remembered-user-tasks");
+    assertTrue(
+        ofAModule
+            .contains(
+                "'vanillabp.workflow-modules.taxi.cockpit.process-engine-api.remembered-user-tasks'"),
+        ofAModule);
+    // this key moved below the adapter id, so the message names that place
+    assertTrue(
+        ofAModule.contains("'vanillabp.adapters.<adapter-id>.cockpit.remembered-user-tasks'"),
+        ofAModule);
+
+    final var ofAWorkflow = refusalOf(
+        "vanillabp.workflow-modules.taxi.workflows.TaxiRide.cockpit.rest.base-url");
+    assertTrue(ofAWorkflow.contains("a single workflow"), ofAWorkflow);
+    assertTrue(ofAWorkflow.contains("'vanillabp.cockpit.rest.base-url'"), ofAWorkflow);
+
+  }
+
+  @Test
   @DisplayName("A key nothing is near to lists what that level has")
   public void aKeyNothingIsNearToListsTheLevel() {
 
