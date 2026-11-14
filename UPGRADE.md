@@ -7,6 +7,154 @@ section does not name keeps working.
 The wiki page [Releases](https://github.com/vanillabp/business-cockpit/wiki/Releases) tells the
 whole story of a version. This file is the short list of what somebody has to touch.
 
+The last release is 0.4.3. If your application is on it or on an older one, start at
+[From 0.4.x and earlier](#from-04x-and-earlier).
+
+## From 0.4.x and earlier
+
+The last release of the cockpit is 0.4.3. 0.8.0 was planned as the first release on Spring MVC and
+never came out. So the section [0.8.x to 0.9.0](#08x-to-090) is not a step after a release you
+know. It is the second half of your way. If your application is on 0.4.x or earlier, work through
+this section first and then through every entry of the next one. The one entry there which does not
+concern you is the one about the snapshot artifact `support`.
+
+This section names each big change once and links to where it is described in full. The changes
+which make your application quietly do less than before are written out here.
+
+### First Spring Boot 4.1 and Java 21, if you are on 0.3.x or earlier
+
+0.4.0 moved the cockpit to Spring Boot 4.1 and Java 21, and 0.4.x is still reactive. An application
+on 0.3.x or earlier does this upgrade first, with Spring Boot's own migration guide, and in a commit
+of its own. It brings Jackson 3, and most MongoDB keys move from `spring.data.mongodb.*` to
+`spring.mongodb.*`. The wiki page
+[Releases](https://github.com/vanillabp/business-cockpit/wiki/Releases#up-to-040) has the short
+version. An application on 0.4.x has this part behind it.
+
+### The backend runs on Spring MVC instead of WebFlux
+
+The cockpit is no longer reactive. It runs on Spring MVC with virtual threads. What your application
+overrides loses `Mono`, `Flux` and `ServerWebExchange`. `SecurityFilterChain` replaces
+`SecurityWebFilterChain`, `UserContext` replaces `ReactiveUserContext`, and `MongoTemplate`
+replaces `ReactiveMongoTemplate`. The request matchers of `WebSecurityConfiguration` have new
+names, and that breaks a security chain of your own when it compiles. The MongoDB data stays as it
+is, and the REST APIs keep their OpenAPI files. So a workflow module needs nothing for this step.
+
+The skill `business-cockpit-upgrade-to-blocking` in the
+[skills repository](https://github.com/vanillabp/skills) does this step with you. It looks at your
+application first and lists what it found, before it changes anything. The wiki page
+[Releases](https://github.com/vanillabp/business-cockpit/wiki/Releases#up-to-080) says what the
+step costs. The skill covers the move to Spring MVC only. The rest of this file still applies after
+it.
+
+### Depend on `business-cockpit`, not on `container`
+
+Up to 0.4.x, `io.vanillabp.businesscockpit:container` was the library and the runnable application
+in one jar. Now the library is `io.vanillabp.businesscockpit:business-cockpit`, and
+`business-cockpit-bom` names its version. `container` is the application which comes with the
+cockpit. Do not depend on it. Read it, because it is the example of everything your application
+writes itself now: the main class, the list controllers, the login, the user directory and the
+configuration. The wiki page
+[Building a custom Business Cockpit](https://github.com/vanillabp/business-cockpit/wiki/Building-a-custom-Business-Cockpit#what-the-container-brings-and-you-write-yourself)
+has the full table.
+
+Your main class carries `@SpringBootApplication` and starts the application itself.
+`BusinessCockpitApplication` is deprecated and empty. A class which still extends it compiles and
+works, but the class goes with 1.0. So drop the `extends`, see
+[Setting the application up](https://github.com/vanillabp/business-cockpit/wiki/Building-a-custom-Business-Cockpit#setting-the-application-up).
+
+### The five list controllers are yours to write
+
+Up to 0.4.x, `container` brought five concrete controllers of the GUI API, the API the user
+interface calls. They stayed in `container`. The library has only their abstract base classes. So
+without controllers of your own, nobody answers the lists. The application starts, the user
+interface loads, and it shows no tasks, no cases and no workflow modules. The log does not say why.
+
+Write one subclass for each list your user interface asks for. Each of them answers one question:
+who may see what. The five of `container` are the template, and each is a few lines long:
+
+|                   class in `container`                   |     `@RequestMapping`      |                base class                 |                       what it returns                        |
+|----------------------------------------------------------|----------------------------|-------------------------------------------|--------------------------------------------------------------|
+| `tasklist.api.v1.GuiApiController`                       | `/gui/api/v1`              | `AbstractUserTaskListGuiApiController`    | `UserTaskVisibility.everythingTheUserMayWorkOn(currentUser)` |
+| `tasklist.api.v1.CurrentUsersTasksGuiApiController`      | `/gui/api/v1/current-user` | `AbstractUserTaskListGuiApiController`    | `UserTaskVisibility.onlyWhatIsTheUsersOwn(currentUser)`      |
+| `tasklist.api.v1.UsersRoleAssignedTasksGuiApiController` | `/gui/api/v1/user-roles`   | `AbstractUserTaskListGuiApiController`    | `UserTaskVisibility.whatTheUsersGroupsMayTake(currentUser)`  |
+| `workflowlist.api.v1.GuiApiController`                   | `/gui/api/v1`              | `AbstractWorkflowListGuiApiController`    | `WorkflowVisibility.workflowsAddressedTo(currentUser)`       |
+| `workflowmodules.api.v1.GuiApiController`                | `/gui/api/v1`              | `AbstractWorkflowModulesGuiApiController` | `WorkflowModuleVisibility.modulesAddressedTo(currentUser)`   |
+
+The packages start with `io.vanillabp.cockpit`. Give each controller a bean name of its own, as
+`container` does, because three of the classes have the same simple name.
+
+The workflow list of 0.4.x showed every workflow to everybody. The one of `container` now shows a
+user only the workflows which name them in `accessibleToUsers` or one of their groups in
+`accessibleToGroups`, and the workflows which name neither. If your users have to see every
+workflow, return `WorkflowVisibility.everyWorkflow()`. The wiki page
+[Building a custom Business Cockpit](https://github.com/vanillabp/business-cockpit/wiki/Building-a-custom-Business-Cockpit#the-controllers-you-write-yourself)
+says more.
+
+### A list controller answers with a visibility
+
+Up to 0.4.x, the three abstract classes had an abstract method for each read and each action, and a
+subclass wrote all of them. Now each class has one abstract method, and it returns a visibility:
+
+|                base class                 |             abstract method             |          returns           |
+|-------------------------------------------|-----------------------------------------|----------------------------|
+| `AbstractUserTaskListGuiApiController`    | `userTasksVisibleTo(UserDetails)`       | `UserTaskVisibility`       |
+| `AbstractWorkflowListGuiApiController`    | `workflowsVisibleTo(UserDetails)`       | `WorkflowVisibility`       |
+| `AbstractWorkflowModulesGuiApiController` | `workflowModulesVisibleTo(UserDetails)` | `WorkflowModuleVisibility` |
+
+The base class answers the list, the search, the count, a single entry and every action on one from
+that visibility. So a task the list does not show cannot be opened, claimed or assigned by its id
+either. Each of the three visibility types names the views the cockpit has ready, and you can build
+your own where none of them fits.
+
+What happens to the methods your subclass has from 0.4.x:
+
+- `getUserTask`, `markAsRead`, `claimTask`, `claimTasks`, `assignTask`, `assignTasks`,
+  `setFollowUpDate`, `getWorkflow` and `getWorkflowModules(UserDetails)` are no longer hooks. The
+  base class does their work. Delete them. A method you leave behind without `@Override` compiles
+  and is never called.
+- `getUserTasks`, `getUserTasksUpdated` and `kwic` of the task list, and `getWorkflows`,
+  `getWorkflowsUpdated`, `getUserTasksOfWorkflow` and `kwic` of the workflow list, are no longer
+  abstract. Delete them as well, unless you read the data in a way of your own. An override takes
+  the visibility as its first parameter instead of the current user, and returns `Page` or `List`
+  instead of `Mono` or `Flux`. `countUserTasks` and `countWorkflows` are new hooks of the same kind.
+  Write `@Override` on each override, so the compiler tells you when a parameter changes. The
+  entries below name the parameters which changed after 0.4.x: the mode of
+  [`OpenTasks` is gone](#opentasks-is-gone), the business ids of
+  [The update of the list of workflows takes `businessIds`](#the-update-of-the-list-of-workflows-takes-businessids)
+  and the workflow module ids of
+  [A list can be limited to workflow modules](#a-list-can-be-limited-to-workflow-modules).
+
+The methods of `UserTaskService` and `WorkflowlistService` which read a list take a
+`UserTaskVisibility` or a `WorkflowVisibility` now, instead of the flag for entries which address
+nobody and the lists of users and groups. The injected field `userContext` of the base classes is a
+`UserContext` instead of a `ReactiveUserContext`.
+
+### The update stream tells each tab only what it may see
+
+`GET /gui/api/v1/updates` sends a different stream than in 0.4.x. A user interface of your own has
+to follow four changes:
+
+- An element no longer has `targetGroups`. It has `workflowModuleId` instead, see
+  [A list can be limited to workflow modules](#a-list-can-be-limited-to-workflow-modules).
+- `type` has the new value `RELOAD`, with an empty `id`. It means: load every list of this kind
+  again. The cockpit sends it right after a stream opens, and again when the stream had to forget
+  ids the browser may still show. A user interface which ignores it shows old lists after a
+  reconnect.
+- A stream gets only the changes of entities the user may see in one of their lists, and of entities
+  the browser of this tab still shows. Up to 0.4.x every stream got every change. The visibility of
+  your list controllers decides this as well.
+- The stream ends when the sign-in expires. Without a sign-in it answers 401. The browser's
+  `EventSource` opens a new stream after the end.
+
+The cockpit's OpenAPI file describes the stream, see
+[The update stream is in the OpenAPI file](#the-update-stream-is-in-the-openapi-file).
+
+If your application publishes a `GuiEvent` of its own, the constructor changed. It was
+`GuiEvent(source, targetGroups, event)`. It is `GuiEvent(kindOfEntity, entityId, event)` now. The
+first value is the name of the event in the stream, for example `UserTask`. The cockpit decides who
+gets an event of the kinds `UserTask` and `Workflow` by the id, with the visibility of the lists.
+An event of another kind, and an event without an id, reaches every stream.
+
 ## 0.8.x to 0.9.0
 
 ### `commons` is gone: `support` and the library module take its classes
@@ -457,8 +605,9 @@ any more. `container` sets both in its `application.yaml`.
 ### The update stream is in the OpenAPI file
 
 `GET /gui/api/v1/updates` is now described in the cockpit's own OpenAPI file,
-`business-cockpit/src/main/resources/api/gui/v1.yaml`, with its events and their data. The stream
-itself does not change.
+`business-cockpit/src/main/resources/api/gui/v1.yaml`, with its events and their data. What the
+stream sends changed after 0.4.x, see
+[The update stream tells each tab only what it may see](#the-update-stream-tells-each-tab-only-what-it-may-see).
 
 Two classes moved to another jar, in the same package `io.vanillabp.cockpit.gui.api.v1`.
 `UserTaskEvent` and `WorkflowEvent` are no longer in `official-gui-api-server`. They are in
