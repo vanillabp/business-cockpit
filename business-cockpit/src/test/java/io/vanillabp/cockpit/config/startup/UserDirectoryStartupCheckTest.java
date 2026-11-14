@@ -383,7 +383,8 @@ class UserDirectoryStartupCheckTest {
         .isInstanceOf(UserDirectoryIsNotUsableException.class)
         .hasMessageContaining(UserDirectoryService.class.getName())
         .hasMessageContaining(TYPE
-            + ": keycloak");
+            + ": keycloak")
+        .hasMessageContaining("cache the users");
 
   }
 
