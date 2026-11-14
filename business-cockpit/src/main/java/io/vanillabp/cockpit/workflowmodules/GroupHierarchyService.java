@@ -3,6 +3,7 @@ package io.vanillabp.cockpit.workflowmodules;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -77,6 +78,27 @@ public class GroupHierarchyService {
       return GroupHierarchyResolver.resolveGroups(
           cachedGroupHierarchies.values(),
           assignedGroups);
+
+    } finally {
+      readLock.unlock();
+    }
+
+  }
+
+  /**
+   * The hierarchy of every workflow module which registered one, each as the module sent it.
+   * The resolution merges them, but a user interface also wants to say which module gives a
+   * group.
+   *
+   * @return For each workflow module id, the module's hierarchy, sorted by the id. The map is a
+   *         copy, so a registration at the same time does not change it.
+   */
+  public Map<String, Map<String, Collection<String>>> getGroupHierarchies() {
+
+    try {
+      readLock.lock();
+
+      return new TreeMap<>(cachedGroupHierarchies);
 
     } finally {
       readLock.unlock();
