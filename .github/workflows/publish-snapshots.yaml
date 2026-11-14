@@ -12,6 +12,13 @@ on:
 # 'packages: read'.
 env:
   VBP_SNAPSHOTS_FROM: "${{ vars.VANILLABP_SNAPSHOTS_FROM == 'github-packages' && 'github-packages' || 'central' }}"
+  # The settings file turns on its profile for GitHub Packages by VBP_SNAPSHOTS_FROM. Maven
+  # sees that, but a Quarkus test does not: it resolves the deployment artifacts of the
+  # extensions with a resolver of its own inside the test JVM, and that resolver takes the
+  # profiles from the Maven command line only. So every Maven call of this workflow also
+  # names the profile, by this variable. It is empty for 'central', which leaves the calls
+  # as they were.
+  VBP_SNAPSHOTS_PROFILE: "${{ vars.VANILLABP_SNAPSHOTS_FROM == 'github-packages' && '-Psnapshots-from-github-packages' || '' }}"
   VBP_PACKAGES_READ_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 # Only main writes the shared snapshot coordinates. A snapshot has the same coordinates on
 # every branch, so a push to a branch used to hand every consumer a version of this
@@ -101,7 +108,7 @@ jobs:
         # repository and to the snapshot repository of Maven Central. The runnable jars of
         # 'build-runnable-jars' go to both as well.
         run: |
-          mvn -s .github/maven/settings.xml --batch-mode --no-transfer-progress --update-snapshots \
+          mvn -s .github/maven/settings.xml ${VBP_SNAPSHOTS_PROFILE} --batch-mode --no-transfer-progress --update-snapshots \
           deploy -P build-runnable-jars,publish-snapshots
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_PORTAL_TOKEN_USER }}

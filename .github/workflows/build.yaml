@@ -15,6 +15,13 @@ on:
 # 'packages: read'.
 env:
   VBP_SNAPSHOTS_FROM: "${{ vars.VANILLABP_SNAPSHOTS_FROM == 'github-packages' && 'github-packages' || 'central' }}"
+  # The settings file turns on its profile for GitHub Packages by VBP_SNAPSHOTS_FROM. Maven
+  # sees that, but a Quarkus test does not: it resolves the deployment artifacts of the
+  # extensions with a resolver of its own inside the test JVM, and that resolver takes the
+  # profiles from the Maven command line only. So every Maven call of this workflow also
+  # names the profile, by this variable. It is empty for 'central', which leaves the calls
+  # as they were.
+  VBP_SNAPSHOTS_PROFILE: "${{ vars.VANILLABP_SNAPSHOTS_FROM == 'github-packages' && '-Psnapshots-from-github-packages' || '' }}"
   VBP_PACKAGES_READ_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 # A group per pull request. GitHub keeps at most one waiting run per group, and a
 # newer run takes the place of the one that waits. The replaced run ends as
@@ -73,7 +80,7 @@ jobs:
         #
         # Every snapshot this build reads, the MongoDB changeset library included, comes from
         # the snapshot repository of Maven Central, without a login.
-        run: mvn -s .github/maven/settings.xml --batch-mode --no-transfer-progress --update-snapshots install
+        run: mvn -s .github/maven/settings.xml ${VBP_SNAPSHOTS_PROFILE} --batch-mode --no-transfer-progress --update-snapshots install
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v7
