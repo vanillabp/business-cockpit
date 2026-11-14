@@ -630,3 +630,30 @@ A subclass of `AbstractWorkflowListGuiApiController` which overrides `getWorkflo
 business ids as a new parameter after `initialTimestamp`. A caller of
 `WorkflowlistService.getWorkflowsUpdated` passes them at the same place, or `null` for all
 workflows.
+
+### A list can be limited to workflow modules
+
+Every request of a list takes the optional `workflowModuleIds` now: `POST` and `PUT` of
+`/usertask` and `/workflow`, the two count endpoints and the suggestions of a search field. The
+list then holds only the entries of these workflow modules. Without the field, or with an empty
+array, a list holds the entries of every workflow module, as it always did. A user interface which does not use the field changes
+nothing.
+
+Each element of the update stream names the workflow module of its entity in `workflowModuleId`,
+next to `event`. A user interface which checks the keys of an element strictly has to accept the
+new one.
+
+A Java caller has to change. A subclass of `AbstractUserTaskListGuiApiController` which overrides
+`getUserTasks`, `countUserTasks`, `getUserTasksUpdated` or `kwic` gets the workflow module ids as a
+new parameter. So does a subclass of `AbstractWorkflowListGuiApiController` which overrides
+`getWorkflows`, `countWorkflows`, `getWorkflowsUpdated` or `kwic`. A caller of the methods of the
+same names in `UserTaskService` and `WorkflowlistService` passes the ids, or `null` for every
+workflow module. In all of these methods the new parameter comes right before `searchQueries`.
+
+An implementation of `UpdateStreamAudience` returns `WhatTheStreamsMaySee` from
+`whatEachStreamMaySee` now. It carries the visible ids per stream as before, and the workflow
+module of each changed entity. The records `UserTaskVisibility.TaskFacts` and
+`WorkflowVisibility.WorkflowFacts` have the new last component `workflowModuleId`.
+
+Two new changesets index `workflowModuleId` together with `endedAt` in the collections `usertask`
+and `workflow`.

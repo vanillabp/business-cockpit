@@ -107,20 +107,24 @@ public record WorkflowVisibility(
   }
 
   /**
-   * What {@link #letsThrough(WorkflowFacts)} reads of a workflow, and nothing else. The update
-   * streams read exactly these fields of a changed workflow from the database. {@code dangling}
-   * is the value stored in the document, which is what the query compares.
+   * What {@link #letsThrough(WorkflowFacts)} reads of a workflow, and the workflow module of the
+   * workflow. The update streams read exactly these fields of a changed workflow from the
+   * database. The workflow module is not part of the visibility. The update streams hand it to the
+   * browser with the wake-up call. {@code dangling} is the value stored in the document, which is
+   * what the query compares.
    *
    * @param id The id of the workflow
    * @param accessibleToUsers The users the workflow is accessible to
    * @param accessibleToGroups The groups the workflow is accessible to
    * @param dangling Whether the workflow names neither users nor groups
+   * @param workflowModuleId The workflow module of the workflow
    */
   public record WorkflowFacts(
                               String id,
                               List<Person> accessibleToUsers,
                               List<Group> accessibleToGroups,
-                              Boolean dangling) {
+                              Boolean dangling,
+                              String workflowModuleId) {
 
     /**
      * The names of the fields, which are the fields the update streams read.

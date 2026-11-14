@@ -196,7 +196,9 @@ class AnUpgradeRepeatsNoChangesetTest {
       "io.vanillabp.cockpit.workflowlist.model.changesets.V000003#giveEveryEndedCaseItsReason",
       "io.vanillabp.cockpit.workflowlist.model.changesets.V000003#indexTheNote",
       "io.vanillabp.cockpit.tasklist.model.changesets.V000004#rollBackTheUsertaskCollectionByDroppingItOnly",
-      "io.vanillabp.cockpit.workflowlist.model.changesets.V000004#rollBackTheWorkflowCollectionByDroppingItOnly");
+      "io.vanillabp.cockpit.workflowlist.model.changesets.V000004#rollBackTheWorkflowCollectionByDroppingItOnly",
+      "io.vanillabp.cockpit.tasklist.model.changesets.V000005#indexTheWorkflowModuleOfAUserTask",
+      "io.vanillabp.cockpit.workflowlist.model.changesets.V000005#indexTheWorkflowModuleOfAWorkflow");
 
   /**
    * An index as MongoDB lists it: its name, its keys in their order, and whether it is unique.
@@ -284,7 +286,9 @@ class AnUpgradeRepeatsNoChangesetTest {
       OldIndex.of("workflow", "_visibility_accessibleToUsers", "accessibleToUsers._id", "endedAt"),
       OldIndex.of("workflow", "_visibility_accessibleToGroups", "accessibleToGroups._id", "endedAt"),
       OldIndex.of("workflow", "_visibility_dangling", "dangling", "endedAt"),
-      OldIndex.of("workflow", "workflow_note", "note"));
+      OldIndex.of("workflow", "workflow_note", "note"),
+      OldIndex.of("usertask", "_workflowModuleIdAndEndedAt", "workflowModuleId", "endedAt"),
+      OldIndex.of("workflow", "_workflowModuleIdAndEndedAt", "workflowModuleId", "endedAt"));
 
   enum Release {
 

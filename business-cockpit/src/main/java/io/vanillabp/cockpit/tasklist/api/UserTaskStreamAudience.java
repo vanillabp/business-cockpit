@@ -3,7 +3,6 @@ package io.vanillabp.cockpit.tasklist.api;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -22,8 +21,8 @@ import io.vanillabp.cockpit.tasklist.model.UserTask;
 
 /**
  * Decides which update streams learn about a changed user task. Per filtering tick it reads the
- * changed tasks once, with only the fields the visibility looks at, and then asks every stream's
- * views in memory. So the database sees one query per tick, however many tabs are open.
+ * changed tasks once, with only the fields the visibility looks at and the workflow module. Then
+ * it asks every stream's views in memory. So the database sees one query per tick, however many tabs are open.
  */
 public class UserTaskStreamAudience implements UpdateStreamAudience {
 
@@ -60,14 +59,14 @@ public class UserTaskStreamAudience implements UpdateStreamAudience {
   }
 
   @Override
-  public Map<UpdateEmitter, Set<String>> whatEachStreamMaySee(
+  public WhatTheStreamsMaySee whatEachStreamMaySee(
       final Collection<UpdateEmitter> streams,
       final Set<String> changedIds) {
 
     final var changedTasks = factsOf(changedIds);
     final var result = new HashMap<UpdateEmitter, Set<String>>();
     if (changedTasks.isEmpty()) {
-      return result;
+      return WhatTheStreamsMaySee.NOTHING;
     }
     streams.forEach(stream -> {
       final var views = stream
@@ -85,13 +84,18 @@ public class UserTaskStreamAudience implements UpdateStreamAudience {
         result.put(stream, visible);
       }
     });
-    return result;
+    final var workflowModules = new HashMap<String, String>();
+    changedTasks
+        .stream()
+        .filter(task -> task.workflowModuleId() != null)
+        .forEach(task -> workflowModules.put(task.id(), task.workflowModuleId()));
+    return new WhatTheStreamsMaySee(result, workflowModules);
 
   }
 
   /**
-   * The changed tasks, with the fields the visibility reads. A task deleted in the meantime is
-   * missing, and only a stream whose browser shows it learns about it.
+   * The changed tasks, with the fields the visibility reads and the workflow module. A task
+   * deleted in the meantime is missing, and only a stream whose browser shows it learns about it.
    *
    * @param ids The ids of the changed tasks
    * @return The facts of the tasks found

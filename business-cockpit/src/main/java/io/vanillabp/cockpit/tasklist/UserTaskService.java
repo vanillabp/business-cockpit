@@ -866,6 +866,8 @@ public class UserTaskService {
    *        after this time still counts as open, so the pages stay the same while the user pages.
    *        {@code null} takes only the tasks which have not ended as open, which the indexes of
    *        the visibility answer best.
+   * @param workflowModuleIds Only the tasks of these workflow modules, or {@code null} or none for
+   *        the tasks of every workflow module
    * @param searchQueries The filters of the list, or {@code null}
    * @param sort The paths to sort by, separated by commas, or {@code null} for the due date
    * @param sortAscending Whether to sort in ascending order
@@ -877,6 +879,7 @@ public class UserTaskService {
       final int pageNumber,
       final int pageSize,
       final OffsetDateTime initialTimestamp,
+      final Collection<String> workflowModuleIds,
       final Collection<SearchQuery> searchQueries,
       final String sort,
       final boolean sortAscending,
@@ -890,7 +893,7 @@ public class UserTaskService {
         searchQueries,
         sort,
         sortAscending,
-        null,
+        SearchCriteriaHelper.onlyTheWorkflowModules(workflowModuleIds),
         mode);
 
   }
@@ -959,13 +962,15 @@ public class UserTaskService {
 
   /**
    * The number of user tasks of a list, with the same conditions as
-   * {@link #getUserTasks(UserTaskVisibility, int, int, OffsetDateTime, Collection, String, boolean, RetrieveItemsMode)}.
+   * {@link #getUserTasks(UserTaskVisibility, int, int, OffsetDateTime, Collection, Collection, String, boolean, RetrieveItemsMode)}.
    * Nothing is sorted and no task is read, so no sort index is needed either.
    *
    * @param visibility Which tasks the caller may reach
    * @param initialTimestamp When the user started to page through the list. A task which ended
    *        after this time still counts as open. {@code null} counts only the tasks which have
    *        not ended, which the indexes of the visibility answer best.
+   * @param workflowModuleIds Only the tasks of these workflow modules, or {@code null} or none for
+   *        the tasks of every workflow module
    * @param searchQueries The filters of the list, or {@code null}
    * @param mode Which tasks the list holds
    * @return The number of tasks the list holds
@@ -973,11 +978,13 @@ public class UserTaskService {
   public long countUserTasks(
       final UserTaskVisibility visibility,
       final OffsetDateTime initialTimestamp,
+      final Collection<String> workflowModuleIds,
       final Collection<SearchQuery> searchQueries,
       final RetrieveItemsMode mode) {
 
     final var query = new Query();
-    query.addCriteria(buildUserTasksCriteria(visibility, initialTimestamp, mode, null));
+    query.addCriteria(buildUserTasksCriteria(
+        visibility, initialTimestamp, mode, SearchCriteriaHelper.onlyTheWorkflowModules(workflowModuleIds)));
     final var searchCriteria = filterCriteria(searchQueries);
     if (searchCriteria != null) {
       searchCriteria.forEach(query::addCriteria);
@@ -993,6 +1000,8 @@ public class UserTaskService {
    *
    * @param visibility Which tasks the caller may reach
    * @param initialTimestamp When the user started to page through the list, or {@code null}
+   * @param workflowModuleIds Only the tasks of these workflow modules, or {@code null} or none for
+   *        the tasks of every workflow module
    * @param searchQueries The filters the user set in the list, or {@code null}
    * @param path The field to look for words in
    * @param query The text typed so far
@@ -1001,6 +1010,7 @@ public class UserTaskService {
   public List<KwicResult> kwic(
       final UserTaskVisibility visibility,
       final OffsetDateTime initialTimestamp,
+      final Collection<String> workflowModuleIds,
       final Collection<SearchQuery> searchQueries,
       final String path,
       final String query) {
@@ -1013,6 +1023,7 @@ public class UserTaskService {
 
     final var searchCriteria = new LinkedList<Criteria>();
     searchCriteria.add(new Criteria(path).regex(SearchCriteriaHelper.literally(query), "i"));
+    searchCriteria.addAll(SearchCriteriaHelper.onlyTheWorkflowModules(workflowModuleIds));
     final var match = buildUserTasksCriteria(
         visibility,
         initialTimestamp,
@@ -1072,6 +1083,8 @@ public class UserTaskService {
    * @param size How many tasks to return at most
    * @param knownUserTasksIds The ids of the tasks the browser shows already
    * @param initialTimestamp When the user started to page through the list, or {@code null}
+   * @param workflowModuleIds Only the tasks of these workflow modules, or {@code null} or none for
+   *        the tasks of every workflow module
    * @param searchQueries The filters of the list, or {@code null}
    * @param sort The paths to sort by, separated by commas, or {@code null} for the due date
    * @param sortAscending Whether to sort in ascending order
@@ -1084,6 +1097,7 @@ public class UserTaskService {
       final int size,
       final Collection<String> knownUserTasksIds,
       final OffsetDateTime initialTimestamp,
+      final Collection<String> workflowModuleIds,
       final Collection<SearchQuery> searchQueries,
       final String sort,
       final boolean sortAscending,
@@ -1104,7 +1118,7 @@ public class UserTaskService {
             visibility,
             initialTimestamp,
             effectiveMode,
-            null));
+            SearchCriteriaHelper.onlyTheWorkflowModules(workflowModuleIds)));
     final var searchCriteria = filterCriteria(searchQueries);
     if (searchCriteria != null) {
       searchCriteria.forEach(query::addCriteria);

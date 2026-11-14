@@ -36,7 +36,8 @@ import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
  * it. Last, once per collecting tick, the matched changes are written to the browsers.
  *
  * <p>Which stream may see what is answered by one {@link UpdateStreamAudience} per kind of entity,
- * from the same visibility the lists use. An event of a kind no audience decides about, and an
+ * from the same visibility the lists use. The audience also tells the workflow module of each
+ * changed entity, and every event of the entity names it from then on. An event of a kind no audience decides about, and an
  * event without an entity id, reaches every stream. The ping is such an event: it says nothing
  * about a case.
  */
@@ -276,15 +277,23 @@ public class UpdateStreams {
         .map(GuiEvent::getEntityId)
         .filter(Objects::nonNull)
         .collect(Collectors.toSet());
-    final Map<UpdateEmitter, Set<String>> visible = changedIds.isEmpty()
-        ? Map.of()
+    final var whatTheStreamsMaySee = changedIds.isEmpty()
+        ? UpdateStreamAudience.WhatTheStreamsMaySee.NOTHING
         : audience.whatEachStreamMaySee(streams, changedIds);
+    final var visible = whatTheStreamsMaySee.idsEachStreamMaySee();
+    final var eventsNamingTheirModule = events
+        .stream()
+        .map(event -> event.getEntityId() == null
+            ? event
+            : event.withWorkflowModuleId(
+                whatTheStreamsMaySee.workflowModuleOfEachEntity().get(event.getEntityId())))
+        .toList();
 
     streams.forEach(stream -> {
       final var concerned = new HashSet<String>(visible.getOrDefault(stream, Set.of()));
       // a change the person may not see any more, of an entity the browser still shows
       concerned.addAll(stream.whichOfTheseTheBrowserShows(kindOfEntity, changedIds));
-      events
+      eventsNamingTheirModule
           .stream()
           .filter(event -> (event.getEntityId() == null) || concerned.contains(event.getEntityId()))
           .forEach(stream::collectEvent);

@@ -85,14 +85,16 @@ class AListWithoutPagingValuesTest {
     when(userContext.getUserLoggedInDetails()).thenReturn(mock(UserDetails.class));
     userTaskService = mock(UserTaskService.class);
     workflowlistService = mock(WorkflowlistService.class);
-    when(userTaskService.getUserTasks(any(), anyInt(), anyInt(), any(), any(), any(), anyBoolean(), any()))
+    when(userTaskService.getUserTasks(any(), anyInt(), anyInt(), any(), any(), any(), any(), anyBoolean(), any()))
         .thenReturn(Page.empty());
-    when(userTaskService.getUserTasksUpdated(any(), anyInt(), any(), any(), any(), any(), anyBoolean(), any()))
+    when(userTaskService.getUserTasksUpdated(any(), anyInt(), any(), any(), any(), any(), any(), anyBoolean(), any()))
         .thenReturn(Page.empty());
-    when(workflowlistService.getWorkflows(anyInt(), anyInt(), any(), any(), any(), any(), any(), anyBoolean(), any()))
-        .thenReturn(Page.empty());
-    when(workflowlistService.getWorkflowsUpdated(any(), anyInt(), any(), any(), any(), any(), any(), anyBoolean(),
+    when(workflowlistService.getWorkflows(anyInt(), anyInt(), any(), any(), any(), any(), any(), any(), anyBoolean(),
         any()))
+        .thenReturn(Page.empty());
+    when(
+        workflowlistService.getWorkflowsUpdated(any(), anyInt(), any(), any(), any(), any(), any(), any(), anyBoolean(),
+            any()))
         .thenReturn(Page.empty());
 
     final var userTasks = new UserTasks();
@@ -149,7 +151,7 @@ class AListWithoutPagingValuesTest {
         + "/usertask"), "{ \"pageSize\": 10 }");
 
     assertThat(answer.getResponse().getStatus()).isEqualTo(200);
-    verify(userTaskService).getUserTasks(any(), eq(0), eq(10), any(), any(), any(), eq(true), any());
+    verify(userTaskService).getUserTasks(any(), eq(0), eq(10), any(), any(), any(), any(), eq(true), any());
 
   }
 
@@ -162,7 +164,7 @@ class AListWithoutPagingValuesTest {
         "{ \"pageNumber\": 2, \"pageSize\": 10, \"sortAscending\": false }");
 
     assertThat(answer.getResponse().getStatus()).isEqualTo(200);
-    verify(userTaskService).getUserTasks(any(), eq(2), eq(10), any(), any(), any(), eq(false), any());
+    verify(userTaskService).getUserTasks(any(), eq(2), eq(10), any(), any(), any(), any(), eq(false), any());
 
   }
 
@@ -199,7 +201,8 @@ class AListWithoutPagingValuesTest {
         + "/usertask"), "{ \"size\": 10, \"knownUserTasksIds\": [] }");
 
     assertThat(answer.getResponse().getStatus()).isEqualTo(200);
-    verify(userTaskService).getUserTasksUpdated(any(), eq(10), eq(List.of()), any(), any(), any(), eq(true), any());
+    verify(userTaskService).getUserTasksUpdated(any(), eq(10), eq(List.of()), any(), any(), any(), any(), eq(true),
+        any());
 
   }
 
@@ -210,7 +213,7 @@ class AListWithoutPagingValuesTest {
         + "/workflow"), "{ \"pageSize\": 10 }");
 
     assertThat(answer.getResponse().getStatus()).isEqualTo(200);
-    verify(workflowlistService).getWorkflows(eq(0), eq(10), any(), any(), any(), any(), any(), eq(true), any());
+    verify(workflowlistService).getWorkflows(eq(0), eq(10), any(), any(), any(), any(), any(), any(), eq(true), any());
 
   }
 
@@ -234,7 +237,8 @@ class AListWithoutPagingValuesTest {
         + "/workflow"), "{ \"size\": 10, \"knownWorkflowsIds\": [] }");
 
     assertThat(answer.getResponse().getStatus()).isEqualTo(200);
-    verify(workflowlistService).getWorkflowsUpdated(any(), eq(10), eq(List.of()), any(), any(), any(), any(), eq(true),
+    verify(workflowlistService).getWorkflowsUpdated(any(), eq(10), eq(List.of()), any(), any(), any(), any(), any(),
+        eq(true),
         any());
 
   }

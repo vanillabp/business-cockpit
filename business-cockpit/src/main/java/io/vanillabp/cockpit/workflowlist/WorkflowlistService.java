@@ -589,6 +589,8 @@ public class WorkflowlistService {
    *        stay the same while the user pages.
    * @param visibility Which workflows the caller may reach
    * @param businessIds Only the workflows of these business ids, or {@code null} for all
+   * @param workflowModuleIds Only the workflows of these workflow modules, or {@code null} or none
+   *        for the workflows of every workflow module
    * @param searchQueries The filters of the list, or {@code null}
    * @param sort The paths to sort by, separated by commas, or {@code null} for the start
    * @param sortAscending Whether to sort in ascending order
@@ -601,6 +603,7 @@ public class WorkflowlistService {
       final OffsetDateTime initialTimestamp,
       final WorkflowVisibility visibility,
       final Collection<String> businessIds,
+      final Collection<String> workflowModuleIds,
       final Collection<SearchQuery> searchQueries,
       final String sort,
       final boolean sortAscending,
@@ -622,7 +625,7 @@ public class WorkflowlistService {
             visibility,
             endedSince,
             mode,
-            null,
+            SearchCriteriaHelper.onlyTheWorkflowModules(workflowModuleIds),
             businessIds));
     final var searchCriteria = filterCriteria(searchQueries);
     if (searchCriteria != null) {
@@ -646,13 +649,15 @@ public class WorkflowlistService {
 
   /**
    * The number of workflows of a list, with the same conditions as
-   * {@link #getWorkflows(int, int, OffsetDateTime, WorkflowVisibility, Collection, Collection, String, boolean, RetrieveItemsMode)}.
+   * {@link #getWorkflows(int, int, OffsetDateTime, WorkflowVisibility, Collection, Collection, Collection, String, boolean, RetrieveItemsMode)}.
    * Nothing is sorted and no workflow is read, so no sort index is needed either.
    *
    * @param initialTimestamp When the user started to page through the list, or {@code null}
    *        for now. A workflow which ended after this time still counts as active.
    * @param visibility Which workflows the caller may reach
    * @param businessIds Only the workflows of these business ids, or {@code null} for all
+   * @param workflowModuleIds Only the workflows of these workflow modules, or {@code null} or none
+   *        for the workflows of every workflow module
    * @param searchQueries The filters of the list, or {@code null}
    * @param mode Which workflows the list holds
    * @return The number of workflows the list holds
@@ -661,6 +666,7 @@ public class WorkflowlistService {
       final OffsetDateTime initialTimestamp,
       final WorkflowVisibility visibility,
       final Collection<String> businessIds,
+      final Collection<String> workflowModuleIds,
       final Collection<SearchQuery> searchQueries,
       final RetrieveItemsMode mode) {
 
@@ -674,7 +680,7 @@ public class WorkflowlistService {
             visibility,
             endedSince,
             mode,
-            null,
+            SearchCriteriaHelper.onlyTheWorkflowModules(workflowModuleIds),
             businessIds));
     final var searchCriteria = filterCriteria(searchQueries);
     if (searchCriteria != null) {
@@ -739,6 +745,8 @@ public class WorkflowlistService {
    * @param knownWorkflowIds The ids of the workflows the browser shows already
    * @param initialTimestamp When the user started to page through the list
    * @param businessIds Only the workflows of these business ids, or {@code null} for all
+   * @param workflowModuleIds Only the workflows of these workflow modules, or {@code null} or none
+   *        for the workflows of every workflow module
    * @param searchQueries The filters of the list, or {@code null}
    * @param sort The paths to sort by, separated by commas, or {@code null} for the start
    * @param sortAscending Whether to sort in ascending order
@@ -751,6 +759,7 @@ public class WorkflowlistService {
       final Collection<String> knownWorkflowIds,
       final OffsetDateTime initialTimestamp,
       final Collection<String> businessIds,
+      final Collection<String> workflowModuleIds,
       final Collection<SearchQuery> searchQueries,
       final String sort,
       final boolean sortAscending,
@@ -771,7 +780,7 @@ public class WorkflowlistService {
             visibility,
             initialTimestamp,
             effectiveMode,
-            null,
+            SearchCriteriaHelper.onlyTheWorkflowModules(workflowModuleIds),
             businessIds));
     final var searchCriteria = filterCriteria(searchQueries);
     if (searchCriteria != null) {
@@ -832,6 +841,8 @@ public class WorkflowlistService {
    *
    * @param endedSince When the user started to page through the list
    * @param visibility Which workflows the caller may reach
+   * @param workflowModuleIds Only the workflows of these workflow modules, or {@code null} or none
+   *        for the workflows of every workflow module
    * @param searchQueries The filters the user set in the list, or {@code null}
    * @param path The field to look for words in
    * @param query The text typed so far
@@ -840,6 +851,7 @@ public class WorkflowlistService {
   public List<KwicResult> kwic(
       final OffsetDateTime endedSince,
       final WorkflowVisibility visibility,
+      final Collection<String> workflowModuleIds,
       final Collection<SearchQuery> searchQueries,
       final String path,
       final String query) {
@@ -852,6 +864,7 @@ public class WorkflowlistService {
 
     final var searchCriteria = new LinkedList<Criteria>();
     searchCriteria.add(new Criteria(path).regex(SearchCriteriaHelper.literally(query), "i"));
+    searchCriteria.addAll(SearchCriteriaHelper.onlyTheWorkflowModules(workflowModuleIds));
     final var match = buildWorkflowlistCriteria(
         visibility,
         endedSince,

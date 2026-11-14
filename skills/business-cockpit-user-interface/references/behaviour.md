@@ -130,7 +130,9 @@ So macht es das mitgelieferte UI:
    führt zu derselben Handlung.
 3. Es fragt mit `PUT` nach so vielen Zeilen, wie es geladen hat, plus einer Reserve von zwei Blöcken,
    und lässt die Kennungen der geänderten Zeilen weg. Die kommen dadurch vollständig zurück. Schick
-   dabei dieselben Filter wie für die erste Seite, bei Fällen auch `businessIds`.
+   dabei dieselben Filter wie für die erste Seite, auch `workflowModuleIds`, bei Fällen auch
+   `businessIds`. Eine Liste, die nur einige Workflow-Module zeigt, fragt bei einem Ereignis, dessen
+   `workflowModuleId` zu keinem davon gehört, gar nicht erst.
 4. Es setzt je zurückgelieferter Zeile den Zustand:
    * beendet nach dem Startzeitpunkt, also `ENDED`,
    * sonst entstanden nach dem Startzeitpunkt, also `NEW`,

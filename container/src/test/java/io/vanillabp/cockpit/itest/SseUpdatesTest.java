@@ -13,8 +13,8 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 /**
  * Subscribes to the server-sent-events stream the way the single-page app does, authenticated by
  * the JWT cookie. It checks the things a client relies on: the confirmation ping shortly after
- * subscribing, an update event when a user task changes, and no event about a task the person may
- * not see.
+ * subscribing, an update event when a user task changes, the workflow module of the task in
+ * every such event, and no event about a task the person may not see.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
@@ -120,6 +120,14 @@ class SseUpdatesTest extends ItestBase {
       assertThat(lines)
           .anyMatch(line -> line.startsWith("data:") && line.contains("UPDATE"));
     });
+    // the update reaches the stream without the document, and the stream still names the
+    // workflow module of the task, which a list limited to workflow modules needs
+    assertThat(lines
+        .stream()
+        .filter(line -> line.startsWith("data:") && line.contains("\"workflowModuleId\"") && line.contains(moduleId))
+        .count())
+        .as("both events name the workflow module; stream so far: %s", lines)
+        .isEqualTo(2);
 
   }
 
