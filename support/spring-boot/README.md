@@ -24,6 +24,10 @@ compiles such a workflow module in every build, with `support` as its only depen
   groups, and how a group hierarchy adds groups to the ones assigned. `UserDirectoryService` is the
   directory of all users, which the application provides. `UserDetailsImpl` is a plain
   implementation of `UserDetails`, so neither the cockpit nor a workflow module has to write one.
+  A workflow module which reads the login token needs a `UserDirectoryService` of its own, because
+  the token carries no groups. Where a bean needs one and the application has none,
+  `UserDirectoryIsMissingFailureAnalyzer` says so on start, with the bean to add and why it should
+  cache. It is registered in `META-INF/spring.factories`.
 
 - `io.vanillabp.cockpit.support.usertask`: the exceptions for a user task a request names.
   `BcUnknownTaskException` says that the workflow has no user task of that id and kind.

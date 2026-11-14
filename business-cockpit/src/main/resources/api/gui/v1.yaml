@@ -116,6 +116,40 @@ paths:
           description: The key breaks the rule above
         401:
           description: Nobody is signed in
+  /app/current-user/group-hierarchy:
+    get:
+      tags:
+        - userRights
+      summary: where each group and right of the user signed in comes from
+      operationId: getGroupHierarchyOfCurrentUser
+      description: |
+        The organisation gives a user groups in its user directory, for example in its identity
+        provider. A workflow module turns groups into more groups and rights with its group
+        hierarchy, which it sends when it registers. Each entry of a hierarchy says: a member of
+        this group also gets these targets. The cockpit merges the hierarchies of all modules, so
+        `groups` of `GET /app/current-user` is the result of all of them together.
+
+        This answer takes the result apart again, so a user interface can show for each group and
+        right which group gives it:
+
+        - `givenByOrganisation` lists every group the user directory gives the user, also those
+          without an entry in any hierarchy.
+        - `modules` has one element for each registered workflow module with a group hierarchy.
+          A module without one is not listed. `entries` holds only the entries of groups the user
+          has, wherever the user got the group from. So an entry of one module may come into
+          effect by a group which another module's hierarchy gives. A module whose hierarchy has
+          no entry for the user is listed with no entries.
+
+        The answer is only about the user signed in. There is no way to ask for somebody else.
+      responses:
+        200:
+          description: The groups of the user and the hierarchy entries which give more
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupHierarchyOfUser'
+        401:
+          description: Nobody is signed in
   /updates:
     get:
       tags:
@@ -233,6 +267,69 @@ components:
               type: array
               items:
                 $ref: '../../../../../../apis/official-gui-api/openapi/v1.yaml/#/components/schemas/Group'
+    GroupHierarchyOfUser:
+      type: object
+      description: The groups the organisation gives the user, and per workflow module the hierarchy entries of the user's groups.
+      required:
+        - givenByOrganisation
+        - modules
+      properties:
+        givenByOrganisation:
+          type: array
+          description: >-
+            Every group the user directory gives the user directly, in alphabetical order. A
+            group listed here may have an entry in a hierarchy as well.
+          items:
+            type: string
+        modules:
+          type: array
+          description: >-
+            One element for each registered workflow module with a group hierarchy, in the
+            alphabetical order of the module id.
+          items:
+            $ref: '#/components/schemas/GroupHierarchyOfWorkflowModule'
+    GroupHierarchyOfWorkflowModule:
+      type: object
+      description: The entries of one workflow module's group hierarchy which the user's groups bring into effect.
+      required:
+        - workflowModuleId
+        - entries
+      properties:
+        workflowModuleId:
+          type: string
+          description: >-
+            The id of the workflow module. The cockpit knows no other name of a module, so a
+            user interface shows the id.
+        entries:
+          type: array
+          description: >-
+            The entries of groups the user has, in the alphabetical order of the group. Entries
+            of groups the user does not have are left out.
+          items:
+            $ref: '#/components/schemas/GroupHierarchyEntryOfUser'
+    GroupHierarchyEntryOfUser:
+      type: object
+      description: One entry of a group hierarchy. A member of `group` also gets the `targets`.
+      required:
+        - group
+        - givenByOrganisation
+        - targets
+      properties:
+        group:
+          type: string
+          description: The group of the entry. The user has it.
+        givenByOrganisation:
+          type: boolean
+          description: >-
+            Whether the user directory gives the user this group directly. If not, the group
+            is a target of another entry the user has.
+        targets:
+          type: array
+          description: >-
+            The groups and rights a member of the group gets, in alphabetical order. A target
+            which has an entry of its own in a hierarchy stands for more groups and rights.
+          items:
+            type: string
     PingEvent:
       type: object
       description: |

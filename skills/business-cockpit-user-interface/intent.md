@@ -214,6 +214,7 @@ oder etwas, das die API noch nicht kann; beides ist einen Satz wert.
 | `GET /workflow-module`                   | die Module, die der Benutzer sehen darf            |                               |
 | `GET /notifications/*`                   | die Benachrichtigungen des Benutzers               |                               |
 | `GET /app/info`, `GET /app/current-user` | die Anwendung und der Benutzer                     |                               |
+| `GET /app/current-user/group-hierarchy`  | woher die Rechte des Benutzers kommen              |                               |
 | `GET /updates`                           | der Ereignisstrom                                  |                               |
 
 ## Was danach passiert

@@ -32,6 +32,7 @@ import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.model.UserRepository;
+import io.vanillabp.cockpit.workflowmodules.GroupHierarchyService;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
@@ -63,7 +64,7 @@ class NotificationPollerDeliveryTest {
 
     poller = new NotificationPoller(
         mock(MongoTemplate.class), mock(UserRepository.class), userTasks, outbox, List
-            .of(service), mock(UserDirectoryService.class), 120, Duration.ofHours(48));
+            .of(service), mock(UserDirectoryService.class), new GroupHierarchyService(), 120, Duration.ofHours(48));
   }
 
   private NotificationOutboxEntry entry(
