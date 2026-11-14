@@ -68,6 +68,9 @@
         </profile>
         <profile>
             <id>snapshots-from-github-packages</id>
+            <!-- the workflows also name this profile on the Maven command line, by the variable
+                 VBP_SNAPSHOTS_PROFILE, because the resolver of a Quarkus test does not see this
+                 activation, see there -->
             <activation>
                 <property>
                     <name>env.VBP_SNAPSHOTS_FROM</name>
