@@ -144,8 +144,8 @@ not know why they may do something, or why not. The overview answers that.
 
 This is how project M does it: `RoleMappingsController`, `GroupHierarchyAware` and
 `BusinessCockpitRoles` in `workflow-commons/businesscockpit`, the hierarchy in `ordermanagement.yaml`,
-and the component `user-role-tooltip` of its cockpit. The cockpit itself does not offer the data
-yet, see [Where the data comes from](#where-the-data-comes-from).
+and the component `user-role-tooltip` of its cockpit. The cockpit gives the data for all modules
+in one answer, see [Where the data comes from](#where-the-data-comes-from).
 
 #### How it opens
 
@@ -198,9 +198,9 @@ names are ids and are shown as they are, not translated. The title, the sentence
 and the kinds are translated.
 
 The overview shows only what the user has. Entries of groups the user does not have are left out.
-A module without a hierarchy is left out. A module whose data does not load is left out, and the
-others still show. If no module is left, the overview shows one sentence: "No roles or rights are
-known."
+A module without a hierarchy is left out. The data of all modules comes in one answer, so if the
+request fails, no module is left. If no module is left, the overview shows one sentence: "No roles
+or rights are known."
 
 The cockpit merges the hierarchies of all modules, so a group that one module's hierarchy gives
 counts in every module. Such a group has its own row only in the table of the module that gives
@@ -208,22 +208,13 @@ it. In the other tables it shows only as "Given by".
 
 #### Where the data comes from
 
-**Dependency:** the cockpit does not offer the data for this overview today. What it offers:
-
-- `GET /gui/api/v1/app/current-user` returns `groups`: all groups of the user after the
-  hierarchies of all modules are applied. It does not say which groups the identity provider gave
-  and which a hierarchy added, nor from which group they came.
-- The cockpit stores the hierarchy of every module it gets with the registration, but no endpoint
-  of the GUI API returns it. `GET /gui/api/v1/workflow-module` returns only `id`, `version` and
-  `uri`.
-
-The overview needs one more endpoint of the cockpit, which a later story adds. The cockpit is the
-right place: it has the hierarchies of all modules and asks the user directory for the groups the
-organisation gives. One request is enough, instead of one per module. Proposed: `GET
-/gui/api/v1/app/current-user/group-hierarchy`, with this answer:
+One request gives the data for all modules: `GET /gui/api/v1/app/current-user/group-hierarchy`,
+from the cockpit's own OpenAPI file, see [gui-api.md](gui-api.md). The cockpit has the
+hierarchies of all modules and the groups the user directory gives. The answer looks like this:
 
 ```json
 {
+  "givenByOrganisation": ["M3Flow.AccountManagement"],
   "modules": [
     {
       "workflowModuleId": "ordermanagement",
@@ -240,26 +231,32 @@ organisation gives. One request is enough, instead of one per module. Proposed: 
         }
       ]
     }
-  ],
-  "givenByOrganisation": ["M3Flow.AccountManagement"]
+  ]
 }
 ```
 
-`entries` holds only the entries of groups the user has. `givenByOrganisation` at the top lists all
-groups the identity provider gives, also those without an entry in any hierarchy. The story that
-adds the endpoint decides the final names. Follow that story when it is done.
+- `givenByOrganisation` at the top lists all groups the user directory gives the user, also those
+  without an entry in any hierarchy. These are the rows with "Organisation".
+- `modules` has one element for each workflow module with a group hierarchy, sorted by
+  `workflowModuleId`. A module without a hierarchy is not in the answer. The heading of a table is
+  the `workflowModuleId`, because the cockpit knows no other name of a module.
+- `entries` holds only the entries of groups the user has, sorted by `group`, with sorted
+  `targets`. Each target is a row with the `group` of its entry as "Given by". A module whose
+  hierarchy has no entry for the user comes with empty `entries`.
+- A target is "Role" if some entry of the answer, in any module, has it as `group`. Otherwise it is
+  "Right".
+- The answer is only about the user who is logged in. The path names no user.
+
+`GET /gui/api/v1/app/current-user` is no help here. Its `groups` are all groups after the
+hierarchies of all modules are applied, and they do not say where a group came from.
 
 Project M has no such endpoint in the cockpit. Each of its modules answers
 `GET <uri>/api/v1/business-cockpit/role-mappings` itself, and the user interface asks every module
 at its `uri`. The answer has `workflowModule`, the name of the module, and `roleMappings`: for each
 group `role`, `currentUser`, `assignedInEntraId` and the `targets`, each with `target` and `type`
-(`ROLE` or `PERMISSION`). The fields carry the same facts as the proposed answer above. M also lets
-a user with the right `BC_ViewAllRoleMapping` see the entries of groups they do not have. The
-overview of this skill shows only the user's own rights.
-
-Until the cockpit offers the endpoint, the overview shows what there is: the groups from
-`current-user` in alphabetical order, with the column "Name" only, and the sentence "Where your
-roles and rights come from is not known yet." It does not guess the kind or the origin.
+(`ROLE` or `PERMISSION`). The fields carry the same facts as the answer above. M also lets a user
+with the right `BC_ViewAllRoleMapping` see the entries of groups they do not have. The overview of
+this skill shows only the user's own rights.
 
 ## Counts
 
