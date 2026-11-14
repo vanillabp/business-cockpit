@@ -4495,3 +4495,40 @@ does not answer the path.
 - `skills/business-cockpit-user-interface/references/gui-api.md`, "Woher die Rechte des Benutzers
   kommen"
 
+### 100. A key the cockpit does not read ends the start on Spring Boot as well
+
+Decided on 2026-11-14 by the maintainer, who took the default of the question: a key nobody reads
+ends the start, always.
+
+This replaces one paragraph of decision 14, the one which says that on Spring Boot a misspelled key,
+or a key of version 1 which is gone, is ignored. The rest of decision 14 stays as it is.
+
+#### What was wrong
+
+Decision 14 said that Spring Boot ignores such a key, and that this difference between the two
+platforms was the platform integration's decision. On Quarkus the same key ended the build, with a
+message which named the key that was meant or what became of a key of version 1. So the same
+application configuration started on one platform and not on the other. On Spring Boot a key like
+`group-hierarchy-bean-name` stood in the file, nobody read it, and nobody was told.
+
+#### The decision
+
+A key in one of the cockpit's sections which the cockpit does not read ends the start on both
+platforms, with the same message. The sections are `vanillabp.cockpit`, and the `cockpit` section
+of a workflow module, of a workflow and of a user task.
+
+On Spring Boot the extension runs `ConfigurationKeyCheck` while it reads the cockpit's settings.
+It reads the keys of every property source with names: the configuration files, a workflow
+module's own defaults file, the command line and the system properties. Spring Boot binds
+`baseUrl`, `base_url` and `base-url` to the same setting, so the key is checked in its dashed form.
+Environment variables are left out, because their spelling cannot be taken apart again without
+guessing. On Quarkus nothing changes.
+
+#### Where it is referred to
+
+- `ConfigurationKeyCheck` in `extensions-commons/core`, in its class comment.
+- `BusinessCockpitExtensionAutoConfiguration.businessCockpitSettings` and
+  `KeysOfTheConfigurationFiles` in `extensions-commons/spring-boot`.
+- `extensions-commons/README.md`, the paragraph about keys no mapping declares.
+- The wiki pages `Configuration` and `Migrating-from-version-1`.
+

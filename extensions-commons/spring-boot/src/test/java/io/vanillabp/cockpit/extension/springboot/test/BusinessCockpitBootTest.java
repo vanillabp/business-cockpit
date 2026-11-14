@@ -383,6 +383,41 @@ public class BusinessCockpitBootTest {
   }
 
   @Test
+  @DisplayName("A key of version 1 ends the boot and says what became of it, as on Quarkus")
+  public void aKeyOfVersionOneIsRefused() {
+
+    final var message = failureOfBooting(
+        "cockpit-key-of-version-one",
+        new String[]{
+            "vanillabp.workflow-modules.test-module.cockpit.group-hierarchy-bean-name=teamHierarchy"
+        },
+        TestApplication.class);
+
+    assertTrue(
+        message.contains("vanillabp.workflow-modules.test-module.cockpit.group-hierarchy-bean-name"),
+        message);
+    assertTrue(message.contains("key of version 1"), message);
+    assertTrue(message.contains("WorkflowModuleGroupHierarchy"), message);
+
+  }
+
+  @Test
+  @DisplayName("A misspelled key ends the boot and names the key which was meant")
+  public void aMisspelledKeyIsRefused() {
+
+    final var message = failureOfBooting(
+        "cockpit-misspelled-key",
+        new String[]{
+            "vanillabp.cockpit.rest.base-rul=http://localhost:1"
+        },
+        TestApplication.class);
+
+    assertTrue(message.contains("vanillabp.cockpit.rest.base-rul"), message);
+    assertTrue(message.contains("Did you mean 'vanillabp.cockpit.rest.base-url'?"), message);
+
+  }
+
+  @Test
   @DisplayName("A cockpit server which is down does not keep the application from starting")
   public void anUnreachableCockpitServerStillLetsTheApplicationStart() {
 

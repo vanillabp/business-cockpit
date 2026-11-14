@@ -449,7 +449,8 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
                       %s: keycloak
 
                   The next start says which other values the directory needs. Or add a bean of \
-                  type 'UserDirectoryService' of your own. The wiki says more: %s"""
+                  type 'UserDirectoryService' of your own. The cockpit asks it on every request, \
+                  so let it cache the users if it asks a remote system. The wiki says more: %s"""
                   .formatted(UserDirectorySettings.TYPE, WIKI_SECURITY));
     }
 

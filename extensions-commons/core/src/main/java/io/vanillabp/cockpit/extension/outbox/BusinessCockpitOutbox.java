@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import io.vanillabp.cockpit.extension.config.TheClassOfABean;
 import io.vanillabp.integration.spi.PhaseTwoOutbox;
 
 /**
@@ -288,7 +289,7 @@ public class BusinessCockpitOutbox {
 
     return outboxes
         .stream()
-        .map(outbox -> outbox.getClass().getName())
+        .map(TheClassOfABean::nameOf)
         .toList()
         .toString();
 

@@ -467,7 +467,7 @@ public final class BusinessCockpitConfiguration {
       return byModule;
     }
     for (final var bean : beans) {
-      final var beanType = bean.getClass().getName();
+      final var beanType = TheClassOfABean.nameOf(bean);
       final var workflowModuleId = bean.getWorkflowModuleId();
       if (!workflowModuleIds.contains(workflowModuleId)) {
         defects
@@ -516,7 +516,7 @@ public final class BusinessCockpitConfiguration {
                 """
                     Two beans give the group hierarchy of workflow module '%s': %s and %s. The \
                     hierarchy has one source only, so let one bean answer for the module."""
-                    .formatted(workflowModuleId, previous.getClass().getName(), beanType));
+                    .formatted(workflowModuleId, TheClassOfABean.nameOf(previous), beanType));
       }
     }
     return byModule;
