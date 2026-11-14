@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import io.vanillabp.cockpit.extension.config.BusinessCockpitConfiguration;
 import io.vanillabp.cockpit.extension.config.ConfigurationKeys;
 import io.vanillabp.cockpit.extension.config.InitiatorSource;
+import io.vanillabp.cockpit.extension.config.TheClassOfABean;
 import io.vanillabp.cockpit.extension.event.RegisterWorkflowModuleEvent;
 import io.vanillabp.cockpit.extension.event.ReportPayload;
 import io.vanillabp.cockpit.extension.event.UserTaskEvent;
@@ -2435,8 +2436,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
                 BPMS answers for the adapter id that BPMS is configured under."""
                 .formatted(
                     bridge.adapterId(),
-                    previous.getClass().getName(),
-                    bridge.getClass().getName()));
+                    TheClassOfABean.nameOf(previous),
+                    TheClassOfABean.nameOf(bridge)));
       }
     }
     return byAdapterId;
@@ -2457,8 +2458,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
                 groups may see the module's cases, so let each module have one."""
                 .formatted(
                     provider.getWorkflowModuleId(),
-                    previous.getClass().getName(),
-                    provider.getClass().getName()));
+                    TheClassOfABean.nameOf(previous),
+                    TheClassOfABean.nameOf(provider)));
       }
     }
     return byWorkflowModule;

@@ -15,9 +15,9 @@ import java.util.Set;
  * such a key below <code>vanillabp</code> by itself and names it. This check runs before that
  * and says which key was meant, which is the part a framework cannot know.
  * <p>
- * Spring Boot ignores a key no binding declares, and this repository leaves that as it is. The
- * difference between the two platforms is the platform integration's own decision, and it is
- * written down there.
+ * Spring Boot binds around a key no binding declares. So on Spring Boot this check is the only
+ * thing which ends the start, and it runs there while the cockpit's settings are read. Both
+ * platforms refuse the same keys with the same message.
  */
 public final class ConfigurationKeyCheck {
 
@@ -176,6 +176,13 @@ public final class ConfigurationKeyCheck {
     if (whatBecameOfIt != null) {
       return "  - '%s' is a key of version 1 of the Business Cockpit which version 2 does not read: %s."
           .formatted(propertyName, whatBecameOfIt);
+    }
+    // a key the cockpit reads for the whole application, written for one module or workflow. The
+    // developer knows the key and has put it in the wrong place, so the place is what they need.
+    // At the top this cannot be true, because a key of the top was accepted above
+    if (ConfigurationKeys.GLOBAL_KEYS.contains(key)) {
+      return "  - '%s' is read for the whole application only, not for %s. Write it once as '%s'."
+          .formatted(propertyName, whatTheLevelIs, ConfigurationKeys.globalKey(key));
     }
     final var nearest = nearest(key, keysOfTheLevel);
     if (nearest != null) {

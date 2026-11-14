@@ -17,11 +17,13 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.ResolvableType;
+import org.springframework.core.env.ConfigurableEnvironment;
 
 import io.vanillabp.cockpit.extension.BusinessCockpitAssembly;
 import io.vanillabp.cockpit.extension.BusinessCockpitExtension;
 import io.vanillabp.cockpit.extension.config.BusinessCockpitConfiguration;
 import io.vanillabp.cockpit.extension.config.CockpitSettings;
+import io.vanillabp.cockpit.extension.config.ConfigurationKeyCheck;
 import io.vanillabp.cockpit.extension.outbox.BusinessCockpitOutbox;
 import io.vanillabp.cockpit.extension.service.BusinessCockpitServiceFactory;
 import io.vanillabp.cockpit.extension.spi.BusinessCockpitBpmsBridge;
@@ -78,14 +80,21 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
   /**
    * What the application wrote about the Business Cockpit. It is read off this platform's
    * binding and handed on as the neutral object which the core and every BPMS half read.
+   * <p>
+   * A key in one of the cockpit's sections which the cockpit does not read ends the start first,
+   * as it does on Quarkus. Spring Boot would bind around it, and the setting the developer meant
+   * would simply not happen.
    *
    * @param overlay The cockpit's overlay of the shared <code>vanillabp.*</code> tree
+   * @param environment Where the keys the application wrote are found
    * @return The settings
    */
   @Bean
   public CockpitSettings businessCockpitSettings(
-      final CockpitOverlayProperties overlay) {
+      final CockpitOverlayProperties overlay,
+      final ConfigurableEnvironment environment) {
 
+    ConfigurationKeyCheck.refuseKeysNobodyReads(KeysOfTheConfigurationFiles.of(environment));
     return overlay.toSettings();
 
   }
