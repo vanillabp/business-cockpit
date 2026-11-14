@@ -205,12 +205,13 @@ nothing.
 It was an `OffsetDateTime`. The document is the same either way, a BSON date, so there is no data
 migration. Only code which reads the field in Java is affected.
 
-### `workflow-provider-api-client` and `workflow-provider-api-server` are gone
+### The workflow provider API is gone
 
 The artifacts `io.vanillabp.businesscockpit:workflow-provider-api-client` and
-`io.vanillabp.businesscockpit:workflow-provider-api-server` held no code. They are no longer built
-or published. Remove them from your POM if you named them. The OpenAPI file of the workflow
-provider API stays in `apis/workflow-provider-api`.
+`io.vanillabp.businesscockpit:workflow-provider-api-server` held no code, and the cockpit never
+called the API. Both artifacts and the OpenAPI file are gone. Remove the artifacts from your POM if
+you named them. A workflow module may still send `workflowProviderApiUriPath` when it registers;
+the cockpit stores it and does nothing with it.
 
 ### No configuration key changes
 
@@ -279,11 +280,9 @@ else. Its templates are rendered now. Before, the cockpit showed the BPMN names.
 
 ### `uiUriType` is a string, and the address is the user interface's business
 
-`uiUriType` was an enum with two values in four published schemas. It is a plain string now, in
-`bpms-api` v1 and v1_1, in `official-gui-api` v1 and in `workflow-provider-api`. `EXTERNAL` and
-`WEBPACK_MF_REACT` are still valid strings, so a workflow module which reports one of them needs no
-change. `workflow-provider-api` called the schema `UiComponentsType` and showed `WEBPACK_REACT` as
-its example. Both are gone, and all four schemas now name the same thing the same way.
+`uiUriType` was an enum with two values in the published schemas. It is a plain string now, in
+`bpms-api` v1 and v1_1 and in `official-gui-api` v1. `EXTERNAL` and `WEBPACK_MF_REACT` are still
+valid strings, so a workflow module which reports one of them needs no change.
 
 The field stays required. For a module whose user interface is federated anyway, leaving it out
 looks tempting. But then the database fills up with entries that say nothing. On the day a second

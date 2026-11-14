@@ -119,9 +119,8 @@ In the order they build on each other:
    cockpit. It brings no MongoDB and no Kafka. One sub-module per platform, today only
    `spring-boot`, published as `business-cockpit-spring-boot-support`. With it as its only
    dependency, a workflow module compiles.
-3. **[apis](./apis)**:<br>The generated clients and servers of the three interfaces the cockpit has:
-   `bpms-api` for what workflow modules report, `official-gui-api` for what a user interface reads,
-   `workflow-provider-api` for what a workflow module may implement to change the cockpit's behaviour.
+3. **[apis](./apis)**:<br>The generated clients and servers of the two interfaces the cockpit has:
+   `bpms-api` for what workflow modules report, `official-gui-api` for what a user interface reads.
 4. **[extensions-commons](./extensions-commons)**:<br>The platform-neutral half of the integration
    into VanillaBP Version 2, on Spring Boot and on Quarkus. The five halves which know a BPMS live in
    their own repositories and consume this one as a published artifact:
