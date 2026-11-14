@@ -4331,3 +4331,31 @@ filled in.
 
 The constructors of both records without the comment stay. An adapter built against the records of
 before keeps working and prefills no comment.
+
+### 97. The workflow provider API is gone until it is built
+
+#### What was found
+
+`apis/workflow-provider-api` held an OpenAPI file and nothing else. Its generated client and server
+had already gone with decision 85, because they held no code. No workflow module implements the API,
+and the cockpit never calls it. It is not meant for 1.0 either: the API comes later, and then it is
+designed anew.
+
+#### The decision
+
+The directory and the OpenAPI file are gone. Nothing documents the API any more: the READMEs and
+`UPGRADE.md` speak of two interfaces, `bpms-api` and `official-gui-api`.
+
+The field `workflowProviderApiUriPath` of the registration of a workflow module stays, in `bpms-api`
+v1 and v1_1, in the protobuf schema and in what the cockpit stores. A workflow module of Version 1
+sends it, and taking it away would break the registration of every such module. The cockpit stores
+the value and does nothing with it. When the API is built, the field is there.
+
+Decisions 32 and 85 mention the API as it was. They stay as they are.
+
+#### Where it applies
+
+- `apis/workflow-provider-api`, removed
+- `README.md`, `apis/README.md`: the list of interfaces
+- `UPGRADE.md`: "The workflow provider API is gone", and the section on `uiUriType`
+
