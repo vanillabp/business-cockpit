@@ -15,9 +15,9 @@ import java.util.Set;
  * such a key below <code>vanillabp</code> by itself and names it. This check runs before that
  * and says which key was meant, which is the part a framework cannot know.
  * <p>
- * Spring Boot ignores a key no binding declares, and this repository leaves that as it is. The
- * difference between the two platforms is the platform integration's own decision, and it is
- * written down there.
+ * Spring Boot binds around a key no binding declares. So on Spring Boot this check is the only
+ * thing which ends the start, and it runs there while the cockpit's settings are read. Both
+ * platforms refuse the same keys with the same message.
  */
 public final class ConfigurationKeyCheck {
 

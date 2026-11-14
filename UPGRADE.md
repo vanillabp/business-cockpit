@@ -657,3 +657,11 @@ module of each changed entity. The records `UserTaskVisibility.TaskFacts` and
 
 Two new changesets index `workflowModuleId` together with `endedAt` in the collections `usertask`
 and `workflow`.
+
+### A key the adapter does not read ends the start on Spring Boot too
+
+A workflow module on Spring Boot no longer starts with a key in one of the adapter's sections which
+the adapter does not read: below `vanillabp.cockpit`, or in the `cockpit` section of a workflow
+module, a workflow or a user task. Version 1 ignored such a key without a word. The message names
+the key and the one it is nearest to, or, for a key of version 1, what became of it. Remove the key
+or write the one the message names. Quarkus refused these keys before.

@@ -215,9 +215,11 @@ span of time are answered by the same message on either platform.
 
 On Quarkus the mapping is also what lets the application start: a key below `vanillabp` which no
 mapping declares ends the startup there. That is what a misspelled key runs into, and the build ends
-naming it and the key it was nearest to, or, where it is one of version 1's, what became of it. On
-Spring Boot such a key is ignored, which is the platform integration's own decision about the two
-frameworks.
+naming it and the key it was nearest to, or, where it is one of version 1's, what became of it.
+Spring Boot binds around such a key. So on Spring Boot the extension runs the same check,
+`ConfigurationKeyCheck`, while it reads the cockpit's settings, and the start ends with the same
+message. It checks every property source with names except the environment variables, and it
+checks a key in its dashed form, because Spring Boot binds `baseUrl` and `base-url` alike.
 
 A workflow module's own defaults file, `<module>.yaml` on the classpath root or below a directory of
 the module's name, carries these keys as well, below everything the application itself writes. That
