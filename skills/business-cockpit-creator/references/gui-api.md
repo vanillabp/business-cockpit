@@ -334,9 +334,15 @@ When the user sets a filter on a path, remove the old entry for that path first,
 [rough-edges.md](rough-edges.md#two-filters-on-one-path).
 
 A field that looks like a filter and is not one: `businessIds` of `WorkflowsRequest` is an exact
-match on the field `businessId` and not a search pattern. It only works on `POST /workflow` and not
-on the update with `PUT`, see
-[rough-edges.md](rough-edges.md#businessids-is-lost-in-the-update).
+match on the field `businessId` and not a search pattern. `POST /workflow`, `PUT /workflow` and
+`POST /workflow/count` all take it in the same way.
+
+`workflowModuleIds` is an exact match as well. Every list takes it, for user tasks and for cases, in
+`POST`, in `PUT`, in the count and in the suggestions for a search field. The list then shows only
+the rows of these workflow modules. Without the field, or with an empty list, it shows the rows of
+all modules. The field only narrows what the user may see anyway. It is meant for a page that
+belongs to one application and shows only its user tasks and cases.
+`POST /workflow/{workflowId}/usertasks` does not read it.
 
 ## Suggestions for a search field
 
@@ -345,7 +351,8 @@ on the update with `PUT`, see
 field.
 
 The query takes `query` and, if wanted, `path` as parameters, and the filters already set as
-`searchQueries` in the body. It answers with whole words that contain `query`, each with a count.
+`searchQueries` in the body, and for a list limited to workflow modules also `workflowModuleIds`.
+It answers with whole words that contain `query`, each with a count.
 `path` and the paths in `searchQueries` follow the same rule as a sort path, otherwise the server
 answers 400. For `path` the message names `'path'`.
 
@@ -356,10 +363,9 @@ three characters on.
 
 The search is always case-insensitive here, whatever a `SearchQuery` says.
 
-The answer has at most 21 entries, and they are not the 21 most frequent ones, but the first 21 the
-database finds. They are sorted by count ascending, and by word for the same count. When 21 entries
-come, show a note that there are more than twenty matches instead of the list, see
-[rough-edges.md](rough-edges.md#the-suggestions-are-not-the-most-frequent).
+The answer has at most 21 entries. They are the 21 most frequent words, the most frequent first.
+For the same count they are in alphabetical order, upper case before lower case. Show them in this
+order. When 21 entries come, there may be more. Whether you also show a note then is up to you.
 
 The count counts occurrences of the word, not rows. A word that appears twice in one user task
 counts twice.
@@ -453,8 +459,10 @@ Use it like this: after a wake-up call from the update stream, ask with `PUT` fo
 you have loaded, plus a reserve, and leave out the ids of the rows you know have changed. Exactly
 these come back in full.
 
-Two things are different for `PUT`: `page.number` is always 0 and `page.size` is the number of rows
-returned, and there is no `businessIds`.
+For `PUT`, `page.number` is always 0 and `page.size` is the number of rows returned. The filters are
+the same as for `POST`: `searchQueries`, `mode`, `workflowModuleIds` and, for cases, `businessIds`.
+Send them just as for the first page. Otherwise the update returns rows that do not belong to the
+list.
 
 `PUT` has no offset. It always starts at the first row. That fits a window of loaded rows at the top
 of the list. For a window further down, `PUT` would return every row above it in full, so read the
@@ -481,6 +489,12 @@ What comes through it:
 
 `type` is `INSERT`, `UPDATE`, `DELETE`, `FOLLOWUP` or `RELOAD`. `id` is the id of the user task or
 the case. `RELOAD` has an empty id and means: load the lists of this kind again.
+
+Next to `event`, each entry carries `workflowModuleId`, the workflow module of the user task or the
+case. A list that shows only some modules skips the events of the others with it. The stream itself
+is not limited to modules, because a request does not say which tab it comes from. When the field is
+missing, the cockpit no longer knows the module, for example because it no longer holds the row.
+Such an event can concern any list, so treat it like one of your own modules.
 
 ### Who gets an event
 

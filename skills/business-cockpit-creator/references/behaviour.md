@@ -767,9 +767,10 @@ The user copes well with many rows.
 ### Full-text search
 
 Both lists have it. The input has an x button that clears it. The field offers
-suggestions: it asks from three characters on, 300 milliseconds after the last key, shows at most 20
-suggestions, and shows a note instead when there are more than twenty. A suggestion is taken with a
-click, the input with the Enter key. The search ignores upper and lower case. Escape the input, see
+suggestions: it asks from three characters on, 300 milliseconds after the last key, and shows at most
+20 suggestions in the order the server returns them, the most frequent first. A suggestion is taken
+with a click, the input with the Enter key. The search ignores upper and lower case. Escape the
+input, see
 [gui-api.md](gui-api.md#filtering-over-reported-business-data).
 
 ### A filter per column
@@ -1028,7 +1029,10 @@ when changes were reported. Nothing else moves.
    for as many rows as the window holds, plus a reserve of one page, and leave out the ids of the
    changed rows. They come back in full. If the window starts further down, read its pages again
    with `POST` and the same `initialTimestamp`, see
-   [gui-api.md](gui-api.md#the-second-form-of-the-same-query).
+   [gui-api.md](gui-api.md#the-second-form-of-the-same-query). Either way, send the same filters
+   as for the first page, also `workflowModuleIds`, and for cases also `businessIds`. A list that
+   shows only some workflow modules does not ask at all for an event whose `workflowModuleId`
+   belongs to none of them.
 4. Set the state of each returned row:
    * ended after the start timestamp: `ENDED`,
    * otherwise created after the start timestamp: `NEW`,

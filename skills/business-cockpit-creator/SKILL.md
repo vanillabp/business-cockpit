@@ -412,7 +412,8 @@ Then:
    web component of `all`, and shows the data of the task.
 4. A change to a task that somebody else makes shows up without a reload.
 5. Claiming and unclaiming work, and the row shows it afterwards.
-6. Paging, sorting and searching return what they should, also over reported business data.
+6. Paging, sorting and searching return what they should, also over reported business data. After
+   a live update, a filtered list shows only rows that match the filter.
 7. Scrolling through 30,000 user tasks or cases of three or four modules keeps the JavaScript heap
    below the limit from the interview, also on the primary filter for closed tasks. The list scrolls
    without stuttering, and placeholders show only when the user scrolls very fast. Scrolling down

@@ -14,21 +14,19 @@ code of the cockpit. Read this before the first screen, not when something does 
 7. [The refresh token leads nowhere](#the-refresh-token-leads-nowhere)
 8. [A search pattern goes into the database unescaped](#a-search-pattern-goes-into-the-database-unescaped)
 9. [Two filters on one path](#two-filters-on-one-path)
-10. [`businessIds` is lost in the update](#businessids-is-lost-in-the-update)
-11. [The suggestions are not the most frequent](#the-suggestions-are-not-the-most-frequent)
-12. [An event says that something changed, not what](#an-event-says-that-something-changed-not-what)
-13. [`filterable` is not read by the server](#filterable-is-not-read-by-the-server)
-14. [A module may report a type of another user interface](#a-module-may-report-a-type-of-another-user-interface)
-15. [The update form has no offset](#the-update-form-has-no-offset)
-16. [The bundler rewrites `import()`](#the-bundler-rewrites-import)
-17. [`zone.js` in a module slows every part down](#zonejs-in-a-module-slows-every-part-down)
-18. [A data entry pulls in the framework](#a-data-entry-pulls-in-the-framework)
-19. [A shared chunk carries the framework into a data entry](#a-shared-chunk-carries-the-framework-into-a-data-entry)
-20. [Vue in a shadow root](#vue-in-a-shadow-root)
-21. [Angular in a shadow root](#angular-in-a-shadow-root)
-22. [Removing a web component before its answer](#removing-a-web-component-before-its-answer)
-23. [A component library keeps destroyed rows](#a-component-library-keeps-destroyed-rows)
-24. [What needs a newer cockpit](#what-needs-a-newer-cockpit)
+10. [An event says that something changed, not what](#an-event-says-that-something-changed-not-what)
+11. [`filterable` is not read by the server](#filterable-is-not-read-by-the-server)
+12. [A module may report a type of another user interface](#a-module-may-report-a-type-of-another-user-interface)
+13. [The update form has no offset](#the-update-form-has-no-offset)
+14. [The bundler rewrites `import()`](#the-bundler-rewrites-import)
+15. [`zone.js` in a module slows every part down](#zonejs-in-a-module-slows-every-part-down)
+16. [A data entry pulls in the framework](#a-data-entry-pulls-in-the-framework)
+17. [A shared chunk carries the framework into a data entry](#a-shared-chunk-carries-the-framework-into-a-data-entry)
+18. [Vue in a shadow root](#vue-in-a-shadow-root)
+19. [Angular in a shadow root](#angular-in-a-shadow-root)
+20. [Removing a web component before its answer](#removing-a-web-component-before-its-answer)
+21. [A component library keeps destroyed rows](#a-component-library-keeps-destroyed-rows)
+22. [What needs a newer cockpit](#what-needs-a-newer-cockpit)
 
 ## Assigning makes a candidate
 
@@ -104,24 +102,6 @@ today. Your user interface does not offer it: when the user sets a filter on a p
 entry for that path first, then add the new one.
 
 By intent this is no error, and a later version will allow it.
-
-## `businessIds` is lost in the update
-
-`businessIds` only works on `POST /workflow`. `WorkflowsUpdateRequest` has no such field. So a list
-filtered by business ids gets cases in the update that do not belong to it. Filter them out yourself
-if you use this filter.
-
-## The suggestions are not the most frequent
-
-The answer to a KWIC query has at most 21 entries, and the limit applies in the database before
-sorting. So they are the first 21 found, not the 21 most frequent. They are then sorted by count
-ascending, the rarest word first.
-
-When 21 entries come, show a note "more than twenty matches" instead of the list. Otherwise you show
-the user a random selection as if it were the best one. An improvement is planned.
-
-The count counts occurrences of a word, not rows, and only within the rows that match the other
-conditions.
 
 ## An event says that something changed, not what
 

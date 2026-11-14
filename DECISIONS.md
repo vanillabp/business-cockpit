@@ -4445,7 +4445,7 @@ it as one of its own modules.
   `UserTaskVisibility.TaskFacts`, `WorkflowVisibility.WorkflowFacts`
 - `tasklist/model/changesets/V000005` and `workflowlist/model/changesets/V000005`
 - `UPGRADE.md`: "A list can be limited to workflow modules"
-- `skills/business-cockpit-user-interface/references/gui-api.md` and `behaviour.md`
+- `skills/business-cockpit-creator/references/gui-api.md` and `behaviour.md`
 - Tests: `AListLimitedToWorkflowModulesTest`, `TheUpdateStreamAsItsOpenApiFileSaysTest`,
   `SseUpdatesTest`, `AChangeReachesTheStreamsItConcernsTest`, `TheIndexOfTheWorkflowModuleTest`,
   `AnUpgradeRepeatsNoChangesetTest`
@@ -4510,8 +4510,8 @@ does not answer the path.
 - `container/src/test/java/io/vanillabp/cockpit/itest/TheGroupHierarchyOfTheUserTest.java`
 - `UPGRADE.md`, "Where the rights of a user come from"
 - `development/dev-shell-simulator/README.md`, what the simulator does not answer
-- `skills/business-cockpit-user-interface/references/gui-api.md`, "Woher die Rechte des Benutzers
-  kommen"
+- `skills/business-cockpit-creator/references/behaviour.md`, "The rights of the user", and
+  `references/gui-api.md`
 
 ### 100. A key the cockpit does not read ends the start on Spring Boot as well
 
