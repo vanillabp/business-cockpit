@@ -216,6 +216,8 @@ span of time are answered by the same message on either platform.
 On Quarkus the mapping is also what lets the application start: a key below `vanillabp` which no
 mapping declares ends the startup there. That is what a misspelled key runs into, and the build ends
 naming it and the key it was nearest to, or, where it is one of version 1's, what became of it.
+A key of the whole application written for one workflow module is named together with the key
+it belongs to.
 Spring Boot binds around such a key. So on Spring Boot the extension runs the same check,
 `ConfigurationKeyCheck`, while it reads the cockpit's settings, and the start ends with the same
 message. It checks every property source with names except the environment variables, and it
