@@ -19,9 +19,14 @@ import io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.WorkflowRep
 /**
  * Keeps the workflows the simulator received. They are stored in the simulator's in-memory
  * database.
+ *
+ * <p>Every method reads in a read-only transaction, and only the methods which change a workflow
+ * open one which writes. A test of a workflow module asks again and again whether its workflow
+ * has ended. If such a read wrote the rows it read, a read which started before the report of
+ * the end and finished after it would store the old row again, and the end would be gone.
  */
 @Service
-@Transactional
+@Transactional(readOnly = true)
 public class WorkflowService {
 
   /**
@@ -51,6 +56,7 @@ public class WorkflowService {
    * @param workflowId The ID of the Workflow to be created.
    * @param workflow The workflow to store
    */
+  @Transactional
   public void createWorkflow(
       final String workflowId,
       final Workflow workflow) {
@@ -71,6 +77,7 @@ public class WorkflowService {
    * @throws IllegalArgumentException If the workflow ID is null.
    * @throws IllegalStateException    If the workflow does not exist.
    */
+  @Transactional
   public void updateWorkflow(
       final String workflowId,
       final Consumer<Workflow> mapOnto) {
@@ -210,6 +217,7 @@ public class WorkflowService {
    * @param workflowId The ID of the Workflow to complete.
    * @param mapOnto    Mapper
    */
+  @Transactional
   public void completeWorkflow(
       final String workflowId,
       final Consumer<Workflow> mapOnto) {
@@ -236,6 +244,7 @@ public class WorkflowService {
    * @param workflowId The ID of the Workflow to cancel.
    * @param mapOnto    Mapper
    */
+  @Transactional
   public void cancelWorkflow(
       final String workflowId,
       final Consumer<Workflow> mapOnto) {
@@ -262,6 +271,7 @@ public class WorkflowService {
    * @return The entry as it is stored now, or {@code null} if there is none of that id
    * @throws IllegalStateException if the entry has ended
    */
+  @Transactional
   public Workflow setNote(
       final String workflowId,
       final String text) {
@@ -290,6 +300,7 @@ public class WorkflowService {
    *        activated again
    * @param suspendedBy Who suspended or activated it, or {@code null} where nobody is named
    */
+  @Transactional
   public void changeSuspension(
       final String workflowId,
       final OffsetDateTime suspendedAt,
