@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
@@ -24,6 +25,16 @@ import io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.WorkflowRep
  * open one which writes. A test of a workflow module asks again and again whether its workflow
  * has ended. If such a read wrote the rows it read, a read which started before the report of
  * the end and finished after it would store the old row again, and the end would be gone.
+ *
+ * <p>A method which changes a workflow runs through {@link ConflictingChanges}. Two reports about
+ * the same workflow may arrive at the same time, and the second one is then laid onto what the
+ * first one stored instead of undoing it.
+ *
+ * <p>Like the cockpit, the simulator takes the reports of a workflow in any order. A workflow
+ * module sends them through an outbox, and an outbox may send a report again later, after the
+ * reports which followed it. So a change or an end of a workflow the simulator does not hold yet
+ * stores the workflow, and a creation of a workflow it holds already does not replace what the
+ * later reports said.
  */
 @Service
 @Transactional(readOnly = true)
@@ -44,6 +55,9 @@ public class WorkflowService {
   @Autowired
   private WorkflowRepository workflows;
 
+  @Autowired
+  private ConflictingChanges changes;
+
   /**
    * Creates the service. Spring creates it, nobody else does.
    */
@@ -51,12 +65,14 @@ public class WorkflowService {
   }
 
   /**
-   * Stores a new workflow.
+   * Stores a new workflow. If the simulator holds the workflow already, because a later report
+   * arrived first or the creation is sent a second time, what is stored stays. The creation only
+   * adds what the stored workflow does not say, and its start if that is earlier.
    *
    * @param workflowId The ID of the Workflow to be created.
    * @param workflow The workflow to store
    */
-  @Transactional
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public void createWorkflow(
       final String workflowId,
       final Workflow workflow) {
@@ -65,19 +81,114 @@ public class WorkflowService {
       throw new IllegalArgumentException("Workflow ID or workflow must not be null!");
     }
 
-    workflows.save(workflow);
+    changes.runAndRepeatOnConflict(() -> {
+      final var stored = workflows.findById(workflowId);
+      if (stored.isPresent()) {
+        addWhatOnlyTheCreationSays(stored.get(), workflow);
+        return workflows.saveAndFlush(stored.get());
+      }
+      // an attempt which failed on the key has given the object a version, and an object with a
+      // version is taken for one which is stored already
+      workflow.setVersion(null);
+      return workflows.saveAndFlush(workflow);
+    });
+
+  }
+
+  private static void addWhatOnlyTheCreationSays(
+      final Workflow stored,
+      final Workflow created) {
+
+    if ((stored.getCreatedAt() == null) || ((created.getCreatedAt() != null) && created.getCreatedAt()
+        .isBefore(stored.getCreatedAt()))) {
+      stored.setCreatedAt(created.getCreatedAt());
+    }
+    if (stored.getUpdatedAt() == null) {
+      stored.setUpdatedAt(created.getUpdatedAt());
+    }
+    if (stored.getInitiator() == null) {
+      stored.setInitiator(created.getInitiator());
+    }
+    if (stored.getWorkflowModuleId() == null) {
+      stored.setWorkflowModuleId(created.getWorkflowModuleId());
+    }
+    if (stored.getComment() == null) {
+      stored.setComment(created.getComment());
+    }
+    if (stored.getBpmnProcessId() == null) {
+      stored.setBpmnProcessId(created.getBpmnProcessId());
+    }
+    if (stored.getBpmnProcessVersion() == null) {
+      stored.setBpmnProcessVersion(created.getBpmnProcessVersion());
+    }
+    if (stored.getBusinessId() == null) {
+      stored.setBusinessId(created.getBusinessId());
+    }
+    if ((stored.getTitle() == null) || stored.getTitle().isEmpty()) {
+      stored.setTitle(created.getTitle());
+    }
+    if (stored.getUiUri() == null) {
+      stored.setUiUri(created.getUiUri());
+    }
+    if (stored.getUiUriType() == null) {
+      stored.setUiUriType(created.getUiUriType());
+    }
+    if (stored.getWorkflowModuleUri() == null) {
+      stored.setWorkflowModuleUri(created.getWorkflowModuleUri());
+    }
+    if (stored.getAccessibleToUsers() == null) {
+      stored.setAccessibleToUsers(created.getAccessibleToUsers());
+    }
+    if (stored.getAccessibleToGroups() == null) {
+      stored.setAccessibleToGroups(created.getAccessibleToGroups());
+    }
+    if (stored.getDetails() == null) {
+      stored.setDetails(created.getDetails());
+    }
+    if (stored.getDetailsFulltextSearch() == null) {
+      stored.setDetailsFulltextSearch(created.getDetailsFulltextSearch());
+    }
 
   }
 
   /**
-   * Updates a workflow which is stored already.
+   * Lays a report onto the stored workflow, or onto a new one if the simulator does not hold it
+   * yet, and stores the result.
+   *
+   * @param workflowId The id of the workflow
+   * @param mapOnto Lays the report onto the workflow
+   */
+  private void layOntoTheWorkflow(
+      final String workflowId,
+      final Consumer<Workflow> mapOnto) {
+
+    changes.runAndRepeatOnConflict(() -> {
+      final var workflow = workflows
+          .findById(workflowId)
+          .orElseGet(() -> {
+            final var notReportedYet = new Workflow();
+            notReportedYet.setId(workflowId);
+            return notReportedYet;
+          });
+      mapOnto.accept(workflow);
+      if (workflow.getCreatedAt() == null) {
+        // the creation has not arrived yet. Until it does, the earliest moment the simulator
+        // knows of is the time of this report
+        workflow.setCreatedAt(workflow.getUpdatedAt());
+      }
+      return workflows.saveAndFlush(workflow);
+    });
+
+  }
+
+  /**
+   * Changes a workflow. A workflow the simulator does not hold yet is stored as the report says.
    *
    * @param workflowId The ID of the Workflow to update.
    * @param mapOnto    Mapper
    * @throws IllegalArgumentException If the workflow ID is null.
-   * @throws IllegalStateException    If the workflow does not exist.
    */
-  @Transactional
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public void updateWorkflow(
       final String workflowId,
       final Consumer<Workflow> mapOnto) {
@@ -86,16 +197,7 @@ public class WorkflowService {
       throw new IllegalArgumentException("Workflow ID must not be null!");
     }
 
-    final var workflowFound = workflows
-        .findById(workflowId)
-        .orElseThrow(() -> new IllegalStateException("Workflow with ID "
-            + workflowId
-            + " not found"));
-
-    mapOnto.accept(workflowFound);
-
-    workflows.save(workflowFound);
-
+    layOntoTheWorkflow(workflowId, mapOnto);
 
   }
 
@@ -212,12 +314,13 @@ public class WorkflowService {
   }
 
   /**
-   * Marks a workflow as completed.
+   * Marks a workflow as completed. A workflow the simulator does not hold yet is stored as
+   * completed, so it does not show as running once its creation arrives.
    *
    * @param workflowId The ID of the Workflow to complete.
    * @param mapOnto    Mapper
    */
-  @Transactional
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public void completeWorkflow(
       final String workflowId,
       final Consumer<Workflow> mapOnto) {
@@ -226,25 +329,18 @@ public class WorkflowService {
       throw new IllegalArgumentException("Workflow ID must not be null!");
     }
 
-    final var workflowFound = workflows
-        .findById(workflowId)
-        .orElseThrow(() -> new IllegalStateException("Workflow with ID "
-            + workflowId
-            + " not found"));
-
-    mapOnto.accept(workflowFound);
-
-    workflows.save(workflowFound);
+    layOntoTheWorkflow(workflowId, mapOnto);
 
   }
 
   /**
-   * Marks a workflow as cancelled. An unknown workflow is ignored.
+   * Marks a workflow as cancelled. A workflow the simulator does not hold yet is stored as
+   * cancelled, for the same reason as a completed one.
    *
    * @param workflowId The ID of the Workflow to cancel.
    * @param mapOnto    Mapper
    */
-  @Transactional
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public void cancelWorkflow(
       final String workflowId,
       final Consumer<Workflow> mapOnto) {
@@ -253,12 +349,7 @@ public class WorkflowService {
       throw new IllegalArgumentException("Workflow ID must not be null!");
     }
 
-    workflows
-        .findById(workflowId)
-        .ifPresent(workflowFound -> {
-          mapOnto.accept(workflowFound);
-          workflows.save(workflowFound);
-        });
+    layOntoTheWorkflow(workflowId, mapOnto);
 
   }
 
@@ -271,22 +362,24 @@ public class WorkflowService {
    * @return The entry as it is stored now, or {@code null} if there is none of that id
    * @throws IllegalStateException if the entry has ended
    */
-  @Transactional
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public Workflow setNote(
       final String workflowId,
       final String text) {
 
-    final var found = workflows.findById(workflowId).orElse(null);
-    if (found == null) {
-      return null;
-    }
-    if (found.getEndedAt() != null) {
-      throw new IllegalStateException("'"
-          + workflowId
-          + "' has ended");
-    }
-    found.setNote(StringUtils.hasText(text) ? text : null);
-    return workflows.save(found);
+    return changes.runAndRepeatOnConflict(() -> {
+      final var found = workflows.findById(workflowId).orElse(null);
+      if (found == null) {
+        return null;
+      }
+      if (found.getEndedAt() != null) {
+        throw new IllegalStateException("'"
+            + workflowId
+            + "' has ended");
+      }
+      found.setNote(StringUtils.hasText(text) ? text : null);
+      return workflows.saveAndFlush(found);
+    });
 
   }
 
@@ -300,19 +393,21 @@ public class WorkflowService {
    *        activated again
    * @param suspendedBy Who suspended or activated it, or {@code null} where nobody is named
    */
-  @Transactional
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public void changeSuspension(
       final String workflowId,
       final OffsetDateTime suspendedAt,
       final String suspendedBy) {
 
-    workflows
-        .findById(workflowId)
-        .ifPresent(found -> {
-          found.setSuspendedAt(suspendedAt);
-          found.setSuspendedBy(suspendedBy);
-          workflows.save(found);
-        });
+    changes.runAndRepeatOnConflict(() -> {
+      final var found = workflows.findById(workflowId);
+      found.ifPresent(workflow -> {
+        workflow.setSuspendedAt(suspendedAt);
+        workflow.setSuspendedBy(suspendedBy);
+        workflows.saveAndFlush(workflow);
+      });
+      return found;
+    });
 
   }
 

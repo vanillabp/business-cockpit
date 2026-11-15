@@ -8,6 +8,8 @@ import java.util.function.Consumer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Page;
@@ -17,8 +19,13 @@ import io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.UserTaskRep
 /**
  * Keeps the user tasks the simulator received. They are stored in the simulator's in-memory
  * database.
+ *
+ * <p>Every method reads in a read-only transaction, like the ones of {@link WorkflowService}. A
+ * method which changes a user task runs through {@link ConflictingChanges}, so two reports about the
+ * same user task which arrive at the same time do not undo each other.
  */
 @Service
+@Transactional(readOnly = true)
 public class TaskService {
 
   /**
@@ -62,6 +69,9 @@ public class TaskService {
   @Autowired
   private UserTaskRepository userTasks;
 
+  @Autowired
+  private ConflictingChanges changes;
+
   /**
    * Creates the service. Spring creates it, nobody else does.
    */
@@ -69,11 +79,13 @@ public class TaskService {
   }
 
   /**
-   * Stores a new user task.
+   * Stores a new user task. A user task the simulator holds already stays as it is: the creation
+   * was sent a second time, and the stored task may carry later reports.
    *
    * @param userTaskId The id of the user task
    * @param userTask The user task to store
    */
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public void createTask(
       final String userTaskId,
       final UserTask userTask) {
@@ -82,7 +94,14 @@ public class TaskService {
       throw new IllegalArgumentException("UserTask ID or UserTask must not be null!");
     }
 
-    userTasks.save(userTask);
+    changes.runAndRepeatOnConflict(() -> userTasks
+        .findById(userTaskId)
+        .orElseGet(() -> {
+          // an attempt which failed on the key has given the object a version, and an object
+          // with a version is taken for one which is stored already
+          userTask.setVersion(null);
+          return userTasks.saveAndFlush(userTask);
+        }));
 
   }
 
@@ -252,6 +271,7 @@ public class TaskService {
    * @throws IllegalArgumentException If the task ID is null.
    * @throws IllegalStateException    If the task does not exist.
    */
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public void updateTask(
       final String userTaskId,
       final Consumer<UserTask> mapOnto) {
@@ -260,15 +280,23 @@ public class TaskService {
       throw new IllegalArgumentException("UserTask ID or event cannot be null!");
     }
 
-    final var userTaskFound = userTasks
-        .findById(userTaskId)
-        .orElseThrow(() -> new IllegalStateException("User task with ID "
-            + userTaskId
-            + " not found"));
+    layOntoTheStoredTask(userTaskId, mapOnto);
 
-    mapOnto.accept(userTaskFound);
+  }
 
-    userTasks.save(userTaskFound);
+  private void layOntoTheStoredTask(
+      final String userTaskId,
+      final Consumer<UserTask> mapOnto) {
+
+    changes.runAndRepeatOnConflict(() -> {
+      final var userTaskFound = userTasks
+          .findById(userTaskId)
+          .orElseThrow(() -> new IllegalStateException("User task with ID "
+              + userTaskId
+              + " not found"));
+      mapOnto.accept(userTaskFound);
+      return userTasks.saveAndFlush(userTaskFound);
+    });
 
   }
 
@@ -278,6 +306,7 @@ public class TaskService {
    * @param userTaskId The ID of the UserTask to be completed.
    * @param mapOnto      Mapper.
    */
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public void completeTask(
       final String userTaskId,
       final Consumer<UserTask> mapOnto) {
@@ -286,15 +315,7 @@ public class TaskService {
       throw new IllegalArgumentException("UserTask ID or event cannot be null!");
     }
 
-    final var userTaskFound = userTasks
-        .findById(userTaskId)
-        .orElseThrow(() -> new IllegalStateException("User task with ID "
-            + userTaskId
-            + " not found"));
-
-    mapOnto.accept(userTaskFound);
-
-    userTasks.save(userTaskFound);
+    layOntoTheStoredTask(userTaskId, mapOnto);
 
   }
 
@@ -304,6 +325,7 @@ public class TaskService {
    * @param userTaskId The ID of the UserTask to be completed.
    * @param mapOnto      Mapper.
    */
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public void cancelTask(
       final String userTaskId,
       final Consumer<UserTask> mapOnto) {
@@ -312,12 +334,14 @@ public class TaskService {
       throw new IllegalArgumentException("UserTask ID cannot be null!");
     }
 
-    userTasks
-        .findById(userTaskId)
-        .ifPresent(userTaskFound -> {
-          mapOnto.accept(userTaskFound);
-          userTasks.save(userTaskFound);
-        });
+    changes.runAndRepeatOnConflict(() -> {
+      final var userTaskFound = userTasks.findById(userTaskId);
+      userTaskFound.ifPresent(userTask -> {
+        mapOnto.accept(userTask);
+        userTasks.saveAndFlush(userTask);
+      });
+      return userTaskFound;
+    });
 
   }
 
@@ -330,21 +354,24 @@ public class TaskService {
    * @return The entry as it is stored now, or {@code null} if there is none of that id
    * @throws IllegalStateException if the entry has ended
    */
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public UserTask setNote(
       final String userTaskId,
       final String text) {
 
-    final var found = userTasks.findById(userTaskId).orElse(null);
-    if (found == null) {
-      return null;
-    }
-    if (found.getEndedAt() != null) {
-      throw new IllegalStateException("'"
-          + userTaskId
-          + "' has ended");
-    }
-    found.setNote(StringUtils.hasText(text) ? text : null);
-    return userTasks.save(found);
+    return changes.runAndRepeatOnConflict(() -> {
+      final var found = userTasks.findById(userTaskId).orElse(null);
+      if (found == null) {
+        return null;
+      }
+      if (found.getEndedAt() != null) {
+        throw new IllegalStateException("'"
+            + userTaskId
+            + "' has ended");
+      }
+      found.setNote(StringUtils.hasText(text) ? text : null);
+      return userTasks.saveAndFlush(found);
+    });
 
   }
 
@@ -358,18 +385,21 @@ public class TaskService {
    *        activated again
    * @param suspendedBy Who suspended or activated it, or {@code null} where nobody is named
    */
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public void changeSuspension(
       final String userTaskId,
       final OffsetDateTime suspendedAt,
       final String suspendedBy) {
 
-    userTasks
-        .findById(userTaskId)
-        .ifPresent(found -> {
-          found.setSuspendedAt(suspendedAt);
-          found.setSuspendedBy(suspendedBy);
-          userTasks.save(found);
-        });
+    changes.runAndRepeatOnConflict(() -> {
+      final var found = userTasks.findById(userTaskId);
+      found.ifPresent(userTask -> {
+        userTask.setSuspendedAt(suspendedAt);
+        userTask.setSuspendedBy(suspendedBy);
+        userTasks.saveAndFlush(userTask);
+      });
+      return found;
+    });
 
   }
 
