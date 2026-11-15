@@ -40,7 +40,9 @@ compiles such a workflow module in every build, with `support` as its only depen
 
 - `io.vanillabp.cockpit.support.rest`: a REST client built on OpenFeign and OkHttp, with retries,
   a proxy, bearer and OAuth authentication and a trust store of its own. The cockpit's adapters
-  and an application use it to call the API of a BPMS or of the cockpit.
+  and an application use it to call the API of a BPMS or of the cockpit. The section
+  [REST clients](../README.md#rest-clients) of the support README lists all its properties with
+  their defaults and shows, step by step, how a client module brings its own configuration.
 
 The module brings no MongoDB and no Kafka. Spring Web, Spring Security and Spring's JWT classes are
 optional dependencies: an application which checks the login token has them anyway, and one which
