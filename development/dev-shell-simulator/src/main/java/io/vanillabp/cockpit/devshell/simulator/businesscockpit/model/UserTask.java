@@ -17,6 +17,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -39,6 +40,12 @@ public class UserTask {
   @Column(name = "ID")
   private String id;
 
+  /**
+   * Counts the changes of the row. Two reports which arrive at the same time would otherwise both
+   * write the row as they read it, and the later one would undo the earlier one. With the version
+   * the later write fails and is repeated, see {@code ConflictingChanges}.
+   */
+  @Version
   @Column(name = "VERSION")
   private Integer version;
 
