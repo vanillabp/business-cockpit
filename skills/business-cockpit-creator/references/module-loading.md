@@ -117,8 +117,8 @@ The data entries need no framework compiler, see
 [Data entries carry no framework](#data-entries-carry-no-framework). So a module can build them with
 plain esbuild, apart from its forms, even when its forms are Angular.
 
-The recipes are a starting point. Probe `1500` compares the ways of loading across frameworks and
-measures the load time and the size per way, see
+The recipes are a starting point. Nobody has measured yet how the ways of loading compare across
+frameworks in load time and size, see
 [Cells drawn by a workflow module](#cells-drawn-by-a-workflow-module).
 
 ## The rules
@@ -717,7 +717,7 @@ is additive. An old cockpit answers `UNKNOWN_ACTION`, and the module decides wha
 ## Cells drawn by a workflow module
 
 This is an open question. It is not required and not generated until a solution exists
-(`Q-CELL-RENDERING`). Prompt `1500` works it out.
+(`Q-CELL-RENDERING`).
 
 The wish: a module draws single cells of a list itself, for example a traffic light for a risk
 rating, buttons that complete a user task in place, or details loaded on mouse-over. It is a good
@@ -736,13 +736,13 @@ Directions that might work, none of them proven:
   the visible area exist at all, see
   [behaviour.md](behaviour.md#paging-and-the-window-of-loaded-rows).
 
-Prompt `1500` decides this with a probe. It compares three ways of loading a cell across
-frameworks: the way of this description, which shares nothing and loads self-contained ES modules
-with `import()`; Module Federation 2.0 with shared dependencies; and native federation. It mixes the
-frameworks crosswise, for example a Vue page with cells from a React and an Angular module. It
-measures the memory, how fast cells are drawn, how fast they react to the user, how many cells a
-list can hold, and how long loading takes. Its result decides whether cells may relax the rule
-[Nothing is shared](#nothing-is-shared). Every other part keeps the rule.
+A probe has to decide this. It would compare three ways of loading a cell across frameworks: the way
+of this description, which shares nothing and loads self-contained ES modules with `import()`;
+Module Federation 2.0 with shared dependencies; and native federation. It would mix the frameworks
+crosswise, for example a Vue page with cells from a React and an Angular module. It would measure
+the memory, how fast cells are drawn, how fast they react to the user, how many cells a list can
+hold, and how long loading takes. Its result would decide whether cells may relax the rule [Nothing
+is shared](#nothing-is-shared). Every other part keeps the rule.
 
 Until then, cells are drawn by the cockpit from the column types, see
 [behaviour.md](behaviour.md#the-columns-a-workflow-module-brings).

@@ -138,14 +138,29 @@ The organisation gives a user groups in its identity provider, for example `Acco
 workflow module turns groups into more groups and into rights with its group hierarchy
 (`GroupHierarchyMapping`). Each entry of the hierarchy says: a member of this group also gets these
 groups and rights. The module configures it under
-`vanillabp.workflow-modules.<id>.cockpit.group-hierarchy`, or names a bean that gives it with
-`group-hierarchy-bean-name`. It sends the hierarchy to the cockpit when it registers. Users often do
-not know why they may do something, or why not. The overview answers that.
+`vanillabp.workflow-modules.<id>.cockpit.group-hierarchy`. A hierarchy that changes while the
+application runs comes from a bean of type `WorkflowModuleGroupHierarchy` instead. The module sends the
+hierarchy to the cockpit when it registers. Users often do not know why they may do something, or
+why not. The overview answers that.
 
-This is how project M does it: `RoleMappingsController`, `GroupHierarchyAware` and
-`BusinessCockpitRoles` in `workflow-commons/businesscockpit`, the hierarchy in `ordermanagement.yaml`,
-and the component `user-role-tooltip` of its cockpit. The cockpit gives the data for all modules
-in one answer, see [Where the data comes from](#where-the-data-comes-from).
+A hierarchy in the configuration of a module looks like this. Each key is a group, and its list
+holds the groups and rights a member of that group also gets:
+
+```yaml
+vanillabp:
+  workflow-modules:
+    orders:
+      cockpit:
+        group-hierarchy:
+          AccountManagement:
+            - User
+            - Orders.Cancel
+          User:
+            - Orders.View
+```
+
+The cockpit gives the data for all modules in one answer, see
+[Where the data comes from](#where-the-data-comes-from).
 
 #### How it opens
 
@@ -171,7 +186,6 @@ From top to bottom:
 The rows of the table of one module:
 
 - A group the identity provider gives the user directly: kind "Role", given by "Organisation".
-  Project M writes the name of its identity provider here, `EntraID`.
 - For every group of the user with an entry in the hierarchy, one row per target of the entry: the
   name of the target, and the group of the entry as "Given by". The kind is "Role" if the target
   has an entry of its own in the hierarchy, so it stands for more. Otherwise the kind is "Right".
@@ -182,18 +196,17 @@ The rows of the table of one module:
 
 Each row shows one step only. A right that comes over several steps shows the group of the last
 step, and that group has its own row. So the user follows the chain upwards, row by row. An
-example with the hierarchy of project M, shortened, for a user the organisation gives
-`M3Flow.AccountManagement`:
+example with the hierarchy above, for a user the organisation gives `AccountManagement`:
 
-|           Name           | Kind  |         Given by         |
-|--------------------------|-------|--------------------------|
-| M3Flow.AccountManagement | Role  | Organisation             |
-| M3Flow.User              | Role  | M3Flow.AccountManagement |
-| OMGNT_ORDER_SALES_Abort  | Right | M3Flow.AccountManagement |
-| OMGNT_ORDER_ViewOrders   | Right | M3Flow.User              |
+|       Name        | Kind  |     Given by      |
+|-------------------|-------|-------------------|
+| AccountManagement | Role  | Organisation      |
+| User              | Role  | AccountManagement |
+| Orders.Cancel     | Right | AccountManagement |
+| Orders.View       | Right | User              |
 
-Roles come first, then rights, and each part is in the alphabetical order of the name. Project M
-sorts by the prefix of its roles, `M3Flow.`. The kind tells the same without a naming rule. The
+Roles come first, then rights, and each part is in the alphabetical order of the name. The kind
+decides the order, so no naming rule for groups or rights is needed. The
 names are ids and are shown as they are, not translated. The title, the sentence, the column titles
 and the kinds are translated.
 
@@ -214,20 +227,20 @@ hierarchies of all modules and the groups the user directory gives. The answer l
 
 ```json
 {
-  "givenByOrganisation": ["M3Flow.AccountManagement"],
+  "givenByOrganisation": ["AccountManagement"],
   "modules": [
     {
-      "workflowModuleId": "ordermanagement",
+      "workflowModuleId": "orders",
       "entries": [
         {
-          "group": "M3Flow.AccountManagement",
+          "group": "AccountManagement",
           "givenByOrganisation": true,
-          "targets": ["M3Flow.User", "OMGNT_ORDER_SALES_Abort"]
+          "targets": ["Orders.Cancel", "User"]
         },
         {
-          "group": "M3Flow.User",
+          "group": "User",
           "givenByOrganisation": false,
-          "targets": ["OMGNT_ORDER_ViewOrders"]
+          "targets": ["Orders.View"]
         }
       ]
     }
@@ -250,13 +263,9 @@ hierarchies of all modules and the groups the user directory gives. The answer l
 `GET /gui/api/v1/app/current-user` is no help here. Its `groups` are all groups after the
 hierarchies of all modules are applied, and they do not say where a group came from.
 
-Project M has no such endpoint in the cockpit. Each of its modules answers
-`GET <uri>/api/v1/business-cockpit/role-mappings` itself, and the user interface asks every module
-at its `uri`. The answer has `workflowModule`, the name of the module, and `roleMappings`: for each
-group `role`, `currentUser`, `assignedInEntraId` and the `targets`, each with `target` and `type`
-(`ROLE` or `PERMISSION`). The fields carry the same facts as the answer above. M also lets a user
-with the right `BC_ViewAllRoleMapping` see the entries of groups they do not have. The overview of
-this skill shows only the user's own rights.
+The endpoint is `UserRightsApiController` of the module `business-cockpit` in this repository,
+and the test `TheGroupHierarchyOfTheUserTest` of the module `container` shows its answers. Use them
+to check what the overview must show.
 
 ## Counts
 
@@ -372,7 +381,9 @@ is a set of ids. It stays when rows leave the window of loaded rows, see
 
 ### Notes
 
-User tasks and cases can carry notes (`Q-NOTES`). The endpoints come with prompt `1507`. A note
+User tasks and cases can carry notes (`Q-NOTES`). The endpoints are
+`PATCH /usertask/{id}/note` and `PATCH /usertask/note` for user tasks, and the same paths below
+`/workflow` for cases. A note
 can be written in three places:
 
 - in the list, per row, in the notes column,
@@ -492,7 +503,7 @@ stored fields are `id`, `fulltext` and `sort`.
 
 Whether a module may draw cells itself is an open question, see
 [module-loading.md](module-loading.md#cells-drawn-by-a-workflow-module). It depends on a way to
-do it without starting a framework once per cell, and prompt `1500` looks for one. More column
+do it without starting a framework once per cell, and none is known yet. More column
 types out of the box, for example a currency, are a wish for later.
 
 ## The actions on a user task
@@ -1072,8 +1083,8 @@ page, also when the user has to log in first.
 ## User settings
 
 Users expect the cockpit to remember their choices in every browser they use. So every user
-setting is stored on the server, in the map `customSettings` of the user. Prompt `1505` adds it,
-with endpoints that read and write one entry, see [gui-api.md](gui-api.md#user-settings).
+setting is stored on the server, in the map `customSettings` of the user. The cockpit has endpoints
+that read and write one entry of it, see [gui-api.md](gui-api.md#user-settings).
 
 This holds for every setting, whether the user sets it on purpose or the user interface only
 remembers it. Examples:
@@ -1094,7 +1105,7 @@ a setting uses the service, and nothing else calls the endpoints. The service:
 - writes a change to the server and updates the cache at once, so the page does not wait,
 - names its keys with a prefix of the user interface and a fixed scheme, with `:` as the
   separator, for example `bc:tasks:primaryFilter` or `bc:columns:tasks:width:<path>`. The server
-  refuses a key with a `.` (prompt `1505`), so the dots of a path become `:` as well:
+  refuses a key with a `.`, so the dots of a path become `:` as well:
   `bc:columns:tasks:width:details:customer:name`,
 - keeps implicit settings that change often, like a column width while dragging, until the change
   has stopped for a moment, and writes only then.

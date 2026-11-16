@@ -253,41 +253,45 @@ the retaining path of a detached DOM node leads to the library. See
 
 ## What needs a newer cockpit
 
-This description counts on prompts of the `business-cockpit` repository that are not all released
-yet. The cockpit version of the interview (`Q-COCKPIT-VERSION`) must have them:
+This description counts on features of the `business-cockpit` repository that came with version
+`0.9.0`. The cockpit version of the interview (`Q-COCKPIT-VERSION`) must be `0.9.0` or later. Until
+`0.9.0` is released, build `0.9.0-SNAPSHOT` from the branch `main`. Version `0.9.0` brings:
 
-| Prompt |                                                                                              What it brings                                                                                              |
-|--------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `1504` | `endReason` on user tasks and cases, so a cancelled row can be told from a completed one                                                                                                                 |
-| `1505` | `customSettings` on the user, read and written one entry at a time with `GET` and `PUT /app/current-user/settings/{key}`, in the cockpit's own file `api/gui/v1.yaml`                                    |
-| `1506` | the count endpoint                                                                                                                                                                                       |
-| `1507` | notes on user tasks and cases                                                                                                                                                                            |
-| `1509` | `OpenTasks` is gone; the open modes are `OpenTasksWithFollowUp` and `OpenTasksWithoutFollowUp`; without `mode` the server takes `OpenTasksWithFollowUp` for user tasks and the open cases for cases      |
-| `1510` | the library brings no login; the application writes the security chains and `userDetailsProvider`. Needed by a backend the skill creates, not by the user interface                                      |
-| `1511` | `GET /updates` and the types of its events in the cockpit's own file `api/gui/v1.yaml`, so these types are generated too                                                                                 |
-| `1762` | the modes of a case list are `All`, `InProgress` (not ended, suspended cases included) and `Done` (ended)                                                                                                |
-| `1766` | the library brings the user directories for Keycloak and LDAP, switched on by `business-cockpit.user-directory.type`. Needed by a backend the skill creates with `Q-USER-DIRECTORY` `keycloak` or `ldap` |
-| `1787` | the token carries no groups, the cockpit asks `UserDirectoryService#getUser` on every request, and an OIDC login gets a token. Needed by a backend the skill creates                                     |
+- `endReason` on user tasks and cases, so a cancelled row can be told from a completed one,
+- `customSettings` on the user, read and written one entry at a time with `GET` and
+  `PUT /app/current-user/settings/{key}`, in the cockpit's own file `api/gui/v1.yaml`,
+- the count endpoints `POST /usertask/count` and `POST /workflow/count`,
+- notes on user tasks and cases,
+- the open modes of a task list `OpenTasksWithFollowUp` and `OpenTasksWithoutFollowUp`, without
+  `OpenTasks`; without `mode` the server takes `OpenTasksWithFollowUp` for user tasks and the open
+  cases for cases,
+- the modes of a case list `All`, `InProgress` (not ended, suspended cases included) and `Done`
+  (ended),
+- `GET /updates` and the types of its events in the cockpit's own file `api/gui/v1.yaml`, so these
+  types are generated too,
+- `GET /app/current-user/group-hierarchy` for the overview of the rights in the menu, see
+  [behaviour.md](behaviour.md#where-the-data-comes-from),
+- a library that brings no login: the application writes the security chains and
+  `userDetailsProvider`,
+- the user directories for Keycloak and LDAP in the library, switched on by
+  `business-cockpit.user-directory.type`,
+- a token without groups: the cockpit asks `UserDirectoryService#getUser` on every request, and an
+  OIDC login gets a token.
 
 Against an older cockpit the generated client lacks these endpoints and fields, and the build
 fails. That is on purpose: better a failed build than a user interface that guesses.
 
-Your user interface does not need prompt `1510`, but a backend the skill creates does. Since `1510`
-the library brings no login: the two security chains and the bean `userDetailsProvider` are the
-application's, and the generated backend writes all three itself, see
+The last three points matter for a backend the skill creates, not for the user interface. Since
+`0.9.0` the library brings no login: the two security chains and the bean `userDetailsProvider` are
+the application's, and the generated backend writes all three itself, see
 [backend.md](backend.md#the-login). An older library has a BPMS API chain of its own under the same
-bean name, and the application would not start next to it.
-
-Against a library older than `1787`, the token carries the groups of the login, and the mapper
-cannot handle the principal of an OIDC login, so that login gets no token at all. The generated
-backend needs `1787`.
+bean name, and the application would not start next to it. With an older library the token also
+carries the groups of the login, and the mapper cannot handle the principal of an OIDC login, so
+that login gets no token at all. A library older than `0.9.0` answers
+`GET /gui/api/v1/app/current-user/group-hierarchy` with 404, and the overview cannot show where a
+right comes from.
 
 The OIDC login of [backend.md](backend.md#oidc-the-default) follows the wiki page
 [Security](https://github.com/vanillabp/business-cockpit/wiki/Security), but the cockpit has no
-test for it yet. The second part of `1510`, a login with OAuth2, is still to come. Until then the
-end-to-end test of the login in the generated project is the proof (`BE-007`).
-
-The overview of the rights in the menu reads `GET /gui/api/v1/app/current-user/group-hierarchy`,
-which came with `1858`. A library older than `1858` answers that path with 404, and the overview
-cannot show where a right comes from. The generated project needs `1858`, see
-[behaviour.md](behaviour.md#where-the-data-comes-from).
+test for it yet. A login with OAuth2 is still to come. Until then the end-to-end test of the login
+in the generated project is the proof (`BE-007`).

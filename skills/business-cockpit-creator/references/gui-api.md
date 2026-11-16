@@ -90,7 +90,7 @@ The other way is the raw file in the `business-cockpit` repository at the releas
 That needs no unpacking, but it reads the source and not the released artifact. The jar is the
 default.
 
-The update stream `GET /updates` is in the cockpit's own file since prompt `1511`, together with
+The update stream `GET /updates` is in the cockpit's own file, together with
 the types of its events, `UserTaskEvent` and `WorkflowEvent`. So the generated client brings these
 types too. Do not use a generated call for the stream itself, because a stream never ends. Open the
 stream with `EventSource`, or with `fetch` and a reader on the body, see
@@ -117,8 +117,8 @@ needed. So these stay open:
 Everything else asks for a login. Login is the job of the backend application, not of the user
 interface, see [`../SKILL.md`](../SKILL.md#how-your-user-interface-gets-into-the-cockpit). The
 `business-cockpit` library sets no rules for it. The application decides which paths are open, and
-the generated user interface never asks for a change of the library. Today the library still has a
-default chain of its own; prompt `1510` moves it into `container`, see
+the generated user interface never asks for a change of the library. The security chains of the
+runnable `container` are an example of such an application, see
 [rough-edges.md](rough-edges.md#what-needs-a-newer-cockpit).
 
 A login answers with a cookie, and from then on the cookie travels with every request. The cookie
@@ -185,8 +185,9 @@ The endpoints, all relative to the base path:
 | `PATCH /usertask/{id}/assign`, `PATCH /usertask/assign`                  | add a person as candidate user, with `unassign=true` remove them                                           |
 | `PATCH /usertask/{id}/mark-as-read`, `PATCH /usertask/mark-as-read`      | mark as read, with `unread=true` take it back                                                              |
 | `PATCH /usertask/{id}/follow-up-date`                                    | set or delete the follow-up date                                                                           |
-| notes of a user task and of a case                                       | read and write notes, added by prompt `1507`                                                               |
-| counting a list                                                          | the number of rows of a query, added by prompt `1506`                                                      |
+| `PATCH /usertask/{id}/note`, `PATCH /usertask/note`                      | set, change or clear the note of a user task or of several                                                 |
+| `PATCH /workflow/{id}/note`, `PATCH /workflow/note`                      | set, change or clear the note of a case or of several                                                      |
+| `POST /usertask/count`, `POST /workflow/count`                           | the number of rows of several lists, for the counts                                                        |
 | `POST /user`                                                             | search users, to propose a task to a person                                                                |
 | `POST /workflow`                                                         | one page of the case list                                                                                  |
 | `PUT /workflow`                                                          | the same query as an update                                                                                |
@@ -197,7 +198,7 @@ The endpoints, all relative to the base path:
 | `GET /notifications/media`, `/config`, `/recipient-config`, `/workflows` | the notification settings of the user; `PUT` on `/config` and `/recipient-config/{mediumType}` stores them |
 | `GET /app/info`, `GET /app/current-user`                                 | the application and the user                                                                               |
 | `GET /app/current-user/group-hierarchy`                                  | where each group and right of the user comes from, see `behaviour.md`                                      |
-| `GET /app/current-user/settings/{key}`, `PUT` on the same path           | read and write one entry of `customSettings`, added by prompt `1505`                                       |
+| `GET /app/current-user/settings/{key}`, `PUT` on the same path           | read and write one entry of `customSettings`                                                               |
 | `GET /updates`                                                           | the update stream, see below                                                                               |
 
 The last four rows are in the cockpit's own file, all the others in the `official-gui-api`. They
@@ -206,8 +207,8 @@ exist only under `/gui/api/v1`, not under the other two base paths.
 The two forms of each action, one for one task and one for a list of ids, do the same. The list
 form is there so that several selected rows do not cause twenty requests.
 
-The prompts `1506` and `1507` decide the paths of their endpoints. Take them from the OpenAPI file
-of the pinned cockpit version, not from this text. The path of the user settings is fixed, see
+Take the details of the note and count endpoints from the OpenAPI file of the pinned cockpit
+version, not from this text. The path of the user settings is fixed, see
 [User settings](#user-settings). For counts see [Counting](#counting).
 
 `GET /workflow-module` answers the modules the user may see, each with `id`, `version` and `uri`.
@@ -297,7 +298,7 @@ Expect rows without a value at the front when sorting ascending.
 
 The list shows a total next to every primary filter, and the toggle in the header shows one next to
 each list, see [behaviour.md](behaviour.md#counts). The total of the chosen primary filter comes
-with the page. Every other count comes from the count endpoint that prompt `1506` adds. It takes
+with the page. Every other count comes from the count endpoint. It takes
 the same conditions as the list (base path, primary filter, filters, `initialTimestamp`) and
 answers a number, without rows and without sorting. Counting fast, with an index, is the job of
 the backend. Never ask for a page only to read its `totalElements`.
@@ -389,7 +390,7 @@ this term everywhere.
 | `OpenTaskOnlyFollowUp`     | open, with a follow-up date in the future              |
 | `ClosedTasksOnly`          | only what has an end                                   |
 
-The mode `OpenTasks` is gone since prompt `1509`. It returned the same rows as
+The mode `OpenTasks` is gone. It returned the same rows as
 `OpenTasksWithFollowUp`. So the open modes are a pair, with and without follow-up, plus the
 follow-ups alone.
 
@@ -401,7 +402,7 @@ follow-ups alone.
 
 A suspended case has not ended. So it is in progress, and `InProgress` shows it.
 
-Without `mode` the server takes its own default since prompt `1509`:
+Without `mode` the server takes its own default:
 `OpenTasksWithFollowUp` for a task list and `InProgress` for a case list, for `POST` and `PUT` alike.
 Still always send the primary filter yourself, so the list never depends on a default. The dev shell
 always sends `All`, see [dev-shell.md](dev-shell.md#what-it-shows).
@@ -475,7 +476,7 @@ pages of the window again with `POST` and the same `initialTimestamp` instead, s
 browser tab. An event in it is a wake-up call. It names the kind of entity, its id and what
 happened to it. It does not say what changed. Your user interface asks again.
 
-The path is in the cockpit's own file since prompt `1511`, so the types of the events come from the
+The path is in the cockpit's own file, so the types of the events come from the
 generated client. The connection does not: open it with `EventSource`, or with `fetch` and a reader
 on the body. A generated call waits for the end of the answer, and a stream has none.
 
@@ -550,15 +551,14 @@ What your user interface does about it:
 
 ## How a row ended
 
-A user task and a case have `endedAt`, the moment they ended, and `endReason`, the reason. Prompt
-`1504` adds `endReason` to the case and brings it to the GUI API for both. The values are
-`COMPLETED` and `CANCELLED`. An open row has neither field. Data stored before `1504` is converted
-by the backend, so your user interface reads `endReason` only and guesses nothing from other
-fields.
+A user task and a case have `endedAt`, the moment they ended, and `endReason`, the reason. The
+values are `COMPLETED` and `CANCELLED`. An open row has neither field. Data stored by an older
+cockpit, without `endReason`, is converted by the backend, so your user interface reads `endReason`
+only and guesses nothing from other fields.
 
 ## User settings
 
-Prompt `1505` gives the user a map `customSettings` and adds endpoints that read and write one entry
+The cockpit gives the user a map `customSettings` and has endpoints that read and write one entry
 of it. They are in the cockpit's own file, `api/gui/v1.yaml` in the `business-cockpit` jar, next to
 `current-user`. Every setting of a user is kept there, so it follows the user into every
 browser. Your user interface never keeps a setting in `localStorage`, `sessionStorage` or a cookie
