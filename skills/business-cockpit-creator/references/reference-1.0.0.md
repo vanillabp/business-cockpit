@@ -213,19 +213,20 @@ These items apply when the skill creates the backend (`Q-BACKEND`). Without it t
 
 ## ACT: actions on user tasks
 
-|    Id     |                                                                          Item                                                                          |       Applies       |
-|-----------|--------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
-| `ACT-001` | Claim makes the user the assignee, and the row shows it.                                                                                               | always              |
-| `ACT-002` | Removed: replaced by `ACT-011`.                                                                                                                        | removed             |
-| `ACT-003` | Unclaim removes the user as assignee, and the row shows it.                                                                                            | always              |
-| `ACT-004` | "Propose to" a person found by search makes the person a candidate user.                                                                               | always              |
-| `ACT-005` | Removing a candidate user takes the person off the task.                                                                                               | always              |
-| `ACT-006` | Mark as read and mark as unread change the bold state of the row.                                                                                      | always              |
-| `ACT-007` | Setting and deleting a follow-up date works for one task and for the selected tasks.                                                                   | `Q-FOLLOW-UP` = yes |
-| `ACT-008` | The effect of the user's own action shows as soon as the server has accepted it.                                                                       | always              |
-| `ACT-009` | The actions are disabled for a task whose `endedAt` is set.                                                                                            | always              |
-| `ACT-010` | A failed single action tells the user, without revealing whether the task exists.                                                                      | always              |
-| `ACT-011` | Claiming a task that has another assignee asks the user first; the question has "don't ask again", and that choice holds in every browser of the user. | always              |
+|    Id     |                                                                         Item                                                                          |       Applies       |
+|-----------|-------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
+| `ACT-001` | Claim makes the user the assignee, and the row shows it.                                                                                              | always              |
+| `ACT-002` | Removed: replaced by `ACT-011`.                                                                                                                       | removed             |
+| `ACT-003` | Unclaim removes the user as assignee, and the row shows it.                                                                                           | always              |
+| `ACT-004` | "Propose to" a person found by search makes the person a candidate user.                                                                              | always              |
+| `ACT-005` | Removing a candidate user takes the person off the task.                                                                                              | always              |
+| `ACT-006` | Mark as read and mark as unread change the bold state of the row.                                                                                     | always              |
+| `ACT-007` | Setting and deleting a follow-up date works for one task and for the selected tasks.                                                                  | `Q-FOLLOW-UP` = yes |
+| `ACT-008` | The effect of the user's own action shows as soon as the server has accepted it.                                                                      | always              |
+| `ACT-009` | The actions are disabled for a task whose `endedAt` is set.                                                                                           | always              |
+| `ACT-010` | A failed single action tells the user, without revealing whether the task exists.                                                                     | always              |
+| `ACT-011` | Removed: replaced by `ACT-012`.                                                                                                                       | removed             |
+| `ACT-012` | Claiming a task that has another assignee always asks the user first, every time; the question has no "don't ask again", and no setting turns it off. | always              |
 
 ## TF: the page of a user task
 
@@ -258,6 +259,11 @@ These items apply when the skill creates the backend (`Q-BACKEND`). Without it t
 | `TF-025` | Opening a task shows a loading state of its own while the task loads, while the data entry `UserTaskForm` loads, and while the visual entry it names loads and its web components get defined.                                                                                                | always                           |
 | `TF-026` | On the task page, each failure shows its own note: the task fails to load (retry), the module has no form for the task, the data entry or the visual entry fails to load (retry), and a web component is not defined in time (the note names module, entry and web component).                | always                           |
 | `TF-027` | When `userTaskForm` returns `element` as a string, that one web component gets the whole area with no column; when it returns an object, each named web component gets its area; in both cases the cockpit loads the visual entry named in `entry`.                                           | always                           |
+| `TF-028` | Resting the mouse on several rows of one task kind, on the same row again, and then opening the task loads the manifest of the module once, and its data entry and its visual entry once each.                                                                                                | always                           |
+| `TF-029` | The task page draws the web component of `all` when `Q-TASK-PAGE-AREAS` is none, and also when the page has areas but the object of `userTaskForm` names none of them; otherwise it draws the areas it knows, and never `all` and areas together.                                             | always                           |
+| `TF-030` | While the barrier lies over the page, the content of every area stays readable, and each area can still be scrolled with the mouse wheel and by touch.                                                                                                                                        | `Q-CLAIM` = hard                 |
+| `TF-031` | After the user claims the open task, its web components get the `userTask` property again with the user as assignee, and the barrier goes away without a reload.                                                                                                                              | `Q-CLAIM` = hard                 |
+| `TF-032` | The toast of `TF-011` comes when an update event of the open task arrives and the task, read again, has an `initiator` other than the current user; a change by the user does not show it.                                                                                                    | `Q-LIVE-MODE` ≠ `refresh-button` |
 
 ## WL: the case list
 
@@ -275,19 +281,21 @@ These items apply when the skill creates the backend (`Q-BACKEND`). Without it t
 
 ## WP: the page of a case
 
-|    Id    |                                                                                                   Item                                                                                                   |     Applies     |
-|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------|
-| `WP-001` | Opening a case loads it and shows the web components the module's page function names.                                                                                                                   | always          |
-| `WP-002` | Removed: replaced by `WP-007`.                                                                                                                                                                           | removed         |
-| `WP-003` | The case page gets `getUserTasks`, and it returns the user tasks of the case.                                                                                                                            | always          |
-| `WP-004` | Removed: merged into `TF-008`, which holds for both pages.                                                                                                                                               | removed         |
-| `WP-005` | Removed: replaced by `WP-010`.                                                                                                                                                                           | removed         |
-| `WP-006` | Removed: replaced by `WP-008`.                                                                                                                                                                           | removed         |
-| `WP-007` | The case page has no header or footer of its own and no button "list in its own window"; the application header shows the case information and the case actions from the interview, and no task actions. | always          |
-| `WP-008` | The case page shows one web component or the areas from the interview, as the page function returns.                                                                                                     | always          |
-| `WP-009` | The header of an open case offers its note.                                                                                                                                                              | `Q-NOTES` = yes |
-| `WP-010` | The case page runs the same steps as the task page, with the same loading states and the same notes as `TF-025` and `TF-026`.                                                                            | always          |
-| `WP-011` | The header of an open case never shows the case title or the business id.                                                                                                                                | always          |
+|    Id    |                                                                                                                         Item                                                                                                                          |             Applies              |
+|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------|
+| `WP-001` | Opening a case loads it and shows the web components the module's page function names.                                                                                                                                                                | always                           |
+| `WP-002` | Removed: replaced by `WP-007`.                                                                                                                                                                                                                        | removed                          |
+| `WP-003` | The case page gets `getUserTasks`, and it returns the user tasks of the case.                                                                                                                                                                         | always                           |
+| `WP-004` | Removed: merged into `TF-008`, which holds for both pages.                                                                                                                                                                                            | removed                          |
+| `WP-005` | Removed: replaced by `WP-010`.                                                                                                                                                                                                                        | removed                          |
+| `WP-006` | Removed: replaced by `WP-008`.                                                                                                                                                                                                                        | removed                          |
+| `WP-007` | The case page has no header or footer of its own and no button "list in its own window"; the application header shows the case information and the case actions from the interview, and no task actions.                                              | always                           |
+| `WP-008` | The case page shows one web component or the areas from the interview, as the page function returns.                                                                                                                                                  | always                           |
+| `WP-009` | The header of an open case offers its note.                                                                                                                                                                                                           | `Q-NOTES` = yes                  |
+| `WP-010` | The case page runs the same steps as the task page, with the same loading states and the same notes as `TF-025` and `TF-026`.                                                                                                                         | always                           |
+| `WP-011` | The header of an open case never shows the case title or the business id.                                                                                                                                                                             | always                           |
+| `WP-012` | The case page draws the web component of `all` when `Q-WORKFLOW-PAGE-AREAS` is none, and also when the page has areas but the object of `workflowPage` names none of them; otherwise it draws the areas it knows, and never `all` and areas together. | always                           |
+| `WP-013` | When an update event of the open case arrives, the page reads the case again and sets the `workflow` property again; if the `initiator` of the case is not the current user, a toast tells the user, and it stays until clicked away.                 | `Q-LIVE-MODE` ≠ `refresh-button` |
 
 ## SRCH: search, filter, sort and paging
 
@@ -391,13 +399,13 @@ These items apply when the skill creates the backend (`Q-BACKEND`). Without it t
 
 ## SET: user settings
 
-|    Id     |                                                                              Item                                                                               | Applies |
-|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
-| `SET-001` | One global settings service reads and writes every user setting, and no other code calls the settings endpoints.                                                | always  |
-| `SET-002` | A setting the service has read once is answered from its cache, without a new request.                                                                          | always  |
-| `SET-003` | A setting made in one browser holds in another browser of the same user: the language, "don't ask again", the primary filter last chosen and the column widths. | always  |
-| `SET-004` | The user interface keeps no setting in `localStorage`, `sessionStorage` or a cookie of its own.                                                                 | always  |
-| `SET-005` | Every key of a setting uses `:` as its separator and has no `.`, for example `bc:tasks:primaryFilter`; a path in a key has its dots replaced by `:`.            | always  |
+|    Id     |                                                                         Item                                                                         | Applies |
+|-----------|------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `SET-001` | One global settings service reads and writes every user setting, and no other code calls the settings endpoints.                                     | always  |
+| `SET-002` | A setting the service has read once is answered from its cache, without a new request.                                                               | always  |
+| `SET-003` | A setting made in one browser holds in another browser of the same user: the language, the primary filter last chosen and the column widths.         | always  |
+| `SET-004` | The user interface keeps no setting in `localStorage`, `sessionStorage` or a cookie of its own.                                                      | always  |
+| `SET-005` | Every key of a setting uses `:` as its separator and has no `.`, for example `bc:tasks:primaryFilter`; a path in a key has its dots replaced by `:`. | always  |
 
 ## I18N: language and texts
 

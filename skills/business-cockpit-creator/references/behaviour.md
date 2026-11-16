@@ -521,9 +521,8 @@ For one row or for several selected rows:
 | Follow-up        | sets or deletes the follow-up date                      |
 
 Claiming a task that already has another assignee takes it away from a colleague, see
-[rough-edges.md](rough-edges.md#claiming-overwrites). So the user interface asks first. The question
-has a checkbox "don't ask again". When the user ticks it, the choice is kept as a user setting, see
-[User settings](#user-settings), and the question no longer comes, in any browser.
+[rough-edges.md](rough-edges.md#claiming-overwrites). So the user interface always asks first, every
+time. The question has no checkbox "don't ask again", and no user setting turns it off.
 
 To propose a task, the user searches for persons in a field, and the user interface calls
 `POST /user` with a maximum number of hits for that.
@@ -669,14 +668,38 @@ answer.
    the web component.
 
 The list may start the first two steps early. When the mouse rests on a row, it asks the data entry
-and loads the visual entry, so the form is there when the user clicks.
+and loads the visual entry, so the form is there when the user clicks. This uses the same
+[loader](module-loading.md#one-registry-and-one-loader), so each module and each of its entries is
+loaded only once per page: the manifest of a module once, and each data entry and each visual entry
+once. Resting on the next row of the same kind, on the same row again, or the click that follows
+loads nothing new.
 
 ### The areas and the frame
 
 The function returns either one web component or one per area (`Q-TASK-PAGE-AREAS`), see
 [module-loading.md](module-loading.md#the-page-of-a-user-task-or-a-case). A string is the
 name of one web component, the all-in-one form: it gets the whole area, with no column. An object
-names a web component per area, the laid-out form. With the default convention:
+names a web component per area, the laid-out form.
+
+Besides the areas there is always the area `all`. It is the one web component which shows the whole
+page, and every cockpit knows it. The module kit exports its name as `AREA_ALL` (`'all'`), and the
+types library of the cockpit exports it as well, next to the names of this cockpit's areas, for
+example `AREA_BODY`, `AREA_INFORMATION` and `AREA_ACTIONS`, see
+[types.md](types.md#the-extension-points). A module which wants to run in every cockpit returns an
+object with `all` and the areas, for example `{ all, body, information, actions }`. The user task
+blueprint of VanillaBP does this with one small function per form that builds all four names.
+
+The cockpit picks what to draw:
+
+1. When the page has no areas, because the answer to `Q-TASK-PAGE-AREAS` was none, the cockpit
+   draws the web component of `all`.
+2. When the page has areas, the cockpit draws the areas of the object which it knows.
+3. When the page has areas, but the object names none of them, the cockpit draws the web component
+   of `all` as well. This is how a user task deliberately does not follow the areas: its module
+   names only `all`, or returns a string.
+4. When there is neither, the module has no form for this cockpit, and the page says so.
+
+The cockpit never draws `all` and the areas together. With the default convention, the areas are:
 
 - `body` is the main area. A long form scrolls in it.
 - `information` is the top of a column on the right, with basic information about the task, for
@@ -697,7 +720,19 @@ frame of the cockpit.
 ### The barrier
 
 If claiming is hard (`Q-CLAIM`), the areas of the page cannot be edited before the user has claimed
-the task. Usually a half-transparent layer lies over them. How it looks is up to the organisation.
+the task. Usually a half-transparent layer lies over them. How it looks is up to the organisation,
+with two rules:
+
+- The content under the layer stays readable. The user wants to see the task before taking it.
+- Each area can still be scrolled. A layer inside the scroll container of the area, as high as the
+  whole content, does this: the mouse wheel and touch scrolling still move the area, but a click
+  or a key press does not reach the form.
+
+The form itself may help. While the assignee of the task is not the current user (its property
+`currentUser`, see [types.md](types.md#what-a-part-gets)), the module may show its form read-only. When the user claims the task, the cockpit sets the `userTask` property of
+the module's web components again, with the user as the assignee, see
+[module-loading.md](module-loading.md#actions). Then the layer goes away, and the form shows
+itself ready to edit, without a reload.
 
 ### Everything inside the page is the module's
 
@@ -710,6 +745,17 @@ automatically, by hand with a save button, or not at all, the form decides.
 When somebody else changes the task while the user has it open, the user is
 told right away. For example: "User X has claimed this task. Please talk to them before you save or
 complete, to avoid losing data." The message is a sticky toast that the user has to click away.
+
+A change by others is an event of the update stream for the id of the shown task whose `initiator`
+is not the user who is logged in. The event itself does not say who made the change, see
+[rough-edges.md](rough-edges.md#an-event-says-that-something-changed-not-what). So the page reads
+the task again, see [How it works](#how-it-works), and looks at the field `initiator` of the user
+task. It holds the id of the user who caused the latest change, or a name for the cockpit or the
+workflow system when no user did. If it is the id of the current user, the change is the user's own,
+and no toast comes. Any other value means somebody else, and the toast names them.
+
+The same holds for the open page of a case, see [The page of a case](#the-page-of-a-case). There
+`initiator` is a person, so the page compares its `id` with the current user.
 
 ## The case list
 
@@ -769,7 +815,10 @@ names the visual entry and one web component for the all-in-one form, or one per
 the same three steps, with the
 same loading and error states as the task page,
 and gives the module `getUserTasks` for the tasks of the case. Long content scrolls in its own area
-and never breaks the frame of the cockpit.
+and never breaks the frame of the cockpit. The areas and `all` are picked as on the page of a user
+task, see [The areas and the frame](#the-areas-and-the-frame), with `Q-WORKFLOW-PAGE-AREAS` in
+place of `Q-TASK-PAGE-AREAS`. A case changed by others while its page is open shows the same toast,
+see [Changes by others](#changes-by-others).
 
 ## Search, filter, sort
 
@@ -1063,9 +1112,10 @@ An event of the type `FOLLOWUP` is the reason a list must not only ask about row
 server sends it when a follow-up date has come. The task was filtered out of the list until then. It
 only appears because of this event.
 
-An open task page listens too. When its task changes, it reads the task again, sets the property of
-the module's web components again, and shows the toast described in
-[Opening and working on a user task](#opening-and-working-on-a-user-task).
+An open task page listens too, and so does an open page of a case. When its task or case changes,
+the page reads it again, sets the property of the module's web components again (`userTask` or
+`workflow`), and shows the toast described in [Changes by others](#changes-by-others) when somebody
+else made the change.
 
 ## Notifications
 
@@ -1089,13 +1139,12 @@ that read and write one entry of it, see [gui-api.md](gui-api.md#user-settings).
 This holds for every setting, whether the user sets it on purpose or the user interface only
 remembers it. Examples:
 
-|                         Setting                         |   Explicit or implicit    |
-|---------------------------------------------------------|---------------------------|
-| the language                                            | explicit, in the menu     |
-| "don't ask again" before claiming                       | explicit, in the question |
-| the primary filter last chosen                          | implicit                  |
-| the width of a column the user resized                  | implicit                  |
-| the order or the hidden state of columns, where offered | implicit                  |
+|                         Setting                         | Explicit or implicit  |
+|---------------------------------------------------------|-----------------------|
+| the language                                            | explicit, in the menu |
+| the primary filter last chosen                          | implicit              |
+| the width of a column the user resized                  | implicit              |
+| the order or the hidden state of columns, where offered | implicit              |
 
 The generated user interface has one global settings service for this. Every part of it that keeps
 a setting uses the service, and nothing else calls the endpoints. The service:

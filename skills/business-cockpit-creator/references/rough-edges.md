@@ -112,7 +112,10 @@ Ask the server, and take an empty answer as an answer: the row may have left the
 Because the event does not say who made the change, the user interface cannot tell the user's own
 change from somebody else's by the event. It remembers the ids of the rows the user just changed
 through the cockpit, and does not mark the next change of such a row, see
-[behaviour.md](behaviour.md#live-updates).
+[behaviour.md](behaviour.md#live-updates). The user task or case it then reads again does carry
+the field `initiator`, the user who caused the latest change. The open page of a task or a case
+uses it to tell the user about changes by others, see
+[behaviour.md](behaviour.md#changes-by-others).
 
 Each stream only gets events its user may know of, or events about rows its browser already shows.
 A `RELOAD` with an empty id means "load the lists of this kind again". It comes at the start of every
