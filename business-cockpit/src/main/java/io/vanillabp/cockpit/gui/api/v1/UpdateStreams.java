@@ -37,9 +37,9 @@ import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
  *
  * <p>Which stream may see what is answered by one {@link UpdateStreamAudience} per kind of entity,
  * from the same visibility the lists use. The audience also tells the workflow module of each
- * changed entity, and every event of the entity names it from then on. An event of a kind no audience decides about, and an
- * event without an entity id, reaches every stream. The ping is such an event: it says nothing
- * about a case.
+ * changed entity and who made its latest change, and every event of the entity names both from
+ * then on. An event of a kind no audience decides about, and an event without an entity id,
+ * reaches every stream. The ping is such an event: it says nothing about a case.
  */
 public class UpdateStreams {
 
@@ -285,8 +285,7 @@ public class UpdateStreams {
         .stream()
         .map(event -> event.getEntityId() == null
             ? event
-            : event.withWorkflowModuleId(
-                whatTheStreamsMaySee.workflowModuleOfEachEntity().get(event.getEntityId())))
+            : namingWhatTheTickRead(audience, event, whatTheStreamsMaySee))
         .toList();
 
     streams.forEach(stream -> {
@@ -298,6 +297,24 @@ public class UpdateStreams {
           .filter(event -> (event.getEntityId() == null) || concerned.contains(event.getEntityId()))
           .forEach(stream::collectEvent);
     });
+
+  }
+
+  /**
+   * The event of one entity, naming the workflow module of the entity and who made its latest
+   * change. Both are missing for an entity the cockpit no longer holds.
+   */
+  private static GuiEvent namingWhatTheTickRead(
+      final UpdateStreamAudience audience,
+      final GuiEvent event,
+      final UpdateStreamAudience.WhatTheStreamsMaySee whatTheTickRead) {
+
+    final var withModule = event.withWorkflowModuleId(
+        whatTheTickRead.workflowModuleOfEachEntity().get(event.getEntityId()));
+    final var initiator = whatTheTickRead.initiatorOfEachEntity().get(event.getEntityId());
+    return initiator == null
+        ? withModule
+        : audience.namingItsInitiator(withModule, initiator);
 
   }
 

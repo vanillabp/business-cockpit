@@ -48,6 +48,19 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware,
   private Person initiator;
 
   /**
+   * Who made the latest change of the workflow: the id of a user, or
+   * {@code UpdateInformationAware.SYSTEM_USER} or {@code COCKPIT_USER}. A report sets it to its
+   * {@link #initiator}, and a change in the cockpit, a note for example, to the user who made it.
+   * {@link #initiator} cannot carry the second case. It is what the latest report said, and the
+   * cockpit does not change it.
+   * <p>
+   * The update stream names it in its events. It is set through
+   * {@link #recordInitiatorOfLatestChange(String)}, not through a setter, so the mappers of the
+   * reports do not see it as a field they have to fill.
+   */
+  private String initiatorOfLatestChange;
+
+  /**
    * When the reporting workflow system started this workflow. It is never {@code null}.
    * <p>
    * A case the cockpit learned about from its end alone, because the end overtook the creation,
@@ -308,6 +321,26 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware,
   public void setInitiator(
       Person initiator) {
     this.initiator = initiator;
+  }
+
+  /**
+   * Who made the latest change of the workflow, see {@link #initiatorOfLatestChange}.
+   *
+   * @return The id of a user, the name of the system or of the cockpit, or {@code null} for a
+   *         workflow nobody changed since the field exists
+   */
+  public String getInitiatorOfLatestChange() {
+    return initiatorOfLatestChange;
+  }
+
+  /**
+   * Records who made the latest change of the workflow, see {@link #initiatorOfLatestChange}.
+   *
+   * @param initiator The id of a user, or the name of the system or of the cockpit
+   */
+  public void recordInitiatorOfLatestChange(
+      final String initiator) {
+    this.initiatorOfLatestChange = initiator;
   }
 
   /**

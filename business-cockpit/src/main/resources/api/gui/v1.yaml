@@ -186,6 +186,12 @@ paths:
         skips the elements of other modules. The stream itself is not limited to modules, because
         a request of a list does not say which tab it comes from.
 
+        The `event` of each element says who made the change, in `initiatorKind` and, for a
+        person, in `initiator`. A page which shows one user task or case can tell from it whether
+        somebody else changed it, without loading it first. A change by the workflow system or by
+        the cockpit itself is no change by somebody else. A list loads again for every change,
+        whoever made it.
+
         An element whose `type` is `RELOAD` has an empty `id`. It means: load every list of this
         kind again. The cockpit sends it right after the stream was opened, because the browser
         may show lists the new stream does not know about. It sends it again when the stream had
@@ -340,6 +346,25 @@ components:
           type: string
         name:
           type: string
+    InitiatorKind:
+      type: string
+      description: |
+        Who made the change an element of the update stream is about. If several changes of the
+        same entity are sent at once, it names who made the latest of them.
+
+        - `USER`: a person. `initiator` holds the id of that person.
+        - `SYSTEM`: the workflow system, without a person behind it. A workflow module reports
+          it, for example when a timer ends a task.
+        - `COCKPIT`: the Business Cockpit itself, without a person behind it. A job of the
+          cockpit does it, for example when the follow-up date of a task is reached.
+
+        It is missing in an element of type `RELOAD`, and when the cockpit no longer holds the
+        entity. A page shows that somebody else changed what it shows only for `USER`. A list
+        loads again for every kind.
+      enum:
+        - USER
+        - SYSTEM
+        - COCKPIT
     UserTaskUpdate:
       type: object
       description: One element of the data of the event `UserTask`.
@@ -388,6 +413,14 @@ components:
         id:
           type: string
           description: The id of the user task, or empty for `RELOAD`
+        initiator:
+          type: string
+          description: >-
+            The id of the user who made the change, when `initiatorKind` is `USER`. It is missing
+            for every other kind. A page compares it with the id of the user signed in. If they
+            differ, somebody else changed the user task the page shows.
+        initiatorKind:
+          $ref: '#/components/schemas/InitiatorKind'
     WorkflowUpdate:
       type: object
       description: One element of the data of the event `Workflow`.
@@ -434,3 +467,11 @@ components:
         id:
           type: string
           description: The id of the case, or empty for `RELOAD`
+        initiator:
+          type: string
+          description: >-
+            The id of the user who made the change, when `initiatorKind` is `USER`. It is missing
+            for every other kind. A page compares it with the id of the user signed in. If they
+            differ, somebody else changed the case the page shows.
+        initiatorKind:
+          $ref: '#/components/schemas/InitiatorKind'

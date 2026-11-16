@@ -27,7 +27,7 @@ public class GuiNotificationService {
 
   /**
    * Publishes a GUI event for the changed workflow. The update streams decide which browsers get
-   * it.
+   * it, and they add who made the change, which they read from the workflow.
    *
    * @param notification The change of the workflow
    */

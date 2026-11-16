@@ -410,14 +410,24 @@ Was darüber kommt:
 | `Workflow`           | dasselbe für Fälle                                            |
 
 `type` ist `INSERT`, `UPDATE`, `DELETE` oder `FOLLOWUP`. `id` ist die Kennung der Aufgabe oder des
-Falls. Mehr steht nicht drin, also sagt ein Ereignis nur, dass sich etwas geändert hat, und nicht
-was. Dein UI fragt danach neu.
+Falls. Mehr über die Aufgabe oder den Fall steht nicht drin, also sagt ein Ereignis nur, dass sich
+etwas geändert hat, und nicht was. Dein UI fragt danach neu.
 
 Neben `event` trägt jedes Element `workflowModuleId`, das Workflow-Modul der Aufgabe oder des Falls.
 Eine Liste, die nur einige Module zeigt, überspringt damit die Ereignisse der anderen. Der Strom
 selbst ist nicht auf Module beschränkt, weil eine Anfrage nicht sagt, aus welchem Tab sie kommt.
 Fehlt das Feld, kennt das Cockpit das Modul nicht mehr, etwa weil es die Zeile nicht mehr hält. So
 ein Ereignis kann jede Liste betreffen, also behandle es wie eines des eigenen Moduls.
+
+Jedes `event` sagt außerdem, wer die Änderung gemacht hat. `initiatorKind` ist `USER` für eine
+Person, `SYSTEM` für das Workflow-System und `COCKPIT` für das Cockpit selbst, etwa wenn ein
+Wiedervorlagedatum erreicht ist. Nur bei `USER` steht in `initiator` die Kennung der Person. Fassen
+mehrere Änderungen derselben Aufgabe einen Schwung, nennen alle den Urheber der letzten. Eine Seite,
+die eine einzelne Aufgabe oder einen Fall zeigt, meldet "jemand anderer hat das geändert" nur bei
+`USER` mit einer Kennung, die nicht die des angemeldeten Benutzers ist. Sie muss dafür nichts neu
+laden. Eine Liste lädt bei jeder Änderung neu, egal wer sie gemacht hat. Bei `RELOAD` und wenn das
+Cockpit die Zeile nicht mehr hält, fehlen beide Felder. Als gelesen oder ungelesen markieren, auch
+beim Öffnen einer Aufgabe, ist keine Änderung der Aufgabe: Dafür kommt kein Ereignis.
 
 Fünf Eigenschaften des Stroms musst du einplanen:
 
