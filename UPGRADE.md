@@ -13,7 +13,7 @@ The last release is 0.4.3. If your application is on it or on an older one, star
 ## From 0.4.x and earlier
 
 The last release of the cockpit is 0.4.3. 0.8.0 was planned as the first release on Spring MVC and
-never came out. So the section [0.8.x to 0.9.0](#08x-to-090) is not a step after a release you
+never came out. So the section [0.8.x to 1.0.0](#08x-to-100) is not a step after a release you
 know. It is the second half of your way. If your application is on 0.4.x or earlier, work through
 this section first and then through every entry of the next one. The one entry there which does not
 concern you is the one about the snapshot artifact `support`.
@@ -155,7 +155,7 @@ first value is the name of the event in the stream, for example `UserTask`. The 
 gets an event of the kinds `UserTask` and `Workflow` by the id, with the visibility of the lists.
 An event of another kind, and an event without an id, reaches every stream.
 
-## 0.8.x to 0.9.0
+## 0.8.x to 1.0.0
 
 ### `commons` is gone: `support` and the library module take its classes
 
@@ -223,7 +223,7 @@ got both of them, and with them the MongoDB settings of the cockpit. With `suppo
 
 ### The snapshot artifact `support` is now `business-cockpit-spring-boot-support`
 
-This concerns only a build which used a 0.9.0 snapshot. The module `support` got a level below it,
+This concerns only a build which used an earlier snapshot of `main`. The module `support` got a level below it,
 because a Quarkus version of it will follow. Its classes moved into the sub-module
 `support/spring-boot`, which is published as
 `io.vanillabp.businesscockpit:business-cockpit-spring-boot-support`. The artifact
@@ -304,7 +304,7 @@ in the wiki has the list of what each value costs.
 
 ### A table of the version 1 Camunda 8 adapter stays behind
 
-The version 1 adapters left this repository with 0.9.0. One of them leaves something in the
+The version 1 adapters left this repository with 1.0.0. One of them leaves something in the
 database: the Camunda 8 adapter created a table `CAMUNDA8_BC_PROCESS_INSTANCES` through its
 Liquibase changelog, and nothing ever wrote a row into it. A changelog which drops the table was
 written back then and never switched on, so the table is still there and no version of the cockpit
@@ -329,7 +329,7 @@ application which had it switched off. Replace the name.
 ### A changeset bean of your own changes two imports
 
 The annotations are called `DbChangeset` and `DbChangesetConfiguration`. They were called
-`Changeset` and `ChangesetConfiguration` until 0.9.0, and they sit in another package now.
+`Changeset` and `ChangesetConfiguration` before 1.0, and they sit in another package now.
 
 |                                 before                                 |                            now                            |
 |------------------------------------------------------------------------|-----------------------------------------------------------|
@@ -448,7 +448,7 @@ the cockpit up to 0.8. It is still accepted, like any other string. Which names 
 understands is written down with that user interface. If your user interface comes with a small
 jar of constants, your workflow modules can use that.
 
-What changes for a user interface is `uiUri` in the GUI API. Until 0.9.0 the cockpit built the whole
+What changes for a user interface is `uiUri` in the GUI API. Before 1.0 the cockpit built the whole
 address: `/wm/<workflowModuleId>` plus the path the workflow module reported. Only for the type
 `EXTERNAL` it handed out the reported value unchanged. Now the reported path is handed out in every
 case, and the user interface builds the address. A cockpit user interface follows one rule. A path
@@ -504,7 +504,7 @@ needs to change: the details provider may keep setting the values for every repo
 
 `io.vanillabp.businesscockpit:business-cockpit` and the runnable jar of `container` no longer
 contain the React user interface. The repository holds no user interface any more, and no npm
-package of the cockpit is released with 0.9.0. If your application depends on `business-cockpit`,
+package of the cockpit is released with 1.0.0. If your application depends on `business-cockpit`,
 it serves no user interface, and a path no API knows gets 404 instead of the single-page
 application.
 
