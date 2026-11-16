@@ -822,3 +822,26 @@ the adapter does not read: below `vanillabp.cockpit`, or in the `cockpit` sectio
 module, a workflow or a user task. Version 1 ignored such a key without a word. The message names
 the key and the one it is nearest to, or, for a key of version 1, what became of it. Remove the key
 or write the one the message names. Quarkus refused these keys before.
+
+### An event of the update stream names who made the change
+
+The `event` of each element of `GET /gui/api/v1/updates` has two new optional fields.
+`initiatorKind` says who made the change: `USER`, `SYSTEM` for the workflow system or `COCKPIT` for
+the cockpit itself. `initiator` holds the id of the user, and it is there only for `USER`. Both are
+missing in a `RELOAD` and when the cockpit no longer holds the entity. If several changes of one
+entity are sent at once, they name who made the latest.
+
+A page which shows one user task or case can now tell whether somebody else changed it, without
+loading it first: `initiatorKind` is `USER` and `initiator` is not the user signed in. A list loads
+again for every change, as before. A user interface which checks the keys of an event strictly has
+to accept the two new ones. Nothing else breaks.
+
+A note written in the cockpit now records its writer as the `initiator` of a user task, like every
+other change made in the cockpit. A case keeps who made its latest change in the new field
+`initiatorOfLatestChange`, because its `initiator` is what the latest report said. A case nobody
+changed since the upgrade has no value there. Nothing reads it before the next change.
+
+An implementation of `UpdateStreamAudience` has the new method `namingItsInitiator`, and
+`WhatTheStreamsMaySee` has the new last component `initiatorOfEachEntity`. The records
+`UserTaskVisibility.TaskFacts` and `WorkflowVisibility.WorkflowFacts` have the new last components
+`initiator` and `initiatorOfLatestChange`.

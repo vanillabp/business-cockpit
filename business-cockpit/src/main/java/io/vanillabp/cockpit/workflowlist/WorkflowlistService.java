@@ -43,6 +43,7 @@ import io.vanillabp.cockpit.config.startup.CockpitConfiguration;
 import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
 import io.vanillabp.cockpit.config.startup.SortIndexLimit;
 import io.vanillabp.cockpit.mongo.changestreams.ChangeStreamUtils;
+import io.vanillabp.cockpit.mongo.updateinfo.UpdateInformationAware;
 import io.vanillabp.cockpit.util.ListPaths;
 import io.vanillabp.cockpit.util.NotesOfTheCockpit;
 import io.vanillabp.cockpit.util.SearchCriteriaHelper;
@@ -441,6 +442,12 @@ public class WorkflowlistService {
   private OutcomeOfStoring save(
       final Workflow workflow) {
 
+    // every save of this service stores a report, so the latest change is the one the report
+    // names. A note written in the cockpit before is no longer the latest change
+    workflow.recordInitiatorOfLatestChange(
+        workflow.getInitiator() == null
+            ? UpdateInformationAware.SYSTEM_USER
+            : workflow.getInitiator().getId());
     try {
       workflowRepository.save(workflow);
       return OutcomeOfStoring.upToDate();
@@ -521,7 +528,8 @@ public class WorkflowlistService {
 
     final var written = mongoTemplate.updateFirst(
         new Query(Criteria.where("id").is(workflowId)).addCriteria(NotesOfTheCockpit.notEnded()),
-        NotesOfTheCockpit.setTo(text, currentUser),
+        NotesOfTheCockpit.setTo(text, currentUser)
+            .set("initiatorOfLatestChange", initiatorFor(currentUser)),
         Workflow.class);
     // the workflow ended between the read above and this write
     if (written.getMatchedCount() == 0) {
@@ -565,8 +573,22 @@ public class WorkflowlistService {
     mongoTemplate.updateMulti(
         new Query(Criteria.where("id").in(found.stream().map(Workflow::getId).toList()))
             .addCriteria(NotesOfTheCockpit.notEnded()),
-        NotesOfTheCockpit.setTo(text, currentUser),
+        NotesOfTheCockpit.setTo(text, currentUser)
+            .set("initiatorOfLatestChange", initiatorFor(currentUser)),
         Workflow.class);
+
+  }
+
+  /**
+   * The initiator a change in the cockpit records: the user who made it, or the cockpit itself
+   * where no user is known.
+   */
+  private static String initiatorFor(
+      final String currentUser) {
+
+    return currentUser == null
+        ? UpdateInformationAware.COCKPIT_USER
+        : currentUser;
 
   }
 

@@ -107,10 +107,10 @@ public record WorkflowVisibility(
   }
 
   /**
-   * What {@link #letsThrough(WorkflowFacts)} reads of a workflow, and the workflow module of the
-   * workflow. The update streams read exactly these fields of a changed workflow from the
-   * database. The workflow module is not part of the visibility. The update streams hand it to the
-   * browser with the wake-up call. {@code dangling} is the value stored in the document, which is
+   * What {@link #letsThrough(WorkflowFacts)} reads of a workflow, the workflow module of the
+   * workflow and who made its latest change. The update streams read exactly these fields of a
+   * changed workflow from the database. The workflow module and the initiator are not part of the
+   * visibility. The update streams hand them to the browser with the wake-up call. {@code dangling} is the value stored in the document, which is
    * what the query compares.
    *
    * @param id The id of the workflow
@@ -118,13 +118,16 @@ public record WorkflowVisibility(
    * @param accessibleToGroups The groups the workflow is accessible to
    * @param dangling Whether the workflow names neither users nor groups
    * @param workflowModuleId The workflow module of the workflow
+   * @param initiatorOfLatestChange Who made the latest change of the workflow: the id of a user,
+   *        or the name the cockpit stores for the workflow system or for itself
    */
   public record WorkflowFacts(
                               String id,
                               List<Person> accessibleToUsers,
                               List<Group> accessibleToGroups,
                               Boolean dangling,
-                              String workflowModuleId) {
+                              String workflowModuleId,
+                              String initiatorOfLatestChange) {
 
     /**
      * The names of the fields, which are the fields the update streams read.

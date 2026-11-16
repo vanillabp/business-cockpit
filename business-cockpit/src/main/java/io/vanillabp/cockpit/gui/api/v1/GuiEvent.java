@@ -18,6 +18,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * <p>It also names the workflow module of the entity. A list in the browser which shows only some
  * workflow modules skips the wake-up calls of the others. The stream itself cannot do that,
  * because a request of a list does not say which tab it comes from.
+ *
+ * <p>Its payload names who made the change. A page which shows one entity tells from it whether
+ * somebody else changed it. Like the workflow module, it is read from the changed entity once per
+ * filtering tick, see {@link UpdateStreamAudience}.
  */
 public class GuiEvent extends ApplicationEvent {
 
@@ -54,17 +58,19 @@ public class GuiEvent extends ApplicationEvent {
   }
 
   /**
-   * A copy of another event with the workflow module added. The copy keeps the timestamp, so the
-   * browser reads when the change was noticed and not when its module was looked up.
+   * A copy of another event with the workflow module or the payload replaced. The copy keeps the
+   * timestamp, so the browser reads when the change was noticed and not when the update streams
+   * read the changed entity.
    */
   private GuiEvent(
       final GuiEvent original,
+      final Object event,
       final String workflowModuleId) {
 
     super(
         original.getSource(), Clock.fixed(Instant.ofEpochMilli(original.getTimestamp()), ZoneOffset.UTC));
     this.entityId = original.entityId;
-    this.event = original.event;
+    this.event = event;
     this.workflowModuleId = workflowModuleId;
 
   }
@@ -83,7 +89,21 @@ public class GuiEvent extends ApplicationEvent {
     if (Objects.equals(this.workflowModuleId, workflowModuleId)) {
       return this;
     }
-    return new GuiEvent(this, workflowModuleId);
+    return new GuiEvent(this, event, workflowModuleId);
+
+  }
+
+  /**
+   * The same event with another payload for the browser. The audience of a kind of entity uses it
+   * to add who made the change, which the update streams read together with the workflow module.
+   *
+   * @param event The new payload
+   * @return A new event
+   */
+  public GuiEvent withEvent(
+      final Object event) {
+
+    return new GuiEvent(this, event, workflowModuleId);
 
   }
 

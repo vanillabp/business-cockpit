@@ -733,9 +733,11 @@ public class UserTaskService {
     }
     refuseIfEnded(userTask);
 
+    // a note is a change made in the cockpit, so it records who made it, like every other one
     final var written = mongoTemplate.updateFirst(
         new Query(Criteria.where("id").is(userTaskId)).addCriteria(NotesOfTheCockpit.notEnded()),
-        NotesOfTheCockpit.setTo(text, currentUser),
+        NotesOfTheCockpit.setTo(text, currentUser)
+            .set("initiator", currentUser == null ? UpdateInformationAware.COCKPIT_USER : currentUser),
         UserTask.class);
     // the task ended between the read above and this write
     if (written.getMatchedCount() == 0) {
@@ -772,7 +774,8 @@ public class UserTaskService {
     mongoTemplate.updateMulti(
         new Query(Criteria.where("id").in(found.stream().map(UserTask::getId).toList()))
             .addCriteria(NotesOfTheCockpit.notEnded()),
-        NotesOfTheCockpit.setTo(text, currentUser),
+        NotesOfTheCockpit.setTo(text, currentUser)
+            .set("initiator", currentUser == null ? UpdateInformationAware.COCKPIT_USER : currentUser),
         UserTask.class);
 
   }

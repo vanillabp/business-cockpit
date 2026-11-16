@@ -240,10 +240,10 @@ public record UserTaskVisibility(
   }
 
   /**
-   * What {@link #letsThrough(TaskFacts)} reads of a task, and the workflow module of the task. The
-   * update streams read exactly these fields of a changed task from the database. The workflow
-   * module is not part of the visibility. The update streams hand it to the browser with the
-   * wake-up call. {@code dangling} is the value stored in the document, which is what the query
+   * What {@link #letsThrough(TaskFacts)} reads of a task, the workflow module of the task and who
+   * made its latest change. The update streams read exactly these fields of a changed task from
+   * the database. The workflow module and the initiator are not part of the visibility. The
+   * update streams hand them to the browser with the wake-up call. {@code dangling} is the value stored in the document, which is what the query
    * compares, and not the one the task would compute from its fields now.
    *
    * @param id The id of the task
@@ -254,6 +254,8 @@ public record UserTaskVisibility(
    * @param admittedUsers The users who may reach the task for a reason of the business
    * @param dangling Whether the task addresses nobody, as stored in the document
    * @param workflowModuleId The workflow module of the task
+   * @param initiator Who made the latest change of the task: the id of a user, or the name the
+   *        cockpit stores for the workflow system or for itself
    */
   public record TaskFacts(
                           String id,
@@ -263,7 +265,8 @@ public record UserTaskVisibility(
                           List<Person> excludedCandidateUsers,
                           List<Person> admittedUsers,
                           Boolean dangling,
-                          String workflowModuleId) {
+                          String workflowModuleId,
+                          String initiator) {
 
     /**
      * The names of the fields, which are the fields the update streams read.

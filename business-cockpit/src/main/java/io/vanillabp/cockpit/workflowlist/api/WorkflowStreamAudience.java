@@ -11,6 +11,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 
 import io.vanillabp.cockpit.gui.api.v1.GuiEvent;
+import io.vanillabp.cockpit.gui.api.v1.InitiatorOfAChange;
 import io.vanillabp.cockpit.gui.api.v1.UpdateEmitter;
 import io.vanillabp.cockpit.gui.api.v1.UpdateStreamAudience;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowEvent;
@@ -89,7 +90,11 @@ public class WorkflowStreamAudience implements UpdateStreamAudience {
         .stream()
         .filter(workflow -> workflow.workflowModuleId() != null)
         .forEach(workflow -> workflowModules.put(workflow.id(), workflow.workflowModuleId()));
-    return new WhatTheStreamsMaySee(result, workflowModules);
+    final var initiators = new HashMap<String, InitiatorOfAChange>();
+    changedWorkflows
+        .forEach(workflow -> initiators.put(workflow.id(),
+            InitiatorOfAChange.fromStored(workflow.initiatorOfLatestChange())));
+    return new WhatTheStreamsMaySee(result, workflowModules, initiators);
 
   }
 
@@ -107,6 +112,23 @@ public class WorkflowStreamAudience implements UpdateStreamAudience {
     final var query = new Query(Criteria.where("id").in(ids));
     WorkflowFacts.fieldNames().forEach(query.fields()::include);
     return mongoTemplate.find(query, WorkflowFacts.class, Workflow.COLLECTION_NAME);
+
+  }
+
+  @Override
+  public GuiEvent namingItsInitiator(
+      final GuiEvent event,
+      final InitiatorOfAChange initiator) {
+
+    if (!(event.getEvent() instanceof WorkflowEvent payload) || (payload.getInitiatorKind() != null)) {
+      return event;
+    }
+    return event.withEvent(new WorkflowEvent()
+        .name(payload.getName())
+        .id(payload.getId())
+        .type(payload.getType())
+        .initiator(initiator.id())
+        .initiatorKind(initiator.kind()));
 
   }
 

@@ -11,6 +11,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 
 import io.vanillabp.cockpit.gui.api.v1.GuiEvent;
+import io.vanillabp.cockpit.gui.api.v1.InitiatorOfAChange;
 import io.vanillabp.cockpit.gui.api.v1.UpdateEmitter;
 import io.vanillabp.cockpit.gui.api.v1.UpdateStreamAudience;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskEvent;
@@ -89,7 +90,10 @@ public class UserTaskStreamAudience implements UpdateStreamAudience {
         .stream()
         .filter(task -> task.workflowModuleId() != null)
         .forEach(task -> workflowModules.put(task.id(), task.workflowModuleId()));
-    return new WhatTheStreamsMaySee(result, workflowModules);
+    final var initiators = new HashMap<String, InitiatorOfAChange>();
+    changedTasks
+        .forEach(task -> initiators.put(task.id(), InitiatorOfAChange.fromStored(task.initiator())));
+    return new WhatTheStreamsMaySee(result, workflowModules, initiators);
 
   }
 
@@ -106,6 +110,23 @@ public class UserTaskStreamAudience implements UpdateStreamAudience {
     final var query = new Query(Criteria.where("id").in(ids));
     TaskFacts.fieldNames().forEach(query.fields()::include);
     return mongoTemplate.find(query, TaskFacts.class, UserTask.COLLECTION_NAME);
+
+  }
+
+  @Override
+  public GuiEvent namingItsInitiator(
+      final GuiEvent event,
+      final InitiatorOfAChange initiator) {
+
+    if (!(event.getEvent() instanceof UserTaskEvent payload) || (payload.getInitiatorKind() != null)) {
+      return event;
+    }
+    return event.withEvent(new UserTaskEvent()
+        .name(payload.getName())
+        .id(payload.getId())
+        .type(payload.getType())
+        .initiator(initiator.id())
+        .initiatorKind(initiator.kind()));
 
   }
 
