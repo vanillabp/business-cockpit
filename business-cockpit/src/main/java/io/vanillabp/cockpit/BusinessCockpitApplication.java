@@ -15,12 +15,13 @@ package io.vanillabp.cockpit;
  *     }
  * }
  * </pre>
- * The class stays for one release so that an application still naming it keeps compiling. Extending
- * it adds no annotation, no bean and no component scan, so it changes nothing either way, and
- * {@code BaseClassCarriesNothingTest} is what keeps that true. It goes away with 1.0, which
- * <a href="https://github.com/vanillabp/business-cockpit/wiki/Releases">Releases</a> says as well.
+ * The class stays in 1.0 so that an application still naming it keeps compiling. Extending it adds
+ * no annotation, no bean and no component scan, so it changes nothing either way, and
+ * {@code BaseClassCarriesNothingTest} is what keeps that true. It goes away in a release after 1.0,
+ * which <a href="https://github.com/vanillabp/business-cockpit/wiki/Releases">Releases</a> says as
+ * well.
  */
-@Deprecated(since = "0.9.0", forRemoval = true)
+@Deprecated(since = "1.0.0", forRemoval = true)
 public class BusinessCockpitApplication {
 
   /**

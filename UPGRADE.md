@@ -59,7 +59,7 @@ has the full table.
 
 Your main class carries `@SpringBootApplication` and starts the application itself.
 `BusinessCockpitApplication` is deprecated and empty. A class which still extends it compiles and
-works, but the class goes with 1.0. So drop the `extends`, see
+works, but the class goes away in a release after 1.0. So drop the `extends`, see
 [Setting the application up](https://github.com/vanillabp/business-cockpit/wiki/Building-a-custom-Business-Cockpit#setting-the-application-up).
 
 ### The five list controllers are yours to write
