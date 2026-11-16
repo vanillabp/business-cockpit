@@ -105,17 +105,15 @@ By intent this is no error, and a later version will allow it.
 
 ## An event says that something changed, not what
 
-An event of the update stream is a wake-up call: kind, id and type of change. It does not carry the
-changed data, and it does not say who made the change. Never show anything from an event directly.
+An event of the update stream is a wake-up call: kind, id, type of change and who made it. It does
+not carry the changed data. Never show anything from an event directly.
 Ask the server, and take an empty answer as an answer: the row may have left the user's view.
 
-Because the event does not say who made the change, the user interface cannot tell the user's own
-change from somebody else's by the event. It remembers the ids of the rows the user just changed
-through the cockpit, and does not mark the next change of such a row, see
-[behaviour.md](behaviour.md#live-updates). The user task or case it then reads again does carry
-the field `initiator`, the user who caused the latest change. The open page of a task or a case
-uses it to tell the user about changes by others, see
-[behaviour.md](behaviour.md#changes-by-others).
+Who made the change is in the event, in `initiator` and `initiatorKind`. Take it from there, not
+from the user task or case read again afterwards: a second change between the event and the answer
+can have changed the initiator of the object. The lists use it to leave the user's own changes
+unmarked, and the open page of a task or a case uses it to tell the user about changes by others,
+see [behaviour.md](behaviour.md#live-updates) and [behaviour.md](behaviour.md#changes-by-others).
 
 Each stream only gets events its user may know of, or events about rows its browser already shows.
 A `RELOAD` with an empty id means "load the lists of this kind again". It comes at the start of every
@@ -272,6 +270,7 @@ This description counts on features of the `business-cockpit` repository that ca
   (ended),
 - `GET /updates` and the types of its events in the cockpit's own file `api/gui/v1.yaml`, so these
   types are generated too,
+- `initiator` and `initiatorKind` in each event of `GET /updates`, who made the change,
 - `GET /app/current-user/group-hierarchy` for the overview of the rights in the menu, see
   [behaviour.md](behaviour.md#where-the-data-comes-from),
 - a library that brings no login: the application writes the security chains and

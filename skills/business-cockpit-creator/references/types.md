@@ -254,6 +254,10 @@ the VanillaBP kit's `BcElementProps`, and the generated packages use the same na
 
 The web component of the area `all` gets `area` as `all`.
 
+Whether a form is read-only is the module's decision, from `assignee` and `endedAt` of `userTask`
+together with `currentUser`. The cockpit only sets these properties and does not decide it, see
+[behaviour.md](behaviour.md#the-barrier).
+
 `workflowModule` has the fields `GET /workflow-module` returns: `id`, `version`, `uri`.
 
 `language` is the language the user interface shows, for example `en`. A part follows it when it

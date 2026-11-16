@@ -491,6 +491,18 @@ What comes through it:
 `type` is `INSERT`, `UPDATE`, `DELETE`, `FOLLOWUP` or `RELOAD`. `id` is the id of the user task or
 the case. `RELOAD` has an empty id and means: load the lists of this kind again.
 
+The `event` object of `UserTask` and of `Workflow` also says who made the change:
+
+|      Field      |                                              Meaning                                              |
+|-----------------|---------------------------------------------------------------------------------------------------|
+| `initiatorKind` | `USER` (a person), `SYSTEM` (reported by the workflow module) or `COCKPIT` (a job of the cockpit) |
+| `initiator`     | the id of the user, a string; set when `initiatorKind` is `USER`                                  |
+
+Take the initiator from the event, not from the object read again afterwards. A second change
+between the event and the answer can have changed the initiator of the object. See
+[behaviour.md](behaviour.md#live-updates) for the lists and
+[behaviour.md](behaviour.md#changes-by-others) for an open page.
+
 Next to `event`, each entry carries `workflowModuleId`, the workflow module of the user task or the
 case. A list that shows only some modules skips the events of the others with it. The stream itself
 is not limited to modules, because a request does not say which tab it comes from. When the field is

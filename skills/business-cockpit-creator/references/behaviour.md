@@ -302,7 +302,8 @@ users, plus admitted users". The user interface never computes it.
 
 A user takes a task actively (claim) and becomes its assignee. The server does not
 check a claim before work on a task. Some organisations want claiming informal, others hard: the
-form can only be edited after the user has claimed the task (`Q-CLAIM`).
+cockpit lays a barrier over the page until the user has claimed the task (`Q-CLAIM`), see
+[The barrier](#the-barrier).
 
 ### The status line
 
@@ -720,20 +721,26 @@ frame of the cockpit.
 
 ### The barrier
 
-If claiming is hard (`Q-CLAIM`), the areas of the page cannot be edited before the user has claimed
-the task. Usually a half-transparent layer lies over them. How it looks is up to the organisation,
-with two rules:
+If claiming is hard (`Q-CLAIM`), the cockpit lays a barrier over the areas of the page until the
+user has claimed the task. Usually it is a half-transparent layer. The barrier belongs to the
+cockpit. How it looks is up to the organisation, with two rules:
 
 - The content under the layer stays readable. The user wants to see the task before taking it.
 - Each area can still be scrolled. A layer inside the scroll container of the area, as high as the
   whole content, does this: the mouse wheel and touch scrolling still move the area, but a click
   or a key press does not reach the form.
 
-The form itself may help. While the assignee of the task is not the current user (its property
-`currentUser`, see [types.md](types.md#what-a-part-gets)), the module may show its form read-only. When the user claims the task, the cockpit sets the `userTask` property of
-the module's web components again, with the user as the assignee, see
-[module-loading.md](module-loading.md#actions). Then the layer goes away, and the form shows
-itself ready to edit, without a reload.
+When the user claims the task, the cockpit sets the `userTask` property of the module's web
+components again, with the user as the assignee, see [module-loading.md](module-loading.md#actions).
+Then the barrier goes away, without a reload.
+
+Whether the form is read-only is not the cockpit's business. The form, that is the visual entry of
+the module, decides it itself from `assignee` of the user task together with the current user (the
+properties `userTask` and `currentUser`, see [types.md](types.md#what-a-part-gets)). A form may also
+be read-only when `endedAt` is set, or the module may show another presentation of a closed task
+instead. The cockpit only passes the objects and the current user. It never makes a form read-only
+and never checks that a form is. So, with the new `userTask` after a claim, a form which was
+read-only shows itself ready to edit.
 
 ### Everything inside the page is the module's
 
@@ -747,16 +754,21 @@ When somebody else changes the task while the user has it open, the user is
 told right away. For example: "User X has claimed this task. Please talk to them before you save or
 complete, to avoid losing data." The message is a sticky toast that the user has to click away.
 
-A change by others is an event of the update stream for the id of the shown task whose `initiator`
-is not the user who is logged in. The event itself does not say who made the change, see
-[rough-edges.md](rough-edges.md#an-event-says-that-something-changed-not-what). So the page reads
-the task again, see [How it works](#how-it-works), and looks at the field `initiator` of the user
-task. It holds the id of the user who caused the latest change, or a name for the cockpit or the
-workflow system when no user did. If it is the id of the current user, the change is the user's own,
-and no toast comes. Any other value means somebody else, and the toast names them.
+A change by others is an event of the update stream for the id of the shown task whose
+`initiatorKind` is `USER` and whose `initiator` is not the id of the user who is logged in. The
+event carries both fields, see [gui-api.md](gui-api.md#the-update-stream). The page decides from the
+event alone and does not read the task again for this. Reading again would come too late: a second
+change between the event and the answer could have changed the initiator.
 
-The same holds for the open page of a case, see [The page of a case](#the-page-of-a-case). There
-`initiator` is a person, so the page compares its `id` with the current user.
+- `initiatorKind` is `USER` and `initiator` is the current user: the user's own change, no toast.
+- `initiatorKind` is `USER` and `initiator` is another user: the toast comes and names that user.
+- `initiatorKind` is `SYSTEM` (reported by the workflow module) or `COCKPIT` (a job of the cockpit
+  itself): no toast. Nobody else is working on the task.
+
+The page still reads the task again for its content, see [How it works](#how-it-works), whatever the
+initiator is.
+
+The same holds for the open page of a case, see [The page of a case](#the-page-of-a-case).
 
 ## The case list
 
@@ -1055,10 +1067,13 @@ also has its title struck through. These markers stay, so a user who comes back 
 what happened. A button acknowledges the changes. Then the markers and the inactive rows go away.
 
 A change the current user made is not marked as changed. The user expects it, so the row just shows
-the new data. The update stream does not say who made a change, see
-[rough-edges.md](rough-edges.md#an-event-says-that-something-changed-not-what). So the user
-interface remembers the ids of the rows the user just changed through the cockpit, and the next
-change of such a row comes without a marker.
+the new data. Each event of the update stream says who made the change, in `initiator` and
+`initiatorKind`, see [gui-api.md](gui-api.md#the-update-stream). A change is the user's own when
+`initiatorKind` is `USER` and `initiator` is the id of the current user. Every other change is marked,
+also one with `initiatorKind` `SYSTEM` (reported by the workflow module) or `COCKPIT` (a job of the
+cockpit itself): the list reads the row again and highlights it in colour like any other change.
+Several events for one row can come before the row is read again. The row is marked unless all of
+them were the user's own.
 
 ### Experiment (`Q-LIVE-MODE` is `auto-acknowledge`)
 
@@ -1097,7 +1112,8 @@ when changes were reported. Nothing else moves.
 4. Set the state of each returned row:
    * ended after the start timestamp: `ENDED`,
    * otherwise created after the start timestamp: `NEW`,
-   * otherwise changed after the start timestamp, by somebody else: `UPDATED`,
+   * otherwise changed after the start timestamp, not only by the user's own changes (see
+     [How it looks](#how-it-looks-q-live-mode-is-live)): `UPDATED`,
    * otherwise `INITIAL`.
 5. A row in the window the server no longer returns stays in place and becomes `REMOVED_FROM_LIST`.
 6. The user's selection stays.
@@ -1114,9 +1130,9 @@ server sends it when a follow-up date has come. The task was filtered out of the
 only appears because of this event.
 
 An open task page listens too, and so does an open page of a case. When its task or case changes,
-the page reads it again, sets the property of the module's web components again (`userTask` or
-`workflow`), and shows the toast described in [Changes by others](#changes-by-others) when somebody
-else made the change.
+the page reads it again and sets the property of the module's web components again (`userTask` or
+`workflow`). From the event alone, it shows the toast described in
+[Changes by others](#changes-by-others) when another user made the change.
 
 ## Notifications
 
