@@ -254,8 +254,8 @@ the retaining path of a detached DOM node leads to the library. See
 ## What needs a newer cockpit
 
 This description counts on features of the `business-cockpit` repository that came with version
-`0.9.0`. The cockpit version of the interview (`Q-COCKPIT-VERSION`) must be `0.9.0` or later. Until
-`0.9.0` is released, build `0.9.0-SNAPSHOT` from the branch `main`. Version `0.9.0` brings:
+`1.0.0`. The cockpit version of the interview (`Q-COCKPIT-VERSION`) must be `1.0.0` or later. Until
+`1.0.0` is released, build the snapshot of the branch `main`. Version `1.0.0` brings:
 
 - `endReason` on user tasks and cases, so a cancelled row can be told from a completed one,
 - `customSettings` on the user, read and written one entry at a time with `GET` and
@@ -282,12 +282,12 @@ Against an older cockpit the generated client lacks these endpoints and fields, 
 fails. That is on purpose: better a failed build than a user interface that guesses.
 
 The last three points matter for a backend the skill creates, not for the user interface. Since
-`0.9.0` the library brings no login: the two security chains and the bean `userDetailsProvider` are
+`1.0.0` the library brings no login: the two security chains and the bean `userDetailsProvider` are
 the application's, and the generated backend writes all three itself, see
 [backend.md](backend.md#the-login). An older library has a BPMS API chain of its own under the same
 bean name, and the application would not start next to it. With an older library the token also
 carries the groups of the login, and the mapper cannot handle the principal of an OIDC login, so
-that login gets no token at all. A library older than `0.9.0` answers
+that login gets no token at all. A library older than `1.0.0` answers
 `GET /gui/api/v1/app/current-user/group-hierarchy` with 404, and the overview cannot show where a
 right comes from.
 
