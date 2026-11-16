@@ -227,6 +227,36 @@ class AnUpdateEventNamesItsInitiatorTest {
 
   }
 
+  /**
+   * Opening a task marks it as read for the person who opened it. That says nothing about the
+   * task to anybody else. If it recorded the reader as initiator, the next event of the task
+   * would tell every other open page that the reader changed it. The read state produces no event
+   * of its own, see {@code ChangeStreamNotificationsTest}.
+   */
+  @Test
+  @DisplayName("Reading a task is no change by the reader, and the next event still names who changed it")
+  void readingATaskIsNoChangeByTheReader() {
+
+    final var stream = openedAndReloaded();
+    final var taskId = aTaskReportedBy("martin", null);
+    final var before = userTaskService.getUserTask(taskId);
+
+    userTaskService.markAsRead(UserTaskVisibility.everyUserTask(), taskId, "petra");
+    userTaskService.markAsRead(UserTaskVisibility.everyUserTask(), List.of(taskId), "sam");
+    userTaskService.markAsUnread(UserTaskVisibility.everyUserTask(), taskId, "sam");
+    final var after = userTaskService.getUserTask(taskId);
+    assertThat(after.getInitiator()).isEqualTo("martin");
+    assertThat(after.getUpdatedAt()).isEqualTo(before.getUpdatedAt());
+    assertThat(after.getUpdatedBy()).isEqualTo(before.getUpdatedBy());
+    assertThat(after.getReadAt("petra")).isNotNull();
+
+    userTaskChanged(taskId, NotificationEvent.Type.UPDATE);
+    streams.filterCollectedChanges();
+
+    assertThat(initiatorsOf(stream)).containsExactly(tuple("martin", InitiatorKind.USER));
+
+  }
+
   @Test
   @DisplayName("A change the cockpit made without a user names the cockpit")
   void aChangeOfTheCockpitNamesTheCockpit() {

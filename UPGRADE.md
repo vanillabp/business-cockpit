@@ -837,7 +837,9 @@ again for every change, as before. A user interface which checks the keys of an 
 to accept the two new ones. Nothing else breaks.
 
 A note written in the cockpit now records its writer as the `initiator` of a user task, like every
-other change made in the cockpit. A case keeps who made its latest change in the new field
+other change made in the cockpit. Marking a task as read or unread, which also happens when a user
+opens it, is no change of the task any more: it leaves `initiator`, `updatedAt` and `updatedBy` as
+they are, and the update stream sends no event for it. A case keeps who made its latest change in the new field
 `initiatorOfLatestChange`, because its `initiator` is what the latest report said. A case nobody
 changed since the upgrade has no value there. Nothing reads it before the next change.
 

@@ -178,7 +178,19 @@ class AChangeInTheGuiAndAReportAtTheSameTimeTest {
 
   static Stream<Arguments> everyChangeOfTheGuiApi() {
 
+    final Consumer<UserTaskService> martinReadIt = service -> service.markAsRead(EVERY_TASK, TASK, MARTIN);
     return Stream.concat(theChangesWhichSaveTheTask(), Stream.of(
+        change("marking the task as read", new ChangeInTheGui(
+            NOTHING, martinReadIt, task -> assertThat(task.getReadAt(MARTIN)).isNotNull(), false)),
+        change("marking several tasks as read", new ChangeInTheGui(
+            NOTHING, service -> service.markAsRead(EVERY_TASK, List.of(TASK),
+                MARTIN), task -> assertThat(task.getReadAt(MARTIN)).isNotNull(), false)),
+        change("marking the task as unread", new ChangeInTheGui(
+            martinReadIt, service -> service.markAsUnread(EVERY_TASK, TASK,
+                MARTIN), task -> assertThat(task.getReadAt(MARTIN)).isNull(), false)),
+        change("marking several tasks as unread", new ChangeInTheGui(
+            martinReadIt, service -> service.markAsUnread(EVERY_TASK, List.of(TASK),
+                MARTIN), task -> assertThat(task.getReadAt(MARTIN)).isNull(), false)),
         change("giving the task back", new ChangeInTheGui(
             NOTHING, service -> service.unclaimTask(EVERY_TASK, MARTIN, TASK,
                 MARTIN), task -> assertThat(task.getAssignee()).isNull(), false)),
@@ -198,7 +210,6 @@ class AChangeInTheGuiAndAReportAtTheSameTimeTest {
 
     final Consumer<UserTaskService> petraIsACandidate = service -> service.assignTask(EVERY_TASK, TASK,
         person("petra"));
-    final Consumer<UserTaskService> martinReadIt = service -> service.markAsRead(EVERY_TASK, TASK, MARTIN);
     return Stream.of(
         change("taking the task", new ChangeInTheGui(
             NOTHING, service -> service.claimTask(EVERY_TASK, TASK,
@@ -221,17 +232,6 @@ class AChangeInTheGuiAndAReportAtTheSameTimeTest {
             petraIsACandidate, service -> service.unassignTask(EVERY_TASK, List.of(TASK),
                 "petra"), task -> assertThat(task.getCandidateUsers()).extracting(Person::getId)
                     .doesNotContain("petra"), true)),
-        change("marking the task as read", new ChangeInTheGui(
-            NOTHING, martinReadIt, task -> assertThat(task.getReadAt(MARTIN)).isNotNull(), true)),
-        change("marking several tasks as read", new ChangeInTheGui(
-            NOTHING, service -> service.markAsRead(EVERY_TASK, List.of(TASK),
-                MARTIN), task -> assertThat(task.getReadAt(MARTIN)).isNotNull(), true)),
-        change("marking the task as unread", new ChangeInTheGui(
-            martinReadIt, service -> service.markAsUnread(EVERY_TASK, TASK,
-                MARTIN), task -> assertThat(task.getReadAt(MARTIN)).isNull(), true)),
-        change("marking several tasks as unread", new ChangeInTheGui(
-            martinReadIt, service -> service.markAsUnread(EVERY_TASK, List.of(TASK),
-                MARTIN), task -> assertThat(task.getReadAt(MARTIN)).isNull(), true)),
         change("setting a follow-up date", new ChangeInTheGui(
             NOTHING, service -> service.setFollowUpDate(EVERY_TASK, TASK,
                 FOLLOW_UP), task -> assertThat(task.getFollowUpDate()).isAtSameInstantAs(FOLLOW_UP), true)));

@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.tasklist;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Objects;
 
@@ -61,6 +62,44 @@ public class UserTaskChangedNotification extends NotificationEvent {
     return new UserTaskChangedNotification(
         Type.valueOf(operationOf(message).name()), message.getRaw().getDocumentKey().get(
             message.getRaw().getDocumentKey().getFirstKey()).asString().getValue(), null);
+
+  }
+
+  /**
+   * Whether the change only says who read the task: an update of nothing but {@code readBy} and
+   * {@code version}. Having read a task belongs to the reader alone and is no change of the task
+   * for anybody else, so the cockpit sends no event for it.
+   * <p>
+   * Only an update tells which fields it changed. The cockpit writes the read state with an update
+   * of its own, so this is enough. Azure Cosmos DB for MongoDB does not describe an update, and
+   * there such a change still produces an event.
+   *
+   * @param message The change event of MongoDB
+   * @return {@code true} if nothing but the read state changed
+   */
+  public static boolean changesOnlyWhoReadTheTask(
+      final Message<ChangeStreamDocument<Document>, UserTask> message) {
+
+    final var raw = message.getRaw();
+    if ((raw == null) || (raw.getUpdateDescription() == null)) {
+      return false;
+    }
+    final var description = raw.getUpdateDescription();
+    final var changedFields = new ArrayList<String>();
+    if (description.getUpdatedFields() != null) {
+      changedFields.addAll(description.getUpdatedFields().keySet());
+    }
+    if (description.getRemovedFields() != null) {
+      changedFields.addAll(description.getRemovedFields());
+    }
+    final var readState = changedFields
+        .stream()
+        .filter(field -> !"version".equals(field))
+        .toList();
+    return !readState.isEmpty() && readState
+        .stream()
+        .allMatch(field -> field.equals(UserTaskService.FIELD_READ_BY) || field.startsWith(UserTaskService.FIELD_READ_BY
+            + "."));
 
   }
 

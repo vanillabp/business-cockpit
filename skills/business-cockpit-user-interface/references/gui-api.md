@@ -426,7 +426,8 @@ mehrere Änderungen derselben Aufgabe einen Schwung, nennen alle den Urheber der
 die eine einzelne Aufgabe oder einen Fall zeigt, meldet "jemand anderer hat das geändert" nur bei
 `USER` mit einer Kennung, die nicht die des angemeldeten Benutzers ist. Sie muss dafür nichts neu
 laden. Eine Liste lädt bei jeder Änderung neu, egal wer sie gemacht hat. Bei `RELOAD` und wenn das
-Cockpit die Zeile nicht mehr hält, fehlen beide Felder.
+Cockpit die Zeile nicht mehr hält, fehlen beide Felder. Als gelesen oder ungelesen markieren, auch
+beim Öffnen einer Aufgabe, ist keine Änderung der Aufgabe: Dafür kommt kein Ereignis.
 
 Fünf Eigenschaften des Stroms musst du einplanen:
 

@@ -3,6 +3,7 @@ package io.vanillabp.cockpit.tasklist;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -37,6 +38,7 @@ import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
 
 import io.vanillabp.cockpit.bpms.OrderOfReports;
@@ -95,6 +97,8 @@ public class UserTaskService {
   public static final String PROPERTY_CREATEDAT = "createdAt";
   /** The field of the id, which the list is sorted by last by default. */
   public static final String PROPERTY_ID = "id";
+  /** The field which says who read a task and when, see {@link #recordWhoReadIt}. */
+  public static final String FIELD_READ_BY = "readBy";
 
   /** Which tasks a list holds, depending on whether they ended and on their follow-up date. */
   public static enum RetrieveItemsMode {
@@ -269,6 +273,10 @@ public class UserTaskService {
   private void publishUserTaskChange(
       final Message<ChangeStreamDocument<Document>, UserTask> message) {
 
+    // having read a task is no change of the task for anybody else
+    if (UserTaskChangedNotification.changesOnlyWhoReadTheTask(message)) {
+      return;
+    }
     applicationEventPublisher.publishEvent(
         UserTaskChangedNotification.build(message));
 
@@ -350,6 +358,48 @@ public class UserTaskService {
   }
 
   /**
+   * Writes whether a user has read these tasks, as one atomic update of the field {@code readBy}.
+   * <p>
+   * Having read a task belongs to that user alone. It says nothing about the task to anybody
+   * else, so it is no change of the task: {@code initiator}, {@code updatedAt} and
+   * {@code updatedBy} stay as they are, and the update streams get no event for it, see
+   * {@link UserTaskChangedNotification#changesOnlyWhoReadTheTask(Message)}. An open page of
+   * somebody else then does not say that the reader changed the task. Before, the read was saved
+   * with the whole task, and opening a task looked like a change by the person who opened it.
+   * <p>
+   * The update raises {@code version} like the note does. A report which read the task before
+   * then fails the version check, or its save would bring the old {@code readBy} back.
+   *
+   * @param userTaskIds The ids of the tasks
+   * @param userId The id of the user
+   * @param read Whether the user has read the tasks now, or has to see them as new again
+   */
+  private void recordWhoReadIt(
+      final Collection<String> userTaskIds,
+      final String userId,
+      final boolean read) {
+
+    final var everybodyElseWhoReadIt = new Document("$filter", new Document()
+        .append("input", new Document("$ifNull", List.of("$"
+            + FIELD_READ_BY, List.of())))
+        .append("as", "entry")
+        .append("cond", new Document("$ne", List.of("$$entry.userId", userId))));
+    final Object readBy = read
+        ? new Document("$concatArrays", List.of(
+            everybodyElseWhoReadIt,
+            List.of(new Document("userId", userId).append("timestamp", new Date()))))
+        : everybodyElseWhoReadIt;
+    mongoTemplate
+        .getCollection(UserTask.COLLECTION_NAME)
+        .updateMany(
+            Filters.in("_id", userTaskIds),
+            List.of(new Document("$set", new Document()
+                .append(FIELD_READ_BY, readBy)
+                .append("version", new Document("$add", List.of("$version", 1))))));
+
+  }
+
+  /**
    * Records that a user has read a task.
    *
    * @param visibility Which tasks the caller may reach
@@ -362,14 +412,11 @@ public class UserTaskService {
       final String userTaskId,
       final String userId) {
 
-    return againIfAReportCameInBetween(() -> {
-      final var userTask = getUserTask(visibility, userTaskId);
-      if (userTask == null) {
-        return null;
-      }
-      userTask.setReadAt(userId);
-      return saveInitiatedByCockpit(userTask);
-    });
+    if (getUserTask(visibility, userTaskId) == null) {
+      return null;
+    }
+    recordWhoReadIt(List.of(userTaskId), userId, true);
+    return getUserTask(userTaskId);
 
   }
 
@@ -386,11 +433,12 @@ public class UserTaskService {
       final Collection<String> userTaskIds,
       final String userId) {
 
-    return againIfAReportCameInBetween(() -> {
-      final var found = getUserTasks(visibility, userTaskIds);
-      found.forEach(userTask -> userTask.setReadAt(userId));
-      return saveAllInitiatedByCockpit(found);
-    });
+    final var found = getUserTasks(visibility, userTaskIds);
+    if (found.isEmpty()) {
+      return found;
+    }
+    recordWhoReadIt(found.stream().map(UserTask::getId).toList(), userId, true);
+    return getUserTasks(visibility, userTaskIds);
 
   }
 
@@ -407,14 +455,11 @@ public class UserTaskService {
       final String userTaskId,
       final String userId) {
 
-    return againIfAReportCameInBetween(() -> {
-      final var userTask = getUserTask(visibility, userTaskId);
-      if (userTask == null) {
-        return null;
-      }
-      userTask.clearReadAt(userId);
-      return saveInitiatedByCockpit(userTask);
-    });
+    if (getUserTask(visibility, userTaskId) == null) {
+      return null;
+    }
+    recordWhoReadIt(List.of(userTaskId), userId, false);
+    return getUserTask(userTaskId);
 
   }
 
@@ -431,11 +476,12 @@ public class UserTaskService {
       final Collection<String> userTaskIds,
       final String userId) {
 
-    return againIfAReportCameInBetween(() -> {
-      final var found = getUserTasks(visibility, userTaskIds);
-      found.forEach(userTask -> userTask.clearReadAt(userId));
-      return saveAllInitiatedByCockpit(found);
-    });
+    final var found = getUserTasks(visibility, userTaskIds);
+    if (found.isEmpty()) {
+      return found;
+    }
+    recordWhoReadIt(found.stream().map(UserTask::getId).toList(), userId, false);
+    return getUserTasks(visibility, userTaskIds);
 
   }
 

@@ -31,6 +31,7 @@ import org.springframework.data.mongodb.core.messaging.Subscription;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.data.mongodb.repository.support.MongoRepositoryFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.testcontainers.mongodb.MongoDBContainer;
 
@@ -48,7 +49,10 @@ import io.vanillabp.cockpit.mongo.converters.BigDecimalWriteConverter;
 import io.vanillabp.cockpit.mongo.converters.OffsetDateTimeReadConverter;
 import io.vanillabp.cockpit.mongo.converters.OffsetDateTimeWriteConverter;
 import io.vanillabp.cockpit.tasklist.UserTaskChangedNotification;
+import io.vanillabp.cockpit.tasklist.UserTaskService;
+import io.vanillabp.cockpit.tasklist.UserTaskVisibility;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
+import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.util.events.NotificationEvent.Type;
 import io.vanillabp.cockpit.workflowlist.WorkflowChangedNotification;
@@ -304,6 +308,63 @@ class ChangeStreamNotificationsTest {
       assertThat(notifications)
           .extracting(UserTaskChangedNotification::getUserTaskId)
           .containsOnly(userTaskId);
+      assertThat(logger.warnings()).isEmpty();
+    } finally {
+      changeStreams.unsubscribe(subscription);
+    }
+
+  }
+
+  /**
+   * Having read a task belongs to the reader alone. So marking it as read or as unread is no
+   * change of the task, and the open browsers get no event for it. A note written right after it
+   * is a change and gets one. The writes are made by the real {@link UserTaskService}, and the
+   * listener filters the way the service does.
+   */
+  @Test
+  void readingATaskIsNoChangeForTheOpenBrowsers() {
+
+    final var logger = new RecordingLogger();
+    final var changeStreams = changeStreamUtils(logger);
+    final var notifications = new ConcurrentLinkedQueue<UserTaskChangedNotification>();
+    final var subscription = subscribed(
+        changeStreams,
+        UserTask.class,
+        message -> {
+          if (!UserTaskChangedNotification.changesOnlyWhoReadTheTask(message)) {
+            notifications.add(UserTaskChangedNotification.build(message));
+          }
+        });
+
+    final var service = new UserTaskService();
+    ReflectionTestUtils.setField(service, "mongoTemplate", mongoTemplate);
+    ReflectionTestUtils.setField(
+        service, "userTasks", new MongoRepositoryFactory(mongoTemplate).getRepository(UserTaskRepository.class));
+    final var everyTask = UserTaskVisibility.everyUserTask();
+
+    final var userTaskId = "task-"
+        + UUID.randomUUID();
+    try {
+      final var inserted = mongoTemplate.insert(userTask(userTaskId)).getVersion();
+
+      assertThat(service.markAsRead(everyTask, userTaskId, "martin").getReadAt("martin")).isNotNull();
+      assertThat(service.markAsRead(everyTask, List.of(userTaskId), "petra")).hasSize(1);
+      final var read = service.markAsUnread(everyTask, userTaskId, "martin");
+      assertThat(read.getReadAt("martin")).isNull();
+      assertThat(read.getVersion())
+          .as("each of the three writes of the read state raised the version")
+          .isEqualTo(inserted + 3);
+      service.setNote(everyTask, "petra", userTaskId, "Waiting for the papers");
+
+      await()
+          .atMost(ARRIVAL)
+          .untilAsserted(() -> assertThat(notifications)
+              .as("notifications built from the change stream, swallowed warnings: %s",
+                  logger.warnings())
+              .extracting(NotificationEvent::getType)
+              .containsExactly(Type.INSERT, Type.UPDATE));
+      final var stored = service.getUserTask(userTaskId);
+      assertThat(stored.getReadAt("petra")).isNotNull();
       assertThat(logger.warnings()).isEmpty();
     } finally {
       changeStreams.unsubscribe(subscription);

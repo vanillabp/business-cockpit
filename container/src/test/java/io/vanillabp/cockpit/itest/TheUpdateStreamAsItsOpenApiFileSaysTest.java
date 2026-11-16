@@ -56,6 +56,9 @@ class TheUpdateStreamAsItsOpenApiFileSaysTest extends ItestBase {
     assertThat(JsonPath.<Map<String, Object>>read(reload.data(), "$[0]"))
         .as("a reload is about no workflow module")
         .doesNotContainKey("workflowModuleId");
+    assertThat(JsonPath.<Map<String, Object>>read(reload.data(), "$[0].event"))
+        .as("a reload names nobody who made a change")
+        .doesNotContainKeys("initiator", "initiatorKind");
 
   }
 
@@ -78,8 +81,9 @@ class TheUpdateStreamAsItsOpenApiFileSaysTest extends ItestBase {
     assertThat(element.get("source")).isEqualTo("UserTask");
     assertThat(element.get("workflowModuleId")).isEqualTo(moduleId);
     assertThat(element.get("timestamp")).isInstanceOf(Number.class);
+    // the report names nobody, so the workflow system made the change and no user id is sent
     assertThat(element.get("event")).isEqualTo(Map.of(
-        "id", userTaskId, "name", "UserTask", "type", "INSERT"));
+        "id", userTaskId, "name", "UserTask", "type", "INSERT", "initiatorKind", "SYSTEM"));
 
   }
 
@@ -117,7 +121,7 @@ class TheUpdateStreamAsItsOpenApiFileSaysTest extends ItestBase {
     assertThat(element.get("workflowModuleId")).isEqualTo(moduleId);
     assertThat(element.get("timestamp")).isInstanceOf(Number.class);
     assertThat(element.get("event")).isEqualTo(Map.of(
-        "id", workflowId, "name", "Workflow", "type", "INSERT"));
+        "id", workflowId, "name", "Workflow", "type", "INSERT", "initiator", "martin", "initiatorKind", "USER"));
 
   }
 
