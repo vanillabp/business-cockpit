@@ -667,12 +667,13 @@ answer.
    tries again. A web component is not defined in time: a note that names the module, the entry and
    the web component.
 
-The list may start the first two steps early. When the mouse rests on a row, it asks the data entry
-and loads the visual entry, so the form is there when the user clicks. This uses the same
-[loader](module-loading.md#one-registry-and-one-loader), so each module and each of its entries is
-loaded only once per page: the manifest of a module once, and each data entry and each visual entry
-once. Resting on the next row of the same kind, on the same row again, or the click that follows
-loads nothing new.
+The page loads the entries only when it is shown. The list loads nothing in advance: not when the
+mouse rests on a row, and not when a row gets the focus. The short wait when the page opens is
+fine. What was loaded once is used again. The page asks the same
+[loader](module-loading.md#one-registry-and-one-loader) every time, so each module and each of its
+entries is loaded only once per page: the manifest of a module once, and each data entry and each
+visual entry once. Opening a second task of the same kind, or the same task again, loads nothing
+new.
 
 ### The areas and the frame
 

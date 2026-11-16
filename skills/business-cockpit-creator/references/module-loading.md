@@ -390,11 +390,11 @@ server. If it fails again, offer to reload the page. A web component that was no
 is a bug of the module, not of the network. Write the module id, the entry and the name of the web
 component to the console as well, so the author of the module finds it.
 
-Because the steps stand alone, the cockpit may run the first two early. This is preloading. For
-example, when the mouse rests on a row of the task list, the cockpit asks the data entry of the
-row's module and loads the visual entry it names. When the user then clicks, the form is already
-there. Preloading uses the same loader and the same promises, so it never loads a file twice, and a
-preload that fails does not show an error. The error shows only when the user opens the part.
+The cockpit runs the steps only when the part is about to be shown. It does not preload: not when
+the mouse rests on a row of a list, and not when a row gets the focus. The page of a user task or
+a case loads its entries when it opens, and the short wait that this causes is fine. What was
+loaded is used again. The loader keeps the promise per pair of module and entry, so a part that is
+shown a second time, for example the next task of the same kind, loads no file again.
 
 `buildVersion` and `buildTimestamp` of the manifest are not needed to know that a part is loaded.
 Show them in a details view, if at all.
@@ -556,8 +556,8 @@ routes for every module without loading a single framework. Proposals for the us
 
 `element` is the name of a web component, and `entry` names the visual entry of the same manifest
 that defines it. The cockpit runs the three steps of [Ask, load, draw](#ask-load-draw). It loads the
-visual entry only when the web component is about to be shown, or earlier as a preload: the header
-elements when the header draws, the elements of a page when its route opens. `HeaderElements` and
+visual entry only when the web component is about to be shown: the header elements when the
+header draws, the elements of a page when its route opens. `HeaderElements` and
 `PageElements` are only examples. A module may use other names for its visual entries; only
 `Header` and `Pages` are fixed.
 
