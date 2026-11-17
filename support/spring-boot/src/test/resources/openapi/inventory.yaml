@@ -1,0 +1,120 @@
+openapi: 3.0.3
+info:
+  title: Inventory
+  description: A tiny API, just big enough to try every feature of a REST client on it.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api
+tags:
+  - name: inventory
+paths:
+  /items/{itemId}:
+    get:
+      tags: [inventory]
+      operationId: getItem
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+        "404":
+          description: There is no such item
+  /items:
+    get:
+      tags: [inventory]
+      operationId: findItems
+      parameters:
+        - name: changedSince
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: The items changed since the given moment
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Item"
+  /items/{itemId}/reservations:
+    post:
+      tags: [inventory]
+      operationId: reserveItem
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Reservation"
+      responses:
+        "201":
+          description: The reservation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+  /items/{itemId}/notes:
+    post:
+      tags: [inventory]
+      operationId: addNote
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text:
+                  type: string
+      responses:
+        "204":
+          description: The note was added
+components:
+  schemas:
+    Item:
+      type: object
+      required: [id, name, stock]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        stock:
+          type: integer
+          format: int32
+        changedAt:
+          type: string
+          format: date-time
+    Reservation:
+      type: object
+      required: [quantity]
+      properties:
+        id:
+          type: string
+        quantity:
+          type: integer
+          format: int32
