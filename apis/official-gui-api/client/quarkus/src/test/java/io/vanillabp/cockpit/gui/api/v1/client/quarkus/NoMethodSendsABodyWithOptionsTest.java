@@ -7,12 +7,14 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.vanillabp.cockpit.gui.api.v1.client.OfficialCurrentUserApi;
 import io.vanillabp.cockpit.gui.api.v1.client.OfficialNotificationConfigApi;
 import io.vanillabp.cockpit.gui.api.v1.client.OfficialTasklistApi;
 import io.vanillabp.cockpit.gui.api.v1.client.OfficialWorkflowModulesApi;
 import io.vanillabp.cockpit.gui.api.v1.client.OfficialWorkflowlistApi;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import jakarta.ws.rs.OPTIONS;
 
 /**
@@ -20,6 +22,7 @@ import jakarta.ws.rs.OPTIONS;
  * sends a body. The two such operations of the OpenAPI file, the suggestions of words for the
  * lists, are left out of this client, so a workflow module builds without the warning.
  */
+@ExtendWith(SuppressOutputExtension.class)
 public class NoMethodSendsABodyWithOptionsTest {
 
   private static final List<Class<?>> APIS = List.of(
