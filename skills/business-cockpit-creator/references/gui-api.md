@@ -499,7 +499,10 @@ The `event` object of `UserTask` and of `Workflow` also says who made the change
 | `initiator`     | the id of the user, a string; set when `initiatorKind` is `USER`                                  |
 
 Take the initiator from the event, not from the object read again afterwards. A second change
-between the event and the answer can have changed the initiator of the object. See
+between the event and the answer can have changed the initiator of the object. When one batch holds
+several changes of the same user task, all of them name the initiator of the last one. `RELOAD`, and
+an event for a row the cockpit no longer holds, carry neither field. Marking a user task as read or
+unread, also by opening it, is no change of the task, and no event comes for it. See
 [behaviour.md](behaviour.md#live-updates) for the lists and
 [behaviour.md](behaviour.md#changes-by-others) for an open page.
 
