@@ -4801,3 +4801,77 @@ mapper of its own with a higher priority.
   use one version, and `bin/check-the-chain.sh`, which reads it there
 - the wiki page "Connecting a workflow module"
 
+**Addendum:** decision 104 gives `support/core` its first compile dependencies, Nimbus JOSE + JWT and SLF4J, to check the login token on both platforms.
+
+### 104. A Quarkus workflow module checks the cockpit's login token with a mechanism of its own, passive and with the cockpit's keys
+
+This entry adds to decision 103, which gave `support` a core and a Quarkus module, and to decision
+87, which says that the groups of a login come from the user directory on every request.
+
+#### What was found
+
+A workflow module checks only half of what the cockpit does with the login token: it reads and
+checks it, but it never writes, renews or ends it. The check itself knows no platform. It is the
+signature with HMAC SHA-256, the time of the token, and the question to the directory which
+decision 87 describes.
+
+Quarkus has an extension for tokens, `quarkus-smallrye-jwt`. It reads keys of its own
+(`mp.jwt.*`), answers `401` on every endpoint where a token is missing or wrong, and takes the
+groups from the token. The cockpit's token carries no groups.
+
+A `@ConfigMapping` makes Quarkus refuse every key below its prefix which the mapping does not
+declare. It does that while it reads the configuration, before any bean starts, with a message
+which names the key but not what was meant.
+
+#### The decision
+
+The check moves into `support/core`: `LoginTokenVerifier` checks the token with Nimbus,
+`DirectoryUserLookup` asks the directory as decision 87 says, and `TokenUserDetails` reads the
+name and the e-mail address. The Spring Boot module uses them behind its own classes, so no public
+signature changes. So `core` now has two dependencies in compile scope, Nimbus and the SLF4J API,
+which both platforms have anyway. That replaces the sentence of decision 103 that `core` has
+none.
+
+The Quarkus module brings its own `HttpAuthenticationMechanism` and `IdentityProvider` instead of
+`quarkus-smallrye-jwt`. The mechanism reads the cockpit's cookie and is passive: a request without
+a valid token has no user and goes on, and it sends no challenge, because the login happens in the
+cockpit. The endpoint's own rules answer `401` and `403`. The groups go through a `GroupResolver`
+bean, which the application may replace, and become the roles of the request. A directory which
+fails fails the request. `UserContext` has the same name and methods as on Spring Boot.
+
+The keys are the cockpit's own, below the fixed prefix `business-cockpit.jwt`: only
+`hmacSHA256-base64` and `cookie.name`. They are read one by one and not by a `@ConfigMapping`, so
+the check at `StartupEvent` can refuse an unknown key below `business-cockpit.` with the key that
+was meant, and the keys which say how the cookie is written with the reason that only the cockpit
+writes it. A missing secret and a missing directory end the start with the words of the Spring
+Boot module. The build property `business-cockpit.jwt.enabled=false` leaves the mechanism, the
+provider and the check out.
+
+#### What it costs
+
+Two classes of the cockpit's token handling exist per platform, but the check itself exists once.
+A Quarkus module cannot use the keys of `quarkus-smallrye-jwt`, and an application which wants the
+token in the `Authorization` header waits for the later way of signing in described in the wiki
+page Security.
+
+On Quarkus an unknown key below `business-cockpit.` ends the start. On Spring Boot it does not,
+because the Spring Boot module reads its settings under the prefix of the application.
+
+#### Where it applies
+
+- `support/core`: `LoginTokenVerifier`, `LoginToken`, `InvalidLoginTokenException`,
+  `TokenUserDetails`, `DirectoryUserLookup`, `LoggedInUser`, `UserDirectoryIsMissing`, the
+  `pom.xml` with Nimbus, SLF4J and the test jar, and `README.md`
+- the property `version.nimbus-jose-jwt` in the root `pom.xml`
+- `support/spring-boot`: `HmacJwtKeySource`, `JwtAuthenticationTokenMapper`, `JwtUserDetails`,
+  `JwtProperties`, `UserDirectoryIsMissingFailureAnalyzer`, `README.md` and
+  `ATokenOfTheCockpitIsAcceptedByTheCoreVerifierTest`
+- `support/quarkus`: `CockpitCookieAuthenticationMechanism`, `LoginTokenIdentityProvider`,
+  `LoginTokenAuthenticationRequest`, `JwtSettings`, `JwtStartupCheck`, `UserContext`,
+  `GroupResolver`, `GroupsAsTheDirectoryGivesThem`, the `pom.xml`, `README.md` and the tests of
+  the login token
+- `support/quarkus-it`, `support/pom.xml`, `support/README.md`,
+  `test-coverage-report/support/quarkus/pom.xml` and `test-coverage-report/README.md`
+- the wiki pages Connecting-a-workflow-module, section "On Quarkus", and Security, sections
+  "A hierarchy which changes while the application runs" and "Reaching a workflow module"
+

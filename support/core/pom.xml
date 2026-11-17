@@ -10,7 +10,7 @@
 
   <artifactId>business-cockpit-support-core</artifactId>
   <name>Business Cockpit support - Core</name>
-  <description>The part of the Business Cockpit support which knows no platform: the user and the groups, the exceptions of a user task, and the TLS helpers of a REST client. The Spring Boot and the Quarkus module both bring it.</description>
+  <description>The part of the Business Cockpit support which knows no platform: the check of the cockpit's login token, the user and the groups, the exceptions of a user task, and the TLS helpers of a REST client. The Spring Boot and the Quarkus module both bring it.</description>
 
   <licenses>
     <license>
@@ -49,8 +49,21 @@
   </dependencyManagement>
 
   <dependencies>
-    <!-- No dependency in compile scope, and it stays that way. Whatever this module brings, a
-         workflow module gets on both platforms, so a library of one platform must not slip in. -->
+    <!--
+      Whatever this module brings, a workflow module gets on both platforms, so a library of one
+      platform must not slip in. The two below know no platform. Nimbus checks the signature of the
+      cockpit's login token, and Spring Security uses the same library under its JWT classes. SLF4J
+      is the logging API both platforms route to their own logging.
+    -->
+    <dependency>
+      <groupId>com.nimbusds</groupId>
+      <artifactId>nimbus-jose-jwt</artifactId>
+      <version>${version.nimbus-jose-jwt}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
@@ -68,4 +81,25 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <!--
+          The test jar holds what the tests of both platform modules share: LoginTokens, which signs a
+          token the way the cockpit does, and a user directory a test can change while it runs. So
+          both platforms are tested against the same tokens.
+        -->
+        <artifactId>maven-jar-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>test-fixtures</id>
+            <goals>
+              <goal>test-jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>

@@ -22,7 +22,11 @@ below name them where they belong, whichever module holds them.
 - `io.vanillabp.cockpit.support.security.jwt`: reads and writes the cockpit's login token (a JSON
   Web Token, JWT) in its cookie, and turns it into a Spring Security authentication. The key which
   signs and checks the token comes from a `JwtKeySource`. Today that is the shared HMAC secret of
-  the settings.
+  the settings. Behind these classes, `HmacJwtKeySource` checks a token with `LoginTokenVerifier`
+  of `core`, `JwtAuthenticationTokenMapper` finds the user and the groups with
+  `DirectoryUserLookup`, and `JwtUserDetails` reads the name with `TokenUserDetails`. A Quarkus
+  workflow module uses the same three, so both accept the same tokens.
+  `ATokenOfTheCockpitIsAcceptedByTheCoreVerifierTest` checks it in both directions.
 
 - `io.vanillabp.cockpit.support.security.usercontext`: the user of the current request, the user's
   groups, and how a group hierarchy adds groups to the ones assigned. `UserDetails`,

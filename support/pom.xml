@@ -34,5 +34,8 @@
     <module>core</module>
     <module>spring-boot</module>
     <module>quarkus</module>
+    <!-- the Quarkus module as the dependency of an application, which is how Quarkus finds its
+         beans and mappers. Tests only, nothing is published. -->
+    <module>quarkus-it</module>
   </modules>
 </project>

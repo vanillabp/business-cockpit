@@ -136,6 +136,15 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <!-- LoginTokens, which signs a token the way the core expects it, so a test can show that
+           this module and the core accept the same tokens -->
+      <groupId>io.vanillabp.businesscockpit</groupId>
+      <artifactId>business-cockpit-support-core</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <!-- the mock request and response the security tests hand to a filter or a repository -->
       <groupId>org.springframework</groupId>
       <artifactId>spring-test</artifactId>

@@ -2,8 +2,6 @@ package io.vanillabp.cockpit.support.security.jwt;
 
 import java.util.Base64;
 
-import javax.crypto.KeyGenerator;
-
 import org.springframework.util.StringUtils;
 
 /**
@@ -49,24 +47,8 @@ public class JwtProperties {
    */
   public String getHmacSHA256Base64() {
     if (!StringUtils.hasText(hmacSHA256Base64)) {
-      final String hmacKey;
-      try {
-        final var key = KeyGenerator
-            .getInstance("HmacSha256")
-            .generateKey();
-        hmacKey = Base64
-            .getEncoder()
-            .encodeToString(key.getEncoded());
-      } catch (Exception e) {
-        throw new RuntimeException(
-            "No property 'business-cockpit.jwt.hmacSHA256-base64' set! "
-                + "Additionally, on generating a key to be used an error occurred.", e);
-      }
       throw new RuntimeException(
-          "No property 'business-cockpit.jwt.hmacSHA256-base64' set! "
-              + "One could use this generated key: '"
-              + hmacKey
-              + "'.");
+          LoginTokenVerifier.explainTheMissingSecret("business-cockpit.jwt.hmacSHA256-base64"));
     }
     return hmacSHA256Base64;
   }

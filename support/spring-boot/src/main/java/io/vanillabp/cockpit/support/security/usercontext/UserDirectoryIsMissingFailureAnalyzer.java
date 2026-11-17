@@ -19,11 +19,12 @@ import org.springframework.core.annotation.Order;
  * Registered in {@code META-INF/spring.factories}, which is where Spring Boot looks for failure
  * analyzers. It goes first, so it is asked before Spring Boot's general analyzer for a missing
  * bean. It answers nothing for any other type, so going first changes nothing else.
+ * <p>
+ * The words are those of {@link UserDirectoryIsMissing}, which a Quarkus workflow module reads at
+ * its start as well.
  */
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class UserDirectoryIsMissingFailureAnalyzer extends AbstractFailureAnalyzer<NoSuchBeanDefinitionException> {
-
-  private static final String WIKI_SECURITY = "https://github.com/vanillabp/business-cockpit/wiki/Security";
 
   /**
    * Creates the analyzer. Spring Boot creates it from {@code META-INF/spring.factories}.
@@ -48,24 +49,12 @@ public class UserDirectoryIsMissingFailureAnalyzer extends AbstractFailureAnalyz
             + "' needs one.";
 
     return new FailureAnalysis(
-        "The application has no bean of type '"
-            + UserDirectoryService.class.getName()
-            + "'. "
-            + whoNeedsIt
-            + " The login token of the Business Cockpit names the user but carries no groups, so "
-            + "whatever reads the token asks this directory for the groups of the user, on every request.", """
-                Add a bean of type 'UserDirectoryService' which asks the system your users are kept in, \
-                for example Keycloak or LDAP:
-
-                    @Bean
-                    public UserDirectoryService userDirectory() {
-                        return ...;
-                    }
-
-                It is asked on every request, so let it cache the users if it asks a remote system. \
-                A workflow module which reads the token of the cockpit needs a directory of its own, \
-                because the directory of the cockpit is not shared with it. The wiki says more: \
-                """ + WIKI_SECURITY, cause);
+        UserDirectoryIsMissing.whatIsWrong(whoNeedsIt), UserDirectoryIsMissing.whatToDo("""
+            @Bean
+            public UserDirectoryService userDirectory() {
+                return ...;
+            }
+            """), cause);
 
   }
 

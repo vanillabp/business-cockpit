@@ -8,7 +8,8 @@ Each directory here aggregates one of them: `application/spring-boot` for the co
 `extensions-commons/spring-boot` and `extensions-commons/quarkus` for the two halves of the
 extension, and `support/quarkus` for what a Quarkus workflow module gets from `support`. The
 container report carries the Spring Boot module of `support` and `support/core`. The Quarkus report
-of `support` carries `support/core` and the Quarkus module, so no Spring Boot test counts there. A
+of `support` carries `support/core`, the Quarkus module and `support/quarkus-it`, which tests that
+module as the dependency of an application, so no Spring Boot test counts there. A
 build writes each report to `report` below its directory, and the default branch publishes the
 first three as pages.
 
