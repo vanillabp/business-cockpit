@@ -15,11 +15,19 @@ public class Client {
    */
   public static final String TO_BE_DEFINED_URL = "to-be-defined";
 
+  /**
+   * How many idle connections a client keeps open if nothing else is configured. It is the number
+   * OkHttp keeps by default, so a client which does not set the key behaves as it always did.
+   */
+  public static final int DEFAULT_CONNECTION_POOL_SIZE = 5;
+
   private String baseUrl = TO_BE_DEFINED_URL;
 
   private int connectTimeout = 1500;
 
   private int readTimeout = 10000;
+
+  private int connectionPoolSize = DEFAULT_CONNECTION_POOL_SIZE;
 
   private boolean log;
 
@@ -39,7 +47,8 @@ public class Client {
 
   /**
    * Creates the settings with their defaults: no base URL yet, 1.5 seconds to connect, 10 seconds
-   * to read, TLS certificates checked, no proxy, no authentication and no retries.
+   * to read, five idle connections kept open, TLS certificates checked, no proxy, no authentication
+   * and no retries.
    */
   public Client() {
   }
@@ -155,6 +164,28 @@ public class Client {
   public void setReadTimeout(
       int readTimeout) {
     this.readTimeout = readTimeout;
+  }
+
+  /**
+   * How many idle connections to the server the client keeps open for the next requests, the key
+   * {@code connection-pool-size}. A client which sends many requests at the same time keeps more,
+   * so it does not open a new connection for most requests. Requests are not limited by it: when
+   * all kept connections are busy, the client opens another one.
+   *
+   * @return The number of idle connections, {@value #DEFAULT_CONNECTION_POOL_SIZE} by default
+   */
+  public int getConnectionPoolSize() {
+    return connectionPoolSize;
+  }
+
+  /**
+   * Sets how many idle connections to the server the client keeps open for the next requests.
+   *
+   * @param connectionPoolSize The number of idle connections, at least 1
+   */
+  public void setConnectionPoolSize(
+      int connectionPoolSize) {
+    this.connectionPoolSize = connectionPoolSize;
   }
 
   /**
