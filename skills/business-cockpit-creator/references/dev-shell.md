@@ -9,14 +9,18 @@ cockpit, a MongoDB and a BPMS have to run.
 
 The dev shell is the way out. It simulates the Business Cockpit for the developer of a module. It is
 a small web application, written in the framework of the module, that imports the module's
-components directly, not through the web component wrapper. So the dev server swaps them while the
-developer types. Behind it runs the dev shell simulator, a Java application that answers what the
+components directly from their source files, not through the built visual entry. So the dev server
+swaps them while the developer types. It still draws each component inside a host element with a
+shadow root, as the cockpit does. Behind it runs the dev shell simulator, a Java application that answers what the
 cockpit would answer. The workflow module itself runs unchanged against the dev shell.
 
 The generated project has one dev shell package per framework the modules use
 (`Q-MODULE-FRAMEWORKS`), see [project.md](project.md#the-dev-shell-libraries).
 
 1. [The rule](#the-rule)
+   - [What surrounds a part in the cockpit](#what-surrounds-a-part-in-the-cockpit)
+   - [How to find the chain](#how-to-find-the-chain)
+   - [A browser test for it](#a-browser-test-for-it)
 2. [What a dev shell must do](#what-a-dev-shell-must-do)
 3. [The entry point](#the-entry-point)
 4. [What it shows](#what-it-shows)
@@ -29,9 +33,93 @@ The generated project has one dev shell package per framework the modules use
 ## The rule
 
 For the components of the workflow module there must be no difference between the dev shell and
-the cockpit. They get the same objects, `BcUserTask` and `BcWorkflow` from the module kit, with
-the same functions, the same language and the same theme. A form that works in the dev shell works in
-the cockpit.
+the cockpit. A form that works and looks right in the dev shell works and looks exactly the same in
+the cockpit. This covers three things:
+
+- The data. The components get the same objects, `BcUserTask` and `BcWorkflow` from the module
+  kit, with the same functions and the same language.
+- The styles. The same CSS reaches the component: the custom properties of the theme, the inherited
+  properties such as the font and the colour, and the module's own style inside its shadow root.
+  No stylesheet of the dev shell reaches it.
+- The element hierarchy. The component sits in the same chain of elements as in the cockpit: the
+  same host element with an open shadow root, inside the same layout boxes of the page.
+
+Data alone is not enough. A form can get the right data and still look different, because a box
+around it is narrower, scrolls somewhere else or passes another font into the shadow root.
+
+### What surrounds a part in the cockpit
+
+The cockpit draws a part through its module host. From the page down to the part, the chain is:
+
+1. The root of the document. The theme library sets the custom properties of the theme on it
+   (`Q-THEME-TOKENS`), see [project.md](project.md#the-theme-library). The base styles of the same
+   library set the font, the colour and the margins of `<html>` and `<body>`. Fonts are declared
+   with `@font-face` here, in the document, not in a shadow root.
+2. The layout boxes of the page. On the page of a user task or a case, these are the application
+   header and the box of each area: `body` in the main area, which scrolls, `information` at the top
+   of the column on the right, `actions` at its bottom, or one box for `all`, see
+   [module-loading.md](module-loading.md#the-page-of-a-user-task-or-a-case). The other extension
+   points have their own boxes: the header for a button, the content area under the menu for a page
+   of a module, the modal layer for a dialog. The size, `display` and `overflow` of these boxes
+   decide how much room a part has and where it scrolls.
+3. The host element. It is the custom element with the name the data entry returned, for example
+   `taxi-ride-assess-risk-form`, built by `defineBcElement`, see
+   [types.md](types.md#the-event-protocol). It is in the cockpit's own DOM, so the cockpit's styles
+   reach it from outside, and a rule of the cockpit on it wins over the module's `:host` rule. A
+   custom element is `display: inline` unless a style says otherwise.
+4. Its open shadow root. Selectors of the cockpit stop here. Only inherited properties pass, such
+   as `font-family`, `font-size`, `line-height`, `color` and `direction`, and all custom
+   properties. A `rem` size inside the shadow root still follows the font size of `<html>`.
+5. A `<style>` element with the module's style, in front of the framework's root, see
+   [rough-edges.md](rough-edges.md#vue-in-a-shadow-root).
+6. The component of the module.
+
+The dev shell builds steps 1 to 5 the same way and puts the developer's component in at step 6. It
+takes the theme and the base styles from `<scope>/bc-theme`, and builds the same layout boxes. A dev shell in another framework than the cockpit's cannot import the cockpit's
+layout components, so it builds the boxes again with the same elements and the same CSS. For the host element it calls `defineBcElement` from the module kit, the same
+helper the module's visual entry uses, with the same name. Its `mount` writes the module's style
+into the shadow root and renders the component that was handed over, as the module's own `mount`
+does. The component is still imported from its source file, so the dev server still swaps it while
+the developer types.
+
+The dev shell's own controls, the drop-down, the choice of the user and the choice of the language,
+are not part of this chain. They sit next to it, for example in a bar above the page, and none of
+their styles reach into it.
+
+### How to find the chain
+
+Do not guess the chain. Read it from the finished cockpit:
+
+1. Start the cockpit with its backend and one workflow module, and open one user task of that
+   module.
+2. In the developer tools of the browser, select the host element of the module's form. Write down
+   every ancestor from `<html>` to the host element: the element name, its classes, and its
+   `display`, `position`, `overflow`, `width` and `height`.
+3. Look at the computed styles of the host element and of the first element in its shadow root.
+   Write down the inherited properties from step 4 above and every custom property of the theme.
+   Also write down which rules of the cockpit match the host element itself.
+4. Build exactly this in the dev shell: the same ancestors with the same layout properties, the
+   same base styles and the same values in the shadow root.
+5. Do the same for the page of a case and for every extension point from `Q-EXTENSION-POINTS`.
+
+Repeat it whenever the layout or the base styles of the user interface change. The test below
+notices when somebody forgets.
+
+### A browser test for it
+
+The end-to-end tests of the generated project prove the rule too (`DS-018`, `DS-019`). The test
+opens a user task of the same workflow module and task definition once in the cockpit and once in
+the dev shell, finds the host element by its name, and compares:
+
+- the chain of ancestors, from the host element up to `<html>`: the element names, `display`,
+  `position` and `overflow`, and the width of the box of the area, with the same size of
+  the browser window in both,
+- the computed styles of the host element and of the first element in its shadow root: the
+  inherited properties and the custom properties of the theme.
+
+Read both with `getComputedStyle` in the page. Walk up the chain with `parentElement`, and with
+`getRootNode().host` where a shadow root ends. The test fails on the first difference and names the
+element and the property. Do the same for the page of a case.
 
 ## What a dev shell must do
 
@@ -61,12 +149,12 @@ For this it must:
 7. Show a toast when a part calls `showNotification`, in the look of its `level`, and keep a
    `sticky` one until it is clicked away.
 8. Let the developer choose the language from the languages of the cockpit (`Q-LANGUAGES`).
-9. Look like the cockpit. The theme from the interview (`Q-THEME`) comes from the theme library
-   `<scope>/bc-theme`, the workspace the user interface takes it from too, see
-   [project.md](project.md#the-theme-library). So a user task or a case looks as close to
-   pixel-identical to the cockpit as possible. The application header with the task actions, the
-   areas `body`, `information` and `actions` (`Q-TASK-PAGE-AREAS`, `Q-WORKFLOW-PAGE-AREAS`) and the
-   scrolling are laid out as in the cockpit.
+9. Look exactly like the cockpit, see [The rule](#the-rule). The theme from the interview
+   (`Q-THEME`) comes from the theme library `<scope>/bc-theme`, the workspace the user interface
+   takes it from too, see [project.md](project.md#the-theme-library). The application header with
+   the task actions, the areas `body`, `information` and `actions` (`Q-TASK-PAGE-AREAS`,
+   `Q-WORKFLOW-PAGE-AREAS`) and the scrolling are laid out as in the cockpit, with the same elements
+   and the same styles.
 
 A dev shell for Angular runs zoneless, as an Angular module does in the cockpit, see
 [module-loading.md](module-loading.md#nothing-is-shared). A form that needs `zone.js` fails in the
@@ -86,6 +174,7 @@ What is handed over is the real contract:
 | the address of the GUI API            | it builds its client from it, with the simulator `/official-api/gui/api/v1`                                                                  |
 | the functions of the data entries     | `userTaskForm`, `workflowPage`, and for the other extension points for example `header` and `pages`; the shell asks them as the cockpit does |
 | the components, by web component name | what the shell draws for each name the functions return                                                                                      |
+| the style of the components           | the stylesheet text the module's web components write into their shadow roots, so the shell writes the same, see [The rule](#the-rule)       |
 | the workflow module id                | for the frame, and for the requests of a form through `/wm/`                                                                                 |
 
 The form of the entry point follows the framework, and it does not have to be the same everywhere:
@@ -105,7 +194,8 @@ runs the same routing by process and task definition as the cockpit, see
    cockpit. `undefined` means "not mine", as in the cockpit.
 2. Load. The shell skips it. It does not load the visual entry the answer names.
 3. Draw. For each web component name in the answer, the shell draws the framework component that
-   was handed over under this name. A string is the all-in-one form, an object of areas the
+   was handed over under this name, inside a host element of that name with a shadow root, see
+   [What surrounds a part in the cockpit](#what-surrounds-a-part-in-the-cockpit). A string is the all-in-one form, an object of areas the
    laid-out form. The shell picks the areas, or `all`, by the same rules as the cockpit, see
    [module-loading.md](module-loading.md#the-page-of-a-user-task-or-a-case), so it lays out the
    page the same way.
@@ -182,8 +272,9 @@ medium, because it sends nothing, and it keeps the settings in memory only.
 
 Towards the workflow module, it speaks the BPMS API under `/bpms/api/v1_1`. A workflow module
 registers there, and its reports about user tasks and cases come in there, the same as with the
-cockpit. Version 1 under `/bpms/api/v1` gets a 404. A module whose adapter still reports version 1
-needs a current adapter for the dev shell.
+cockpit. Version 1 under `/bpms/api/v1` gets a 404. The cockpit itself still answers it, see
+[backend.md](backend.md#the-bpms-api). A module whose adapter still reports version 1 needs a
+current adapter for the dev shell.
 
 The module is pointed at it with one key: `vanillabp.cockpit.rest.base-url` points to
 `http://localhost:8079` instead of to the cockpit. The address is the root; the transport adds
@@ -204,7 +295,7 @@ There is also a small interface of its own for the shell, under `/dev-shell/user
 | `GET /dev-shell/user/{userId}`  | application | one user by id                         |
 
 These calls and `GET /simulator-api/usertask/{userTaskId}/report`, the last report of a workflow
-module about a user task, are described in an OpenAPI file of their own,
+module about a user task (see below), are described in an OpenAPI file of their own,
 `apis/dev-shell-simulator-api/openapi/dev-shell-simulator-api.yaml`. It is also in the jar
 `io.vanillabp.businesscockpit:dev-shell-simulator-api-client`, and a shell generates its client from
 it the same way as from the file of the official GUI API. Switching to an unknown user answers 404.
@@ -239,7 +330,8 @@ The simulator is an application on purpose, not a set of test data. What it answ
 cockpit answers, or a form runs here and not there.
 
 What it does not answer is the rest of the GUI API: claim, assign, mark as read, follow-up, the update
-form of the lists, the user search, the suggestions for the search field and the update stream. A shell that calls one of these calls into nothing.
+form of the lists, the user search, the suggestions for the search field and the update stream. A
+shell that calls one of these calls into nothing.
 
 ## The proxy of the dev server
 
@@ -274,9 +366,9 @@ them, so they do not believe their form passed a check the shell never makes:
 
 Some customers want to develop directly in the cockpit. That has an advantage and two drawbacks.
 
-The advantage: global CSS styles of the cockpit sometimes change how a form looks, and the dev shell
-does not show that unless it uses the same styles. Shadow DOM and the theme built into the dev shell
-keep this difference small.
+The advantage: the form runs in the real cockpit, so no difference between the dev shell and the
+cockpit can hide. By [The rule](#the-rule) such a difference is a bug of the dev shell, and the
+browser test finds it, but only for what it compares.
 
 The drawbacks: the whole cockpit has to be set up, with MongoDB, while the dev shell uses an
 in-memory H2 database. And parts the cockpit loads with `import()` are not updated while the

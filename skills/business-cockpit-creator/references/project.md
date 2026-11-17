@@ -590,15 +590,17 @@ It has two users:
   the cockpit does, without a running cockpit. The blueprints do the same with the VanillaBP host.
 
 The dev shells do not use it. They import the components of a module directly, so the dev server
-can swap them, see [dev-shell.md](dev-shell.md#the-entry-point).
+can swap them, see [dev-shell.md](dev-shell.md#the-entry-point). They still draw each component in
+a host element with a shadow root, as the cockpit does, see [dev-shell.md](dev-shell.md#the-rule).
 
 ## The theme library
 
 `<scope>/bc-theme` holds the look of the cockpit from `Q-THEME`: the colours, the fonts, the logo
 and the spacing, also the colours of a new, changed, removed and inactive row. It ships them as a
 CSS file that sets the custom properties on the root, under the names the types library exports
-(`Q-THEME-TOKENS`), and as plain values for code that needs them. It has no dependencies and no
-framework.
+(`Q-THEME-TOKENS`), and as plain values for code that needs them. The same CSS file holds the base
+styles of the page: the font, the colour and the margins of `<html>` and `<body>`, and the
+`@font-face` rules of the fonts. It has no dependencies and no framework.
 
 The user interface and every dev shell depend on it. So a colour changes in one place, and the
 dev shells look like the cockpit without a copy of the theme. It is published with the dev shells,
@@ -614,8 +616,9 @@ the module kit, the same as the module it runs. Its entry point is the framework
 component or plugin for Vue. [dev-shell.md](dev-shell.md) describes what it must do.
 
 The theme of the cockpit (`Q-THEME`) comes from `<scope>/bc-theme` into the base pages of every dev
-shell. A user task or a case page must look the same in the dev shell as in the cockpit, as close
-to pixel-identical as possible.
+shell. A user task or a case page must look exactly the same in the dev shell as in the cockpit,
+with the same styles and the same elements around each part, see
+[dev-shell.md](dev-shell.md#the-rule).
 
 ## What the project keeps beside the code
 

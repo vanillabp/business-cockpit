@@ -420,7 +420,8 @@ Then:
    and up again does not make the heap grow, and leaving the list frees it.
 8. A user task whose `uiUriType` is `EXTERNAL` opens its address in a tab of its own and leaves
    the list intact.
-9. The dev shell shows the page of a blueprint module the same way the cockpit shows it.
+9. The dev shell shows the page of a blueprint module exactly the way the cockpit shows it, with the
+   same styles and the same elements around each part.
 10. A page shows parts of modules in two frameworks other than the cockpit's, side by side, and the
     data entries of a module load without its framework.
 11. The backend repository builds and serves the user interface the way `Q-HOSTING` chose: with the
