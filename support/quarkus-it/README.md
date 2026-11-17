@@ -18,6 +18,11 @@ another user claimed.
 not read then, the user context answers `401`, and the form `TaskOfAModuleWithoutTheCheck`, which
 needs no role, still gets `404` and `409` from the mappers.
 
+`AClientOfAWorkflowModuleTest` shows that Quarkus finds `RestClients` and the client of the OAuth
+token endpoint in the jar on its own: `InventoryClients` builds a client at the module's prefix,
+and the client fetches a token from a stub server and sends it. `TheInventoryOfTheTests` sets the
+keys before the application starts.
+
 The secret comes as the environment variable `BUSINESS_COCKPIT_JWT_HMACSHA256_BASE64`, which the
 Surefire configuration sets, the way a container gets it. So the tests also show that Quarkus finds
 the key `business-cockpit.jwt.hmacSHA256-base64` under that name.

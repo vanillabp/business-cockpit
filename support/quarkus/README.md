@@ -36,7 +36,8 @@ answer the Spring Boot module's `BcUserTaskExceptionHandler` gives. On Spring Bo
 own handler answers `BcUnauthorizedException`, and a Spring Boot workflow module has no answer for
 it yet.
 
-The REST client for the cockpit's APIs is not here yet. It follows.
+- `io.vanillabp.cockpit.support.rest.restclient.RestClients`, which builds clients of Quarkus' REST
+  client from keys at a prefix the workflow module chooses, see below.
 
 ## The Quarkus extensions it needs
 
@@ -47,6 +48,7 @@ The module brings no Quarkus extension, see below. The workflow module adds the 
 | the SPI and the exceptions, compile only | none                               |
 | the answers to the exceptions            | `quarkus-rest`                     |
 | the check of the cockpit's login token   | `quarkus-rest`, `quarkus-security` |
+| REST clients built from keys             | `quarkus-rest-client-jackson`      |
 
 `quarkus-rest` brings `quarkus-vertx-http`, the HTTP layer the check of the token needs as well, so
 it does not have to be named. Without `quarkus-security` the application builds and starts, and the
@@ -98,6 +100,36 @@ says what to do:
   analyzer and the Quarkus code to add.
 - a secret in an application without `quarkus-security`, which could not check a token with it.
 
+## REST clients
+
+`RestClients` is a bean which builds a client of Quarkus' REST client from the keys at a prefix:
+
+```java
+@Produces
+@Singleton
+@Startup
+InventoryApi inventory(
+    final RestClients restClients) {
+  return restClients.build(InventoryApi.class, "loan-approval.inventory");
+}
+```
+
+The keys, their defaults, OAuth, two workflow modules with different keys and what differs from
+Spring Boot are in the section
+[REST clients on Quarkus](../README.md#rest-clients-on-quarkus) of the support README.
+
+Quarkus' REST client is built with `QuarkusRestClientBuilder` and not configured through
+`quarkus.rest-client.*`, for two reasons. The keys of a client belong at the prefix of the module
+which calls the service. And one interface can be configured there only once, so two modules could
+not call the same service with different keys. The builder gets the timeouts, the redirects, TLS and
+the proxy from the keys. Filters add the default headers and the OAuth token, and a logger of
+Quarkus' REST client writes requests and answers with `log: true`. Retries wrap the client, because
+the REST client has none and MicroProfile Fault Tolerance would need annotations on the generated
+interface. The OAuth token is fetched by a REST client of its own, `TokenEndpoint`, built with the
+same timeouts, TLS settings and proxy. The filter waits for it without blocking, so a token request
+never holds the thread which reads its answer. `quarkus-oidc-client` could fetch tokens too, but it
+reads its keys below `quarkus.oidc-client`, and a library would switch it on in every application.
+
 ## A library, not an extension
 
 The module is a plain jar with a Jandex index (`META-INF/jandex.idx`). Quarkus reads the classes of
@@ -106,8 +138,8 @@ annotated with `@ServerExceptionMapper`. So an application which has this module
 gets the answers without a line of its own. On Spring Boot a workflow module has to import the
 handler. Nothing here needs a build step, so there is no deployment module.
 
-Quarkus itself is an optional dependency: `quarkus-arc`, `quarkus-rest`, `quarkus-vertx-http` and
-`quarkus-security`. The application brings Quarkus, and it decides on the version and adds the
+Quarkus itself is an optional dependency: `quarkus-arc`, `quarkus-rest`, `quarkus-vertx-http`,
+`quarkus-security` and `quarkus-rest-client`. The application brings Quarkus, and it decides on the version and adds the
 extensions it uses, see the table above. Nothing in the module needs a bean of an extension the
 application may leave out: the user context and the start check look the beans of
 `quarkus-security` up instead of injecting them. The mechanism and the identity provider are beans
@@ -145,8 +177,17 @@ as a plain dependency.
 `quarkus-security`, and `AModuleWithoutTheCheckTest` of `quarkus-it` one with the check switched
 off.
 
+The REST client tests start such an application too, with the client the generator `jaxrs-spec`
+writes from a small inventory API and a stub server: `RequestsTest`, `TwoModulesTest`,
+`RetryTest`, `OAuthTest`, `ProxyTest`, `TlsTest`, `LoggingTest`, `StartupChecksTest` and
+`AMissingAddressStopsTheStartTest`. They are the twins of the tests of the HTTP service clients
+of the Spring Boot module. The test framework loads a test class twice, so the port of a stub is
+chosen once and kept in a system property, and the copy which runs the tests starts the stub.
+`AClientOfAWorkflowModuleTest` of `quarkus-it` builds a client with OAuth from the plain jar.
+
 Their coverage, together with that of `core`, `quarkus-it` and `quarkus-it-without-security`, is
-the report `test-coverage-report/support/quarkus`. No Spring Boot test counts there.
+the report `test-coverage-report/support/quarkus`, which also counts the Quarkus client of the
+official GUI API. No Spring Boot test counts there.
 
 Built as part of the reactor build described in the [root README](../../README.md#building-it).
 Quarkus tests read the modules they use from the local Maven repository, so build them with
