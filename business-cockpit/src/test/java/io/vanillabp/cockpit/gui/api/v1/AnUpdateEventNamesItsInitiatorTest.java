@@ -54,7 +54,7 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * Each event of the update stream names who made the change. A page which shows one user task or
  * case reads it, and shows that somebody else changed it only for a person who is not the user
- * signed in.
+ * signed in, see decision 102 in the repository's DECISIONS.md.
  *
  * <p>The changes are made through the real services on a real MongoDB. The change itself reaches
  * the update streams the way the cockpit's GUI notification services hand it over, because a

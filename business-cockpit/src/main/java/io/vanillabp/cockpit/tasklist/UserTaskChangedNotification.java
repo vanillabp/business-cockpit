@@ -68,7 +68,8 @@ public class UserTaskChangedNotification extends NotificationEvent {
   /**
    * Whether the change only says who read the task: an update of nothing but {@code readBy} and
    * {@code version}. Having read a task belongs to the reader alone and is no change of the task
-   * for anybody else, so the cockpit sends no event for it.
+   * for anybody else, so the cockpit sends no event for it, see decision 102 in the repository's
+   * DECISIONS.md.
    * <p>
    * Only an update tells which fields it changed. The cockpit writes the read state with an update
    * of its own, so this is enough. Azure Cosmos DB for MongoDB does not describe an update, and

@@ -366,6 +366,7 @@ public class UserTaskService {
    * {@link UserTaskChangedNotification#changesOnlyWhoReadTheTask(Message)}. An open page of
    * somebody else then does not say that the reader changed the task. Before, the read was saved
    * with the whole task, and opening a task looked like a change by the person who opened it.
+   * See decision 102 in the repository's DECISIONS.md.
    * <p>
    * The update raises {@code version} like the note does. A report which read the task before
    * then fails the version check, or its save would bring the old {@code readBy} back.

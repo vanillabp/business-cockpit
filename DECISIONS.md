@@ -3296,19 +3296,18 @@ gets no error for a change nobody else made.
 
 #### A change which is one update
 
-Giving a task back and writing a note are one atomic update each. The update raises `version`
-itself (`inc("version", 1)`). A report which read the document before the update then fails the
-version check, and the workflow module sends it again later. `MongoTemplate` raises the version of
-an update it is given with the entity class as well. The update says it anyway, so it stays raised
-however the update is sent.
+Giving a task back, writing a note and marking a task as read or unread are one atomic update each.
+The update raises `version` itself (`inc("version", 1)`). A report which read the document before
+the update then fails the version check, and the workflow module sends it again later.
+`MongoTemplate` raises the version of an update it is given with the entity class as well. The
+update says it anyway, so it stays raised however the update is sent.
 
 #### A change which reads the task and saves it whole
 
-Taking a task, adding or removing a candidate, marking a task as read or unread and setting a
-follow-up date read the task, change it and save it whole. The save raises `version` by itself. A
-report stored between the read and the save makes the save fail the version check. The change is
-then read and made again, up to two more times (`OptimisticLockingUtils`). Before, the user got an
-error 500.
+Taking a task, adding or removing a candidate and setting a follow-up date read the task, change it
+and save it whole. The save raises `version` by itself. A report stored between the read and the
+save makes the save fail the version check. The change is then read and made again, up to two more
+times (`OptimisticLockingUtils`). Before, the user got an error 500.
 
 #### The user's document
 
@@ -3329,6 +3328,9 @@ next to it.
 The rule stays. One such key would make any later save of a whole user document fail for that
 user, and such a save is easy to add again without noticing. A rule which costs an application
 some freedom in naming its keys is cheaper than a user whose settings can no longer be saved.
+
+**Addendum:** decision 102 moves marking a task as read or unread from the changes which read the
+task and save it whole to the changes which are one update.
 
 ### 78. A suspended user task or case stays in every list, and the cockpit orders the reports of a suspension by their time
 
@@ -4592,4 +4594,101 @@ which names the new place. It is not a key of version 1, so no upgrade guide nam
 - `extensions-commons/README.md`, the section "The place per adapter".
 - The wiki page `Configuration`, sections "The place per adapter" and "A key nobody reads ends the
   start".
+
+### 102. An event of the update stream names who made the change, read from the entity in the filtering tick
+
+Decided on 2026-11-16 by the maintainer.
+
+#### What was missing
+
+A page which shows one user task or case tells the user when somebody else changed it. The
+events of the update stream named the entity and what happened, but not who did it. So the page
+had to load the entity and compare its `initiator`. By then a second change could have replaced
+the initiator of the first one. And `initiator` is a string at a user task and a `Person` at a
+case, and at a case it is what the latest report said, not who wrote a note in the cockpit.
+
+#### The decision
+
+`UserTaskEvent` and `WorkflowEvent` in `business-cockpit/src/main/resources/api/gui/v1.yaml` have
+the same two optional fields:
+
+- `initiatorKind`: `USER`, `SYSTEM` for the workflow system, or `COCKPIT` for the cockpit itself.
+- `initiator`: the id of the user. It is there only for `USER`. The names the cockpit stores for
+  the system and for itself, `system` and `cockpit`, never reach the browser.
+
+Both are missing in a `RELOAD` and when the cockpit no longer holds the entity. A page shows
+"somebody else changed it" only for `USER` with an id which is not the user signed in. A list
+loads again for every change, whoever made it.
+
+##### Where the initiator comes from
+
+A change event of MongoDB does not carry the changed document for an update, see decision
+31. So the initiator is read the way the workflow module of an entity is read: in the filtering
+tick, by the one query which reads the facts of the visibility. `UserTaskVisibility.TaskFacts` carries `initiator`, and
+`WorkflowVisibility.WorkflowFacts` carries `initiatorOfLatestChange`.
+`InitiatorOfAChange.fromStored` turns the stored string into the two fields: `system` and nothing
+stored become `SYSTEM`, `cockpit` becomes `COCKPIT`, anything else is the id of a user.
+
+Several changes of one entity in one tick therefore all name the initiator of the latest change.
+That is what is stored when the tick reads, and it is the answer a page needs: whether the state
+it would load now comes from somebody else.
+
+An event whose producer knows better keeps what it names. A follow-up date which is reached is no
+change anybody made, so its event names `COCKPIT`, and not the initiator of the last change stored
+in the task.
+
+##### What is stored
+
+A user task already keeps who made its latest change in `initiator`: the report's initiator, the
+user who made a change in the cockpit, or `cockpit` where no user is known. A note was the one
+change in the cockpit which did not set it. It does now.
+
+A case could not use its `initiator`. That field is what the latest report said, and a note in the
+cockpit does not change it. So a case has the new field `initiatorOfLatestChange`, the same kind
+of string as the `initiator` of a user task. Every report sets it to the report's initiator, or to
+`system` where the report names nobody. A note sets it to the user who wrote it. It has no setter,
+so the mappers of the reports, which fail on a field they do not fill, do not see it. No changeset
+fills it for the cases which exist: a case gets a value with its next change, and only a change
+produces an event.
+
+##### Reading a task is no change of the task
+
+Opening a task marks it as read for the person who opened it, and a user can mark a task as read
+or unread by hand. The read state belongs to that user alone and says nothing about the task to
+anybody else. Before, it was saved with the whole task through the same path as a claim, so the
+reader became the `initiator`, and the event told every other open page that the reader had
+changed the task.
+
+Now the read state is one atomic update of `readBy`, which also raises `version`. It leaves
+`initiator`, `updatedAt` and `updatedBy` as they are. The change stream tells which fields an
+update changed, and an update of nothing but `readBy` and `version` produces no event at all
+(`UserTaskChangedNotification.changesOnlyWhoReadTheTask`). No list of anybody else changes through
+it, so no list has to load again. The reader's own page already has the answer of its request.
+
+This changes one line of decision 77, that a change of the GUI API is never lost to a report:
+marking a task as read or unread moves from the changes which read the task and save it whole to
+the changes which are one update. A report which read the task before fails the version check, as
+it does after a note.
+
+On Azure Cosmos DB for MongoDB an update is not described in the change event, so there a read
+still produces an event, which names the initiator of the latest real change.
+
+#### Where it applies
+
+- `business-cockpit/src/main/resources/api/gui/v1.yaml`: `InitiatorKind`, `initiator` and
+  `initiatorKind` in `UserTaskEvent` and `WorkflowEvent`, and the description of `GET /updates`
+- `InitiatorOfAChange`, `UpdateStreamAudience.namingItsInitiator`,
+  `UpdateStreamAudience.WhatTheStreamsMaySee`, `UpdateStreams`, `GuiEvent.withEvent`,
+  `UserTaskStreamAudience`, `WorkflowStreamAudience`, `UserTaskVisibility.TaskFacts`,
+  `WorkflowVisibility.WorkflowFacts`
+- `tasklist.api.GuiNotificationService` for the follow-up
+- `UserTaskService.markAsRead`, `UserTaskService.markAsUnread`,
+  `UserTaskChangedNotification.changesOnlyWhoReadTheTask`
+- `UserTaskService.setNote`, `WorkflowlistService.setNote` and the saves of reports in
+  `WorkflowlistService`, `Workflow.initiatorOfLatestChange`
+- `UPGRADE.md`: "An event of the update stream names who made the change"
+- `skills/business-cockpit-user-interface/references/gui-api.md`
+- Tests: `AnUpdateEventNamesItsInitiatorTest`, `ChangeStreamNotificationsTest`,
+  `AChangeInTheGuiAndAReportAtTheSameTimeTest`, `TheUpdateStreamAsItsOpenApiFileSaysTest` in
+  `container`
 
