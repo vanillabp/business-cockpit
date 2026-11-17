@@ -8,6 +8,12 @@ package io.vanillabp.cockpit.support.usertask;
  */
 public class BcTaskNotOpenException extends RuntimeException {
 
+  /**
+   * The HTTP status a form answers with: {@value}. The task is not open any more, which for the
+   * form is the same as an unknown task: it cannot take an answer for it.
+   */
+  public static final int HTTP_STATUS_CODE = 404;
+
   private static final long serialVersionUID = 1L;
 
   /**

@@ -44,6 +44,7 @@
     <module>apis/bpms-api/protobuf</module>
     <module>apis/official-gui-api/server</module>
     <module>apis/official-gui-api/client/spring-boot</module>
+    <module>apis/official-gui-api/client/quarkus</module>
     <module>business-cockpit</module>
     <module>container</module>
     <module>development/dev-shell-simulator</module>
@@ -106,6 +107,9 @@
     <!-- the Spring Boot module of support is part of the container report. Its Quarkus module
          runs in no cockpit, only in a workflow module, so it has a report of its own -->
     <coverage.threshold.support-quarkus>85</coverage.threshold.support-quarkus>
+    <!-- the Spring Boot client of the official GUI API runs in a workflow module too. Its Quarkus
+         twin counts in the report of support on Quarkus, on which it builds -->
+    <coverage.threshold.official-gui-api-spring-boot>85</coverage.threshold.official-gui-api-spring-boot>
     <!-- the rule every VanillaBP repository is read against. The gate prints each
          measurement against it on every run but never fails on it, because it marks where
          somebody has to look and not the number a build has to hit today. -->

@@ -31,7 +31,8 @@ public class BcUnauthorizedExceptionMapper {
       final BcUnauthorizedException exception) {
 
     return RestResponse.ResponseBuilder
-        .create(RestResponse.Status.UNAUTHORIZED, exception.getMessage())
+        .<String>create(BcUnauthorizedException.HTTP_STATUS_CODE)
+        .entity(exception.getMessage())
         .type(MediaType.TEXT_PLAIN_TYPE)
         .build();
 

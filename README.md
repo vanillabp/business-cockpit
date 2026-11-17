@@ -102,9 +102,10 @@ two platforms never runs.
 | Business cockpit container | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fapplication-spring-boot-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/application-spring-boot-report)               |                                                                                                                                                                                                                                                                                                                                                                  |
 | Extension commons          | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fextensions-commons-spring-boot-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/extensions-commons-spring-boot-report) | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fextensions-commons-quarkus-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/extensions-commons-quarkus-report) |
 | Support                    | see the container report                                                                                                                                                                                                                                                                                                                                                 | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fsupport-quarkus-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/support-quarkus-report)                       |
+| Official GUI API client    | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fofficial-gui-api-spring-boot-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/official-gui-api-spring-boot-report)     | see the support report                                                                                                                                                                                                                                                                                                                                           |
 
 Each badge reads the report it links to, so the number shown here and the number in the report
-cannot drift apart. All four reports are published on every build of the default branch. How they
+cannot drift apart. All five reports are published on every build of the default branch. How they
 are produced, what the gate prints on every run and what a run stopping at `package` does instead is
 in [test-coverage-report](./test-coverage-report).
 
@@ -112,6 +113,11 @@ The Quarkus module of `support` has a fourth report, `test-coverage-report/suppo
 the same gate of 85. It counts that module and the platform-neutral `support/core`, and no Spring
 Boot test. The Spring Boot module of `support` and `support/core` are part of the container report,
 because every cockpit carries them.
+
+The two clients of the official GUI API run in a workflow module and not in a cockpit. The Spring
+Boot client has a fifth report, `test-coverage-report/official-gui-api/spring-boot`, and the
+Quarkus client counts in the report of `support` on Quarkus, on which it builds. Both leave out the
+interfaces and models the generator writes, and both are held at 85.
 
 ## The modules
 

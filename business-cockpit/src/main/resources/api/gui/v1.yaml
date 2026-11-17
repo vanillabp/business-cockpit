@@ -23,26 +23,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AppInformation'
-  /app/current-user:
-    get:
-      tags:
-        - login
-      summary: load current user from security context
-      operationId: currentUser
-      parameters:
-        - in: header
-          name: "X-Refresh-Token"
-          schema:
-            type: string
-      responses:
-        200:
-          description: The user logged in
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/User'
-        404:
-          description: No user logged in
   /app/current-user/settings/{key}:
     parameters:
       - in: path
@@ -266,15 +246,6 @@ components:
         size:
           type: integer
           format: int32
-    User:
-      allOf:
-        - $ref: '../../../../../../apis/official-gui-api/openapi/v1.yaml/#/components/schemas/Person'
-        - type: object
-          properties:
-            groups:
-              type: array
-              items:
-                $ref: '../../../../../../apis/official-gui-api/openapi/v1.yaml/#/components/schemas/Group'
     GroupHierarchyOfUser:
       type: object
       description: The groups the organisation gives the user, and per workflow module the hierarchy entries of the user's groups.

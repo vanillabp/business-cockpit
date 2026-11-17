@@ -6,13 +6,16 @@ deployable and per platform, because none of them executes another's code, and t
 
 Each directory here aggregates one of them: `application/spring-boot` for the cockpit itself,
 `extensions-commons/spring-boot` and `extensions-commons/quarkus` for the two halves of the
-extension, and `support/quarkus` for what a Quarkus workflow module gets from `support`. The
+extension, `support/quarkus` for what a Quarkus workflow module gets from `support`, and
+`official-gui-api/spring-boot` for the Spring Boot client of the official GUI API. The
 container report carries the Spring Boot module of `support` and `support/core`. The Quarkus report
 of `support` carries `support/core`, the Quarkus module, `support/quarkus-it`, which tests that
 module as the dependency of an application, and `support/quarkus-it-without-security`, the same
-without `quarkus-security`, so no Spring Boot test counts there. A
+without `quarkus-security`, so no Spring Boot test counts there. It also counts the Quarkus client
+of the official GUI API, which builds on the Quarkus module. Both client reports leave out the
+interfaces and models the generator writes, because their numbers would measure the generator. A
 build writes each report to `report` below its directory, and the default branch publishes the
-first three as pages.
+reports as pages.
 
 `coverage-gate` is what breaks a build. It breaks on a report below its threshold, and it breaks on
 a module producing coverage data no aggregated report reads, because everything covered by that
@@ -20,7 +23,7 @@ module alone would otherwise count as missed with nobody able to fix it. The thr
 properties of the root `pom.xml`, in percent of covered instructions.
 `coverage.threshold.application-spring-boot` holds 55, which is what the container's suite reached.
 `coverage.threshold.extensions-commons-spring-boot`, `coverage.threshold.extensions-commons-quarkus`
-and `coverage.threshold.support-quarkus` hold 85, the number every VanillaBP repository gates on. None of them is the target. `coverage.rule` is, and it holds 90. Between a threshold and the
+`coverage.threshold.support-quarkus` and `coverage.threshold.official-gui-api-spring-boot` hold 85, the number every VanillaBP repository gates on. None of them is the target. `coverage.rule` is, and it holds 90. Between a threshold and the
 rule the build passes, and the gate prints how far each report still is from the rule. A threshold
 is raised as tests arrive and never lowered to make a build green.
 
@@ -33,6 +36,7 @@ coverage gate | Business Cockpit container (Spring Boot): <percent> % instructio
 coverage gate | Business Cockpit extension (Spring Boot): <percent> % instructions (<missed> of <total> missed) | at the rule of 90 %
 coverage gate | Business Cockpit extension (Quarkus): <percent> % instructions (<missed> of <total> missed) | <gap> points below the rule of 90 %, build breaks below 85 %
 coverage gate | Business Cockpit support (Quarkus): <percent> % instructions (<missed> of <total> missed) | at the rule of 90 %
+coverage gate | Official GUI API client (Spring Boot): <percent> % instructions (<missed> of <total> missed) | at the rule of 90 %
 ```
 
 A measurement at or above the rule ends in the short form. Anything below it names the gap and the
@@ -40,7 +44,7 @@ threshold its build would break at.
 
 The gate judges what a run built. The reports are written in the `verify` phase, so `mvn package`
 checks no threshold at all. It prints a line per measurement which names the command the build was
-started with and says that the coverage was NOT checked, and the four tests holding the thresholds
+started with and says that the coverage was NOT checked, and the five tests holding the thresholds
 are reported as skipped. Nothing fails over a file the run never wrote, and nobody reads such a run
 as a checked one. `mvn install` is the run which judges.
 

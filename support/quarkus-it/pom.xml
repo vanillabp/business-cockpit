@@ -10,7 +10,7 @@
 
   <artifactId>business-cockpit-quarkus-support-it</artifactId>
   <name>Business Cockpit support - Quarkus, tested as an application</name>
-  <description>A Quarkus application with the Quarkus module of support as a plain dependency. Its tests show that Quarkus finds the check of the login token, the user context and the mappers in that jar on its own, and that a form endpoint answers 401, 403, 404 and 409.</description>
+  <description>A Quarkus application with the Quarkus module of support as a plain dependency. Its tests show that Quarkus finds the check of the login token, the user context, the mappers and the builder of REST clients in that jar on its own, that a form endpoint answers 401, 403, 404 and 409, and that a client built from keys fetches its OAuth token.</description>
 
   <licenses>
     <license>
@@ -82,6 +82,11 @@
       <artifactId>quarkus-security</artifactId>
     </dependency>
     <dependency>
+      <!-- the REST client with JSON, which a workflow module brings to call a service -->
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-rest-client-jackson</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-junit</artifactId>
       <scope>test</scope>
@@ -92,6 +97,12 @@
       <artifactId>business-cockpit-support-core</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- the service and the OAuth server the client of the tests calls -->
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>mockwebserver3</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

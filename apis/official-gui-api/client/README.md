@@ -9,8 +9,8 @@ where the keys live, two workflow modules with different keys, and the user's co
 
 - [spring-boot](./spring-boot/README.md), published as
   `io.vanillabp.businesscockpit:official-gui-api-spring-boot-client`.
-- The Quarkus module follows. TODO: a module `quarkus` with a client generated for Quarkus' REST
-  client, published as `official-gui-api-quarkus-client`.
+- [quarkus](./quarkus/README.md), published as
+  `io.vanillabp.businesscockpit:official-gui-api-quarkus-client`.
 
 On every platform the keys live below a prefix the application or workflow module chooses, never
 below `vanillabp`, and a call made while the module answers a request of the cockpit's user

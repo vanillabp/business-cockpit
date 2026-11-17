@@ -922,3 +922,13 @@ there is no open task of that id either way. `409 Conflict` now means that anoth
 task. A workflow module says so with the new `BcTaskClaimedByAnotherUserException`, which carries
 the ids and, if the module knows it, the user who claimed the task. A user interface which read 409
 as "the task is done" has to read 404 for that now.
+
+### The user signed in is part of the official GUI API
+
+`GET /gui/api/v1/app/current-user` moved from the cockpit's own OpenAPI file to the official one,
+`apis/official-gui-api/openapi/v1.yaml`, so a workflow module can ask it with a generated client.
+The path, the answer and the security chains stay as they are. A user interface which generates
+its client from both files finds the operation `currentUser` under the new tag
+`officialCurrentUser` instead of `login`. In a TypeScript client that is `OfficialCurrentUserApi`
+instead of `LoginApi`. The model `User` moved along: it is in `official-gui-api-server` now, in the
+same package `io.vanillabp.cockpit.gui.api.v1`.

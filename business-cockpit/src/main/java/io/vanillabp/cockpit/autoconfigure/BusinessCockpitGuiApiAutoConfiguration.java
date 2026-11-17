@@ -9,6 +9,7 @@ import io.vanillabp.cockpit.config.MicroserviceProxyConfiguration;
 import io.vanillabp.cockpit.config.web.JsonConfiguration;
 import io.vanillabp.cockpit.config.web.SpaNoHandlerFoundExceptionHandler;
 import io.vanillabp.cockpit.exceptions.RestfulExceptionHandler;
+import io.vanillabp.cockpit.gui.api.v1.CurrentUserApiController;
 import io.vanillabp.cockpit.gui.api.v1.LoginApiController;
 import io.vanillabp.cockpit.gui.api.v1.UpdateStreams;
 import io.vanillabp.cockpit.gui.api.v1.UserRightsApiController;
@@ -39,7 +40,7 @@ import io.vanillabp.cockpit.workflowmodules.api.v1.WorkflowModulesGuiApiMapperIm
 @AutoConfiguration
 @ConditionalOnWebApplication(type = Type.SERVLET)
 @Import({
-    BcUserTaskExceptionHandler.class, JsonConfiguration.class, LoginApiController.class, MicroserviceProxyConfiguration.class, NotificationConfigGuiApiController.class, RestfulExceptionHandler.class, SpaNoHandlerFoundExceptionHandler.class, TasklistGuiApiMapperImpl.class, UpdateStreams.class, UserContextConfiguration.class, UserSettings.class, UserSettingsApiController.class, UserRightsApiController.class, UserTaskStreamAudience.class, WorkflowListGuiApiMapperImpl.class, WorkflowStreamAudience.class, WorkflowModulesGuiApiMapperImpl.class
+    BcUserTaskExceptionHandler.class, CurrentUserApiController.class, JsonConfiguration.class, LoginApiController.class, MicroserviceProxyConfiguration.class, NotificationConfigGuiApiController.class, RestfulExceptionHandler.class, SpaNoHandlerFoundExceptionHandler.class, TasklistGuiApiMapperImpl.class, UpdateStreams.class, UserContextConfiguration.class, UserSettings.class, UserSettingsApiController.class, UserRightsApiController.class, UserTaskStreamAudience.class, WorkflowListGuiApiMapperImpl.class, WorkflowStreamAudience.class, WorkflowModulesGuiApiMapperImpl.class
 })
 public class BusinessCockpitGuiApiAutoConfiguration {
 

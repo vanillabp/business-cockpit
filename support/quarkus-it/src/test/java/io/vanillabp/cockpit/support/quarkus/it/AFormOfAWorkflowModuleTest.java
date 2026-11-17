@@ -11,6 +11,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.vanillabp.cockpit.support.security.jwt.LoginTokens;
+import io.vanillabp.cockpit.support.usertask.BcTaskClaimedByAnotherUserException;
+import io.vanillabp.cockpit.support.usertask.BcTaskNotOpenException;
+import io.vanillabp.cockpit.support.usertask.BcUnknownTaskException;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
@@ -97,7 +100,7 @@ public class AFormOfAWorkflowModuleTest {
         .cookie("bc", LoginTokens.signed(SECRET, "john"))
         .post("/loan-approval/assess-risk/task-9")
         .then()
-        .statusCode(404)
+        .statusCode(BcUnknownTaskException.HTTP_STATUS_CODE)
         .body(equalTo("There is no such user task 'task-9' in 'loan-approval'"));
 
   }
@@ -109,7 +112,7 @@ public class AFormOfAWorkflowModuleTest {
         .cookie("bc", LoginTokens.signed(SECRET, "john"))
         .post("/loan-approval/assess-risk/task-2")
         .then()
-        .statusCode(404)
+        .statusCode(BcTaskNotOpenException.HTTP_STATUS_CODE)
         .contentType(startsWith("text/plain"))
         .body(equalTo("The user task 'task-2' of 'loan-approval' is not open any more"));
 
@@ -122,7 +125,7 @@ public class AFormOfAWorkflowModuleTest {
         .cookie("bc", LoginTokens.signed(SECRET, "john"))
         .post("/loan-approval/assess-risk/task-3")
         .then()
-        .statusCode(409)
+        .statusCode(BcTaskClaimedByAnotherUserException.HTTP_STATUS_CODE)
         .contentType(startsWith("text/plain"))
         .body(equalTo("The user task 'task-3' of 'loan-approval' is claimed by 'mary'"));
 

@@ -12,7 +12,7 @@
   <artifactId>support-quarkus-report</artifactId>
   <packaging>pom</packaging>
   <name>Test coverage report - Business Cockpit support (Quarkus)</name>
-  <description>Coverage of what a Quarkus workflow module gets from the Business Cockpit support: the core which knows no platform and the Quarkus module, tested on its own and as the dependency of an application. The Spring Boot module is not listed, so no Spring Boot test counts here. The core appears in this report and in the one of the container, which carries the Spring Boot module.</description>
+  <description>Coverage of what a Quarkus workflow module gets from the Business Cockpit support: the core which knows no platform and the Quarkus module, tested on its own and as the dependency of an application. The Spring Boot module is not listed, so no Spring Boot test counts here. The core appears in this report and in the one of the container, which carries the Spring Boot module. The Quarkus client of the official GUI API is here as well, without its generated classes.</description>
 
   <dependencies>
     <dependency>
@@ -39,6 +39,13 @@
       <artifactId>business-cockpit-quarkus-support-it-without-security</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <!-- the Quarkus client of the official GUI API, which builds on the Quarkus module. Only
+           the forwarding of the user's cookie is written by hand, see the excludes below. -->
+      <groupId>${project.groupId}</groupId>
+      <artifactId>official-gui-api-quarkus-client</artifactId>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
 
   <build>
@@ -55,6 +62,12 @@
             <phase>verify</phase>
             <configuration>
               <outputDirectory>${project.basedir}/report</outputDirectory>
+              <excludes>
+                <!-- the interfaces and models of the official GUI API, generated from its
+                     OpenAPI file -->
+                <exclude>io/vanillabp/cockpit/gui/api/v1/client/*.class</exclude>
+                <exclude>io/vanillabp/cockpit/gui/api/v1/client/model/**</exclude>
+              </excludes>
             </configuration>
           </execution>
         </executions>

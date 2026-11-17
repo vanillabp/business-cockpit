@@ -25,7 +25,9 @@ depends on the module of its platform.
   `BcTaskClaimedByAnotherUserException`, which a form endpoint throws for a task id the workflow
   does not know, for a task which is not open any more, and for an open task which another user
   claimed. Both platforms answer the first two with `404 Not Found` and the third with
-  `409 Conflict`.
+  `409 Conflict`. Each of them, and `BcUnauthorizedException` with `401`, names its status as
+  `HTTP_STATUS_CODE`, so a test of a form reads, for example,
+  `assertThat(status).isEqualTo(BcTaskClaimedByAnotherUserException.HTTP_STATUS_CODE)`.
 - `io.vanillabp.cockpit.support.rest.adapter`: `tls.TlsTruststoreUtil`, which builds trust managers
   and key managers out of a PKCS12 file, and `versioning.ApiVersionAware`.
 

@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.vanillabp.businesscockpit</groupId>
+    <artifactId>business-cockpit-parent</artifactId>
+    <version>0.9.0-SNAPSHOT</version>
+    <relativePath>../../../../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>official-gui-api-quarkus-client</artifactId>
+  <name>Quarkus client of the official GUI API</name>
+  <description>The Quarkus REST client interfaces of the cockpit's official GUI API, generated from its OpenAPI file, which the support module builds from keys, and a filter which forwards the cookie of the user's request.</description>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>VanillaBP</id>
+      <organization>Phactum Softwareentwicklung GmbH</organization>
+      <organizationUrl>https://www.phactum.at</organizationUrl>
+    </developer>
+  </developers>
+
+  <properties>
+    <!-- a workflow module builds against this module, so its snapshot carries a javadoc jar -->
+    <skip.javadoc.jar>false</skip.javadoc.jar>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <!-- imported first, so it wins over the Spring Boot BOM of the root POM: this module runs
+          in a Quarkus application -->
+        <groupId>io.quarkus</groupId>
+        <artifactId>quarkus-bom</artifactId>
+        <version>${version.quarkus}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <!-- the io.vanillabp coordinates the support module reads, see its POM -->
+        <groupId>io.vanillabp</groupId>
+        <artifactId>vanillabp-bom</artifactId>
+        <version>${version.vanillabp}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <!-- builds the clients from keys: RestClients of the support module -->
+      <groupId>io.vanillabp.businesscockpit</groupId>
+      <artifactId>business-cockpit-quarkus-support</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <!--
+      Quarkus is optional, as in the support module: the application brings it and adds the
+      extensions. A workflow module which calls the cockpit adds quarkus-rest-client-jackson. The
+      scope is not 'provided', because Quarkus leaves a provided dependency out of the application
+      its tests start.
+    -->
+    <dependency>
+      <!-- the REST client and the JSON bodies, which the generated interfaces and models need -->
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-rest-client-jackson</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <!-- the request a workflow module answers, whose cookie goes along -->
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-vertx-http</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <!-- what the generated sources import -->
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- the form endpoint of the tests, which calls the cockpit while it answers a request -->
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-rest</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- the cockpit of the tests: records each request and answers what the test queues -->
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>mockwebserver3</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.rest-assured</groupId>
+      <artifactId>rest-assured</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- the output suppression every test class of this module registers -->
+      <groupId>io.vanillabp</groupId>
+      <artifactId>test-utils</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <!-- The root POM keeps the agent away from io/vanillabp/cockpit/gui/api/v1, because the
+             cockpit generates its GUI API there. This module writes code of its own below that
+             package, so the agent leaves out only what the generator writes. -->
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <configuration>
+          <excludes combine.self="override">
+            <exclude>io/vanillabp/cockpit/gui/api/v1/client/Official*Api</exclude>
+            <exclude>io/vanillabp/cockpit/gui/api/v1/client/model/*</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <compilerArgs combine.children="append">
+            <!-- the generator writes one @return per answer of an operation, which the javadoc
+              check of the root POM refuses. The generated packages are no code of ours. -->
+            <arg>-Xdoclint/package:-io.vanillabp.cockpit.gui.api.v1.client,-io.vanillabp.cockpit.gui.api.v1.client.model</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <executions>
+          <execution>
+            <!-- the generated packages hold no comments to check, see the root POM -->
+            <id>check-javadoc</id>
+            <configuration>
+              <excludePackageNames>io.vanillabp.cockpit.gui.api.v1.client:io.vanillabp.cockpit.gui.api.v1.client.model</excludePackageNames>
+            </configuration>
+          </execution>
+          <execution>
+            <!-- the javadoc jar holds the generated interfaces too, whose one @return per answer
+                 the javadoc tool refuses as well. The code written by hand is checked above. -->
+            <id>attach-javadocs</id>
+            <configuration>
+              <doclint>none</doclint>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <!--
+          The generator 'jaxrs-spec' writes Jakarta REST interfaces, which Quarkus' REST client
+          implements while the application is built. The Quarkus blueprints generate their clients
+          the same way.
+        -->
+        <groupId>org.openapitools</groupId>
+        <artifactId>openapi-generator-maven-plugin</artifactId>
+        <version>7.27.0</version>
+        <executions>
+          <execution>
+            <id>generate-api-client</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${project.basedir}/../../openapi/v1.yaml</inputSpec>
+              <!-- the sources land in 'generated-sources/openapi', where the javadoc check of the
+                   root POM looks up the types the code written by hand uses -->
+              <output>${project.build.directory}/generated-sources</output>
+              <generatorName>jaxrs-spec</generatorName>
+              <apiPackage>io.vanillabp.cockpit.gui.api.v1.client</apiPackage>
+              <modelPackage>io.vanillabp.cockpit.gui.api.v1.client.model</modelPackage>
+              <generateSupportingFiles>false</generateSupportingFiles>
+              <configOptions>
+                <sourceFolder>openapi</sourceFolder>
+                <interfaceOnly>true</interfaceOnly>
+                <!-- the method returns the body. An error status comes as an exception of the
+                     REST client. -->
+                <returnResponse>false</returnResponse>
+                <useJakartaEe>true</useJakartaEe>
+                <useTags>true</useTags>
+                <useSwaggerAnnotations>false</useSwaggerAnnotations>
+                <useMicroProfileOpenAPIAnnotations>false</useMicroProfileOpenAPIAnnotations>
+                <!-- a client checks nothing, the cockpit does -->
+                <useBeanValidation>false</useBeanValidation>
+                <openApiNullable>false</openApiNullable>
+                <dateLibrary>java8</dateLibrary>
+                <!-- no constructor which insists on every required field: the cockpit checks what
+                     it sends, and a field it adds later must not break an older client -->
+                <generateJsonCreator>false</generateJsonCreator>
+                <!-- the same constant names as the server module, see its POM -->
+                <enumPropertyNaming>legacy</enumPropertyNaming>
+                <containerDefaultToNull>true</containerDefaultToNull>
+                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+                <generateJsonIncludeAnnotations>false</generateJsonIncludeAnnotations>
+                <generateJsonSetterNullsAnnotations>false</generateJsonSetterNullsAnnotations>
+                <generatePom>false</generatePom>
+              </configOptions>
+              <generateApiTests>false</generateApiTests>
+              <generateModelTests>false</generateModelTests>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <!-- Quarkus' REST client finds the interfaces, and Quarkus the filter of the cookie, only
+          in a jar with an index -->
+        <groupId>io.smallrye</groupId>
+        <artifactId>jandex-maven-plugin</artifactId>
+        <version>3.6.0</version>
+        <executions>
+          <execution>
+            <id>make-index</id>
+            <goals>
+              <goal>jandex</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <!-- the application boots IN this JVM, and Quarkus logs that boot into a log context of
+            its own which the output suppression does not reach, as in support/quarkus -->
+          <redirectTestOutputToFile>true</redirectTestOutputToFile>
+          <systemPropertyVariables>
+            <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+            <maven.home>${maven.home}</maven.home>
+            <maven.repo>${settings.localRepository}</maven.repo>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

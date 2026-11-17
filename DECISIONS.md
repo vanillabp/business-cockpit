@@ -5040,3 +5040,82 @@ with every request, and only Basic is supported.
 - The Quarkus module of `support` and the Quarkus client of the official GUI API follow the same
   rule for where keys live and for two modules with different keys.
 
+### 108. REST clients on Quarkus are built from keys at the client's prefix, and the user signed in is part of the official GUI API
+
+This entry carries decision 107 over to Quarkus.
+
+#### What was found
+
+The Quarkus module of `support` had no REST client. A Quarkus workflow module which called the
+cockpit or another service wrote the configuration of its client by hand. Quarkus' own way,
+`@RegisterRestClient` with `quarkus.rest-client."<config-key>".*`, puts the keys below `quarkus.`
+and configures one interface once, so two workflow modules of one application could not call the
+same service with different keys. A `@ConfigMapping` at the client's prefix would refuse an unknown
+key before any guiding message could say what was meant.
+
+The blueprints compare the assignee of a task with the user signed in, to answer 409 for a task
+another user claimed. The user signed in, `GET /gui/api/v1/app/current-user`, was in the cockpit's
+own OpenAPI file, so the generated clients of the official GUI API could not ask it.
+
+#### The decision
+
+- `RestClients` in the package `io.vanillabp.cockpit.support.rest.restclient` of the Quarkus module
+  builds a client of Quarkus' REST client with `QuarkusRestClientBuilder` from the keys at a prefix
+  the caller names. The keys and their defaults are those of the HTTP service clients of the Spring
+  Boot module. `tls-configuration-name`, a configuration of the Quarkus TLS registry, takes the
+  place of `ssl.bundle`. `cookie-handling` and `apiversion.*` do not exist on Quarkus.
+- The prefix is never below `vanillabp`, `quarkus` or `business-cockpit`. `support` fixes no prefix.
+- A workflow module produces its clients with `@Startup`, so a missing key stops the start. Two
+  modules build the same interface at prefixes of their own and tell the beans apart by qualifiers.
+  All clients at one prefix share its settings and its OAuth token.
+- The keys are read one by one through `Config`. Every problem of a prefix, a key nobody reads
+  included, ends in one `RestClientsMisconfigured` which names each key.
+- OAuth behaves as on Spring Boot: renewal when a tenth of the lifetime is left, at most
+  `oauth.renew-before` before the end, `oauth.lifetime-without-expires-in` without `expires_in`, a
+  `401` drops the token, token requests use the timeouts, TLS and proxy of the client, and a refused
+  token request names the keys to check. The token is fetched by a REST client of its own, without
+  blocking, and not by `quarkus-oidc-client`, which reads its keys below `quarkus.oidc-client`.
+- Retries wrap the client, because Quarkus' REST client has none and MicroProfile Fault Tolerance
+  needs annotations on the generated interface. Only methods which wait for their answer retry.
+- `support` stays a library. `quarkus-rest-client` is an optional dependency, and the application
+  adds `quarkus-rest-client-jackson`.
+- `official-gui-api-quarkus-client` holds the interfaces the generator `jaxrs-spec` writes from the
+  official OpenAPI file, and `ForwardTheUsersCookie`, a `@Provider` filter which forwards the cookie
+  of the request the application answers, to the methods of the official API only. Quarkus users
+  name its version themselves.
+- `GET /app/current-user` and its model `User` move from the cockpit's own OpenAPI file into the
+  official one, under the tag `officialCurrentUser`. The cockpit answers it with a controller of its
+  own, `CurrentUserApiController`, and the open security path it had. Both generated clients get `OfficialCurrentUserApi`.
+- The exceptions of `support/core` which a form answers name their status as `HTTP_STATUS_CODE`, so
+  the handler, the mappers and the tests of a workflow module read the same constant.
+- Both clients of the official GUI API are measured: the Spring Boot client in the report
+  `test-coverage-report/official-gui-api/spring-boot`, the Quarkus client in the report of
+  `support` on Quarkus, each without the generated classes and at a threshold of 85.
+
+#### What it costs
+
+A user interface which generates its client from both OpenAPI files finds `currentUser` under
+`OfficialCurrentUserApi` instead of `LoginApi`. A method of a client which returns a `Uni` or a
+`CompletionStage` is not retried. A Quarkus workflow module writes one producer per client instead
+of a key below `quarkus.rest-client`.
+
+#### Where it applies
+
+- `support/quarkus`: the package `io.vanillabp.cockpit.support.rest.restclient`, its tests, the
+  `pom.xml` and `README.md`
+- `support/quarkus-it`: `AClientOfAWorkflowModuleTest`, `InventoryClient`, `InventoryClients`,
+  `TheInventoryOfTheTests`, the `pom.xml` and `README.md`
+- `support/core`: `BcUnknownTaskException`, `BcTaskNotOpenException`,
+  `BcTaskClaimedByAnotherUserException` and `BcUnauthorizedException`, and the handler, the mappers
+  and their tests on both platforms
+- `apis/official-gui-api/client/quarkus`, new, and `apis/official-gui-api/client/README.md`
+- `apis/official-gui-api/openapi/v1.yaml`, `business-cockpit/src/main/resources/api/gui/v1.yaml`,
+  `CurrentUserApiController` and `TheCurrentUserIsPartOfTheOfficialApiTest`
+- `OfficialGuiApiClientAutoConfiguration` and the tests of the Spring Boot client
+- `test-coverage-report/official-gui-api/spring-boot`, new, `test-coverage-report/support/quarkus`,
+  `CoverageGateTest` and the threshold `coverage.threshold.official-gui-api-spring-boot` of the
+  root `pom.xml`
+- `support/README.md`, section "REST clients on Quarkus", and `UPGRADE.md`, section "The user signed
+  in is part of the official GUI API"
+- the wiki page Connecting-a-workflow-module, section "On Quarkus"
+

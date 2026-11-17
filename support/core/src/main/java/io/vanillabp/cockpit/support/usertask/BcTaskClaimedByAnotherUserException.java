@@ -10,6 +10,12 @@ import java.util.Optional;
  */
 public class BcTaskClaimedByAnotherUserException extends RuntimeException {
 
+  /**
+   * The HTTP status a form answers with: {@value}. The task is open, but another user claimed it,
+   * so only that user may send the form.
+   */
+  public static final int HTTP_STATUS_CODE = 409;
+
   private static final long serialVersionUID = 1L;
 
   /**

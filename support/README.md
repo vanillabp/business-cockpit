@@ -20,8 +20,8 @@ runs on. Everything else is the same on both. So there are three modules:
   workflow module depend on it. Its README says what it holds.
 - [quarkus](./quarkus), published as `io.vanillabp.businesscockpit:business-cockpit-quarkus-support`.
   A Quarkus workflow module depends on it. It checks the login token in the cockpit's cookie,
-  tells the user of a request, and answers the exceptions for REST requests. The REST client
-  follows. Its README says more.
+  tells the user of a request, answers the exceptions for REST requests, and builds REST clients
+  from keys. Its README says more.
 - [quarkus-it](./quarkus-it), a Quarkus application with the Quarkus module as a plain dependency.
   It is not published. Its tests show that Quarkus finds everything in the jar on its own.
 - [quarkus-it-without-security](./quarkus-it-without-security), the same without
@@ -45,8 +45,9 @@ platform so far, the section says so.
 ## REST clients
 
 `support` builds REST clients out of a few keys, so an application does not write the same client
-configuration again for every API it calls. There are two ways, and only the Spring Boot module has
-them today:
+configuration again for every API it calls. On Quarkus there is one way,
+[`RestClients`](#rest-clients-on-quarkus), with the same keys as the HTTP service clients. On
+Spring Boot there are two:
 
 - **HTTP service clients**, in the package `io.vanillabp.cockpit.support.rest.httpservice`. This is
   the way forward. A client is an interface generated from the OpenAPI file of the API, and Spring
@@ -224,6 +225,73 @@ conventions:
 A proxy needs the JDK's `HttpClient`. An application which sends with another library, for
 example Apache HttpClient through `spring.http.clients.imperative.factory`, gets a message at the
 start for a group with a proxy.
+
+### REST clients on Quarkus
+
+The Quarkus module builds clients of Quarkus' REST client with
+`io.vanillabp.cockpit.support.rest.restclient.RestClients`. A client is an interface the generator
+`jaxrs-spec` writes from the OpenAPI file of the API, as the Quarkus blueprints generate theirs.
+The keys are the ones of the HTTP service clients above, with the same names and defaults, so a
+workflow module moves between the platforms without renaming a key. They live at a prefix the
+workflow module chooses, never below `vanillabp`, `quarkus` or `business-cockpit`.
+
+A workflow module produces each client it needs while the application starts, so a missing key
+stops the start and not the first call:
+
+```java
+@ApplicationScoped
+public class LoanApprovalClients {
+
+  @Produces
+  @Singleton
+  @Startup
+  @LoanApproval
+  InventoryApi inventory(
+      final RestClients restClients) {
+    return restClients.build(InventoryApi.class, "loan-approval.inventory");
+  }
+
+}
+```
+
+```properties
+loan-approval.inventory.base-url=https://inventory.example.com/api
+loan-approval.inventory.read-timeout=2s
+loan-approval.inventory.oauth.token-uri=https://login.example.com/oauth/token
+loan-approval.inventory.oauth.client-id=loan-approval
+loan-approval.inventory.oauth.client-secret=${INVENTORY_CLIENT_SECRET}
+```
+
+Two workflow modules of one application may call the same service through the same interface with
+different keys: each builds its client at a prefix of its own and tells its bean apart by a
+qualifier, like `@LoanApproval` above. All clients built at one prefix share its settings and its
+OAuth token.
+
+The application adds the extension `quarkus-rest-client-jackson`. `support` names Quarkus' REST
+client as an optional dependency only, see the README of the Quarkus module.
+
+What differs from Spring Boot, because the platforms differ:
+
+- `tls-configuration-name` names a configuration of the Quarkus TLS registry,
+  `quarkus.tls.<name>.*`, which holds the certificates the client trusts and its own. It takes the
+  place of `ssl.bundle`. `verify-ssl: false` trusts every server here as well.
+- `cookie-handling` and `apiversion.*` do not exist. A key nobody reads stops the start, and for
+  these and `ssl.bundle` the message says what to do instead.
+- The timeouts have no default for all clients, like `spring.http.clients.*`. Without the keys
+  they are `1500ms` and `10s`.
+- Only a method which waits for its answer is retried. A method which returns a `Uni` or a
+  `CompletionStage` is called once.
+- An answer with an error status comes as the REST client's `WebApplicationException`, no answer at
+  all as `ProcessingException`. A token request which fails comes as `TokenRequestFailed`, a
+  `ProcessingException` whose message names the key to check, and it is never retried.
+- `RestClients.build(api, prefix, builder -> ...)` hands the builder to the caller after the keys
+  are applied, for example to register a filter of its own.
+
+The keys are read one by one and not by a `@ConfigMapping`, because a mapping would refuse an
+unknown key before any guiding message. Every problem of a prefix ends in one
+`RestClientsMisconfigured` which lists them all: the problems of the list in
+[What stops the start](#what-stops-the-start) which apply here, a `tls-configuration-name` which
+names no configuration, and a key nobody reads with the key that was probably meant.
 
 ### A client module brings its AutoConfiguration
 

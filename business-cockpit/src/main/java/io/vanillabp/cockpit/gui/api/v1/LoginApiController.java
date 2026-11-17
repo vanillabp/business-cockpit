@@ -20,11 +20,10 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
 import io.vanillabp.cockpit.support.security.BcUnauthorizedException;
 import io.vanillabp.cockpit.support.security.usercontext.UserContext;
-import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
 
 /**
- * Answers the GUI's questions about the application and the person signed in, and opens the
- * update stream of a browser tab.
+ * Answers the GUI's questions about the application and opens the update stream of a browser tab.
+ * Who is signed in is part of the official GUI API and answered by {@link CurrentUserApiController}.
  */
 @RestController
 @RequestMapping(path = "/gui/api/v1")
@@ -42,9 +41,6 @@ public class LoginApiController implements LoginApi {
 
   @Autowired
   private UpdateStreams updateStreams;
-
-  @Autowired
-  private PersonAndGroupApiMapper personAndGroupMapper;
 
   /**
    * Opens the update stream of a browser tab. The stream ends when the sign-in expires, and the
@@ -105,41 +101,6 @@ public class LoginApiController implements LoginApi {
             .version(properties.getApplicationVersion())
             .buildTimestamp(properties.getBuildTimestamp())
             .additionalProperties(properties.getAdditionalProperties()));
-  }
-
-  @Override
-  public ResponseEntity<User> currentUser(
-      final String xRefreshToken) {
-
-    final var user = userContext.getUserLoggedInDetails();
-    // the request which signs in by basic authentication is authenticated, but the response
-    // to exactly that request is what carries the JWT cookie. The cockpit reads its user
-    // details from that cookie, so the sign-in request has no user to report yet and the
-    // client asks again with the cookie. The answer has no body, the way it had while the
-    // application was reactive and the empty publisher ended up as an empty 200.
-    if (user == null) {
-      return ResponseEntity.ok().build();
-    }
-
-    return ResponseEntity.ok(Optional
-        .ofNullable(personAndGroupMapper.toApiPerson(user.getId()))
-        .map(person -> new User()
-            .id(person.getId())
-            .email(person.getEmail())
-            .display(person.getDisplay())
-            .displayShort(person.getDisplayShort())
-            .details(person.getDetails()))
-        .orElse(new User()
-            .id(user.getId())
-            .display(user.getDisplay())
-            .displayShort(user.getDisplayShort())
-            .email(user.getEmail()))
-        .groups(user
-            .getAuthorities()
-            .stream()
-            .map(personAndGroupMapper::authorityToApiGroup)
-            .toList()));
-
   }
 
 }
