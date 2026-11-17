@@ -118,6 +118,11 @@
          an adapter builds against sets it to false. The profile 'release' sets it to false for
          every module. See the plugin 'maven-javadoc-plugin' below. -->
     <skip.javadoc.jar>true</skip.javadoc.jar>
+    <!-- true: a snapshot of the module carries no sources jar. The clients of the official GUI
+         API set it to false, because the developer of a workflow module reads their generated
+         interfaces in the IDE. The profile 'release' sets it to false for every module. See the
+         plugin 'maven-source-plugin' below. -->
+    <skip.sources.jar>true</skip.sources.jar>
   </properties>
 
   <dependencyManagement>
@@ -445,6 +450,26 @@
           </execution>
         </executions>
       </plugin>
+      <!-- the sources jar of a snapshot, for the modules which set 'skip.sources.jar' to false.
+           The id and the goal are the ones of the parent's execution, so a release builds one
+           sources jar and not two. The jar of a client holds the generated sources too, which is
+           what a developer reads behind a generated interface. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <skipSource>${skip.sources.jar}</skipSource>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <!-- declared here and not in pluginManagement, because the modules of
              test-coverage-report have to inherit it to build their aggregated reports -->
@@ -476,11 +501,13 @@
   <profiles>
     <profile>
       <!-- the profile of the release build. The parent's profile of the same name attaches the
-           sources jar, the javadoc jar and the signatures. This one only lifts the skip of the
-           javadoc jar, so a release ships one for every module, as Maven Central asks. -->
+           sources jar, the javadoc jar and the signatures. This one only lifts the skips of the
+           javadoc jar and the sources jar, so a release ships both for every module, as Maven
+           Central asks. -->
       <id>release</id>
       <properties>
         <skip.javadoc.jar>false</skip.javadoc.jar>
+        <skip.sources.jar>false</skip.sources.jar>
       </properties>
     </profile>
     <!-- publishes a snapshot to two places in one build. GitHub Packages is what the builds of

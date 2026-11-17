@@ -30,8 +30,10 @@
   </developers>
 
   <properties>
-    <!-- a workflow module builds against this module, so its snapshot carries a javadoc jar -->
+    <!-- a workflow module builds against this module, so its snapshot carries a javadoc jar and
+         a sources jar -->
     <skip.javadoc.jar>false</skip.javadoc.jar>
+    <skip.sources.jar>false</skip.sources.jar>
   </properties>
 
   <dependencyManagement>
