@@ -59,6 +59,13 @@
       <artifactId>spi-for-java</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <!-- the classes which know no platform: the user, the groups, the exceptions of a user task
+         and the TLS helpers. They keep their packages, so moving them changed no import. -->
+    <dependency>
+      <groupId>io.vanillabp.businesscockpit</groupId>
+      <artifactId>business-cockpit-support-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <!--
       The web and security half. It is optional because the application decides which of the two
       it runs: a workflow module which only calls a REST API needs neither, and one which checks

@@ -1445,6 +1445,10 @@ Quarkus is `version.quarkus` here and `quarkus.version` there. The name stays, b
 version of this repository follows that pattern, and Renovate reads both names. The script knows
 both. A comment at the property in `extensions-commons/pom.xml` says why it differs.
 
+**Addendum:** the property moved from `extensions-commons/pom.xml` to the root `pom.xml`, together
+with its comment, because the Quarkus module of `support` has to run on the same Quarkus as the
+extension. The script reads it there.
+
 #### Which version is right when they differ
 
 The check does not decide this. The report lists the value of every repository and names the

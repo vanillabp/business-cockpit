@@ -124,7 +124,7 @@ reads=(
     "spring-boot|vanillabp/business-cockpit-process-engine-api-adapter|pom.xml|property|spring-boot.version|"
     "spring-boot|vanillabp/business-cockpit-operaton-adapter|pom.xml|property|spring-boot.version|"
     "spring-boot|vanillabp/business-cockpit-cibseven-adapter|pom.xml|property|spring-boot.version|"
-    "quarkus|vanillabp/business-cockpit|extensions-commons/pom.xml|property|version.quarkus|"
+    "quarkus|vanillabp/business-cockpit|pom.xml|property|version.quarkus|"
     "quarkus|vanillabp/business-cockpit-camunda7-adapter|pom.xml|property|quarkus.version|"
     "quarkus|vanillabp/business-cockpit-camunda8-adapter|pom.xml|property|quarkus.version|"
     "quarkus|vanillabp/business-cockpit-process-engine-api-adapter|pom.xml|property|quarkus.version|"

@@ -76,6 +76,7 @@
             <coverage.threshold.application-spring-boot>${coverage.threshold.application-spring-boot}</coverage.threshold.application-spring-boot>
             <coverage.threshold.extensions-commons-spring-boot>${coverage.threshold.extensions-commons-spring-boot}</coverage.threshold.extensions-commons-spring-boot>
             <coverage.threshold.extensions-commons-quarkus>${coverage.threshold.extensions-commons-quarkus}</coverage.threshold.extensions-commons-quarkus>
+            <coverage.threshold.support-quarkus>${coverage.threshold.support-quarkus}</coverage.threshold.support-quarkus>
             <coverage.rule>${coverage.rule}</coverage.rule>
           </systemPropertyVariables>
         </configuration>

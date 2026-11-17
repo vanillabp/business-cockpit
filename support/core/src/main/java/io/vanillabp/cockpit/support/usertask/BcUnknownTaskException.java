@@ -3,8 +3,8 @@ package io.vanillabp.cockpit.support.usertask;
 /**
  * There is no user task of that id and kind in that workflow. A form sent a task id which does
  * not belong to the workflow, or which belongs to a task of another kind.
- * {@link BcUserTaskExceptionHandler} answers it with {@code 404 Not Found} and sends the message as
- * the body.
+ * {@code BcUserTaskExceptionHandler} on Spring Boot and {@code BcUserTaskExceptionMapper} on Quarkus
+ * answer it with {@code 404 Not Found} and send the message as the body.
  */
 public class BcUnknownTaskException extends RuntimeException {
 

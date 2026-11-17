@@ -1,9 +1,9 @@
 package io.vanillabp.cockpit.support.security;
 
 /**
- * There is no user logged in, or the login is not valid.
- * {@code RestfulExceptionHandler} of the cockpit answers it with {@code 401 Unauthorized} and sends the message as
- * the body.
+ * There is no user logged in, or the login is not valid. {@code RestfulExceptionHandler} of the
+ * cockpit and {@code BcUnauthorizedExceptionMapper} on Quarkus answer it with
+ * {@code 401 Unauthorized} and send the message as the body.
  */
 public class BcUnauthorizedException extends RuntimeException {
 

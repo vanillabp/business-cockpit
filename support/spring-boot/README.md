@@ -12,6 +12,10 @@ the cockpit's adapter for its BPMS, `business-cockpit-*-adapter`. Its tests take
 scope. The module [workflow-module-on-support-only](../../development/workflow-module-on-support-only)
 compiles such a workflow module in every build, with `support` as its only dependency.
 
+The classes which know no platform live in [core](../core), the artifact
+`business-cockpit-support-core`, and this module brings it. They kept their packages, so the lists
+below name them where they belong, whichever module holds them.
+
 - `io.vanillabp.spi.cockpit`, from `spi-for-java`: the annotations and types a workflow module
   uses to tell the cockpit about its user tasks and workflows.
 
@@ -21,7 +25,9 @@ compiles such a workflow module in every build, with `support` as its only depen
   the settings.
 
 - `io.vanillabp.cockpit.support.security.usercontext`: the user of the current request, the user's
-  groups, and how a group hierarchy adds groups to the ones assigned. `UserDirectoryService` is the
+  groups, and how a group hierarchy adds groups to the ones assigned. `UserDetails`,
+  `UserDetailsImpl`, `UserDirectoryService` and `GroupHierarchyResolver` come from `core`, the
+  rest is Spring Security. `UserDirectoryService` is the
   directory of all users, which the application provides. `UserDetailsImpl` is a plain
   implementation of `UserDetails`, so neither the cockpit nor a workflow module has to write one.
   A workflow module which reads the login token needs a `UserDirectoryService` of its own, because
@@ -29,7 +35,8 @@ compiles such a workflow module in every build, with `support` as its only depen
   `UserDirectoryIsMissingFailureAnalyzer` says so on start, with the bean to add and why it should
   cache. It is registered in `META-INF/spring.factories`.
 
-- `io.vanillabp.cockpit.support.usertask`: the exceptions for a user task a request names.
+- `io.vanillabp.cockpit.support.usertask`: the exceptions for a user task a request names, from
+  `core`.
   `BcUnknownTaskException` says that the workflow has no user task of that id and kind.
   `BcTaskNotOpenException` says that the task was completed or canceled already, for example
   because a form was sent twice. `BcUserTaskExceptionHandler` answers them with `404 Not Found` and
@@ -49,9 +56,8 @@ optional dependencies: an application which checks the login token has them anyw
 only calls a REST API does not need them. The MongoDB, Kafka and error handling helpers which only
 the cockpit uses live in the library module [business-cockpit](../../business-cockpit).
 
-There is no Quarkus version yet. It will be the sibling module `support/quarkus`. The classes of
-the REST client know Spring only in `ClientsConfigurationBase`, so a Quarkus version can come later
-without changing the others. The packages stay `io.vanillabp.cockpit.support...` in both.
+The Quarkus version is the sibling module [support/quarkus](../quarkus). Both bring the same
+`core`. The packages are `io.vanillabp.cockpit.support...` in all three.
 
 Built as part of the reactor build described in the [root README](../../README.md#building-it), and
 published as `io.vanillabp.businesscockpit:business-cockpit-spring-boot-support` to Maven Central, snapshots to its snapshot

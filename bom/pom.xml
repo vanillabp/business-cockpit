@@ -150,6 +150,20 @@
       </dependency>
       <dependency>
         <groupId>io.vanillabp.businesscockpit</groupId>
+        <artifactId>business-cockpit-support-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <!--
+        Listed so the BOM names every artifact of a release. A Quarkus application does not import
+        this BOM, because of the Spring BOMs above. It names the version of this artifact itself.
+      -->
+      <dependency>
+        <groupId>io.vanillabp.businesscockpit</groupId>
+        <artifactId>business-cockpit-quarkus-support</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.vanillabp.businesscockpit</groupId>
         <artifactId>spi-for-java</artifactId>
         <version>${project.version}</version>
       </dependency>
