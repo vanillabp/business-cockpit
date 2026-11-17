@@ -10,7 +10,7 @@
 
   <artifactId>business-cockpit-spring-boot-support</artifactId>
   <name>Business Cockpit support - Spring Boot</name>
-  <description>What the Business Cockpit and a workflow module behind it share on Spring Boot: the cockpit's SPI, checking the cockpit's login token, the user and the groups, the exceptions and answers for user tasks, and a REST client for the APIs of a BPMS or of the cockpit.</description>
+  <description>What the Business Cockpit and a workflow module behind it share on Spring Boot: the cockpit's SPI, checking the cockpit's login token, the user and the groups, the exceptions and answers for user tasks, and the REST clients for the APIs of a BPMS, of the cockpit or of any other service.</description>
 
   <licenses>
     <license>
@@ -87,7 +87,24 @@
       <artifactId>spring-security-oauth2-jose</artifactId>
       <optional>true</optional>
     </dependency>
-    <!-- the REST client half, which every user of the client needs -->
+    <!--
+      The HTTP interface clients of Spring Framework and the 'spring.http.serviceclient' support of
+      Spring Boot, which the package 'rest.httpservice' builds on. The requests are sent by the JDK's
+      own HttpClient, so no other HTTP library comes along.
+    -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-restclient</artifactId>
+    </dependency>
+    <dependency>
+      <!-- the OAuth client credentials grant of an HTTP service group. Optional: only a group with
+           'oauth.token-uri' needs it, and the start says so if it is missing -->
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-oauth2-client</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <!-- the REST client half of 'ClientsConfigurationBase', OpenFeign and OkHttp, which stays for
+         the clients built with it -->
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-beans</artifactId>
@@ -151,10 +168,88 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <!-- starts a Spring Boot application with HTTP service groups in the tests of 'rest.httpservice' -->
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- JSON bodies in the tests. An application has Jackson anyway, a client module names it -->
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-jackson</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- the stub server of the HTTP service tests: records each request, answers what the test
+           queues, speaks TLS and plays a proxy -->
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>mockwebserver3</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp-tls</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- the generated test client imports these annotations -->
+      <groupId>io.swagger.core.v3</groupId>
+      <artifactId>swagger-annotations</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.validation</groupId>
+      <artifactId>jakarta.validation-api</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <!-- the output suppression every test class of this module registers -->
       <groupId>io.vanillabp</groupId>
       <artifactId>test-utils</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <!--
+          Generates the client the tests of 'rest.httpservice' call, the way a client module
+          generates its own: generator 'spring', library 'spring-http-interface'.
+        -->
+        <groupId>org.openapitools</groupId>
+        <artifactId>openapi-generator-maven-plugin</artifactId>
+        <version>7.27.0</version>
+        <executions>
+          <execution>
+            <id>inventory-test-client</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <phase>generate-test-sources</phase>
+            <configuration>
+              <inputSpec>${project.basedir}/src/test/resources/openapi/inventory.yaml</inputSpec>
+              <generatorName>spring</generatorName>
+              <library>spring-http-interface</library>
+              <output>${project.build.directory}/generated-test-sources/openapi</output>
+              <apiPackage>io.vanillabp.cockpit.support.rest.httpservice.inventory</apiPackage>
+              <modelPackage>io.vanillabp.cockpit.support.rest.httpservice.inventory.model</modelPackage>
+              <configOptions>
+                <useSpringBoot4>true</useSpringBoot4>
+                <useJakartaEe>true</useJakartaEe>
+                <useTags>true</useTags>
+                <openApiNullable>false</openApiNullable>
+                <interfaceOnly>true</interfaceOnly>
+                <useJspecify>true</useJspecify>
+              </configOptions>
+              <addCompileSourceRoot>false</addCompileSourceRoot>
+              <addTestCompileSourceRoot>true</addTestCompileSourceRoot>
+              <generateApiTests>false</generateApiTests>
+              <generateModelTests>false</generateModelTests>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>

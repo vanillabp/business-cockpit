@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.vanillabp.businesscockpit</groupId>
+    <artifactId>business-cockpit-parent</artifactId>
+    <version>0.9.0-SNAPSHOT</version>
+    <relativePath>../../../../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>official-gui-api-spring-boot-client</artifactId>
+  <name>Spring Boot client of the official GUI API</name>
+  <description>The HTTP interface clients of the cockpit's official GUI API, generated from its OpenAPI file, with an auto-configuration which builds them from keys and forwards the cookie of the user's request.</description>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>VanillaBP</id>
+      <organization>Phactum Softwareentwicklung GmbH</organization>
+      <organizationUrl>https://www.phactum.at</organizationUrl>
+    </developer>
+  </developers>
+
+  <properties>
+    <!-- a workflow module builds against this module, so its snapshot carries a javadoc jar -->
+    <skip.javadoc.jar>false</skip.javadoc.jar>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <!-- the io.vanillabp coordinates the support module reads, see its POM -->
+        <groupId>io.vanillabp</groupId>
+        <artifactId>vanillabp-bom</artifactId>
+        <version>${version.vanillabp}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <!-- builds the clients from keys: the HTTP service clients of the support module -->
+      <groupId>io.vanillabp.businesscockpit</groupId>
+      <artifactId>business-cockpit-spring-boot-support</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <!-- the JSON bodies, read and written with the application's Jackson -->
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-jackson</artifactId>
+    </dependency>
+    <!-- what the generated sources import -->
+    <dependency>
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jspecify</groupId>
+      <artifactId>jspecify</artifactId>
+    </dependency>
+    <dependency>
+      <!-- reads the cookie of the request a workflow module answers. Optional: an application
+           which calls the cockpit outside of a request, like a test, does not need it -->
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
+      <optional>true</optional>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- the cockpit of the tests: records each request and answers what the test queues -->
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>mockwebserver3</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- the output suppression every test class of this module registers -->
+      <groupId>io.vanillabp</groupId>
+      <artifactId>test-utils</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <executions>
+          <execution>
+            <!-- the generated packages hold no comments to check, see the root POM -->
+            <id>check-javadoc</id>
+            <configuration>
+              <excludePackageNames>io.vanillabp.cockpit.gui.api.v1.client:io.vanillabp.cockpit.gui.api.v1.client.model</excludePackageNames>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.openapitools</groupId>
+        <artifactId>openapi-generator-maven-plugin</artifactId>
+        <version>7.27.0</version>
+        <executions>
+          <execution>
+            <id>generate-api-client</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${project.basedir}/../../openapi/v1.yaml</inputSpec>
+              <!-- the sources land in 'generated-sources/openapi', where the javadoc check of the
+                   root POM looks up the types the code written by hand uses -->
+              <output>${project.build.directory}/generated-sources</output>
+              <generatorName>spring</generatorName>
+              <!-- writes @HttpExchange interfaces for Spring Framework's HTTP interface clients -->
+              <library>spring-http-interface</library>
+              <apiPackage>io.vanillabp.cockpit.gui.api.v1.client</apiPackage>
+              <modelPackage>io.vanillabp.cockpit.gui.api.v1.client.model</modelPackage>
+              <configOptions>
+                <sourceFolder>openapi</sourceFolder>
+                <useSpringBoot4>true</useSpringBoot4>
+                <useJakartaEe>true</useJakartaEe>
+                <useTags>true</useTags>
+                <interfaceOnly>true</interfaceOnly>
+                <!-- a client checks nothing, the cockpit does -->
+                <useBeanValidation>false</useBeanValidation>
+                <openApiNullable>false</openApiNullable>
+                <!-- the same constant names as the server module, see its POM -->
+                <enumPropertyNaming>legacy</enumPropertyNaming>
+                <containerDefaultToNull>true</containerDefaultToNull>
+                <useJspecify>true</useJspecify>
+                <generateJsonIncludeAnnotations>false</generateJsonIncludeAnnotations>
+                <generateJsonSetterNullsAnnotations>false</generateJsonSetterNullsAnnotations>
+              </configOptions>
+              <generateApiTests>false</generateApiTests>
+              <generateModelTests>false</generateModelTests>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

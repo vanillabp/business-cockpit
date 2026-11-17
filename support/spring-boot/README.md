@@ -51,15 +51,23 @@ below name them where they belong, whichever module holds them.
   The exceptions carry no `@ResponseStatus`, because Spring Boot would then answer with its error
   page and leave out the message.
 
-- `io.vanillabp.cockpit.support.rest`: a REST client built on OpenFeign and OkHttp, with retries,
-  a proxy, bearer and OAuth authentication and a trust store of its own. The cockpit's adapters
-  and an application use it to call the API of a BPMS or of the cockpit. The section
-  [REST clients](../README.md#rest-clients) of the support README lists all its properties with
-  their defaults and shows, step by step, how a client module brings its own configuration.
+- `io.vanillabp.cockpit.support.rest.httpservice`: configures every HTTP service group of the
+  application, the clients Spring Framework builds from generated `@HttpExchange` interfaces. The
+  keys of a group live below a prefix the client module or the application chooses. Next to Spring
+  Boot's keys a group gets a proxy, `verify-ssl`, retries, logging and OAuth, and the start stops
+  with a list of every missing or misspelled key. This is the way to build a new REST client.
+
+- `io.vanillabp.cockpit.support.rest.adapter`: the older REST client built on OpenFeign and
+  OkHttp, `ClientsConfigurationBase`. It stays until the clients built with it have moved.
+
+  The section [REST clients](../README.md#rest-clients) of the support README describes both, lists
+  every key with its default and shows, step by step, how a client module brings its own
+  auto-configuration.
 
 The module brings no MongoDB and no Kafka. Spring Web, Spring Security and Spring's JWT classes are
 optional dependencies: an application which checks the login token has them anyway, and one which
-only calls a REST API does not need them. The MongoDB, Kafka and error handling helpers which only
+only calls a REST API does not need them. Spring Security's OAuth client is optional as well: only
+an HTTP service group with OAuth needs it. The MongoDB, Kafka and error handling helpers which only
 the cockpit uses live in the library module [business-cockpit](../../business-cockpit).
 
 The Quarkus version is the sibling module [support/quarkus](../quarkus). Both bring the same

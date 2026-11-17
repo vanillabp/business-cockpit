@@ -81,7 +81,13 @@ public class CoverageGateTest {
           // the protobuf API: protoc generates every class of it. Its one test checks the
           // build, that protoc is not newer than the platforms' protobuf-java, and covers
           // no code. Coverage of generated classes would say nothing about our code.
-          "bpms-protobuf-api");
+          "bpms-protobuf-api",
+          // the Spring Boot client of the official GUI API: generated interfaces, plus an
+          // auto-configuration and the cookie forwarding. It runs in a workflow module and
+          // in no cockpit, so the container report is the wrong place, and there is no
+          // report for workflow modules. Its tests cover what is written by hand, and the
+          // HTTP service helper it builds on is counted with the support module.
+          "official-gui-api-spring-boot-client");
 
   @Test
   @DisplayName("Every module producing coverage data is read by an aggregated report")
