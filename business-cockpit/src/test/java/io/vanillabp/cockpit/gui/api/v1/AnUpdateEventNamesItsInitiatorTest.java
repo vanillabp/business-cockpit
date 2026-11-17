@@ -4,23 +4,31 @@ import static io.vanillabp.cockpit.gui.api.v1.UpdateStreamFixtures.subscribe;
 import static io.vanillabp.cockpit.gui.api.v1.UpdateStreamFixtures.userTasks;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.messaging.DefaultMessageListenerContainer;
+import org.springframework.data.mongodb.core.messaging.Subscription;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.repository.support.MongoRepositoryFactory;
@@ -33,6 +41,8 @@ import com.mongodb.client.MongoClients;
 
 import io.vanillabp.cockpit.config.web.JsonConfiguration;
 import io.vanillabp.cockpit.gui.api.v1.UpdateStreamFixtures.Person;
+import io.vanillabp.cockpit.mongo.MongoDbProperties;
+import io.vanillabp.cockpit.mongo.changestreams.ChangeStreamUtils;
 import io.vanillabp.cockpit.mongo.updateinfo.UpdateInformationAware;
 import io.vanillabp.cockpit.support.security.usercontext.UserContext;
 import io.vanillabp.cockpit.tasklist.UserTaskChangedNotification;
@@ -56,16 +66,22 @@ import tools.jackson.databind.json.JsonMapper;
  * case reads it, and shows that somebody else changed it only for a person who is not the user
  * signed in, see decision 102 in the repository's DECISIONS.md.
  *
- * <p>The changes are made through the real services on a real MongoDB. The change itself reaches
- * the update streams the way the cockpit's GUI notification services hand it over, because a
- * test does not run the change streams of MongoDB. Then the filtering tick runs and the event
+ * <p>The changes are made through the real services on a real MongoDB. Where a test is about who
+ * made each of several changes in one tick, the change events come from the real change streams
+ * of MongoDB, subscribed by the services the way the cockpit subscribes them. The other tests hand
+ * the change over the way the cockpit's GUI notification services do, without saying who made it.
+ * That is what a change event looks like on Azure Cosmos DB, and the update streams then read who
+ * made the latest change from the stored entity. Then the filtering tick runs and the event
  * waiting for the browser is read off the stream.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
 class AnUpdateEventNamesItsInitiatorTest {
 
-  private static final MongoDBContainer MONGODB = new MongoDBContainer(ContainerImages.MONGODB);
+  private static final MongoDBContainer MONGODB = new MongoDBContainer(ContainerImages.MONGODB).withReplicaSet();
+
+  /** Generous, because a change stream is polled and the poll is answered at most once a second. */
+  private static final Duration ARRIVAL = Duration.ofSeconds(30);
 
   private static final OffsetDateTime STARTED_AT = OffsetDateTime.parse("2026-11-16T08:00:00Z");
 
@@ -75,6 +91,8 @@ class AnUpdateEventNamesItsInitiatorTest {
   private static MongoClient mongoClient;
 
   private static MongoTemplate mongoTemplate;
+
+  private static DefaultMessageListenerContainer listenerContainer;
 
   private UpdateStreams streams;
 
@@ -86,6 +104,9 @@ class AnUpdateEventNamesItsInitiatorTest {
 
   private io.vanillabp.cockpit.workflowlist.api.GuiNotificationService workflowNotifications;
 
+  /** The notifications the services built from the change events of MongoDB, in their order. */
+  private final Queue<NotificationEvent> notificationsFromMongoDb = new ConcurrentLinkedQueue<>();
+
   @BeforeAll
   static void startMongoDb() {
 
@@ -93,11 +114,19 @@ class AnUpdateEventNamesItsInitiatorTest {
     mongoClient = MongoClients.create(MONGODB.getConnectionString());
     mongoTemplate = UpdateStreamFixtures.cockpitLikeTemplate(mongoClient);
 
+    final var executor = new SimpleAsyncTaskExecutor("change-stream-test-");
+    executor.setDaemon(true);
+    listenerContainer = new DefaultMessageListenerContainer(mongoTemplate, executor);
+    listenerContainer.start();
+
   }
 
   @AfterAll
   static void stopMongoDb() {
 
+    if (listenerContainer != null) {
+      listenerContainer.stop();
+    }
     if (mongoClient != null) {
       mongoClient.close();
     }
@@ -129,6 +158,97 @@ class AnUpdateEventNamesItsInitiatorTest {
     ReflectionTestUtils.setField(userTaskNotifications, "applicationEventPublisher", toTheStreams);
     workflowNotifications = new io.vanillabp.cockpit.workflowlist.api.GuiNotificationService();
     ReflectionTestUtils.setField(workflowNotifications, "applicationEventPublisher", toTheStreams);
+
+  }
+
+  @AfterEach
+  void stopWatchingTheChangeStreams() {
+
+    userTaskService.cleanup();
+    workflowlistService.cleanup();
+
+  }
+
+  /**
+   * Two people change the same task, and both changes are matched in the same filtering tick.
+   * Both are notes, which MongoDB reports as updates without the document. Each event names the
+   * person who made its own change.
+   */
+  @Test
+  @DisplayName("Two users change a task in one tick, and each event names its own user")
+  void twoUsersChangeATaskInOneTick() {
+
+    final var stream = openedAndReloaded();
+    final var taskId = aTaskReportedBy("martin", null);
+    watchingTheChangeStreamsOfMongoDb();
+
+    userTaskService.setNote(UserTaskVisibility.everyUserTask(), "petra", taskId, "Waiting for the papers");
+    userTaskService.setNote(UserTaskVisibility.everyUserTask(), "martin", taskId, "The papers are here");
+    arrivedFromMongoDb(2);
+    streams.filterCollectedChanges();
+
+    assertThat(initiatorsOf(stream)).containsExactly(
+        tuple("petra", InitiatorKind.USER),
+        tuple("martin", InitiatorKind.USER));
+
+  }
+
+  /**
+   * MongoDB leaves a field which keeps its value out of the change event of an update. A user who
+   * changes a task twice in a row leaves the initiator as it is, and the second event has to name
+   * the user all the same. A change which saves the whole task, the follow-up date set by a job of
+   * the cockpit, carries the whole document. Reading the task once per tick would name the cockpit
+   * four times here.
+   */
+  @Test
+  @DisplayName("Each of several changes of a task in one tick names its own initiator, even the same user twice in a row")
+  void eachChangeOfATaskInOneTickNamesItsOwnInitiator() {
+
+    final var stream = openedAndReloaded();
+    final var taskId = aTaskReportedBy(UpdateInformationAware.SYSTEM_USER, "martin");
+    watchingTheChangeStreamsOfMongoDb();
+
+    userTaskService.setNote(UserTaskVisibility.everyUserTask(), "martin", taskId, "Not for me");
+    userTaskService.unclaimTask(UserTaskVisibility.everyUserTask(), "martin", taskId, "martin");
+    // reading a task is no change of it, so it produces no event and changes no initiator
+    userTaskService.markAsRead(UserTaskVisibility.everyUserTask(), taskId, "sam");
+    userTaskService.setNote(UserTaskVisibility.everyUserTask(), "petra", taskId, "I will ask Martin");
+    // no user is signed in, a job of the cockpit for example
+    userTaskService.setFollowUpDate(UserTaskVisibility.everyUserTask(), taskId, STARTED_AT.plusDays(1));
+    arrivedFromMongoDb(4);
+    streams.filterCollectedChanges();
+
+    assertThat(initiatorsOf(stream)).containsExactly(
+        tuple("martin", InitiatorKind.USER),
+        tuple("martin", InitiatorKind.USER),
+        tuple("petra", InitiatorKind.USER),
+        tuple(null, InitiatorKind.COCKPIT));
+
+  }
+
+  /**
+   * A note is an update, and a report saves the whole case. In one tick, each event names who made
+   * its own change: the user who wrote the note, and the person the workflow module named.
+   */
+  @Test
+  @DisplayName("A note and a report of a case in one tick each name their own initiator")
+  void aNoteAndAReportOfACaseInOneTick() {
+
+    final var stream = openedAndReloaded();
+    final var caseId = aCaseReportedBy("martin");
+    watchingTheChangeStreamsOfMongoDb();
+
+    workflowlistService.setNote(WorkflowVisibility.everyWorkflow(), "petra", caseId, "Call the customer");
+    workflowlistService.reportChangedWorkflow(
+        caseId, STARTED_AT.plusMinutes(5), () -> null, stored -> stored.setInitiator(person("martin")));
+    workflowlistService.setNote(WorkflowVisibility.everyWorkflow(), "sam", caseId, "Called, no answer");
+    arrivedFromMongoDb(3);
+    streams.filterCollectedChanges();
+
+    assertThat(initiatorsOf(stream)).containsExactly(
+        tuple("petra", InitiatorKind.USER),
+        tuple("martin", InitiatorKind.USER),
+        tuple("sam", InitiatorKind.USER));
 
   }
 
@@ -209,8 +329,8 @@ class AnUpdateEventNamesItsInitiatorTest {
 
   /**
    * MongoDB reports giving a task back without the changed document, see
-   * {@link UserTaskChangedNotification#build}. The initiator is read in the filtering tick, so it
-   * is there all the same.
+   * {@link UserTaskChangedNotification#build}. Here the change is handed over without saying who
+   * made it, so the initiator is read in the filtering tick, and it is there all the same.
    */
   @Test
   @DisplayName("Giving a task back names the user who gave it back")
@@ -287,9 +407,14 @@ class AnUpdateEventNamesItsInitiatorTest {
 
   }
 
+  /**
+   * On Azure Cosmos DB for MongoDB a change event does not say who made the change. The update
+   * streams then read who made the latest change from the stored task, which is the best answer
+   * left.
+   */
   @Test
-  @DisplayName("Two changes of a task in one tick both name who made the latest")
-  void twoChangesInOneTickNameTheLatest() {
+  @DisplayName("Two changes of a task in one tick which do not say who made them both name who made the latest")
+  void twoChangesWhichDoNotSayWhoMadeThemNameTheLatest() {
 
     final var stream = openedAndReloaded();
     final var taskId = aTaskReportedBy("martin", null);
@@ -364,6 +489,68 @@ class AnUpdateEventNamesItsInitiatorTest {
     configuration.jsonFormatDateTimes().customize(builder);
     configuration.jsonMinimizeOutput().customize(builder);
     return builder.build();
+
+  }
+
+  /**
+   * Lets the services watch the change streams of MongoDB the way the cockpit does. What they
+   * notify goes through the GUI notification services to the update streams. A test calls it
+   * after it created its task or case, so only its own changes arrive.
+   */
+  private void watchingTheChangeStreamsOfMongoDb() {
+
+    final var changeStreams = new ChangeStreamUtils();
+    ReflectionTestUtils.setField(changeStreams, "properties", new MongoDbProperties());
+    ReflectionTestUtils.setField(changeStreams, "messageListenerContainer", listenerContainer);
+
+    ReflectionTestUtils.setField(userTaskService, "changeStreamUtils", changeStreams);
+    ReflectionTestUtils.setField(userTaskService, "applicationEventPublisher", (ApplicationEventPublisher) event -> {
+      if (event instanceof UserTaskChangedNotification notification) {
+        userTaskNotifications.updateClients(notification);
+        notificationsFromMongoDb.add(notification);
+      }
+    });
+    ReflectionTestUtils.setField(workflowlistService, "changeStreamUtils", changeStreams);
+    ReflectionTestUtils.setField(workflowlistService, "applicationEventPublisher",
+        (ApplicationEventPublisher) event -> {
+          if (event instanceof WorkflowChangedNotification notification) {
+            workflowNotifications.updateClients(notification);
+            notificationsFromMongoDb.add(notification);
+          }
+        });
+
+    userTaskService.subscribeToDbChanges(null);
+    workflowlistService.subscribeToDbChanges(null);
+    activeWithinTheArrivalTime((Subscription) ReflectionTestUtils.getField(userTaskService, "dbChangesSubscription"));
+    activeWithinTheArrivalTime(
+        (Subscription) ReflectionTestUtils.getField(workflowlistService, "dbChangesSubscription"));
+
+  }
+
+  private static void activeWithinTheArrivalTime(
+      final Subscription subscription) {
+
+    try {
+      assertThat(subscription.await(ARRIVAL)).as("change stream active").isTrue();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Interrupted while the change stream started", e);
+    }
+
+  }
+
+  /** Waits until so many changes came from MongoDB, so all of them are matched in one tick. */
+  private void arrivedFromMongoDb(
+      final int changes) {
+
+    await()
+        .atMost(ARRIVAL)
+        .untilAsserted(() -> assertThat(notificationsFromMongoDb).hasSize(changes));
+    // nothing more is on its way, a read state for example, which would make a second tick
+    await()
+        .during(Duration.ofSeconds(2))
+        .atMost(ARRIVAL)
+        .untilAsserted(() -> assertThat(notificationsFromMongoDb).hasSize(changes));
 
   }
 

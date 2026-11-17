@@ -4595,7 +4595,7 @@ which names the new place. It is not a key of version 1, so no upgrade guide nam
 - The wiki page `Configuration`, sections "The place per adapter" and "A key nobody reads ends the
   start".
 
-### 102. An event of the update stream names who made the change, read from the entity in the filtering tick
+### 102. An event of the update stream names who made the change, carried by the change event of MongoDB
 
 Decided on 2026-11-16 by the maintainer.
 
@@ -4622,20 +4622,45 @@ loads again for every change, whoever made it.
 
 ##### Where the initiator comes from
 
-A change event of MongoDB does not carry the changed document for an update, see decision
-31. So the initiator is read the way the workflow module of an entity is read: in the filtering
-tick, by the one query which reads the facts of the visibility. `UserTaskVisibility.TaskFacts` carries `initiator`, and
-`WorkflowVisibility.WorkflowFacts` carries `initiatorOfLatestChange`.
+Each event names who made its own change. Several changes of one entity in one tick are several
+events, and each of them names its own initiator. A page then tells the user about each change
+by somebody else, also when the user's own change came right after it in the same tick.
+
+The initiator comes from the change event of MongoDB. The cockpit does not read the document
+again to find it, see decision 31: a lookup would cost a read per change, and it would only
+return the state after all changes, which is the answer this decision replaces.
+
+- An `insert` and a `replace` carry the whole document. Every report and every change in the
+  cockpit which saves the whole entity is one of them. The event names the field the entity keeps
+  who made its latest change in: `initiator` at a user task, `initiatorOfLatestChange` at a case.
+- An `update` carries only the fields it changed. So every update of a user task or a case also
+  sets the field `latestChange`, with `LatestChange.recordIn`: who made the change and a
+  `changeId` which is new for every write. MongoDB leaves a field which keeps its value out of the
+  change event. Without the new id, the second of two changes by the same user would arrive
+  without the initiator. The notes and giving a task back are such updates.
+  `EveryUpdateOfATaskOrACaseSaysWhoMadeItTest` fails for an update of the two collections which
+  does not call `LatestChange.recordIn`.
+
+`LatestChange.initiatorCarriedBy` reads it, `UserTaskChangedNotification` and
+`WorkflowChangedNotification` carry it, and the GUI notification services put it into the event.
 `InitiatorOfAChange.fromStored` turns the stored string into the two fields: `system` and nothing
 stored become `SYSTEM`, `cockpit` becomes `COCKPIT`, anything else is the id of a user.
 
-Several changes of one entity in one tick therefore all name the initiator of the latest change.
-That is what is stored when the tick reads, and it is the answer a page needs: whether the state
-it would load now comes from somebody else.
+Where the change event does not say who made the change, the filtering tick reads it from the
+entity, by the one query which reads the facts of the visibility, the same way it reads the
+workflow module. `UserTaskVisibility.TaskFacts` carries `initiator`, and
+`WorkflowVisibility.WorkflowFacts` carries `initiatorOfLatestChange`. Several such events of one
+entity in one tick all name the initiator of the latest change. This happens on Azure Cosmos DB
+for MongoDB, see below, and for an update which does not set `latestChange`.
 
 An event whose producer knows better keeps what it names. A follow-up date which is reached is no
 change anybody made, so its event names `COCKPIT`, and not the initiator of the last change stored
 in the task.
+
+No changeset fills `latestChange`. The field is written with the next update, and only a change
+produces an event. The entity classes do not map it: nothing but the change stream reads it, and
+a save of the whole entity drops it, which does no harm because the event of a save carries the
+whole document.
 
 ##### What is stored
 
@@ -4670,13 +4695,16 @@ marking a task as read or unread moves from the changes which read the task and 
 the changes which are one update. A report which read the task before fails the version check, as
 it does after a note.
 
-On Azure Cosmos DB for MongoDB an update is not described in the change event, so there a read
-still produces an event, which names the initiator of the latest real change.
+On Azure Cosmos DB for MongoDB a change event says neither its operation nor what an update
+changed. So there a read still produces an event, and every event names the initiator of the
+latest real change, read in the filtering tick.
 
 #### Where it applies
 
 - `business-cockpit/src/main/resources/api/gui/v1.yaml`: `InitiatorKind`, `initiator` and
   `initiatorKind` in `UserTaskEvent` and `WorkflowEvent`, and the description of `GET /updates`
+- `LatestChange`, `UserTaskChangedNotification.build`, `WorkflowChangedNotification.build` and the
+  two GUI notification services
 - `InitiatorOfAChange`, `UpdateStreamAudience.namingItsInitiator`,
   `UpdateStreamAudience.WhatTheStreamsMaySee`, `UpdateStreams`, `GuiEvent.withEvent`,
   `UserTaskStreamAudience`, `WorkflowStreamAudience`, `UserTaskVisibility.TaskFacts`,
@@ -4684,11 +4712,12 @@ still produces an event, which names the initiator of the latest real change.
 - `tasklist.api.GuiNotificationService` for the follow-up
 - `UserTaskService.markAsRead`, `UserTaskService.markAsUnread`,
   `UserTaskChangedNotification.changesOnlyWhoReadTheTask`
-- `UserTaskService.setNote`, `WorkflowlistService.setNote` and the saves of reports in
-  `WorkflowlistService`, `Workflow.initiatorOfLatestChange`
+- `UserTaskService.setNote`, `UserTaskService.unclaimTask`, `WorkflowlistService.setNote` and the
+  saves of reports in `WorkflowlistService`, `Workflow.initiatorOfLatestChange`
 - `UPGRADE.md`: "An event of the update stream names who made the change"
 - `skills/business-cockpit-user-interface/references/gui-api.md`
-- Tests: `AnUpdateEventNamesItsInitiatorTest`, `ChangeStreamNotificationsTest`,
+- Tests: `AnUpdateEventNamesItsInitiatorTest`, `EveryUpdateOfATaskOrACaseSaysWhoMadeItTest`,
+  `ChangeStreamNotificationsTest`,
   `AChangeInTheGuiAndAReportAtTheSameTimeTest`, `TheUpdateStreamAsItsOpenApiFileSaysTest` in
   `container`
 

@@ -2,12 +2,14 @@ package io.vanillabp.cockpit.workflowlist;
 
 import java.util.Collection;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.bson.Document;
 import org.springframework.data.mongodb.core.messaging.Message;
 
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
 
+import io.vanillabp.cockpit.mongo.changestreams.LatestChange;
 import io.vanillabp.cockpit.mongo.changestreams.OperationType;
 import io.vanillabp.cockpit.util.events.NotificationEvent;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
@@ -20,8 +22,17 @@ public class WorkflowChangedNotification extends NotificationEvent {
 
   private static final long serialVersionUID = 1L;
 
+  /** The field a workflow keeps who made its latest change in. */
+  private static final String FIELD_OF_THE_STORED_INITIATOR = "initiatorOfLatestChange";
+
   /** The id of the workflow which changed. */
   private String workflowId;
+
+  /**
+   * Who made this one change, as the cockpit stores it, or {@code null} if the change event does
+   * not say it. See {@link LatestChange#initiatorCarriedBy}.
+   */
+  private String initiatorOfThisChange;
 
   /**
    * Creates the notification.
@@ -35,10 +46,30 @@ public class WorkflowChangedNotification extends NotificationEvent {
       final String workflowId,
       final Collection<String> targetGroups) {
 
+    this(type, workflowId, targetGroups, null);
+
+  }
+
+  /**
+   * Creates the notification of a change which says who made it.
+   *
+   * @param type The kind of change
+   * @param workflowId The id of the workflow which changed
+   * @param targetGroups The groups whose members may be told, or {@code null} for everybody
+   * @param initiatorOfThisChange Who made this change, as the cockpit stores it, or {@code null}
+   *        if that is not known
+   */
+  public WorkflowChangedNotification(
+      final Type type,
+      final String workflowId,
+      final Collection<String> targetGroups,
+      final String initiatorOfThisChange) {
+
     super(
         "Workflow", type, targetGroups);
 
     this.workflowId = workflowId;
+    this.initiatorOfThisChange = initiatorOfThisChange;
 
   }
 
@@ -55,7 +86,9 @@ public class WorkflowChangedNotification extends NotificationEvent {
 
     return new WorkflowChangedNotification(
         Type.valueOf(operationOf(message).name()), message.getRaw().getDocumentKey().get(
-            message.getRaw().getDocumentKey().getFirstKey()).asString().getValue(), null);
+            message.getRaw().getDocumentKey().getFirstKey()).asString().getValue(), null, LatestChange
+                .initiatorCarriedBy(message.getRaw(), FIELD_OF_THE_STORED_INITIATOR)
+                .orElse(null));
 
   }
 
@@ -99,6 +132,16 @@ public class WorkflowChangedNotification extends NotificationEvent {
   public void setWorkflowId(
       String workflowId) {
     this.workflowId = workflowId;
+  }
+
+  /**
+   * Who made this one change, as the cockpit stores it.
+   *
+   * @return The id of the user or the name the cockpit stores for the system or for itself, or
+   *         nothing if the change event did not say it
+   */
+  public Optional<String> getInitiatorOfThisChange() {
+    return Optional.ofNullable(initiatorOfThisChange);
   }
 
 }

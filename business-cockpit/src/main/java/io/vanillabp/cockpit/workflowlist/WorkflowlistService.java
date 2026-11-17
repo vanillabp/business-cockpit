@@ -43,6 +43,7 @@ import io.vanillabp.cockpit.config.startup.CockpitConfiguration;
 import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
 import io.vanillabp.cockpit.config.startup.SortIndexLimit;
 import io.vanillabp.cockpit.mongo.changestreams.ChangeStreamUtils;
+import io.vanillabp.cockpit.mongo.changestreams.LatestChange;
 import io.vanillabp.cockpit.mongo.updateinfo.UpdateInformationAware;
 import io.vanillabp.cockpit.util.ListPaths;
 import io.vanillabp.cockpit.util.NotesOfTheCockpit;
@@ -528,8 +529,9 @@ public class WorkflowlistService {
 
     final var written = mongoTemplate.updateFirst(
         new Query(Criteria.where("id").is(workflowId)).addCriteria(NotesOfTheCockpit.notEnded()),
-        NotesOfTheCockpit.setTo(text, currentUser)
-            .set("initiatorOfLatestChange", initiatorFor(currentUser)),
+        LatestChange.recordIn(
+            NotesOfTheCockpit.setTo(text, currentUser).set("initiatorOfLatestChange", initiatorFor(currentUser)),
+            initiatorFor(currentUser)),
         Workflow.class);
     // the workflow ended between the read above and this write
     if (written.getMatchedCount() == 0) {
@@ -573,8 +575,9 @@ public class WorkflowlistService {
     mongoTemplate.updateMulti(
         new Query(Criteria.where("id").in(found.stream().map(Workflow::getId).toList()))
             .addCriteria(NotesOfTheCockpit.notEnded()),
-        NotesOfTheCockpit.setTo(text, currentUser)
-            .set("initiatorOfLatestChange", initiatorFor(currentUser)),
+        LatestChange.recordIn(
+            NotesOfTheCockpit.setTo(text, currentUser).set("initiatorOfLatestChange", initiatorFor(currentUser)),
+            initiatorFor(currentUser)),
         Workflow.class);
 
   }

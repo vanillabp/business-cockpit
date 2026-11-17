@@ -835,7 +835,8 @@ The `event` of each element of `GET /gui/api/v1/updates` has two new optional fi
 `initiatorKind` says who made the change: `USER`, `SYSTEM` for the workflow system or `COCKPIT` for
 the cockpit itself. `initiator` holds the id of the user, and it is there only for `USER`. Both are
 missing in a `RELOAD` and when the cockpit no longer holds the entity. If several changes of one
-entity are sent at once, they name who made the latest.
+entity are sent at once, each of them names who made it. On Azure Cosmos DB for MongoDB they all
+name who made the latest, because a change event there does not say what an update changed.
 
 A page which shows one user task or case can now tell whether somebody else changed it, without
 loading it first: `initiatorKind` is `USER` and `initiator` is not the user signed in. A list loads
@@ -848,6 +849,12 @@ opens it, is no change of the task any more: it leaves `initiator`, `updatedAt` 
 they are, and the update stream sends no event for it. A case keeps who made its latest change in the new field
 `initiatorOfLatestChange`, because its `initiator` is what the latest report said. A case nobody
 changed since the upgrade has no value there. Nothing reads it before the next change.
+
+Every update of a user task or a case which the cockpit sends now also sets the new field
+`latestChange`: who made the change and an id which is new for every write. MongoDB then names the
+person in the change event of that update. No changeset fills the field, and nothing but the
+change stream reads it. Code of your own which updates the two collections directly should set it
+the same way, with `LatestChange.recordIn`, or its events name who made the latest change instead.
 
 An implementation of `UpdateStreamAudience` has the new method `namingItsInitiator`, and
 `WhatTheStreamsMaySee` has the new last component `initiatorOfEachEntity`. The records

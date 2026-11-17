@@ -37,9 +37,11 @@ import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
  *
  * <p>Which stream may see what is answered by one {@link UpdateStreamAudience} per kind of entity,
  * from the same visibility the lists use. The audience also tells the workflow module of each
- * changed entity and who made its latest change, and every event of the entity names both from
- * then on. An event of a kind no audience decides about, and an event without an entity id,
- * reaches every stream. The ping is such an event: it says nothing about a case.
+ * changed entity, and every event of the entity names it from then on. An event names who made
+ * its own change where the change event of MongoDB said it. Only where it did not, the event
+ * names who made the latest change, as the audience read it, see decision 102 in the
+ * repository's DECISIONS.md. An event of a kind no audience decides about, and an event without
+ * an entity id, reaches every stream. The ping is such an event: it says nothing about a case.
  */
 public class UpdateStreams {
 
@@ -301,8 +303,9 @@ public class UpdateStreams {
   }
 
   /**
-   * The event of one entity, naming the workflow module of the entity and who made its latest
-   * change. Both are missing for an entity the cockpit no longer holds.
+   * The event of one entity, naming the workflow module of the entity. An event which does not
+   * say who made its change names who made the latest change, as the tick read it. Both are
+   * missing for an entity the cockpit no longer holds.
    */
   private static GuiEvent namingWhatTheTickRead(
       final UpdateStreamAudience audience,
