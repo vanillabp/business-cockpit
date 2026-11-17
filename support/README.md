@@ -78,17 +78,23 @@ auto-configuration comes with `support`, so nothing has to be switched on. It ad
   certificate.
 - **Logging** of each request and its answer, bodies included, at level `INFO`.
 - **Retries** of a request which got no answer, with a growing pause in between.
+- **The size of the connection pool**, for an application which sends with Apache HttpClient 5.
 - **OAuth**: a bearer token of the client credentials grant, fetched by Spring Security, shared by
   all requests of the group and replaced in time.
 - **A check of every key at the start**: a key below the prefix which no setting reads stops the
   start, so a typo like `read-timout` does not go unnoticed.
 
 What Spring Boot and Spring Framework do anyway stays as it is: JSON bodies are written and read
-with the application's Jackson `JsonMapper`, a form body is sent as a form, redirects are followed,
-and `default-header.*` and `apiversion.*` work.
+with the application's Jackson `JsonMapper`, an answer of an operation which returns a `String`,
+for example one with `text/plain`, is read as text, a form body is sent as a form, redirects are
+followed, and `default-header.*` and `apiversion.*` work. A client module writes no code of its own
+for any of them.
 
 The requests are sent by the JDK's own `java.net.http.HttpClient`. No other HTTP library comes
-with `support`.
+with `support`. If the application has Apache HttpClient 5 on its class path, for example through
+the client of Camunda 8, Spring Boot sends with that library instead. It opens five connections to
+a server at the same time and lets every further request wait. A group which sends many requests
+at once sets `connection-pool-size`.
 
 #### Where the keys of a group live
 
@@ -120,33 +126,34 @@ The keys are relative to the prefix of the group, for example `inventory.client.
 prefix `inventory.client`. The first part of the table are Spring Boot's own keys, the second part
 the ones `support` adds.
 
-|                 Key                  |                       Default                        |                                                                        Meaning                                                                         |
-|--------------------------------------|------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `base-url`                           | none                                                 | The address all requests start with, for example `https://inventory.example.com/api`. Required: without it the start stops.                            |
-| `connect-timeout`                    | `spring.http.clients.connect-timeout`, else `1500ms` | How long the client waits for a connection. A duration, for example `1500ms` or `2s`.                                                                  |
-| `read-timeout`                       | `spring.http.clients.read-timeout`, else `10s`       | How long the client waits for the answer.                                                                                                              |
-| `redirects`                          | `follow-when-possible`                               | Whether redirects are followed: `follow-when-possible`, `follow` or `dont-follow`.                                                                     |
-| `ssl.bundle`                         | none                                                 | The name of a Spring Boot SSL bundle with the certificates the client trusts and its own certificate. Without it, the JVM's defaults apply.            |
-| `default-header.<name>`              | none                                                 | A header sent with every request, for example `default-header.Authorization: Basic c2NvdHQ6dGlnZXI=` for HTTP basic authentication.                    |
-| `apiversion.*`                       | none                                                 | Spring Boot's keys for API versions, see its reference documentation.                                                                                  |
-| `cookie-handling`                    | Spring Boot's default                                | Whether the client keeps cookies between requests: `enable-when-possible`, `enable` or `disable`.                                                      |
-| `verify-ssl`                         | `true`                                               | Checks the server's certificate and host name. `false` trusts every server and keeps the client certificate of `ssl.bundle`. A warning says so.        |
-| `proxy.host`                         | none                                                 | The host of the HTTP proxy. Without it, no proxy is used.                                                                                              |
-| `proxy.port`                         | none                                                 | The port of the proxy. Required with `proxy.host`.                                                                                                     |
-| `proxy.username`                     | none                                                 | The user name for the proxy. Without it, the client does not log in at the proxy.                                                                      |
-| `proxy.password`                     | empty                                                | The password for the proxy.                                                                                                                            |
-| `log`                                | `false`                                              | Logs each request and its answer with headers and bodies at level `INFO`. The values of `Authorization`, `Proxy-Authorization` and cookies are hidden. |
-| `retry.enabled`                      | `false`                                              | Sends a request again which got no answer. Without it, a request is sent once.                                                                         |
-| `retry.max-attempts`                 | `5`                                                  | How often a request is sent at most, the first attempt included.                                                                                       |
-| `retry.period`                       | `100ms`                                              | The pause before the first retry. Each further pause is one and a half times longer.                                                                   |
-| `retry.max-period`                   | `1s`                                                 | The longest pause between two attempts.                                                                                                                |
-| `oauth.token-uri`                    | none                                                 | The token endpoint of the OAuth server. OAuth is used only if it is set.                                                                               |
-| `oauth.client-id`                    | none                                                 | The id of the OAuth client. Required with `oauth.token-uri`.                                                                                           |
-| `oauth.client-secret`                | none                                                 | The secret of the OAuth client. Required with `oauth.token-uri`.                                                                                       |
-| `oauth.client-authentication-method` | `client_secret_post`                                 | Where client id and secret go: `client_secret_post` in the form, `client_secret_basic` in an HTTP basic authentication header. Servers differ here.    |
-| `oauth.scope`                        | none                                                 | The scopes asked for, a list. Without it, the server gives its default scope.                                                                          |
-| `oauth.renew-before`                 | `30s`                                                | A token is replaced when a tenth of its lifetime is left, but at most this long before it expires.                                                     |
-| `oauth.lifetime-without-expires-in`  | `1h`                                                 | How long a token is used if the token endpoint does not say (no `expires_in`). A `401` drops it earlier.                                               |
+|                 Key                  |                       Default                        |                                                                                            Meaning                                                                                             |
+|--------------------------------------|------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `base-url`                           | none                                                 | The address all requests start with, for example `https://inventory.example.com/api`. Required: without it the start stops.                                                                    |
+| `connect-timeout`                    | `spring.http.clients.connect-timeout`, else `1500ms` | How long the client waits for a connection. A duration, for example `1500ms` or `2s`.                                                                                                          |
+| `read-timeout`                       | `spring.http.clients.read-timeout`, else `10s`       | How long the client waits for the answer.                                                                                                                                                      |
+| `redirects`                          | `follow-when-possible`                               | Whether redirects are followed: `follow-when-possible`, `follow` or `dont-follow`.                                                                                                             |
+| `ssl.bundle`                         | none                                                 | The name of a Spring Boot SSL bundle with the certificates the client trusts and its own certificate. Without it, the JVM's defaults apply.                                                    |
+| `default-header.<name>`              | none                                                 | A header sent with every request, for example `default-header.Authorization: Basic c2NvdHQ6dGlnZXI=` for HTTP basic authentication.                                                            |
+| `apiversion.*`                       | none                                                 | Spring Boot's keys for API versions, see its reference documentation.                                                                                                                          |
+| `cookie-handling`                    | Spring Boot's default                                | Whether the client keeps cookies between requests: `enable-when-possible`, `enable` or `disable`.                                                                                              |
+| `verify-ssl`                         | `true`                                               | Checks the server's certificate and host name. `false` trusts every server and keeps the client certificate of `ssl.bundle`. A warning says so.                                                |
+| `proxy.host`                         | none                                                 | The host of the HTTP proxy. Without it, no proxy is used.                                                                                                                                      |
+| `proxy.port`                         | none                                                 | The port of the proxy. Required with `proxy.host`.                                                                                                                                             |
+| `proxy.username`                     | none                                                 | The user name for the proxy. Without it, the client does not log in at the proxy.                                                                                                              |
+| `proxy.password`                     | empty                                                | The password for the proxy.                                                                                                                                                                    |
+| `log`                                | `false`                                              | Logs each request and its answer with headers and bodies at level `INFO`. The values of `Authorization`, `Proxy-Authorization` and cookies are hidden.                                         |
+| `connection-pool-size`               | the HTTP library's                                   | How many connections to the server the group opens at most at the same time. Apache HttpClient 5 opens five without it. The JDK's `HttpClient` has no limit, so the key changes nothing there. |
+| `retry.enabled`                      | `false`                                              | Sends a request again which got no answer. Without it, a request is sent once.                                                                                                                 |
+| `retry.max-attempts`                 | `5`                                                  | How often a request is sent at most, the first attempt included.                                                                                                                               |
+| `retry.period`                       | `100ms`                                              | The pause before the first retry. Each further pause is one and a half times longer.                                                                                                           |
+| `retry.max-period`                   | `1s`                                                 | The longest pause between two attempts.                                                                                                                                                        |
+| `oauth.token-uri`                    | none                                                 | The token endpoint of the OAuth server. OAuth is used only if it is set.                                                                                                                       |
+| `oauth.client-id`                    | none                                                 | The id of the OAuth client. Required with `oauth.token-uri`.                                                                                                                                   |
+| `oauth.client-secret`                | none                                                 | The secret of the OAuth client. Required with `oauth.token-uri`.                                                                                                                               |
+| `oauth.client-authentication-method` | `client_secret_post`                                 | Where client id and secret go: `client_secret_post` in the form, `client_secret_basic` in an HTTP basic authentication header. Servers differ here.                                            |
+| `oauth.scope`                        | none                                                 | The scopes asked for, a list. Without it, the server gives its default scope.                                                                                                                  |
+| `oauth.renew-before`                 | `30s`                                                | A token is replaced when a tenth of its lifetime is left, but at most this long before it expires.                                                                                             |
+| `oauth.lifetime-without-expires-in`  | `1h`                                                 | How long a token is used if the token endpoint does not say (no `expires_in`). A `401` drops it earlier.                                                                                       |
 
 The SSL bundle is Spring Boot's: `spring.ssl.bundle.jks.<name>.truststore.*` for the certificates
 to trust, `...keystore.*` for the client's own certificate. One PKCS12 file can be both, like the
@@ -199,6 +206,8 @@ names the key to set or to change:
 - an `HttpServiceGroupPrefix` for a group which does not exist, and two prefixes for one group;
 - `proxy.host` without `proxy.port`, or proxy keys without `proxy.host`;
 - `retry.max-attempts` below 1;
+- `connection-pool-size` below 1, and `connection-pool-size` while the application sends with an
+  HTTP library other than the JDK's `HttpClient` and Apache HttpClient 5;
 - an `ssl.bundle` which names no bundle;
 - `oauth.token-uri` without `oauth.client-id` or `oauth.client-secret`, an unknown
   `oauth.client-authentication-method`, and a missing Spring Security OAuth client.
@@ -279,6 +288,8 @@ What differs from Spring Boot, because the platforms differ:
   these and `ssl.bundle` the message says what to do instead.
 - The timeouts have no default for all clients, like `spring.http.clients.*`. Without the keys
   they are `1500ms` and `10s`.
+- Without `connection-pool-size` the clients at a prefix open up to 50 connections at the same
+  time, the default of Quarkus. Further requests wait for a free connection.
 - Only a method which waits for its answer is retried. A method which returns a `Uni` or a
   `CompletionStage` is called once.
 - An answer with an error status comes as the REST client's `WebApplicationException`, no answer at
@@ -286,6 +297,8 @@ What differs from Spring Boot, because the platforms differ:
   `ProcessingException` whose message names the key to check, and it is never retried.
 - `RestClients.build(api, prefix, builder -> ...)` hands the builder to the caller after the keys
   are applied, for example to register a filter of its own.
+- A class which is no bean, a test for example, creates the builder with `new RestClients()`. It
+  reads the keys of the running application all the same.
 
 The keys are read one by one and not by a `@ConfigMapping`, because a mapping would refuse an
 unknown key before any guiding message. Every problem of a prefix ends in one
@@ -504,6 +517,8 @@ REST client. The requests are sent by [OkHttp](https://square.github.io/okhttp/)
 `Feign.Builder`:
 
 - **Timeouts.** `connect-timeout` and `read-timeout` in milliseconds. Redirects are followed.
+- **Connection pool.** `connection-pool-size` idle connections are kept open for the next requests,
+  five by default, as OkHttp keeps them. Requests are not limited by it.
 - **TLS.** The server's certificate and host name are checked by default. A truststore file adds
   the certificates the client trusts and holds the client's own certificate, if the server asks for
   one. `verify-ssl: false` turns the checks off, for tests against a server with a self-signed
@@ -515,17 +530,20 @@ REST client. The requests are sent by [OkHttp](https://square.github.io/okhttp/)
   a few times, with a growing pause in between. OpenFeign sends a request again only after an error
   it marks as retryable, for example when no answer arrives. A `401` is retryable too if OAuth is
   configured, see below.
-- **JSON.** If the application has a Jackson 3 `JsonMapper` bean, request and response bodies are
-  written and read with it. Spring Boot creates one when Jackson is on the classpath. A form body
-  is written as a form. Without the bean, OpenFeign keeps its own encoder and decoder, which know no
-  JSON.
+- **JSON and text.** If the application has a Jackson 3 `JsonMapper` bean, request and response
+  bodies are written and read with it. Spring Boot creates one when Jackson is on the classpath. An
+  answer read into a `String` is taken as text unless it is JSON, so an API which answers
+  `text/plain` needs no decoder of its own. A form body is written as a form. Without the bean,
+  OpenFeign keeps its own encoder and decoder, which read text and know no JSON. This is also what a
+  configuration gets which is created with `new`, without Spring, for example in a test.
 - **Authentication.** HTTP basic authentication with user name and password, or an OAuth bearer
   token. The token is fetched with the client credentials grant. If both are configured, basic
   authentication wins.
 
 `configureFeignBuilder` has a second form with a fourth parameter, a `Consumer<OkHttpClient.Builder>`.
-It changes the OkHttp client after the TLS settings and before the proxy and logging settings. Use
-it for what the properties do not cover, for example an interceptor of your own.
+It changes the OkHttp client after the TLS and connection pool settings and before the proxy and
+logging settings. Use it for what the properties do not cover, for example an interceptor of your
+own.
 
 Each part has a `protected` method of its own: `configureTls`, `configureProxyAndLogger`,
 `configureRetry`, `configureJsonEncoding`, `configureBasicAuthentication` and
@@ -557,6 +575,7 @@ prefix of that class, for example `inventory.base-url` for the prefix `inventory
 | `base-url`                  | `to-be-defined` | The URL all requests start with. The default is a placeholder, and a client with it counts as not configured: `isInitialized()` is `false`.     |
 | `connect-timeout`           | `1500`          | How long the client waits for a connection, in milliseconds.                                                                                    |
 | `read-timeout`              | `10000`         | How long the client waits for the answer once it is connected, in milliseconds.                                                                 |
+| `connection-pool-size`      | `5`             | How many idle connections the client keeps open for the next requests. When all of them are busy, the client opens another one.                 |
 | `log`                       | `false`         | Logs each request and response, body included, at level `INFO`.                                                                                 |
 | `verify-ssl`                | `true`          | Checks the server's TLS certificate and host name.                                                                                              |
 | `ssl-truststore-filename`   | none            | A PKCS12 file with the certificates the client trusts and the client's own certificate. Without it, the JVM's defaults apply.                   |
@@ -576,7 +595,8 @@ prefix of that class, for example `inventory.base-url` for the prefix `inventory
 | `additional-get-parameters` | none            | Extra query parameters by name. `ClientsConfigurationBase` does not read them. They are there for an application which builds its own requests. |
 
 `authentication.oauth` is a `Client` of its own, `OauthAuthentication`. Its `base-url` is the token
-endpoint of the OAuth server. Its TLS, proxy and logging keys apply to the requests for a token.
+endpoint of the OAuth server. Its TLS, proxy, logging and `connection-pool-size` keys apply to the
+requests for a token.
 Its timeouts and retry keys are not used: a request for a token has OkHttp's own timeouts. It adds
 three keys:
 
