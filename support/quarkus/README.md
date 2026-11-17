@@ -24,6 +24,9 @@ What it holds:
 - `io.vanillabp.cockpit.support.security.usercontext.UserContext`, the user of the current request.
   It has the same name and methods as the class of the Spring Boot module, so code which uses it
   moves between the platforms unchanged. A request without a user ends in `BcUnauthorizedException`.
+  It reads the `SecurityIdentity` of the request, whatever login made it. So with the check of the
+  token switched off it tells the user of the application's own login, and in an application
+  without `quarkus-security` nobody is logged in.
 - `io.vanillabp.cockpit.support.security.usercontext.GroupResolver`, which turns the groups of the
   directory into all groups of the user, for example with `GroupHierarchyResolver`. The module
   brings one which takes the groups as they are. A bean of the application replaces it.
@@ -34,6 +37,24 @@ own handler answers `BcUnauthorizedException`, and a Spring Boot workflow module
 it yet.
 
 The REST client for the cockpit's APIs is not here yet. It follows.
+
+## The Quarkus extensions it needs
+
+The module brings no Quarkus extension, see below. The workflow module adds the ones it uses:
+
+|               What it uses               |             Extensions             |
+|------------------------------------------|------------------------------------|
+| the SPI and the exceptions, compile only | none                               |
+| the answers to the exceptions            | `quarkus-rest`                     |
+| the check of the cockpit's login token   | `quarkus-rest`, `quarkus-security` |
+
+`quarkus-rest` brings `quarkus-vertx-http`, the HTTP layer the check of the token needs as well, so
+it does not have to be named. Without `quarkus-security` the application builds and starts, and the
+mappers answer. The check of the token is not there then, one line in the log says so, and the user
+context knows nobody. If such an application sets the secret anyway, the start ends and says to add
+`quarkus-security`. An application with `quarkus-security` which does not read the cockpit's token,
+for example because it has a login of its own, sets the build property
+`business-cockpit.jwt.enabled=false`.
 
 ## The login token
 
@@ -75,6 +96,7 @@ says what to do:
   which is no Base64 or shorter than 256 bits;
 - no bean of type `UserDirectoryService`, with the text of the Spring Boot module's failure
   analyzer and the Quarkus code to add.
+- a secret in an application without `quarkus-security`, which could not check a token with it.
 
 ## A library, not an extension
 
@@ -86,7 +108,10 @@ handler. Nothing here needs a build step, so there is no deployment module.
 
 Quarkus itself is an optional dependency: `quarkus-arc`, `quarkus-rest`, `quarkus-vertx-http` and
 `quarkus-security`. The application brings Quarkus, and it decides on the version and adds the
-extensions it uses. An application on the older RESTEasy Classic, the extension
+extensions it uses, see the table above. Nothing in the module needs a bean of an extension the
+application may leave out: the user context and the start check look the beans of
+`quarkus-security` up instead of injecting them. The mechanism and the identity provider are beans
+nobody asks for without `quarkus-security`, so Quarkus leaves them out of the application. An application on the older RESTEasy Classic, the extension
 `quarkus-resteasy`, does not get the mappers, because `@ServerExceptionMapper` belongs to Quarkus
 REST.
 
@@ -116,8 +141,12 @@ that an application finds them on its own. Two things close that gap.
 mapper method is in it. And [quarkus-it](../quarkus-it) runs an application which has this module
 as a plain dependency.
 
-Their coverage, together with that of `core` and `quarkus-it`, is the report
-`test-coverage-report/support/quarkus`. No Spring Boot test counts there.
+[quarkus-it-without-security](../quarkus-it-without-security) runs one without
+`quarkus-security`, and `AModuleWithoutTheCheckTest` of `quarkus-it` one with the check switched
+off.
+
+Their coverage, together with that of `core`, `quarkus-it` and `quarkus-it-without-security`, is
+the report `test-coverage-report/support/quarkus`. No Spring Boot test counts there.
 
 Built as part of the reactor build described in the [root README](../../README.md#building-it).
 Quarkus tests read the modules they use from the local Maven repository, so build them with

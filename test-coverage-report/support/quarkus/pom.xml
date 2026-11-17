@@ -32,6 +32,13 @@
       <artifactId>business-cockpit-quarkus-support-it</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <!-- the same without quarkus-security, which reaches the code for an application which has
+           the support for its exceptions only -->
+      <groupId>${project.groupId}</groupId>
+      <artifactId>business-cockpit-quarkus-support-it-without-security</artifactId>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
 
   <build>

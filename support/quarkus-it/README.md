@@ -13,6 +13,11 @@ a `UserDirectory`, and a `GroupHierarchy` in which a loan manager is a clerk as 
 `404` for an unknown task and for a task which is not open any more, and `409` for a task which
 another user claimed.
 
+`AModuleWithoutTheCheckTest` starts the same application with the build property
+`business-cockpit.jwt.enabled=false`, through the test profile `TheCheckSwitchedOff`. The cookie is
+not read then, the user context answers `401`, and the form `TaskOfAModuleWithoutTheCheck`, which
+needs no role, still gets `404` and `409` from the mappers.
+
 The secret comes as the environment variable `BUSINESS_COCKPIT_JWT_HMACSHA256_BASE64`, which the
 Surefire configuration sets, the way a container gets it. So the tests also show that Quarkus finds
 the key `business-cockpit.jwt.hmacSHA256-base64` under that name.
