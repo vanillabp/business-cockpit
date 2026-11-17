@@ -13,6 +13,9 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * Every update of a user task or a case sets {@link LatestChange}, so its change event says who
@@ -27,6 +30,7 @@ import org.junit.jupiter.api.Test;
  * a task, which is no change of the task for anybody else and produces no event. The changesets
  * run before the cockpit opens its change streams, so they are left out.
  */
+@ExtendWith(SuppressOutputExtension.class)
 class EveryUpdateOfATaskOrACaseSaysWhoMadeItTest {
 
   private static final Path MAIN_SOURCES = Path.of("src", "main", "java");
