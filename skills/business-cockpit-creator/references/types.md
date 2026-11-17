@@ -274,6 +274,12 @@ types library with the exact version of the workspace, and on nothing else. It h
   kit only,
 - the module's side of the event protocol, see [The event protocol](#the-event-protocol),
 - `defineBcElement`, which builds the web component of a part,
+- `elementPrefix(workflowModuleId)`, which turns a module id into the prefix of its web
+  components, and `createElementNames(workflowModuleId, buildId)`, which returns a function from a
+  short name to the whole name, see
+  [module-loading.md](module-loading.md#the-names-of-the-web-components). The VanillaBP kit does
+  not have them. The cockpit's own kit adds them, and the module host uses `elementPrefix` for its
+  check,
 - the functions of the manifest and the script `bc-check-entries`, see
   [The manifest and its check](#the-manifest-and-its-check).
 

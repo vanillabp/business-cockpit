@@ -106,11 +106,11 @@ like the rest of the user interface.
 
 There is one place for each name, so no name has two sources:
 
-|         Package          |                                                                                                   What it holds                                                                                                   |   Depends on    |
-|--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------|
-| `<scope>/bc-types`       | the data of the GUI API, generated from the OpenAPI files, the other types, and every constant: entries, export names, areas, `ui-uri-type` values, event names, action names, error codes, names of theme tokens | nothing         |
-| `<scope>/bc-module-kit`  | the runtime helpers a module needs: `defineBcElement`, the module's side of the event protocol, the manifest functions, `bc-check-entries`; it exports the types and constants of `bc-types` again                | `bc-types`      |
-| `<scope>/bc-module-host` | the registry of modules, the central loader, ask, load and draw, and the cockpit's side of the event protocol                                                                                                     | `bc-module-kit` |
+|         Package          |                                                                                                            What it holds                                                                                                            |   Depends on    |
+|--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------|
+| `<scope>/bc-types`       | the data of the GUI API, generated from the OpenAPI files, the other types, and every constant: entries, export names, areas, `ui-uri-type` values, event names, action names, error codes, names of theme tokens                   | nothing         |
+| `<scope>/bc-module-kit`  | the runtime helpers a module needs: `defineBcElement`, the names of the web components, the module's side of the event protocol, the manifest functions, `bc-check-entries`; it exports the types and constants of `bc-types` again | `bc-types`      |
+| `<scope>/bc-module-host` | the registry of modules, the central loader, the check of new builds and of the names of the web components, ask, load and draw, and the cockpit's side of the event protocol                                                       | `bc-module-kit` |
 
 A workflow module depends on the module kit only. It gets every type and constant from there and
 never names `bc-types` itself. The types library is the base the kit is built on, and the Maven
@@ -565,9 +565,9 @@ own copy of the VanillaBP kit `@vanillabp/bc-module-kit`, see
 Its one dependency is `<scope>/bc-types`, with the exact version of the workspace. It has no peer
 dependencies, and it depends on no loading library.
 
-It holds the runtime code a module needs: `defineBcElement`, the module's side of the event
-protocol, the functions of the manifest, and the script `bc-check-entries` a module runs in its
-build. It exports the types and constants of the types library again, so a module imports
+It holds the runtime code a module needs: `defineBcElement`, `elementPrefix` and
+`createElementNames` for the names of the web components, the module's side of the event protocol,
+the functions of the manifest, and the script `bc-check-entries` a module runs in its build. It exports the types and constants of the types library again, so a module imports
 everything from the kit. [types.md](types.md#the-module-kit) lists what goes into it.
 
 It covers everything the VanillaBP kit exports, with the same names and the same behaviour, and adds
@@ -578,7 +578,10 @@ the extension points and areas of this cockpit. It ships no host.
 `<scope>/bc-module-host` is the cockpit's own copy of the VanillaBP host
 `@vanillabp/bc-module-host`. It depends on `<scope>/bc-module-kit` and on nothing else, and it has
 no framework. It holds the registry of modules, the central loader, the three steps ask, load and
-draw, and the cockpit's side of the event protocol, see [module-loading.md](module-loading.md#one-registry-and-one-loader). The
+draw, and the cockpit's side of the event protocol, see [module-loading.md](module-loading.md#one-registry-and-one-loader).
+It checks the names of the web components with `elementPrefix` of the module kit, and it reads the
+manifest of a module again to notice a new build, see
+[module-loading.md](module-loading.md#a-new-build-of-a-module). The
 entries and the areas of this cockpit are its defaults, so a caller does not have to name them.
 
 It has two users:

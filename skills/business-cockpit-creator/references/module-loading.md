@@ -20,12 +20,14 @@ host does. The host is your user interface.
 7. [Which data finds the part](#which-data-finds-the-part)
 8. [One registry and one loader](#one-registry-and-one-loader)
 9. [Ask, load, draw](#ask-load-draw)
-10. [Nothing is shared](#nothing-is-shared)
-11. [A visual part is a web component](#a-visual-part-is-a-web-component)
-12. [The page of a user task or a case](#the-page-of-a-user-task-or-a-case)
-13. [The other extension points](#the-other-extension-points)
-14. [The event protocol](#the-event-protocol)
-15. [Cells drawn by a workflow module](#cells-drawn-by-a-workflow-module)
+10. [A new build of a module](#a-new-build-of-a-module)
+11. [Nothing is shared](#nothing-is-shared)
+12. [A visual part is a web component](#a-visual-part-is-a-web-component)
+13. [The names of the web components](#the-names-of-the-web-components)
+14. [The page of a user task or a case](#the-page-of-a-user-task-or-a-case)
+15. [The other extension points](#the-other-extension-points)
+16. [The event protocol](#the-event-protocol)
+17. [Cells drawn by a workflow module](#cells-drawn-by-a-workflow-module)
 
 ## Self-contained ES modules
 
@@ -76,8 +78,8 @@ The cockpit reaches it at `/wm/<workflowModuleId>/bc-manifest.json`. The proposa
 |       Field       |                                        Meaning                                         |
 |-------------------|----------------------------------------------------------------------------------------|
 | `manifestVersion` | the version of this format; `1` today; a cockpit refuses a higher one it does not know |
-| `buildVersion`    | the version of the module's build, shown in a details view, if at all                  |
-| `buildTimestamp`  | when the module was built, also only for a details view                                |
+| `buildVersion`    | the version of the module's build; the loader compares it to notice a new build        |
+| `buildTimestamp`  | when the module was built; the loader compares it the same way                         |
 | `entries`         | entry name to file; the file is relative to the manifest                               |
 
 A field this version does not know is allowed and ignored. A file in `entries` must stay below the
@@ -88,16 +90,22 @@ loader refuses a manifest that breaks them, with a note that names the module.
 
 Cache busting works through the file names. The bundler puts a hash of the content into every file
 name, so a new build has new addresses, and the browser cannot take an old file for a new one. A
-bundler that cannot do that appends `?v=<buildVersion>` to the file in the manifest. The manifest
-itself has a fixed name, so it is never cached: the module serves it with `Cache-Control: no-cache`,
-and the loader asks for it with `fetch(url, { cache: 'no-cache' })`.
+bundler that cannot do that appends `?v=<build id>` to the file in the manifest, with the build id
+of [The names of the web components](#the-names-of-the-web-components). `buildVersion` is not
+enough for this, because a version like `1.4.0-SNAPSHOT` stays the same over many builds. Both ways
+give every build new addresses, and that is what lets the cockpit load a new build without a reload
+of the page, see [A new build of a module](#a-new-build-of-a-module). The manifest itself has a
+fixed name, so it is never cached: the module serves it with `Cache-Control: no-cache`, and the
+loader asks for it with `fetch(url, { cache: 'no-cache' })`.
 
 The entry names are the keys. They have no `./` in front. That prefix comes from Webpack's module
 federation and means nothing here. The names of the data entries are fixed, and the types library
 names them as constants, see [types.md](types.md#the-extension-points). The names of the visual
 entries, here `AssessRiskForm`, `ConfirmRideForm`, `RidePage` and `HeaderElements`, are the
 module's choice. A data entry names them, see
-[Data entries carry no framework](#data-entries-carry-no-framework).
+[Data entries carry no framework](#data-entries-carry-no-framework). The names of the web
+components a visual entry defines are not free. They start with the module id, see
+[The names of the web components](#the-names-of-the-web-components).
 
 ## Building the entries
 
@@ -118,13 +126,17 @@ The data entries need no framework compiler, see
 plain esbuild, apart from its forms, even when its forms are Angular.
 
 The recipes are a starting point. Nobody has measured yet how the ways of loading compare across
-frameworks in load time and size, see
+frameworks in load time and size. This will be measured before the release of Business Cockpit
+1.0, with the example cockpits once they are built, and the recipes will follow the result. Cells
+drawn by a module need the same measurement, see
 [Cells drawn by a workflow module](#cells-drawn-by-a-workflow-module).
 
 ## The rules
 
-Every entry is loaded once. A part is the pair of a workflow module and an entry name. The host
-keeps one promise per pair and hands out the same one to every caller.
+Every entry is loaded once for each build of its module. A part is the pair of a workflow module
+and an entry name. The host keeps one promise per pair and hands out the same one to every caller,
+also to a caller that comes while the load is still running. Only a new build of the module starts
+again, see [A new build of a module](#a-new-build-of-a-module).
 
 A part never comes from the cockpit's own bundle. The cockpit never contains a user interface part
 of a business process, see [`../SKILL.md`](../SKILL.md#what-a-cockpit-user-interface-never-does).
@@ -193,8 +205,10 @@ There are two kinds of entries:
   `UserTaskList`, `WorkflowList`, `UserTaskForm` and `WorkflowPage` are data entries, and so are
   `Header` and `Pages` in a cockpit that has them.
 - A visual entry defines web components that draw something: the forms of the user tasks, the
-  pages of the cases, the buttons of the header, the pages of a module and the dialogs. Its name is
-  the module's choice, and a data entry names it.
+  pages of the cases, the buttons of the header, the pages of a module and the dialogs. The name of
+  the visual entry is the module's choice, and a data entry names it together with its web
+  components. The names of the web components must start with the module id, see
+  [The names of the web components](#the-names-of-the-web-components).
 
 A data entry is minimal JavaScript without a framework. It loads without the framework files of its
 module. That matters, because the cockpit loads data entries of many modules at once: the columns
@@ -210,6 +224,8 @@ own that picks the form at runtime. A `WorkflowPage` does the same per process.
 
 ```js
 // UserTaskForm: plain JavaScript, it imports no form
+import { elementName } from '../element-names.js';
+
 export const userTaskForm = (userTask) => {
   if (userTask.bpmnProcessId !== 'TaxiRide') return undefined;
   switch (userTask.taskDefinition) {
@@ -217,13 +233,13 @@ export const userTaskForm = (userTask) => {
       return {
         entry: 'AssessRiskForm',
         element: {
-          body: 'taxi-ride-assess-risk-form',
-          information: 'taxi-ride-assess-risk-information',
-          actions: 'taxi-ride-assess-risk-actions',
+          body: elementName('assess-risk-form'),
+          information: elementName('assess-risk-information'),
+          actions: elementName('assess-risk-actions'),
         },
       };
     case 'confirmRide':
-      return { entry: 'ConfirmRideForm', element: 'taxi-ride-confirm-ride-page' };
+      return { entry: 'ConfirmRideForm', element: elementName('confirm-ride-page') };
     default:
       return undefined;
   }
@@ -231,7 +247,10 @@ export const userTaskForm = (userTask) => {
 ```
 
 The function names web components by their names, as strings. It never imports a form. An import
-would pull the form and its framework into the data entry.
+would pull the form and its framework into the data entry. `elementName` builds the whole name from
+the module id, the build and the short name, see
+[The names of the web components](#the-names-of-the-web-components). It is plain JavaScript and
+keeps the data entry small.
 
 Tree-shaking keeps a data entry small. The bundler drops every import the entry does not use. A
 helper that a data entry imports by mistake from a file that also imports React drops out as long
@@ -335,8 +354,15 @@ What the loader does:
 2. A row of a module that is not in the registry yet, because the module registered after the page
    loaded, makes the loader call `GET /gui/api/v1/workflow-module/{id}` for that one module. It adds
    the module to the registry and reads its manifest the same way.
-3. `import(new URL(file, manifestUrl).href)` returns the entry's exports. The loader keeps the
-   promise per pair of module and entry name, so a second caller gets the same one.
+3. `import(new URL(file, manifestUrl).href)` returns the entry's exports. The loader keeps a map
+   per module, from entry name to the promise of the load. It puts the promise into the map before
+   the file is fetched, in the same synchronous step that calls `import()`. So a second caller,
+   also one that comes while the first load still runs, gets the same pending promise, and the file
+   is fetched once. The manifest read of step 1 is shared the same way: one pending read per
+   module.
+4. Before it asks a part of a module, it reads the manifest of that module again when its last read
+   is older than a minute, and drops what it loaded from an older build, see
+   [A new build of a module](#a-new-build-of-a-module).
 
 The address of an `import()` is only known at runtime, so the cockpit's own bundler must leave it
 alone. Write the hint of the bundler next to it, `/* @vite-ignore */` for Vite or
@@ -344,8 +370,8 @@ alone. Write the hint of the bundler next to it, `/* @vite-ignore */` for Vite o
 themselves.
 
 The browser keeps a loaded ES module for the life of the page. A module that is deployed again
-while a tab is open is loaded fresh with the next reload of the page, because the new manifest
-names new files.
+while a tab is open is still loaded fresh, without a reload of the page, because the new manifest
+names new files, see [A new build of a module](#a-new-build-of-a-module).
 
 ## Ask, load, draw
 
@@ -356,9 +382,18 @@ user task, on the page of a case, in the header, on a page of a module and in a 
 1. Ask. The cockpit asks the loader for the data entry, for example `UserTaskForm`, and calls its
    function with the user task, the case or the current user. The answer is `undefined`, or the
    names of web components together with the visual entry that defines them, see
-   [types.md](types.md#the-extension-points). Nothing visible is loaded yet.
-2. Load. The cockpit asks the loader for the visual entry the answer names. The loader imports it
-   through the manifest, the same way as a data entry. When the browser evaluates the entry, the
+   [types.md](types.md#the-extension-points). Nothing visible is loaded yet. The cockpit checks
+   every name of the answer before it goes on. A name that is no valid name of a custom element, or
+   that does not start with the prefix of this module, is refused, see
+   [The names of the web components](#the-names-of-the-web-components).
+2. Load. First the cockpit asks the browser with `customElements.get(name)` whether every web
+   component it is going to draw is defined already, from the build of the module the loader holds
+   now. The loader remembers which build defined which name: it notes the names once
+   `whenDefined` resolved for them after it loaded a visual entry. If all of them are defined, the
+   cockpit skips this step and draws at once, without a loading state, without `import()` and
+   without waiting. This is the usual case for the second task of the same kind. Otherwise the
+   cockpit asks the loader for the visual entry the answer names. The loader imports it through
+   the manifest, the same way as a data entry. When the browser evaluates the entry, the
    entry calls `customElements.define` for its web components. The cockpit then waits for each
    web component it is going to draw with `customElements.whenDefined(name)`, together with a
    time limit, by default 10 seconds. An entry may define its web components a little later, for
@@ -369,13 +404,15 @@ user task, on the page of a case, in the header, on a page of a module and in a 
 
 What the user sees in each step:
 
-| Step |           Loading state           |                   Error                    |                What the user sees on the error                |
-|------|-----------------------------------|--------------------------------------------|---------------------------------------------------------------|
-| ask  | the data entry is being loaded    | the data entry fails to load               | a note and a button that loads again                          |
-| ask  |                                   | the function answers `undefined`: not mine | see below; no error                                           |
-| load | the visual entry is being loaded  | `import()` of the visual entry fails       | a note and a button that loads again                          |
-| load | the cockpit waits for the element | a web component is not defined in time     | a note that names the module, the entry and the web component |
-| draw | none; the part shows its own      | creating the element throws                | a note that names the module and the web component            |
+| Step |           Loading state           |                   Error                    |                    What the user sees on the error                     |
+|------|-----------------------------------|--------------------------------------------|------------------------------------------------------------------------|
+| ask  | the data entry is being loaded    | the data entry fails to load               | a note and a button that loads again                                   |
+| ask  |                                   | the function answers `undefined`: not mine | see below; no error                                                    |
+| ask  |                                   | a name breaks the rule of the prefix       | a note that names the module, the name and the prefix                  |
+| load | the visual entry is being loaded  | `import()` of the visual entry fails       | a note and a button that loads again                                   |
+| load | the cockpit waits for the element | a web component is not defined in time     | a note that names the module, the entry and the web component          |
+| load |                                   | an earlier build defined the name already  | a note that the module was updated, and a button that reloads the page |
+| draw | none; the part shows its own      | creating the element throws                | a note that names the module and the web component                     |
 
 "Not mine" is no error. On the page of a user task and the page of a case only the module of the
 row is asked, so the page says that this module has no form for it. In the header and on the pages
@@ -396,8 +433,96 @@ a case loads its entries when it opens, and the short wait that this causes is f
 loaded is used again. The loader keeps the promise per pair of module and entry, so a part that is
 shown a second time, for example the next task of the same kind, loads no file again.
 
-`buildVersion` and `buildTimestamp` of the manifest are not needed to know that a part is loaded.
-Show them in a details view, if at all.
+No screen needs preloading today. Because the steps stand alone, a cockpit could run the first two
+early, for example when the mouse rests on a row, through the same loader and the same promises.
+That example only shows the principle. Do not build it unless a screen really needs it.
+
+To know that a part is loaded, the cockpit needs neither `buildVersion` nor `buildTimestamp`. The
+loader uses them to notice a new build, see [A new build of a module](#a-new-build-of-a-module).
+
+## A new build of a module
+
+A workflow module is deployed again while users have the cockpit open. That happens with every
+update of a module. The cockpit then drops what it loaded from the module and loads the new build
+when a part of it is needed next. The user does not have to reload the page.
+
+### How the cockpit notices a new build
+
+The manifest is the only place that names the build of a module. The cockpit server does not know
+it: the registration of a module (`POST /bpms/api/v1_1/workflow-module/{id}`) carries its address
+and its groups, nothing about its build, and the update stream sends no event when a module
+registers again. So the loader reads the manifest again.
+
+- Before it asks a part of a module, the loader looks at when it read the module's manifest last.
+  If that is longer ago than `MANIFEST_RECHECK_MS`, a named constant of the module host with the
+  default of 60 seconds, it reads the manifest again and waits for the answer. Within that time it
+  does not ask again, however many parts it loads.
+- It asks with `fetch(url, { cache: 'no-cache' })`. The module answers `304 Not Modified` when the
+  file did not change, as long as it sends an `ETag` or a `Last-Modified` header. So a check costs
+  one small request.
+- It compares `buildVersion` and `buildTimestamp` with those of the manifest it loaded from. If one
+  of them differs, the module has a new build. A manifest without both is compared by its `entries`
+  instead, because their files carry the hash of their content.
+- If the read fails, the loader goes on with the manifest it has and tries again at the next ask.
+
+A cockpit on which the user does nothing that asks a part notices the new build at the next ask.
+That is enough, because a part nobody uses does nothing.
+
+### What the cockpit does then
+
+1. The loader drops everything it holds for this module: the old manifest and every promise of its
+   entries, data entries and visual entries. It keeps the new manifest.
+2. Web components already on the page stay as they are until their page is left. A form the user
+   is filling in is not swapped while they type. Rows drawn already keep their columns until the
+   list asks for them again.
+3. The loader tells its users that the module has a new build. The header and the menu ask their
+   data entries `Header` and `Pages` again and draw again.
+4. The next ask goes to the new build. The loader imports the data entry from its new address, the
+   function answers with the new names, and the loader imports the new visual entry, which defines
+   the new names. The old web components stay defined in the browser until the page is reloaded.
+   They cost a little memory and do nothing.
+
+### Why the names of the web components carry the build
+
+Two things of the browser decide how this can work:
+
+- `import()` keeps a module per address for the life of the page, and nothing empties that cache.
+  A new build therefore needs new addresses. The hash in the file names gives it them, and so does
+  `?v=<build id>` for a bundler without hashes, see [The manifest](#the-manifest).
+- A name of a custom element can be defined once per page. `customElements.define` throws a
+  `NotSupportedError` for a name that is taken, and there is no way to remove a definition. The new
+  visual entry of a new build therefore needs new names.
+
+That is why the cockpit asks for names that hold the build id after the prefix of the module, see
+[The names of the web components](#the-names-of-the-web-components). It works in React, Vue and
+Angular alike, because `defineBcElement` takes the name as a plain string, whatever the framework
+draws inside. It also works with both ways of the manifest, file names with a hash and `?v=`, and
+in the tests of a module that load its parts with the module host.
+
+Other ways do not fit:
+
+- A wrapper element of the cockpit that imports the module again and swaps an inner element. The
+  inner element still needs a name of its own for each build, so the wrapper adds a layer and solves
+  nothing.
+- A cockpit that changes `customElements.define` to rename the elements while a visual entry loads.
+  When several modules load at the same time, it cannot tell which call belongs to which module.
+  And a module that uses its own web components inside its forms would break.
+- Scoped registries (`new CustomElementRegistry()`). They allow the same name twice, but not every
+  browser supports them yet, and every framework would have to define its elements in such a
+  registry.
+
+### A module whose names carry no build
+
+The cockpit cannot force a module to build its names with the build id. A blueprint built against
+the VanillaBP kit does not, because that kit has no helper for it. Such a module works as long as
+it is not deployed again.
+
+After a new build, the data entry of such a module answers with a name the loader knows from the
+earlier build. Loading the new visual entry would throw in `customElements.define`, and the old
+class would still answer for the name. So the cockpit does not load it. It shows a note instead:
+the module was updated, and the page has to be reloaded to show its new version, with a button
+that reloads the page. It writes the module id and the name of the web component to the console.
+A name that the earlier build never defined in this page loads as usual.
 
 ## Nothing is shared
 
@@ -428,12 +553,10 @@ module renders into a shadow DOM.
 ## A visual part is a web component
 
 The module defines its web components itself, with `customElements.define`, when its visual entry
-is evaluated. The cockpit does not check a name when the function of a data entry returns it. It
+is evaluated. When the function of a data entry returns a name, the cockpit checks only that it
+follows the rule of [The names of the web components](#the-names-of-the-web-components). Then it
 loads the visual entry and waits for the name with `customElements.whenDefined`, see
 [Ask, load, draw](#ask-load-draw).
-
-The names must not collide across modules. A custom element name is lower case and has a hyphen. By
-convention it starts with the module id, for example `taxi-ride-assess-risk-form`.
 
 What a web component does:
 
@@ -463,6 +586,105 @@ again. An Angular module uses `createApplication` once per module and `createCom
 hand. The example modules of the VanillaBP kit show all three. Vue and Angular have their own
 traps, see [Vue in a shadow root](rough-edges.md#vue-in-a-shadow-root) and
 [Angular in a shadow root](rough-edges.md#angular-in-a-shadow-root).
+
+## The names of the web components
+
+All modules define their web components in the one `customElements` registry of the page. Two
+modules must never use the same name, and a new build of a module must not use the names of the
+old one. So every name has three parts:
+
+```text
+taxi-ride-mvaro4w0-assess-risk-form
+└ prefix ┘└ build ┘└ short name ──┘
+```
+
+- The prefix comes from the module id. It keeps the modules apart.
+- The build id is new for every build. It keeps the builds of one module apart, see
+  [A new build of a module](#a-new-build-of-a-module).
+- The short name is the module's choice, for example `assess-risk-form`. It is lower case and
+  uses only letters, digits and hyphens.
+
+The examples in this description leave out the build id, so they stay short.
+
+### From the module id to the prefix
+
+The HTML standard allows a custom element name only when it starts with a lower case letter `a` to
+`z`, contains a hyphen, has no upper case letter, and is none of the reserved names such as
+`font-face` or `annotation-xml`. A module id can be any string, because the BPMS API sets no rule
+for it. So one function turns the id into the prefix, `elementPrefix(workflowModuleId)` of the
+module kit, and the module host uses the same function:
+
+1. Put a hyphen between a lower case letter or a digit and an upper case letter that follows it.
+2. Make every letter lower case.
+3. Replace each run of other characters than `a` to `z`, `0` to `9` and `-` with one hyphen, and
+   remove hyphens at the start and at the end.
+4. If the result is empty or does not start with a letter, put `wm-` in front of it.
+
+|     Module id     |      Prefix       |
+|-------------------|-------------------|
+| `taxi-ride`       | `taxi-ride`       |
+| `TaxiRide`        | `taxi-ride`       |
+| `loan_approval.2` | `loan-approval-2` |
+| `4711`            | `wm-4711`         |
+
+The whole name is the prefix, a hyphen and the rest, so it always contains a hyphen.
+
+### What the module's build does
+
+The module kit has a helper for the names, `createElementNames(workflowModuleId, buildId)`. It
+returns a function that turns a short name into the whole name. The module puts it into one small
+file of plain JavaScript, which its data entries and its visual entries import:
+
+```js
+// src/element-names.js
+import { createElementNames } from '<scope>/bc-module-kit';
+import { WORKFLOW_MODULE_ID, BUILD_ID } from './bc-build.js';
+
+export const elementName = createElementNames(WORKFLOW_MODULE_ID, BUILD_ID);
+// elementName('assess-risk-form') === 'taxi-ride-mvaro4w0-assess-risk-form'
+```
+
+The visual entry registers its web components with the same function, for example
+`defineBcElement(elementName('assess-risk-form'), { mount, update, unmount })`. The dev shell gets
+its components by the same names, see [dev-shell.md](dev-shell.md#the-entry-point).
+
+The build script writes `bc-build.js` before it starts the bundler:
+
+- `WORKFLOW_MODULE_ID` is the id the module registers with at the cockpit. It comes from the
+  module's own configuration, for example a field in its `package.json`. If it differs from the id
+  of the registration, the cockpit refuses every name of the module.
+- `BUILD_ID` is the time of the build in milliseconds, written in base 36:
+  `Date.now().toString(36)`. For the build of the manifest above, `2026-10-16T09:30:00Z`, that is
+  `mvaro4w0`. It has only lower case letters and digits.
+
+After the bundler, the same script writes `bc-manifest.json` with the same time as
+`buildTimestamp`, so the manifest and the names speak of one build.
+
+### The cockpit checks every name
+
+The build of a module cannot be forced to do this. A module may write its names by hand, or be built
+against the VanillaBP kit, which has no helper for names. So the cockpit checks every name it is
+going to draw, after the ask step and before it loads anything. The same check runs for the name
+of a dialog that `cockpit.openDialog` asks for. A name is refused when
+
+- it is not a valid name of a custom element, or it is a reserved one,
+- it does not start with the prefix of its module followed by a hyphen,
+- or it starts with the prefix of another module of the registry that is longer than the module's
+  own prefix. A module `taxi` may not use the name `taxi-ride-confirm`, when there is a module
+  `taxi-ride`.
+
+A refused name is not loaded and not drawn. The cockpit shows a note that names the module, the
+name and the prefix the name has to start with, and writes the same to the console. It is a bug of
+the module, so the note is for the author of the module as much as for the user.
+
+The check does not ask for the build id. A name without it, like `taxi-ride-assess-risk-form`, is
+accepted, and the module then needs a reload of the page after a new build, see
+[A module whose names carry no build](#a-module-whose-names-carry-no-build). The example modules of
+the VanillaBP kit use names of this kind.
+
+Two different module ids can have the same prefix, for example `TaxiRide` and `taxi-ride`. Their
+names still do not clash as long as both carry a build id. The cockpit writes a warning to the
+console when two modules of the registry have the same prefix.
 
 ## The page of a user task or a case
 

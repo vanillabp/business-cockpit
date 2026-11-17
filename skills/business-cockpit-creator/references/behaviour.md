@@ -310,9 +310,12 @@ cockpit lays a barrier over the page until the user has claimed the task (`Q-CLA
 On the left, the status line has a group of buttons to choose the primary filter. The interview
 decides which primary filters are offered and which is the default (`Q-PRIMARY-FILTERS`). Possible
 are `OpenTasksWithFollowUp` (all open tasks), `OpenTasksWithoutFollowUp` (open tasks without those
-put aside until a follow-up date), `OpenTaskOnlyFollowUp` and `ClosedTasksOnly`. The proposed
-default is `OpenTasksWithoutFollowUp`, so a task put aside stays out of sight until its date, see
-[Follow-up](#follow-up). The server takes `OpenTasksWithFollowUp` when a request has no mode, but
+put aside until a follow-up date), `OpenTaskOnlyFollowUp` and `ClosedTasksOnly`. Without the
+follow-up feature (`Q-FOLLOW-UP`) the status line offers neither `OpenTasksWithoutFollowUp` nor
+`OpenTaskOnlyFollowUp`, and without closed tasks (`Q-CLOSED-TASKS`) it does not offer
+`ClosedTasksOnly`. The proposed default is `OpenTasksWithoutFollowUp`, so a task put aside stays
+out of sight until its date, see [Follow-up](#follow-up). Without the follow-up feature it is
+`OpenTasksWithFollowUp`. The server takes `OpenTasksWithFollowUp` when a request has no mode, but
 the user interface always sends one, see
 [gui-api.md](gui-api.md#the-primary-filter-which-rows-come-at-all). The buttons show a short,
 translated label, for example "Open" or "Closed", with the count in brackets, see [Counts](#counts).
@@ -671,10 +674,13 @@ answer.
 The page loads the entries only when it is shown. The list loads nothing in advance: not when the
 mouse rests on a row, and not when a row gets the focus. The short wait when the page opens is
 fine. What was loaded once is used again. The page asks the same
-[loader](module-loading.md#one-registry-and-one-loader) every time, so each module and each of its
-entries is loaded only once per page: the manifest of a module once, and each data entry and each
-visual entry once. Opening a second task of the same kind, or the same task again, loads nothing
-new.
+[loader](module-loading.md#one-registry-and-one-loader) every time, so each data entry and each
+visual entry of a module is loaded only once for each build of the module. Opening a second task of
+the same kind, or the same task again, loads no entry again, and when its web components are
+defined already, the page draws them at once. The loader only reads the manifest of the module
+again when its last read is older than a minute, to notice a new build. After a new build it loads
+the entries of the new build, without a reload of the page, see
+[module-loading.md](module-loading.md#a-new-build-of-a-module).
 
 ### The areas and the frame
 

@@ -173,7 +173,7 @@ What is handed over is the real contract:
 |---------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
 | the address of the GUI API            | it builds its client from it, with the simulator `/official-api/gui/api/v1`                                                                  |
 | the functions of the data entries     | `userTaskForm`, `workflowPage`, and for the other extension points for example `header` and `pages`; the shell asks them as the cockpit does |
-| the components, by web component name | what the shell draws for each name the functions return                                                                                      |
+| the components, by web component name | what the shell draws for each name the functions return; the module builds the names with the same `elementName` as its data entries         |
 | the style of the components           | the stylesheet text the module's web components write into their shadow roots, so the shell writes the same, see [The rule](#the-rule)       |
 | the workflow module id                | for the frame, and for the requests of a form through `/wm/`                                                                                 |
 
@@ -191,7 +191,11 @@ runs the same routing by process and task definition as the cockpit, see
 [Ask, load, draw](module-loading.md#ask-load-draw), the shell does the first and the last:
 
 1. Ask. It calls the function with the user task, the case or the current user, the same as the
-   cockpit. `undefined` means "not mine", as in the cockpit.
+   cockpit. `undefined` means "not mine", as in the cockpit. It checks every name of the answer
+   against the module id it was handed, by the same rule as the cockpit, and shows the same note for
+   a name it refuses, see
+   [module-loading.md](module-loading.md#the-cockpit-checks-every-name). So the author of a module
+   finds a wrong name in the dev shell, not first in the cockpit.
 2. Load. The shell skips it. It does not load the visual entry the answer names.
 3. Draw. For each web component name in the answer, the shell draws the framework component that
    was handed over under this name, inside a host element of that name with a shadow root, see
