@@ -15,7 +15,8 @@ What it holds:
 - `UserDetails`, `UserDetailsImpl`, `UserDirectoryService`, `GroupHierarchyResolver` and the
   exceptions, from `core`.
 - `io.vanillabp.cockpit.support.usertask.BcUserTaskExceptionMapper` answers `BcUnknownTaskException`
-  with `404 Not Found` and `BcTaskNotOpenException` with `409 Conflict`.
+  and `BcTaskNotOpenException` with `404 Not Found` and `BcTaskClaimedByAnotherUserException` with
+  `409 Conflict`, with the message as plain text.
 - `io.vanillabp.cockpit.support.security.BcUnauthorizedExceptionMapper` answers
   `BcUnauthorizedException` with `401 Unauthorized`.
 - The check of the cockpit's login token, in `io.vanillabp.cockpit.support.security.jwt`, see

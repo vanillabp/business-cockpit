@@ -103,14 +103,28 @@ public class AFormOfAWorkflowModuleTest {
   }
 
   @Test
-  public void aTaskWhichIsNotOpenAnyMoreIsAConflict() {
+  public void aTaskWhichIsNotOpenAnyMoreIsNotFound() {
 
     given()
         .cookie("bc", LoginTokens.signed(SECRET, "john"))
         .post("/loan-approval/assess-risk/task-2")
         .then()
-        .statusCode(409)
+        .statusCode(404)
+        .contentType(startsWith("text/plain"))
         .body(equalTo("The user task 'task-2' of 'loan-approval' is not open any more"));
+
+  }
+
+  @Test
+  public void aTaskWhichAnotherUserClaimedIsAConflict() {
+
+    given()
+        .cookie("bc", LoginTokens.signed(SECRET, "john"))
+        .post("/loan-approval/assess-risk/task-3")
+        .then()
+        .statusCode(409)
+        .contentType(startsWith("text/plain"))
+        .body(equalTo("The user task 'task-3' of 'loan-approval' is claimed by 'mary'"));
 
   }
 

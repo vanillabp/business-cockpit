@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * A controller of a workflow module throws one of the two exceptions, and the handler turns it into
+ * A controller of a workflow module throws one of the exceptions of a user task, and the handler turns it into
  * the status and the message a form can show.
  */
 @ExtendWith(SuppressOutputExtension.class)
@@ -43,6 +43,16 @@ public class BcUserTaskExceptionHandlerTest {
         @PathVariable final String taskId) {
 
       throw new BcTaskNotOpenException(workflowId, taskId);
+
+    }
+
+    @PostMapping("/claimed/{workflowId}/{taskId}/{claimedBy}")
+    String claimed(
+        @PathVariable final String workflowId,
+        @PathVariable final String taskId,
+        @PathVariable final String claimedBy) {
+
+      throw new BcTaskClaimedByAnotherUserException(workflowId, taskId, claimedBy);
 
     }
 
@@ -74,15 +84,29 @@ public class BcUserTaskExceptionHandlerTest {
   }
 
   @Test
-  public void aTaskWhichIsNotOpenAnyMoreIsAConflict() throws Exception {
+  public void aTaskWhichIsNotOpenAnyMoreIsNotFound() throws Exception {
 
     final var response = mockMvc
         .perform(post("/done/loan-1/task-9"))
-        .andExpect(status().isConflict())
+        .andExpect(status().isNotFound())
         .andReturn()
         .getResponse();
 
     assertThat(response.getContentAsString()).isEqualTo("The user task 'task-9' of 'loan-1' is not open any more");
+
+  }
+
+  @Test
+  public void aTaskWhichAnotherUserClaimedIsAConflict() throws Exception {
+
+    final var response = mockMvc
+        .perform(post("/claimed/loan-1/task-9/mary"))
+        .andExpect(status().isConflict())
+        .andReturn()
+        .getResponse();
+
+    assertThat(response.getContentType()).startsWith("text/plain");
+    assertThat(response.getContentAsString()).isEqualTo("The user task 'task-9' of 'loan-1' is claimed by 'mary'");
 
   }
 

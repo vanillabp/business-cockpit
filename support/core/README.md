@@ -21,9 +21,11 @@ depends on the module of its platform.
   is warned about once a minute at most. A directory which fails fails the request.
   `UserDirectoryIsMissing` holds the words both platforms say when the application has no
   directory.
-- `io.vanillabp.cockpit.support.usertask`: `BcUnknownTaskException` and `BcTaskNotOpenException`,
-  which a form endpoint throws for a task id the workflow does not know and for a task which is not
-  open any more.
+- `io.vanillabp.cockpit.support.usertask`: `BcUnknownTaskException`, `BcTaskNotOpenException` and
+  `BcTaskClaimedByAnotherUserException`, which a form endpoint throws for a task id the workflow
+  does not know, for a task which is not open any more, and for an open task which another user
+  claimed. Both platforms answer the first two with `404 Not Found` and the third with
+  `409 Conflict`.
 - `io.vanillabp.cockpit.support.rest.adapter`: `tls.TlsTruststoreUtil`, which builds trust managers
   and key managers out of a PKCS12 file, and `versioning.ApiVersionAware`.
 

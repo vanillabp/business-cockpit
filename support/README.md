@@ -11,8 +11,8 @@ runs on. Everything else is the same on both. So there are three modules:
   classes which know no platform: `LoginTokenVerifier`, `DirectoryUserLookup` and
   `TokenUserDetails`, which check the cockpit's login token and find its user and groups,
   `UserDetails`, `UserDetailsImpl`, `UserDirectoryService` and `GroupHierarchyResolver` for the user
-  and the groups, `BcUnauthorizedException`, `BcUnknownTaskException` and `BcTaskNotOpenException`,
-  and `TlsTruststoreUtil` and `ApiVersionAware` for REST clients. Its only dependencies are Nimbus,
+  and the groups, `BcUnauthorizedException`, `BcUnknownTaskException`, `BcTaskNotOpenException`
+  and `BcTaskClaimedByAnotherUserException`, and `TlsTruststoreUtil` and `ApiVersionAware` for REST clients. Its only dependencies are Nimbus,
   for the signature of the token, and the SLF4J API. Nobody names it directly, because both
   platform modules bring it.
 - [spring-boot](./spring-boot), published as
