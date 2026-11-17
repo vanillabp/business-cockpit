@@ -9,6 +9,13 @@ package `io.vanillabp.cockpit.gui.api.v1.client`, and their models in `...client
 method returns the body. An answer with an error status comes as the REST client's
 `WebApplicationException`, no answer at all as `ProcessingException`.
 
+Two operations of the OpenAPI file are left out: `getUserTaskKwicResults` and `getKwicResults`,
+the suggestions of words for the search in the task list and in the workflow list. They use the
+method `OPTIONS` with a body, which Quarkus' REST client warns about while the application is
+built. They serve the lists of the cockpit's user interface and no workflow module. The OpenAPI
+file and the Spring Boot client keep them. The jar comes with a sources jar, which holds the
+generated interfaces and models too.
+
 ## Using it
 
 A workflow module adds the dependency and the extension of Quarkus' REST client with JSON. There
@@ -106,6 +113,7 @@ key and no user directory for that, because the cockpit checks the login.
 goes to the cockpit and not to another service, a call outside of a request sends none, two
 workflow modules call the cockpit with their own keys, and an unknown task comes as
 `WebApplicationException`. `TheCockpitOfTheTests` sets the keys before the application starts.
+`NoMethodSendsABodyWithOptionsTest` checks that no interface has a method with `OPTIONS`.
 Its coverage counts in the report `test-coverage-report/support/quarkus`, without the generated
 interfaces and models.
 
