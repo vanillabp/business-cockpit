@@ -588,6 +588,12 @@ authority `ROLE_BPMS-API`.
 The users of the dev-shell simulator log in with `test` now, as they do at the cockpit. Before, it
 was `Secure_123`.
 
+### The dev-shell simulator takes version 1.1 of the BPMS API only
+
+The dev-shell simulator answers `/bpms/api/v1_1` only, and `/bpms/api/v1` answers 404 there. A
+workflow module whose adapter still reports through version 1 needs a current adapter to be tried
+in the dev shell. The cockpit itself still takes version 1.
+
 ### Two values are the application's
 
 The library has no value for `application.spa-default-file` and `business-cockpit.default-locale`

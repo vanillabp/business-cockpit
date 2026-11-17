@@ -137,9 +137,10 @@ beantwortet davon fünf Aufrufe: eine Aufgabe, die Aufgabenliste, einen Fall, di
 Aufgaben eines Falls. Seitenweise lesen und Sortieren macht sie im Speicher, die Seitengröße ist
 standardmäßig 20, und die Standardsortierung ist `createdAt` absteigend.
 
-Nach hinten, zum Workflow-Modul, spricht sie die BPMS-API unter `/bpms/api/v1` und `/bpms/api/v1_1`.
-Dort meldet sich ein Workflow-Modul an, und dort melden seine Berichte über Aufgaben und Fälle
-herein, genau wie beim Cockpit.
+Nach hinten, zum Workflow-Modul, spricht sie die BPMS-API unter `/bpms/api/v1_1`. Dort meldet sich
+ein Workflow-Modul an, und dort melden seine Berichte über Aufgaben und Fälle herein, genau wie beim
+Cockpit. Version 1 unter `/bpms/api/v1` beantwortet sie mit 404. Ein Modul, dessen Adapter noch
+Version 1 meldet, braucht für die Dev Shell einen aktuellen Adapter.
 
 Umgehängt wird das Modul mit einem Schlüssel: `vanillabp.cockpit.rest.base-url` zeigt auf
 `http://localhost:8079` statt auf das Cockpit. Die Adresse ist der Rumpf, der Transport hängt

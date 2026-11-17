@@ -17,6 +17,10 @@ Spring Boot application rather than a mock inside the dev shell: what it answers
 cockpit answers, or a form works here and not there. It holds everything in H2, in memory unless a
 file is configured.
 
+Of the BPMS API it answers version 1.1 only, at `/bpms/api/v1_1`. A report to `/bpms/api/v1` gets a
+404, although the cockpit still takes it. Version 1.1 has existed for more than a year, and a
+workflow module which still reports through version 1 needs a current adapter for the dev shell.
+
 It does not answer what only the cockpit's own frame needs, such as
 `/gui/api/v1/app/current-user/group-hierarchy`, which tells the menu of the cockpit where the rights
 of the user come from. No component of a workflow module asks for it.
