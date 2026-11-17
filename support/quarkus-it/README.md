@@ -10,7 +10,8 @@ form endpoint `AssessRiskForm`, which allows clerks only and throws the exceptio
 a `UserDirectory`, and a `GroupHierarchy` in which a loan manager is a clerk as well.
 `AFormOfAWorkflowModuleTest` is a `@QuarkusTest`. It sends the cockpit's cookie with tokens which
 `LoginTokens` of the core's test jar signs, and it expects the user of the token, or `401`, `403`,
-`404` and `409`.
+`404` for an unknown task and for a task which is not open any more, and `409` for a task which
+another user claimed.
 
 The secret comes as the environment variable `BUSINESS_COCKPIT_JWT_HMACSHA256_BASE64`, which the
 Surefire configuration sets, the way a container gets it. So the tests also show that Quarkus finds

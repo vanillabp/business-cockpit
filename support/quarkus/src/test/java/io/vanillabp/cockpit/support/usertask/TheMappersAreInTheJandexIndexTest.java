@@ -53,6 +53,8 @@ public class TheMappersAreInTheJandexIndexTest {
                   + "#unknownTask",
               BcUserTaskExceptionMapper.class.getName()
                   + "#taskNotOpen",
+              BcUserTaskExceptionMapper.class.getName()
+                  + "#taskClaimedByAnotherUser",
               BcUnauthorizedExceptionMapper.class.getName()
                   + "#unauthorized");
     }

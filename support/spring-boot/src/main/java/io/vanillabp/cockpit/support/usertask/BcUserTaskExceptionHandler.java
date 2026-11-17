@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * Answers the two exceptions of this package for every controller of the application. The body is
+ * Answers the exceptions of a user task for every controller of the application. The body is
  * the message of the exception as plain text, so a form can show it to the user.
  * <p>
  * Nothing registers this class on its own. A workflow module imports it into one of its
@@ -44,7 +44,7 @@ public class BcUserTaskExceptionHandler {
 
   /**
    * Answers a task which was completed or canceled before, for example by a form sent twice, with
-   * {@code 409 Conflict}.
+   * {@code 404 Not Found}, like an unknown task.
    *
    * @param exception What the workflow module found
    * @return The answer, with the message as the body
@@ -52,6 +52,23 @@ public class BcUserTaskExceptionHandler {
   @ExceptionHandler(BcTaskNotOpenException.class)
   public ResponseEntity<String> taskNotOpen(
       final BcTaskNotOpenException exception) {
+
+    return ResponseEntity
+        .status(HttpStatus.NOT_FOUND)
+        .contentType(MediaType.TEXT_PLAIN)
+        .body(exception.getMessage());
+
+  }
+
+  /**
+   * Answers an open task which another user claimed with {@code 409 Conflict}.
+   *
+   * @param exception What the workflow module found
+   * @return The answer, with the message as the body
+   */
+  @ExceptionHandler(BcTaskClaimedByAnotherUserException.class)
+  public ResponseEntity<String> taskClaimedByAnotherUser(
+      final BcTaskClaimedByAnotherUserException exception) {
 
     return ResponseEntity
         .status(HttpStatus.CONFLICT)

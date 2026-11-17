@@ -43,8 +43,10 @@ below name them where they belong, whichever module holds them.
   `core`.
   `BcUnknownTaskException` says that the workflow has no user task of that id and kind.
   `BcTaskNotOpenException` says that the task was completed or canceled already, for example
-  because a form was sent twice. `BcUserTaskExceptionHandler` answers them with `404 Not Found` and
-  `409 Conflict`, with the message as plain text, so a form can show it. Nothing registers the
+  because a form was sent twice. `BcTaskClaimedByAnotherUserException` says that the task is open,
+  but another user claimed it. `BcUserTaskExceptionHandler` answers the first two with
+  `404 Not Found` and the third with `409 Conflict`, with the message as plain text, so a form can
+  show it. Nothing registers the
   handler on its own. A workflow module imports it with `@Import(BcUserTaskExceptionHandler.class)`.
   The exceptions carry no `@ResponseStatus`, because Spring Boot would then answer with its error
   page and leave out the message.

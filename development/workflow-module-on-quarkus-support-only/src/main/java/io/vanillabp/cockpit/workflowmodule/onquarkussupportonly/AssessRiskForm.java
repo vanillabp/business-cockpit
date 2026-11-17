@@ -7,9 +7,9 @@ import io.vanillabp.cockpit.support.usertask.BcUnknownTaskException;
 
 /**
  * What the form of the user task {@code assessRisk} checks before it takes the answer of a clerk.
- * It throws the two exceptions of a user task, and both come with the Quarkus module of
- * {@code support}. In a real workflow module this is a REST endpoint, and the module's mappers turn
- * the exceptions into {@code 404} and {@code 409}. This module has no REST layer, because Quarkus
+ * It throws two exceptions of a user task, and both come with the Quarkus module of
+ * {@code support}. In a real workflow module this is a REST endpoint, and the module's mappers
+ * answer both exceptions with {@code 404}. This module has no REST layer, because Quarkus
  * is the application's choice and so not part of what {@code support} brings.
  */
 public class AssessRiskForm {

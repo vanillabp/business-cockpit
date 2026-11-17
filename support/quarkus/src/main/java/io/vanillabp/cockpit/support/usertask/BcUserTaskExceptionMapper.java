@@ -6,7 +6,7 @@ import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 import jakarta.ws.rs.core.MediaType;
 
 /**
- * Answers the two exceptions of a user task for every REST endpoint of the application. The body
+ * Answers the exceptions of a user task for every REST endpoint of the application. The body
  * is the message of the exception as plain text, so a form can show it to the user. It is the
  * Quarkus twin of {@code BcUserTaskExceptionHandler} of the Spring Boot module, and it answers with
  * the same status and the same body.
@@ -42,7 +42,7 @@ public class BcUserTaskExceptionMapper {
 
   /**
    * Answers a task which was completed or canceled before, for example by a form sent twice, with
-   * {@code 409 Conflict}.
+   * {@code 404 Not Found}, like an unknown task.
    *
    * @param exception What the workflow module found
    * @return The answer, with the message as the body
@@ -50,6 +50,20 @@ public class BcUserTaskExceptionMapper {
   @ServerExceptionMapper
   public RestResponse<String> taskNotOpen(
       final BcTaskNotOpenException exception) {
+
+    return plainText(RestResponse.Status.NOT_FOUND, exception);
+
+  }
+
+  /**
+   * Answers an open task which another user claimed with {@code 409 Conflict}.
+   *
+   * @param exception What the workflow module found
+   * @return The answer, with the message as the body
+   */
+  @ServerExceptionMapper
+  public RestResponse<String> taskClaimedByAnotherUser(
+      final BcTaskClaimedByAnotherUserException exception) {
 
     return plainText(RestResponse.Status.CONFLICT, exception);
 

@@ -55,6 +55,17 @@ public class BcUserTaskExceptionMapperTest {
     }
 
     @POST
+    @Path("/claimed/{workflowId}/{taskId}/{claimedBy}")
+    public String claimed(
+        @PathParam("workflowId") final String workflowId,
+        @PathParam("taskId") final String taskId,
+        @PathParam("claimedBy") final String claimedBy) {
+
+      throw new BcTaskClaimedByAnotherUserException(workflowId, taskId, claimedBy);
+
+    }
+
+    @POST
     @Path("/anonymous")
     public String anonymous() {
 
@@ -84,14 +95,26 @@ public class BcUserTaskExceptionMapperTest {
   }
 
   @Test
-  public void aTaskWhichIsNotOpenAnyMoreIsAConflict() {
+  public void aTaskWhichIsNotOpenAnyMoreIsNotFound() {
 
     when()
         .post("/done/loan-1/task-9")
         .then()
-        .statusCode(409)
+        .statusCode(404)
         .contentType(startsWith("text/plain"))
         .body(equalTo("The user task 'task-9' of 'loan-1' is not open any more"));
+
+  }
+
+  @Test
+  public void aTaskWhichAnotherUserClaimedIsAConflict() {
+
+    when()
+        .post("/claimed/loan-1/task-9/mary")
+        .then()
+        .statusCode(409)
+        .contentType(startsWith("text/plain"))
+        .body(equalTo("The user task 'task-9' of 'loan-1' is claimed by 'mary'"));
 
   }
 
