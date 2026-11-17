@@ -266,6 +266,57 @@ it in its own POM. The classes `OAuthClient` and `OAuthOkHttpClient` in the pack
 `authentication.oauth.client-id` or `client-secret` is reported when the REST client is built,
 which is usually at the start of the application, and no longer at the first request.
 
+### A new way to build a REST client: HTTP service clients
+
+`support` has a second way to build a REST client, in the package
+`io.vanillabp.cockpit.support.rest.httpservice`. A client is an interface which the generator
+`spring` writes with the library `spring-http-interface`, and Spring Framework turns it into a
+client. `ClientsConfigurationBase` and the package `io.vanillabp.cockpit.support.rest.adapter` stay
+and work as before. Nothing has to change now. New clients use the new way, and existing ones move
+when it suits. The section [REST clients](support/README.md#rest-clients) of the support README
+shows the new way step by step.
+
+`support` brings `spring-boot-starter-restclient` now, and the auto-configuration
+`HttpServiceClientConventionsAutoConfiguration`. It configures every HTTP service group of the
+application, so an application which already has groups of its own gets them checked at the start:
+a group without `base-url`, or a key nobody reads, stops the start with a message which names the
+key.
+
+To move a client of `ClientsConfigurationBase`:
+
+1. Generate the interface with the generator `spring` and the library `spring-http-interface`
+   instead of `java` with `feign`.
+2. Replace the configuration class which extends `ClientsConfigurationBase` by
+   `@ImportHttpServices` and an `HttpServiceGroupPrefix` bean, which names the prefix of the
+   properties class the client read before. Delete the properties class.
+3. Rename the keys which changed, see the table below.
+4. Catch Spring's exceptions instead of Feign's.
+
+|                  Key of `Client`                   |                          Key of an HTTP service group                          |
+|----------------------------------------------------|--------------------------------------------------------------------------------|
+| `base-url`                                         | `base-url`. It has no placeholder default; a missing one stops the start       |
+| `connect-timeout: 1500`                            | `connect-timeout: 1500ms`, a duration                                          |
+| `read-timeout: 10000`                              | `read-timeout: 10s`, a duration                                                |
+| `log`, `verify-ssl`                                | the same                                                                       |
+| `proxy.*`, `retry.*`                               | the same. `proxy.port` has no default                                          |
+| `ssl-truststore-filename`, `-password`             | `ssl.bundle`, naming a Spring Boot SSL bundle `spring.ssl.bundle.jks.<name>.*` |
+| `authentication.basic`, `.username`, `.password`   | `default-header.Authorization: Basic <base64 of user:password>`                |
+| `authentication.oauth.base-url`                    | `oauth.token-uri`                                                              |
+| `authentication.oauth.client-id`, `.client-secret` | `oauth.client-id`, `oauth.client-secret`                                       |
+| `authentication.oauth.basic: true`                 | `oauth.client-authentication-method: client_secret_basic`                      |
+| `authentication.oauth.proxy.*`, TLS keys           | none: token requests use the group's proxy and TLS                             |
+| `additional-get-parameters`                        | none. It was never read                                                        |
+
+A token without `expires_in` is no longer used until the server answers `401`. It is kept for
+`oauth.lifetime-without-expires-in`, one hour unless set. A token is replaced when a tenth of its
+lifetime is left, but at most `oauth.renew-before` before it expires, 30 seconds unless set.
+
+A caller of a moved client gets Spring's exceptions. An answer with an error status comes as
+`HttpClientErrorException` or `HttpServerErrorException` instead of `feign.FeignException`, for
+example `HttpClientErrorException.NotFound` instead of `FeignException.NotFound`. No answer at all
+comes as `ResourceAccessException` instead of `feign.RetryableException`. A refused token request
+comes as Spring Security's `OAuth2AuthorizationException`.
+
 ### The MongoDB migration is a library of its own
 
 The cockpit no longer carries the MongoDB changeset mechanism. It uses
