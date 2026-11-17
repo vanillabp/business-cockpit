@@ -11,7 +11,9 @@ import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.resteasy.reactive.client.api.LoggingScope;
+import org.jboss.resteasy.reactive.client.api.QuarkusRestClientProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +21,6 @@ import io.quarkus.arc.Arc;
 import io.quarkus.rest.client.reactive.QuarkusRestClientBuilder;
 import io.quarkus.tls.TlsConfiguration;
 import io.quarkus.tls.TlsConfigurationRegistry;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 /**
@@ -33,6 +34,8 @@ import jakarta.inject.Singleton;
  * Quarkus TLS registry where Spring Boot has {@code ssl.bundle};</li>
  * <li>a proxy, with or without login: {@code proxy.*};</li>
  * <li>retries ({@code retry.*}) and logging with bodies ({@code log});</li>
+ * <li>{@code connection-pool-size}, how many connections the clients open at most at the same
+ * time;</li>
  * <li>a bearer token of the OAuth client credentials grant: {@code oauth.*}.</li>
  * </ul>
  * A workflow module produces each client it needs, so that a missing key stops the start and not
@@ -70,16 +73,18 @@ public class RestClients {
 
   private static final List<String> TAKEN_PREFIXES = List.of("quarkus", "business-cockpit", "vanillabp");
 
-  @Inject
-  Config config;
+  private final Config config;
 
   /** The settings of each prefix a client was built at, read once. */
   private final Map<String, Conventions> prefixes = new ConcurrentHashMap<>();
 
   /**
-   * Creates the builder of clients. Quarkus calls this constructor.
+   * Creates the builder of clients, which reads the keys of the running application. Quarkus calls
+   * this constructor, and so may a test or a class which is no bean: the configuration comes from
+   * {@link ConfigProvider} and not by injection, so nothing is missing without CDI.
    */
   public RestClients() {
+    this.config = ConfigProvider.getConfig();
   }
 
   /**
@@ -231,6 +236,8 @@ public class RestClients {
             .loggingScope(LoggingScope.REQUEST_RESPONSE)
             .clientLogger(new ExchangeLog(keys.prefix));
       }
+      keys.connectionPoolSize
+          .ifPresent(size -> builder.property(QuarkusRestClientProperties.CONNECTION_POOL_SIZE, size));
       return builder;
 
     }

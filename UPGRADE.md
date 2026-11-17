@@ -292,20 +292,21 @@ To move a client of `ClientsConfigurationBase`:
 3. Rename the keys which changed, see the table below.
 4. Catch Spring's exceptions instead of Feign's.
 
-|                  Key of `Client`                   |                          Key of an HTTP service group                          |
-|----------------------------------------------------|--------------------------------------------------------------------------------|
-| `base-url`                                         | `base-url`. It has no placeholder default; a missing one stops the start       |
-| `connect-timeout: 1500`                            | `connect-timeout: 1500ms`, a duration                                          |
-| `read-timeout: 10000`                              | `read-timeout: 10s`, a duration                                                |
-| `log`, `verify-ssl`                                | the same                                                                       |
-| `proxy.*`, `retry.*`                               | the same. `proxy.port` has no default                                          |
-| `ssl-truststore-filename`, `-password`             | `ssl.bundle`, naming a Spring Boot SSL bundle `spring.ssl.bundle.jks.<name>.*` |
-| `authentication.basic`, `.username`, `.password`   | `default-header.Authorization: Basic <base64 of user:password>`                |
-| `authentication.oauth.base-url`                    | `oauth.token-uri`                                                              |
-| `authentication.oauth.client-id`, `.client-secret` | `oauth.client-id`, `oauth.client-secret`                                       |
-| `authentication.oauth.basic: true`                 | `oauth.client-authentication-method: client_secret_basic`                      |
-| `authentication.oauth.proxy.*`, TLS keys           | none: token requests use the group's proxy and TLS                             |
-| `additional-get-parameters`                        | none. It was never read                                                        |
+|                  Key of `Client`                   |                                    Key of an HTTP service group                                     |
+|----------------------------------------------------|-----------------------------------------------------------------------------------------------------|
+| `base-url`                                         | `base-url`. It has no placeholder default; a missing one stops the start                            |
+| `connect-timeout: 1500`                            | `connect-timeout: 1500ms`, a duration                                                               |
+| `read-timeout: 10000`                              | `read-timeout: 10s`, a duration                                                                     |
+| `log`, `verify-ssl`                                | the same                                                                                            |
+| `connection-pool-size`, the idle connections kept  | `connection-pool-size`, the connections open at most. Only Apache HttpClient 5 has a limit to raise |
+| `proxy.*`, `retry.*`                               | the same. `proxy.port` has no default                                                               |
+| `ssl-truststore-filename`, `-password`             | `ssl.bundle`, naming a Spring Boot SSL bundle `spring.ssl.bundle.jks.<name>.*`                      |
+| `authentication.basic`, `.username`, `.password`   | `default-header.Authorization: Basic <base64 of user:password>`                                     |
+| `authentication.oauth.base-url`                    | `oauth.token-uri`                                                                                   |
+| `authentication.oauth.client-id`, `.client-secret` | `oauth.client-id`, `oauth.client-secret`                                                            |
+| `authentication.oauth.basic: true`                 | `oauth.client-authentication-method: client_secret_basic`                                           |
+| `authentication.oauth.proxy.*`, TLS keys           | none: token requests use the group's proxy and TLS                                                  |
+| `additional-get-parameters`                        | none. It was never read                                                                             |
 
 A token without `expires_in` is no longer used until the server answers `401`. It is kept for
 `oauth.lifetime-without-expires-in`, one hour unless set. A token is replaced when a tenth of its

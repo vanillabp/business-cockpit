@@ -19,6 +19,7 @@ import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.HttpClientSettings;
+import org.springframework.boot.http.client.HttpComponentsClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.JdkClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.autoconfigure.ApiversionProperties;
 import org.springframework.boot.http.client.autoconfigure.HttpClientSettingsPropertyMapper;
@@ -43,6 +44,7 @@ import org.springframework.web.service.registry.HttpServiceGroup;
  * <li>A proxy, with or without login: {@code proxy.*}.</li>
  * <li>{@code verify-ssl: false}, which trusts every server.</li>
  * <li>Retries ({@code retry.*}) and logging with bodies ({@code log}).</li>
+ * <li>The number of connections to the server at the same time: {@code connection-pool-size}.</li>
  * <li>A bearer token of the OAuth client credentials grant: {@code oauth.*}.</li>
  * <li>A key below the prefix which no setting reads stops the start, so a typo does not go
  * unnoticed.</li>
@@ -373,9 +375,9 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
 
   /**
    * Spring Boot builds one request factory per group from its keys, but it reads them only below
-   * {@code spring.http.serviceclient}, and it has no proxy and no {@code verify-ssl}. So the factory
-   * is built again here: from the group's keys, with the proxy. The login for the proxy is added by
-   * {@link ProxyLogin}.
+   * {@code spring.http.serviceclient}, and it has no proxy, no {@code verify-ssl} and no size of the
+   * connection pool. So the factory is built again here: from the group's keys, with the proxy and
+   * the pool. The login for the proxy is added by {@link ProxyLogin}.
    */
   private @Nullable ClientHttpRequestFactory requestFactory(
       final String name,
@@ -403,15 +405,19 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
           name, prefix);
     }
 
+    final var builder = withConnectionPool(name, prefix, keys, problems);
+    if (builder == null) {
+      return null;
+    }
     final var proxy = keys.getProxy();
     if (proxy.getHost() == null) {
-      return requestFactoryBuilder.build(settings);
+      return builder.build(settings);
     }
-    if (!(requestFactoryBuilder instanceof JdkClientHttpRequestFactoryBuilder jdkBuilder)) {
+    if (!(builder instanceof JdkClientHttpRequestFactoryBuilder jdkBuilder)) {
       problems.add("""
           The HTTP service group '%s' has a proxy, which works with the JDK's HttpClient only, but \
           the application sends with %s. Set 'spring.http.clients.imperative.factory: jdk'."""
-          .formatted(name, requestFactoryBuilder.getClass().getSimpleName()));
+          .formatted(name, builder.getClass().getSimpleName()));
       return null;
     }
     if (proxy.getPort() == null) {
@@ -420,6 +426,44 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
     return jdkBuilder
         .withProxySelector(ProxySelector.of(new InetSocketAddress(proxy.getHost(), proxy.getPort())))
         .build(settings);
+
+  }
+
+  /**
+   * The builder of the request factory, with the size of the connection pool if the group sets one.
+   * The JDK's HttpClient opens as many connections as there are requests, so it needs no size.
+   * Apache HttpClient 5 gets the size for each server and in total. The other HTTP libraries are
+   * refused, so a key never seems to work while it does nothing.
+   */
+  private @Nullable ClientHttpRequestFactoryBuilder<?> withConnectionPool(
+      final String name,
+      final String prefix,
+      final HttpServiceGroupProperties keys,
+      final List<String> problems) {
+
+    final var poolSize = keys.getConnectionPoolSize();
+    if (poolSize == null) {
+      return requestFactoryBuilder;
+    }
+    if (poolSize < 1) {
+      problems.add("""
+          The HTTP service group '%s' has '%s.connection-pool-size: %d'. Set at least 1, or remove the \
+          key to keep the default of the HTTP library."""
+          .formatted(name, prefix, poolSize));
+      return null;
+    }
+    if (requestFactoryBuilder instanceof JdkClientHttpRequestFactoryBuilder) {
+      return requestFactoryBuilder;
+    }
+    if (requestFactoryBuilder instanceof HttpComponentsClientHttpRequestFactoryBuilder httpComponents) {
+      return HttpComponentsConnectionPool.ofSize(httpComponents, poolSize);
+    }
+    problems.add("""
+        The HTTP service group '%s' has '%s.connection-pool-size', which works with the JDK's \
+        HttpClient and Apache HttpClient 5 only, but the application sends with %s. Set \
+        'spring.http.clients.imperative.factory' to 'jdk' or 'http-components', or remove the key."""
+        .formatted(name, prefix, requestFactoryBuilder.getClass().getSimpleName()));
+    return null;
 
   }
 

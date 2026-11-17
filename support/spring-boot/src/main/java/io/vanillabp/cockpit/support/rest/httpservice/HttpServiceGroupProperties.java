@@ -22,6 +22,8 @@ public class HttpServiceGroupProperties extends HttpClientProperties {
 
   private boolean verifySsl = true;
 
+  private @Nullable Integer connectionPoolSize;
+
   private final Retry retry = new Retry();
 
   private final OAuth oauth = new OAuth();
@@ -80,6 +82,28 @@ public class HttpServiceGroupProperties extends HttpClientProperties {
   public void setVerifySsl(
       final boolean verifySsl) {
     this.verifySsl = verifySsl;
+  }
+
+  /**
+   * How many connections to the server the group opens at most at the same time, the key
+   * {@code connection-pool-size}. Apache HttpClient 5 opens five by default and lets further
+   * requests wait. The JDK's HttpClient, which sends the requests unless the application has another
+   * HTTP library, has no such limit, so the key changes nothing there.
+   *
+   * @return The number of connections, or {@code null} to keep the default of the HTTP library
+   */
+  public @Nullable Integer getConnectionPoolSize() {
+    return connectionPoolSize;
+  }
+
+  /**
+   * Sets how many connections to the server the group opens at most at the same time.
+   *
+   * @param connectionPoolSize The number of connections, at least 1
+   */
+  public void setConnectionPoolSize(
+      final @Nullable Integer connectionPoolSize) {
+    this.connectionPoolSize = connectionPoolSize;
   }
 
   /**

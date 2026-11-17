@@ -28,6 +28,7 @@ final class UnreadKeys {
       "verify-ssl",
       "tls-configuration-name",
       "log",
+      "connection-pool-size",
       "proxy.host",
       "proxy.port",
       "proxy.username",

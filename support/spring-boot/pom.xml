@@ -97,6 +97,14 @@
       <artifactId>spring-boot-starter-restclient</artifactId>
     </dependency>
     <dependency>
+      <!-- the size of the connection pool of a group which sends with Apache HttpClient 5. Optional:
+           an application which has the library sends with it, and one without it needs no pool
+           size, because the JDK's HttpClient has no limit -->
+      <groupId>org.apache.httpcomponents.client5</groupId>
+      <artifactId>httpclient5</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
       <!-- the OAuth client credentials grant of an HTTP service group. Optional: only a group with
            'oauth.token-uri' needs it, and the start says so if it is missing -->
       <groupId>org.springframework.security</groupId>

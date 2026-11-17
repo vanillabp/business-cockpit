@@ -17,11 +17,12 @@ import io.vanillabp.cockpit.support.rest.restclient.inventory.model.Reservation;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import mockwebserver3.MockResponse;
 import mockwebserver3.MockWebServer;
 
 /**
- * What a client built from the keys sends and reads: JSON and form bodies, a date as an ISO query
+ * What a client built from the keys sends and reads: JSON, plain text and form bodies, a date as an ISO query
  * parameter, the headers of {@code default-header.*}, and redirects. An answer with an error status
  * comes as the REST client's {@link WebApplicationException}, no answer at all as a
  * {@link ProcessingException}, and the read timeout of the keys applies.
@@ -71,6 +72,32 @@ public class RequestsTest {
     assertThat(request.getTarget()).isEqualTo("/api/items/1/reservations");
     assertThat(request.getBody().utf8()).contains("\"quantity\":3");
     assertThat(request.getHeaders().get("Content-Type")).startsWith("application/json");
+
+  }
+
+  @Test
+  public void a_plain_text_answer_is_read_into_a_string() {
+
+    server.enqueue(new MockResponse.Builder()
+        .code(Response.Status.OK.getStatusCode())
+        .addHeader("Content-Type", "text/plain")
+        .body("Shelf 3, left")
+        .build());
+
+    assertThat(inventory.getLabel("1")).isEqualTo("Shelf 3, left");
+    assertThat(Stubs.next(server).getHeaders().get("Accept")).contains("text/plain");
+
+  }
+
+  @Test
+  public void a_builder_created_with_new_reads_the_keys_without_cdi() {
+
+    server.enqueue(Stubs.item("1"));
+
+    final var builtWithoutCdi = new RestClients().build(InventoryApi.class, "inventory");
+
+    assertThat(builtWithoutCdi.getItem("1").getId()).isEqualTo("1");
+    assertThat(Stubs.next(server).getHeaders().get("X-Tenant")).isEqualTo("north");
 
   }
 

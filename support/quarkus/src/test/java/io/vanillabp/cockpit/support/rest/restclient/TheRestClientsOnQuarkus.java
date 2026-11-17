@@ -1,6 +1,5 @@
 package io.vanillabp.cockpit.support.rest.restclient;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 
 import io.vanillabp.cockpit.support.rest.restclient.inventory.InventoryApi;
@@ -42,6 +41,7 @@ public final class TheRestClientsOnQuarkus {
             ExchangeLog.class,
             DefaultHeaders.class,
             Stubs.class,
+            HeldRequests.class,
             TheRestClientsOnQuarkus.class)
         .addPackage(InventoryApi.class.getPackage())
         .addPackage(Item.class.getPackage());
@@ -50,15 +50,14 @@ public final class TheRestClientsOnQuarkus {
 
   /**
    * A builder of clients of its own, so a test starts without the settings and the OAuth token a
-   * test before it left behind.
+   * test before it left behind. It is created with {@code new}, as a class which is no bean would
+   * create it.
    *
    * @return the builder, reading the configuration of the running application
    */
   public static RestClients fresh() {
 
-    final var restClients = new RestClients();
-    restClients.config = ConfigProvider.getConfig();
-    return restClients;
+    return new RestClients();
 
   }
 

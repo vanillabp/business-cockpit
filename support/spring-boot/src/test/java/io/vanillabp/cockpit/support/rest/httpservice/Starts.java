@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.support.rest.httpservice;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.boot.WebApplicationType;
@@ -23,8 +24,7 @@ final class Starts {
 
     try (var context = new SpringApplicationBuilder(configurations)
         .web(WebApplicationType.NONE)
-        .properties(properties)
-        .run()) {
+        .run(asArguments(properties))) {
       throw new AssertionError("The application started, but it should have stopped");
     } catch (AssertionError e) {
       throw e;
@@ -36,6 +36,21 @@ final class Starts {
       }
       throw new AssertionError("The application stopped for another reason", e);
     }
+
+  }
+
+  /**
+   * The keys as command line arguments. They win over {@code application.properties} of the tests,
+   * as the keys of an application win over a default.
+   *
+   * @param properties the keys, as {@code key=value}
+   * @return the keys, as {@code --key=value}
+   */
+  static String[] asArguments(
+      final String... properties) {
+
+    return Arrays.stream(properties).map(property -> "--"
+        + property).toArray(String[]::new);
 
   }
 

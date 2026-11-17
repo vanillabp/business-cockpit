@@ -1,10 +1,12 @@
 package io.vanillabp.cockpit.support.rest.adapter;
 
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.net.InetSocketAddress;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -26,12 +28,15 @@ import feign.DefaultRetryer;
 import feign.Feign.Builder;
 import feign.Request;
 import feign.Retryer;
+import feign.codec.Decoder;
+import feign.codec.StringDecoder;
 import feign.form.FormEncoder;
 import feign.jackson3.Jackson3Decoder;
 import feign.jackson3.Jackson3Encoder;
 import io.vanillabp.cockpit.support.rest.adapter.oauth.OauthBearerTokenHandler;
 import io.vanillabp.cockpit.support.rest.adapter.tls.TlsTruststoreUtil;
 import okhttp3.Authenticator;
+import okhttp3.ConnectionPool;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 import okhttp3.Response;
@@ -51,24 +56,27 @@ public abstract class ClientsConfigurationBase {
    * <p>
    * Jackson 3: the Feign codecs take a JsonMapper rather than the ObjectMapper base class. Spring Boot 4
    * auto-configures exactly that bean ("jacksonJsonMapper"), so this stays a plain injection.
+   * <p>
+   * It starts empty, so a configuration created with {@code new}, for example in a test, works
+   * without Spring and keeps Feign's own decoder. Spring replaces it when it injects the mapper.
    */
   @Autowired
-  protected Optional<JsonMapper> objectMapper;
+  protected Optional<JsonMapper> objectMapper = Optional.empty();
 
   /**
-   * Creates the base. The JSON mapper is injected by Spring afterwards.
+   * Creates the base. Spring injects the JSON mapper afterwards. Without Spring there is none.
    */
   public ClientsConfigurationBase() {
   }
 
   /**
-   * Applies the TLS, proxy and logging settings to an OkHttp client.
+   * Applies the TLS, connection pool, proxy and logging settings to an OkHttp client.
    *
    * @param clientClass            The class the log messages of the client are written for
    * @param properties             The settings of the client
    * @param httpClientBuilder      The builder of the OkHttp client to change
-   * @param adoptHttpClientBuilder Changes the builder after the TLS settings and before the proxy
-   *                               and logging settings, or {@code null}
+   * @param adoptHttpClientBuilder Changes the builder after the TLS and connection pool settings and
+   *                               before the proxy and logging settings, or {@code null}
    */
   protected void configureOkHttpClient(
       final Class<?> clientClass,
@@ -77,6 +85,8 @@ public abstract class ClientsConfigurationBase {
       final Consumer<OkHttpClient.Builder> adoptHttpClientBuilder) {
 
     configureTls(properties, httpClientBuilder);
+    // OkHttp keeps idle connections for five minutes by default, and so does this pool
+    httpClientBuilder.connectionPool(new ConnectionPool(properties.getConnectionPoolSize(), 5, TimeUnit.MINUTES));
 
     if (adoptHttpClientBuilder != null) {
       adoptHttpClientBuilder.accept(httpClientBuilder);
@@ -133,8 +143,9 @@ public abstract class ClientsConfigurationBase {
    * @param clientClass            The class the log messages of the client are written for
    * @param builder                The Feign builder to change
    * @param properties             The settings of the client
-   * @param adoptHttpClientBuilder Changes the OkHttp builder after the TLS settings and before the
-   *                               proxy and logging settings, or {@code null}
+   * @param adoptHttpClientBuilder Changes the OkHttp builder after the TLS and connection pool
+   *                               settings and before the proxy and logging settings, or
+   *                               {@code null}
    */
   protected void configureFeignBuilder(
       final Class<?> clientClass,
@@ -166,7 +177,9 @@ public abstract class ClientsConfigurationBase {
 
   /**
    * Lets Feign read and write JSON bodies with the injected JSON mapper. Form bodies are written as
-   * forms. Without a JSON mapper Feign keeps its own encoder and decoder.
+   * forms. An answer read into a {@code String} is taken as it is, unless it is JSON, so an API
+   * which answers {@code text/plain} needs no decoder of its own. Without a JSON mapper Feign keeps
+   * its own encoder and decoder, which read every answer as text.
    *
    * @param builder The Feign builder to change
    */
@@ -175,7 +188,7 @@ public abstract class ClientsConfigurationBase {
 
     if (objectMapper.isPresent()) {
       builder.decoder(
-          new Jackson3Decoder(objectMapper.get()));
+          new TextOrJsonDecoder(new Jackson3Decoder(objectMapper.get())));
       builder.encoder(
           new FormEncoder(new Jackson3Encoder(objectMapper.get())));
     }
@@ -334,6 +347,45 @@ public abstract class ClientsConfigurationBase {
     });
 
     return true;
+
+  }
+
+  /**
+   * Reads an answer into a {@code String} as text and everything else as JSON. A {@code String}
+   * which comes as JSON is still read as JSON, so a quoted JSON string loses its quotes as before.
+   */
+  private static final class TextOrJsonDecoder implements Decoder {
+
+    private final Decoder json;
+
+    private final Decoder text = new StringDecoder();
+
+    TextOrJsonDecoder(
+        final Decoder json) {
+      this.json = json;
+    }
+
+    @Override
+    public Object decode(
+        final feign.Response response,
+        final Type type) throws IOException {
+
+      return String.class.equals(type) && !isJson(response)
+          ? text.decode(response, type)
+          : json.decode(response, type);
+
+    }
+
+    private static boolean isJson(
+        final feign.Response response) {
+
+      return response
+          .headers()
+          .getOrDefault("Content-Type", List.of())
+          .stream()
+          .anyMatch(contentType -> contentType.toLowerCase(Locale.ROOT).contains("json"));
+
+    }
 
   }
 
