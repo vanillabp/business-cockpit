@@ -10,16 +10,14 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import io.vanillabp.cockpit.bpms.api.v1.RegisterWorkflowModuleEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskCancelledEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskCompletedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedOrUpdatedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.WorkflowCancelledEvent;
-import io.vanillabp.cockpit.bpms.api.v1.WorkflowCompletedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.WorkflowCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.GroupHierarchy;
+import io.vanillabp.cockpit.bpms.api.v1_1.RegisterWorkflowModuleEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCancelledEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCreatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskUpdatedEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCancelledEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCreatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowUpdatedEvent;
 import io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Page;
@@ -34,8 +32,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Converts between the events of the BPMS API, the simulator's stored model and the official
- * API of the cockpit. The BPMS API comes in version 1 and version 1.1, so many methods exist
- * once for each version.
+ * API of the cockpit. The simulator reads version 1.1 of the BPMS API only.
  */
 @Mapper
 public abstract class OfficialApiMapper {
@@ -53,21 +50,6 @@ public abstract class OfficialApiMapper {
   }
 
   /**
-   * Turns a registration of a workflow module, BPMS API version 1, into the stored model.
-   * Version 1 knows no group hierarchy.
-   *
-   * @param event The registration
-   * @param id The id of the workflow module
-   * @return The workflow module to store
-   */
-  @Mapping(target = "id", expression = "java(id)")
-  @Mapping(target = "version", ignore = true)
-  @Mapping(target = "groupHierarchy", ignore = true)
-  public abstract io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.WorkflowModule toModel(
-      RegisterWorkflowModuleEvent event,
-      String id);
-
-  /**
    * Turns a registration of a workflow module, BPMS API version 1.1, into the stored model,
    * together with its group hierarchy.
    *
@@ -79,7 +61,7 @@ public abstract class OfficialApiMapper {
   @Mapping(target = "version", ignore = true)
   @Mapping(target = "groupHierarchy", qualifiedByName = GROUP_HIERARCHY_MAPPING)
   public abstract io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.WorkflowModule toModel(
-      io.vanillabp.cockpit.bpms.api.v1_1.RegisterWorkflowModuleEvent event,
+      RegisterWorkflowModuleEvent event,
       String id);
 
   /**
@@ -335,29 +317,6 @@ public abstract class OfficialApiMapper {
       Group group);
 
   /**
-   * Turns a "workflow created" event of BPMS API version 1 into a stored workflow.
-   *
-   * @param event The event
-   * @return The workflow to store
-   */
-  @Mapping(target = "id", source = "workflowId")
-  @Mapping(target = "createdAt", source = "timestamp")
-  @Mapping(target = "updatedAt", source = "timestamp")
-  @Mapping(target = "endedAt", ignore = true)
-  @Mapping(target = "endReason", ignore = true)
-  @Mapping(target = "note", ignore = true)
-  @Mapping(target = "suspendedAt", ignore = true)
-  @Mapping(target = "suspendedBy", ignore = true)
-  @Mapping(target = "initiator", qualifiedByName = "person")
-  @Mapping(target = "accessibleToUsers", qualifiedByName = "persons")
-  @Mapping(target = "accessibleToGroups", qualifiedByName = "groups")
-  @Mapping(target = "version", ignore = true)
-  @Mapping(target = "uiUri", source = "uiUriPath")
-  @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(event.getWorkflowModuleId()))")
-  public abstract io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Workflow toModel(
-      WorkflowCreatedOrUpdatedEvent event);
-
-  /**
    * Turns a "workflow created" event of BPMS API version 1.1 into a stored workflow.
    *
    * @param event The event
@@ -412,30 +371,6 @@ public abstract class OfficialApiMapper {
       io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Workflow workflow);
 
   /**
-   * Copies a "workflow updated" event of BPMS API version 1 onto a stored workflow.
-   *
-   * @param workflow The stored workflow, changed in place
-   * @param event The event
-   */
-  @Mapping(target = "id", source = "workflowId")
-  @Mapping(target = "updatedAt", source = "timestamp")
-  @Mapping(target = "createdAt", ignore = true)
-  @Mapping(target = "endedAt", ignore = true)
-  @Mapping(target = "endReason", ignore = true)
-  @Mapping(target = "note", ignore = true)
-  @Mapping(target = "suspendedAt", ignore = true)
-  @Mapping(target = "suspendedBy", ignore = true)
-  @Mapping(target = "initiator", qualifiedByName = "person")
-  @Mapping(target = "accessibleToUsers", qualifiedByName = "persons")
-  @Mapping(target = "accessibleToGroups", qualifiedByName = "groups")
-  @Mapping(target = "version", ignore = true)
-  @Mapping(target = "uiUri", ignore = true)
-  @Mapping(target = "workflowModuleUri", ignore = true)
-  public abstract void ontoModel(
-      @MappingTarget io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Workflow workflow,
-      WorkflowCreatedOrUpdatedEvent event);
-
-  /**
    * Copies a "workflow updated" event of BPMS API version 1.1 onto a stored workflow.
    *
    * @param workflow The stored workflow, changed in place
@@ -460,66 +395,6 @@ public abstract class OfficialApiMapper {
       WorkflowUpdatedEvent event);
 
   /**
-   * Copies a "workflow completed" event of BPMS API version 1 onto a stored workflow.
-   *
-   * @param workflow The stored workflow, changed in place
-   * @param event The event
-   */
-  @Mapping(target = "id", source = "workflowId")
-  @Mapping(target = "updatedAt", source = "timestamp")
-  @Mapping(target = "endedAt", source = "timestamp")
-  @Mapping(target = "endReason", constant = "COMPLETED")
-  @Mapping(target = "note", ignore = true)
-  @Mapping(target = "suspendedAt", ignore = true)
-  @Mapping(target = "suspendedBy", ignore = true)
-  @Mapping(target = "createdAt", ignore = true)
-  @Mapping(target = "initiator", qualifiedByName = "person")
-  @Mapping(target = "uiUri", ignore = true)
-  @Mapping(target = "workflowModuleUri", ignore = true)
-  @Mapping(target = "accessibleToUsers", ignore = true)
-  @Mapping(target = "accessibleToGroups", ignore = true)
-  @Mapping(target = "details", ignore = true)
-  @Mapping(target = "version", ignore = true)
-  @Mapping(target = "workflowModuleId", ignore = true)
-  @Mapping(target = "businessId", ignore = true)
-  @Mapping(target = "title", ignore = true)
-  @Mapping(target = "uiUriType", ignore = true)
-  @Mapping(target = "detailsFulltextSearch", ignore = true)
-  public abstract void ontoModel(
-      @MappingTarget io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Workflow workflow,
-      WorkflowCompletedEvent event);
-
-  /**
-   * Copies a "workflow cancelled" event of BPMS API version 1 onto a stored workflow.
-   *
-   * @param workflow The stored workflow, changed in place
-   * @param event The event
-   */
-  @Mapping(target = "id", source = "workflowId")
-  @Mapping(target = "updatedAt", source = "timestamp")
-  @Mapping(target = "endedAt", source = "timestamp")
-  @Mapping(target = "endReason", constant = "CANCELLED")
-  @Mapping(target = "note", ignore = true)
-  @Mapping(target = "suspendedAt", ignore = true)
-  @Mapping(target = "suspendedBy", ignore = true)
-  @Mapping(target = "createdAt", ignore = true)
-  @Mapping(target = "initiator", qualifiedByName = "apiPerson")
-  @Mapping(target = "uiUri", ignore = true)
-  @Mapping(target = "workflowModuleUri", ignore = true)
-  @Mapping(target = "accessibleToUsers", ignore = true)
-  @Mapping(target = "accessibleToGroups", ignore = true)
-  @Mapping(target = "details", ignore = true)
-  @Mapping(target = "version", ignore = true)
-  @Mapping(target = "workflowModuleId", ignore = true)
-  @Mapping(target = "businessId", ignore = true)
-  @Mapping(target = "title", ignore = true)
-  @Mapping(target = "uiUriType", ignore = true)
-  @Mapping(target = "detailsFulltextSearch", ignore = true)
-  public abstract void ontoModel(
-      @MappingTarget io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Workflow workflow,
-      WorkflowCancelledEvent event);
-
-  /**
    * Copies a "workflow cancelled" event of BPMS API version 1.1 onto a stored workflow.
    *
    * @param workflow The stored workflow, changed in place
@@ -541,7 +416,7 @@ public abstract class OfficialApiMapper {
   @Mapping(target = "workflowModuleUri", ignore = true)
   public abstract void ontoModel(
       @MappingTarget io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Workflow workflow,
-      io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCancelledEvent event);
+      WorkflowCancelledEvent event);
 
   /**
    * Copies a "workflow completed" event of BPMS API version 1.1 onto a stored workflow.
@@ -565,62 +440,7 @@ public abstract class OfficialApiMapper {
   @Mapping(target = "workflowModuleUri", ignore = true)
   public abstract void ontoModel(
       @MappingTarget io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Workflow workflow,
-      io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCompletedEvent event);
-
-  /**
-   * Turns a "user task created" event of BPMS API version 1 into a stored user task.
-   *
-   * @param event The event
-   * @return The user task to store
-   */
-  @Mapping(target = "id", source = "userTaskId")
-  @Mapping(target = "createdAt", source = "timestamp")
-  @Mapping(target = "updatedAt", source = "timestamp")
-  @Mapping(target = "endedAt", ignore = true)
-  @Mapping(target = "endReason", ignore = true)
-  @Mapping(target = "note", ignore = true)
-  @Mapping(target = "suspendedAt", ignore = true)
-  @Mapping(target = "suspendedBy", ignore = true)
-  @Mapping(target = "assignee", qualifiedByName = "apiPerson")
-  @Mapping(target = "candidateUsers", qualifiedByName = "apiPersons")
-  @Mapping(target = "candidateGroups", qualifiedByName = "apiGroups")
-  @Mapping(target = "version", ignore = true)
-  @Mapping(target = "uiUri", source = "uiUriPath")
-  @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(event.getWorkflowModuleId()))")
-  @Mapping(target = "read", ignore = true)
-  @Mapping(target = "admittedUsers", ignore = true)
-  @Mapping(target = "notificationDelivery", ignore = true)
-  @Mapping(target = "lastReport", expression = "java(asReport(event))")
-  public abstract io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.UserTask toModel(
-      UserTaskCreatedOrUpdatedEvent event);
-
-  /**
-   * Copies a "user task updated" event of BPMS API version 1 onto a stored user task.
-   *
-   * @param userTask The stored user task, changed in place
-   * @param event The event
-   */
-  @Mapping(target = "id", source = "event.userTaskId")
-  @Mapping(target = "createdAt", ignore = true)
-  @Mapping(target = "updatedAt", source = "event.timestamp")
-  @Mapping(target = "endedAt", ignore = true)
-  @Mapping(target = "endReason", ignore = true)
-  @Mapping(target = "note", ignore = true)
-  @Mapping(target = "suspendedAt", ignore = true)
-  @Mapping(target = "suspendedBy", ignore = true)
-  @Mapping(target = "assignee", qualifiedByName = "apiPerson")
-  @Mapping(target = "candidateUsers", qualifiedByName = "apiPersons")
-  @Mapping(target = "candidateGroups", qualifiedByName = "apiGroups")
-  @Mapping(target = "version", ignore = true)
-  @Mapping(target = "uiUri", ignore = true)
-  @Mapping(target = "workflowModuleUri", ignore = true)
-  @Mapping(target = "read", ignore = true)
-  @Mapping(target = "admittedUsers", ignore = true)
-  @Mapping(target = "notificationDelivery", ignore = true)
-  @Mapping(target = "lastReport", expression = "java(asReport(event))")
-  public abstract void ontoModel(
-      @MappingTarget io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.UserTask userTask,
-      UserTaskCreatedOrUpdatedEvent event);
+      WorkflowCompletedEvent event);
 
   /**
    * Turns a "user task created" event of BPMS API version 1.1 into a stored user task.
@@ -700,7 +520,7 @@ public abstract class OfficialApiMapper {
   @Mapping(target = "lastReport", expression = "java(asReport(event))")
   public abstract void ontoModel(
       @MappingTarget io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.UserTask userTask,
-      io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCompletedEvent event);
+      UserTaskCompletedEvent event);
 
   /**
    * Copies a "user task cancelled" event of BPMS API version 1.1 onto a stored user task.
@@ -723,94 +543,6 @@ public abstract class OfficialApiMapper {
   @Mapping(target = "uiUri", ignore = true)
   @Mapping(target = "workflowModuleUri", ignore = true)
   @Mapping(target = "read", ignore = true)
-  @Mapping(target = "excludedCandidateUsers", ignore = true)
-  @Mapping(target = "admittedUsers", ignore = true)
-  @Mapping(target = "notificationDelivery", ignore = true)
-  @Mapping(target = "lastReport", expression = "java(asReport(event))")
-  public abstract void ontoModel(
-      @MappingTarget io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.UserTask userTask,
-      io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCancelledEvent event);
-
-  /**
-   * Copies a "user task completed" event of BPMS API version 1 onto a stored user task.
-   *
-   * @param userTask The stored user task, changed in place
-   * @param event The event
-   */
-  @Mapping(target = "id", source = "userTaskId")
-  @Mapping(target = "updatedAt", source = "timestamp")
-  @Mapping(target = "endedAt", source = "timestamp")
-  @Mapping(target = "endReason", constant = "COMPLETED")
-  @Mapping(target = "note", ignore = true)
-  @Mapping(target = "suspendedAt", ignore = true)
-  @Mapping(target = "suspendedBy", ignore = true)
-  @Mapping(target = "createdAt", ignore = true)
-  @Mapping(target = "uiUri", ignore = true)
-  @Mapping(target = "workflowModuleUri", ignore = true)
-  @Mapping(target = "assignee", ignore = true)
-  @Mapping(target = "candidateUsers", ignore = true)
-  @Mapping(target = "candidateGroups", ignore = true)
-  @Mapping(target = "details", ignore = true)
-  @Mapping(target = "version", ignore = true)
-  @Mapping(target = "workflowModuleId", ignore = true)
-  @Mapping(target = "businessId", ignore = true)
-  @Mapping(target = "bpmnProcessId", ignore = true)
-  @Mapping(target = "bpmnProcessVersion", ignore = true)
-  @Mapping(target = "workflowTitle", ignore = true)
-  @Mapping(target = "workflowId", ignore = true)
-  @Mapping(target = "bpmnTaskId", ignore = true)
-  @Mapping(target = "taskDefinition", ignore = true)
-  @Mapping(target = "taskDefinitionTitle", ignore = true)
-  @Mapping(target = "dueDate", ignore = true)
-  @Mapping(target = "followUpDate", ignore = true)
-  @Mapping(target = "read", ignore = true)
-  @Mapping(target = "title", ignore = true)
-  @Mapping(target = "uiUriType", ignore = true)
-  @Mapping(target = "detailsFulltextSearch", ignore = true)
-  @Mapping(target = "excludedCandidateUsers", ignore = true)
-  @Mapping(target = "admittedUsers", ignore = true)
-  @Mapping(target = "notificationDelivery", ignore = true)
-  @Mapping(target = "lastReport", expression = "java(asReport(event))")
-  public abstract void ontoModel(
-      @MappingTarget io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.UserTask userTask,
-      UserTaskCompletedEvent event);
-
-  /**
-   * Copies a "user task cancelled" event of BPMS API version 1 onto a stored user task.
-   *
-   * @param userTask The stored user task, changed in place
-   * @param event The event
-   */
-  @Mapping(target = "id", source = "userTaskId")
-  @Mapping(target = "updatedAt", source = "timestamp")
-  @Mapping(target = "endedAt", source = "timestamp")
-  @Mapping(target = "endReason", constant = "CANCELLED")
-  @Mapping(target = "note", ignore = true)
-  @Mapping(target = "suspendedAt", ignore = true)
-  @Mapping(target = "suspendedBy", ignore = true)
-  @Mapping(target = "createdAt", ignore = true)
-  @Mapping(target = "uiUri", ignore = true)
-  @Mapping(target = "workflowModuleUri", ignore = true)
-  @Mapping(target = "assignee", ignore = true)
-  @Mapping(target = "candidateUsers", ignore = true)
-  @Mapping(target = "candidateGroups", ignore = true)
-  @Mapping(target = "details", ignore = true)
-  @Mapping(target = "version", ignore = true)
-  @Mapping(target = "workflowModuleId", ignore = true)
-  @Mapping(target = "businessId", ignore = true)
-  @Mapping(target = "bpmnProcessId", ignore = true)
-  @Mapping(target = "bpmnProcessVersion", ignore = true)
-  @Mapping(target = "workflowTitle", ignore = true)
-  @Mapping(target = "workflowId", ignore = true)
-  @Mapping(target = "bpmnTaskId", ignore = true)
-  @Mapping(target = "taskDefinition", ignore = true)
-  @Mapping(target = "taskDefinitionTitle", ignore = true)
-  @Mapping(target = "dueDate", ignore = true)
-  @Mapping(target = "followUpDate", ignore = true)
-  @Mapping(target = "read", ignore = true)
-  @Mapping(target = "title", ignore = true)
-  @Mapping(target = "uiUriType", ignore = true)
-  @Mapping(target = "detailsFulltextSearch", ignore = true)
   @Mapping(target = "excludedCandidateUsers", ignore = true)
   @Mapping(target = "admittedUsers", ignore = true)
   @Mapping(target = "notificationDelivery", ignore = true)

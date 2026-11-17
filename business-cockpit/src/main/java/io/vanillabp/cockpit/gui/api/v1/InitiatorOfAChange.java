@@ -12,6 +12,9 @@ import io.vanillabp.cockpit.mongo.updateinfo.UpdateInformationAware;
  * these names to the browser. It says the kind in a field of its own, so a page never mistakes
  * them for a user.
  *
+ * <p>Why an event names who made the change, and where the cockpit reads it: see decision 102 in
+ * the repository's DECISIONS.md.
+ *
  * @param id The id of the user, or {@code null} unless the kind is {@link InitiatorKind#USER}
  * @param kind Who made the change
  */

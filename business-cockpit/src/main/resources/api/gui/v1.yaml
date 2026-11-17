@@ -187,7 +187,9 @@ paths:
         a request of a list does not say which tab it comes from.
 
         The `event` of each element says who made the change, in `initiatorKind` and, for a
-        person, in `initiator`. A page which shows one user task or case can tell from it whether
+        person, in `initiator`. If one event holds several changes of the same entity, each
+        element names who made its own change. Only on Azure Cosmos DB for MongoDB they all name
+        who made the latest one. A page which shows one user task or case can tell from it whether
         somebody else changed it, without loading it first. A change by the workflow system or by
         the cockpit itself is no change by somebody else. A list loads again for every change,
         whoever made it.

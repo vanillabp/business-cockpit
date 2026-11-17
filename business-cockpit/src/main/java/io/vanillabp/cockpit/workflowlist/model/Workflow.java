@@ -56,7 +56,8 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware,
    * <p>
    * The update stream names it in its events. It is set through
    * {@link #recordInitiatorOfLatestChange(String)}, not through a setter, so the mappers of the
-   * reports do not see it as a field they have to fill.
+   * reports do not see it as a field they have to fill. See decision 102 in the repository's
+   * DECISIONS.md.
    */
   private String initiatorOfLatestChange;
 

@@ -422,7 +422,8 @@ ein Ereignis kann jede Liste betreffen, also behandle es wie eines des eigenen M
 Jedes `event` sagt außerdem, wer die Änderung gemacht hat. `initiatorKind` ist `USER` für eine
 Person, `SYSTEM` für das Workflow-System und `COCKPIT` für das Cockpit selbst, etwa wenn ein
 Wiedervorlagedatum erreicht ist. Nur bei `USER` steht in `initiator` die Kennung der Person. Fassen
-mehrere Änderungen derselben Aufgabe einen Schwung, nennen alle den Urheber der letzten. Eine Seite,
+mehrere Änderungen derselben Aufgabe einen Schwung, nennt jedes Ereignis den Urheber seiner eigenen
+Änderung. Nur auf Azure Cosmos DB nennen dann alle den Urheber der letzten. Eine Seite,
 die eine einzelne Aufgabe oder einen Fall zeigt, meldet "jemand anderer hat das geändert" nur bei
 `USER` mit einer Kennung, die nicht die des angemeldeten Benutzers ist. Sie muss dafür nichts neu
 laden. Eine Liste lädt bei jeder Änderung neu, egal wer sie gemacht hat. Bei `RELOAD` und wenn das

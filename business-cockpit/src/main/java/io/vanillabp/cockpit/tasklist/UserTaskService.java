@@ -52,6 +52,7 @@ import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
 import io.vanillabp.cockpit.config.startup.SortIndexLimit;
 import io.vanillabp.cockpit.mongo.OptimisticLockingUtils;
 import io.vanillabp.cockpit.mongo.changestreams.ChangeStreamUtils;
+import io.vanillabp.cockpit.mongo.changestreams.LatestChange;
 import io.vanillabp.cockpit.mongo.updateinfo.UpdateInformationAware;
 import io.vanillabp.cockpit.support.security.BcUnauthorizedException;
 import io.vanillabp.cockpit.support.security.usercontext.UserContext;
@@ -366,6 +367,7 @@ public class UserTaskService {
    * {@link UserTaskChangedNotification#changesOnlyWhoReadTheTask(Message)}. An open page of
    * somebody else then does not say that the reader changed the task. Before, the read was saved
    * with the whole task, and opening a task looked like a change by the person who opened it.
+   * See decision 102 in the repository's DECISIONS.md.
    * <p>
    * The update raises {@code version} like the note does. A report which read the task before
    * then fails the version check, or its save would bring the old {@code readBy} back.
@@ -706,7 +708,8 @@ public class UserTaskService {
     // a task which ends between the read above and this write stays as it ended
     query.addCriteria(Criteria.where("endedAt").exists(false));
 
-    mongoTemplate.updateFirst(query, unsetAssignee(currentUser), UserTask.class);
+    mongoTemplate.updateFirst(
+        query, LatestChange.recordIn(unsetAssignee(currentUser), initiatorFor(currentUser)), UserTask.class);
 
     return getUserTask(userTaskId);
 
@@ -746,7 +749,8 @@ public class UserTaskService {
     query.addCriteria(Criteria.where("assignee.id").is(personId));
     query.addCriteria(Criteria.where("endedAt").exists(false));
 
-    mongoTemplate.updateMulti(query, unsetAssignee(currentUser), UserTask.class);
+    mongoTemplate.updateMulti(
+        query, LatestChange.recordIn(unsetAssignee(currentUser), initiatorFor(currentUser)), UserTask.class);
 
     final var findQuery = new Query();
     findQuery.addCriteria(Criteria.where("id").in(unclaimable));
@@ -780,10 +784,10 @@ public class UserTaskService {
     refuseIfEnded(userTask);
 
     // a note is a change made in the cockpit, so it records who made it, like every other one
+    final var initiator = initiatorFor(currentUser);
     final var written = mongoTemplate.updateFirst(
         new Query(Criteria.where("id").is(userTaskId)).addCriteria(NotesOfTheCockpit.notEnded()),
-        NotesOfTheCockpit.setTo(text, currentUser)
-            .set("initiator", currentUser == null ? UpdateInformationAware.COCKPIT_USER : currentUser),
+        LatestChange.recordIn(NotesOfTheCockpit.setTo(text, currentUser).set("initiator", initiator), initiator),
         UserTask.class);
     // the task ended between the read above and this write
     if (written.getMatchedCount() == 0) {
@@ -817,11 +821,11 @@ public class UserTaskService {
       return;
     }
 
+    final var initiator = initiatorFor(currentUser);
     mongoTemplate.updateMulti(
         new Query(Criteria.where("id").in(found.stream().map(UserTask::getId).toList()))
             .addCriteria(NotesOfTheCockpit.notEnded()),
-        NotesOfTheCockpit.setTo(text, currentUser)
-            .set("initiator", currentUser == null ? UpdateInformationAware.COCKPIT_USER : currentUser),
+        LatestChange.recordIn(NotesOfTheCockpit.setTo(text, currentUser).set("initiator", initiator), initiator),
         UserTask.class);
 
   }
@@ -855,8 +859,21 @@ public class UserTaskService {
     update.inc("version", 1);
     update.set("updatedAt", OffsetDateTime.now());
     update.set("updatedBy", currentUser == null ? UpdateInformationAware.SYSTEM_USER : currentUser);
-    update.set("initiator", currentUser == null ? UpdateInformationAware.COCKPIT_USER : currentUser);
+    update.set("initiator", initiatorFor(currentUser));
     return update;
+
+  }
+
+  /**
+   * The initiator a change sent as an update records: the user who made it, or the cockpit itself
+   * where no user is known.
+   */
+  private static String initiatorFor(
+      final String currentUser) {
+
+    return currentUser == null
+        ? UpdateInformationAware.COCKPIT_USER
+        : currentUser;
 
   }
 

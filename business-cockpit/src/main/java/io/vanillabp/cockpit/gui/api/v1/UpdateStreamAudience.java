@@ -51,8 +51,9 @@ public interface UpdateStreamAudience {
 
   /**
    * The same event, naming who made the change. An event which names somebody already keeps what
-   * it names: its producer knew better than the stored entity, a job of the cockpit for example.
-   * A payload this audience does not know stays as it is.
+   * it names: the change event of MongoDB said who made this one change, or the producer knew
+   * better than the stored entity, a job of the cockpit for example. A payload this audience does
+   * not know stays as it is.
    *
    * @param event The event of an entity of this kind
    * @param initiator Who made the latest change of the entity, as the tick read it
@@ -77,8 +78,9 @@ public interface UpdateStreamAudience {
    * @param workflowModuleOfEachEntity The workflow module of each changed entity, by its id. An
    *        entity the cockpit no longer holds is missing
    * @param initiatorOfEachEntity Who made the latest change of each changed entity, by its id. An
-   *        entity the cockpit no longer holds is missing. Several changes of one entity in one
-   *        tick all name the initiator of the latest, because that is what is stored
+   *        entity the cockpit no longer holds is missing. It is only used for an event which
+   *        does not say who made its own change, on Azure Cosmos DB for example. Several such
+   *        events of one entity in one tick all name the initiator of the latest change
    */
   record WhatTheStreamsMaySee(
                               Map<UpdateEmitter, Set<String>> idsEachStreamMaySee,
