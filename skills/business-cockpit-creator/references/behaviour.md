@@ -842,8 +842,8 @@ The user copes well with many rows.
 Both lists have it. The input has an x button that clears it. The field offers
 suggestions: it asks from three characters on, 300 milliseconds after the last key, and shows at most
 20 suggestions in the order the server returns them, the most frequent first. A suggestion is taken
-with a click, the input with the Enter key. The search ignores upper and lower case. Escape the
-input, see
+with a click, the input with the Enter key. The search ignores upper and lower case. Send the input
+as it was typed, without escaping it. The server takes it as plain text, see
 [gui-api.md](gui-api.md#filtering-over-reported-business-data).
 
 ### A filter per column

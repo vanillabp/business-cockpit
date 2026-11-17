@@ -12,7 +12,7 @@ code of the cockpit. Read this before the first screen, not when something does 
 5. [Bulk actions do not say what they skipped](#bulk-actions-do-not-say-what-they-skipped)
 6. [`current-user` answers 200 instead of 404](#current-user-answers-200-instead-of-404)
 7. [The refresh token leads nowhere](#the-refresh-token-leads-nowhere)
-8. [A search pattern goes into the database unescaped](#a-search-pattern-goes-into-the-database-unescaped)
+8. [A search in the middle of a value uses no index well](#a-search-in-the-middle-of-a-value-uses-no-index-well)
 9. [Two filters on one path](#two-filters-on-one-path)
 10. [An event names the entity, not its new values](#an-event-names-the-entity-not-its-new-values)
 11. [`filterable` is not read by the server](#filterable-is-not-read-by-the-server)
@@ -85,11 +85,11 @@ a parameter. The method does not use it, and nothing in the cockpit sets this he
 Do not build anything on it. It is a hook for a cockpit with an identity provider of its own, and
 what a server should do with the header is written nowhere.
 
-## A search pattern goes into the database unescaped
+## A search in the middle of a value uses no index well
 
-`query` of a `SearchQuery` is used as a regular expression, without escaping and without an anchor.
-An input with `.` or `*` searches for something else than the user means, and a costly pattern
-costs the server time. Escape what you pass on from an input field.
+`query` of a `SearchQuery` is plain text, and it matches anywhere in a value. The server escapes it
+and turns it into a regular expression without an anchor. Your user interface sends the input as it
+was typed. On a large list such a search reads many documents and takes time.
 
 MongoDB offers no good search for this. A field is either searched with a regular expression, which
 cannot use an index well for a match in the middle of a value, or with a full-text index, which

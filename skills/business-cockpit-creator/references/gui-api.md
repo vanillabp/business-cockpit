@@ -348,10 +348,11 @@ Each `SearchQuery` has three fields and becomes one condition:
 ```
 
 `path` is the path in the document, the same as for `sort` and the same as `path` of a column. If
-it is missing, the server searches the field `detailsFulltextSearch`. That is the full text the
-workflow module has put together itself, see
+it is missing, the server searches two fields, and a row matches when one of them does. The first is
+`detailsFulltextSearch`, the full text the workflow module has put together itself, see
 [Reporting workflows and user tasks](https://github.com/vanillabp/business-cockpit/wiki/Reporting-workflows-and-user-tasks).
-One full-text field and nothing more: what was not reported cannot be found.
+The second is `note`, the note the users keep on the user task or case. Nothing else is searched:
+what was neither reported nor written into a note cannot be found.
 
 The same rule as for a sort path holds for `path`, see [Sorting](#sorting): a field of the list or
 a key below `details.`. The server refuses every other path with 400, for example
@@ -359,17 +360,18 @@ a key below `details.`. The server refuses every other path with 400, for exampl
 'details.'. A part of a path holds letters, digits and '_', and below 'details.' also '-'.` So a
 field the API does not show cannot be reached by a filter either.
 
-`query` is a regular expression, not text. It is not anchored, so it also matches in the middle of
-a value. A `.` or a `*` from the user's input is read as a special character. When your user
-interface passes an input on, escape it, see
-[rough-edges.md](rough-edges.md#a-search-pattern-goes-into-the-database-unescaped).
+`query` is plain text. The server escapes it itself, so a `.`, a `*` or a `(` finds exactly that
+character. Send the user's input as it was typed, and do not escape it: an escaped input would
+search for the backslashes too. The text matches anywhere in a value, also in the middle. On a large
+list that is slow, see
+[rough-edges.md](rough-edges.md#a-search-in-the-middle-of-a-value-uses-no-index-well).
 
 `caseInsensitive` switches on the option `i`. Otherwise upper and lower case are told apart.
 
 Entries with different paths are joined with AND. Entries with the same `path` are meant to be
 joined with OR, but the server does not do that yet. Today the list and the count answer 500 for
-two entries with the same `path`, and the suggestions for a search field join them with AND. So
-send one entry per path for now. When the user sets a filter on a path, remove the old entry for
+two entries with the same `path`, and the suggestions for a search field join them with AND. Two
+entries without a `path` count as the same path. So send one entry per path for now. When the user sets a filter on a path, remove the old entry for
 that path first, see [rough-edges.md](rough-edges.md#two-filters-on-one-path).
 
 A field that looks like a filter and is not one: `businessIds` of `WorkflowsRequest` is an exact
@@ -400,7 +402,8 @@ What you need to know:
 Below three characters the answer is empty, and it is no error. So let the field ask only from
 three characters on.
 
-The search is always case-insensitive here, whatever a `SearchQuery` says.
+The search is always case-insensitive here, whatever a `SearchQuery` says. `query` is plain text
+here as well, so do not escape it either.
 
 The answer has at most 21 entries. They are the 21 most frequent words, the most frequent first.
 For the same count they are in alphabetical order, upper case before lower case. Show them in this
