@@ -10,7 +10,7 @@
 
   <artifactId>business-cockpit-quarkus-support</artifactId>
   <name>Business Cockpit support - Quarkus</name>
-  <description>What a workflow module behind the Business Cockpit needs on Quarkus: the cockpit's SPI, the check of the cockpit's login token, the user and the groups, and the exceptions of a user task together with the mappers which answer them.</description>
+  <description>What a workflow module behind the Business Cockpit needs on Quarkus: the cockpit's SPI, the check of the cockpit's login token, the user and the groups, the exceptions of a user task together with the mappers which answer them, and REST clients built from keys at a prefix of the module's choice.</description>
 
   <licenses>
     <license>
@@ -105,6 +105,12 @@
       <optional>true</optional>
     </dependency>
     <dependency>
+      <!-- the REST client which RestClients builds from keys -->
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-rest-client</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-junit</artifactId>
       <scope>test</scope>
@@ -131,6 +137,30 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-security-deployment</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- the build steps of the REST client, which implement the client interfaces of the tests -->
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-rest-client-deployment</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- reads and writes the JSON bodies of the client of the tests, as an application does -->
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-rest-client-jackson-deployment</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- the stub server of the REST client tests: records each request, answers what the test
+        queues, speaks TLS and plays a proxy. The tests of the Spring Boot module use it too. -->
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>mockwebserver3</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp-tls</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -186,6 +216,64 @@
             </goals>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <!--
+          The client the REST client tests call: the interface the generator 'jaxrs-spec' writes from
+          the same small API the tests of the Spring Boot module use. The Quarkus blueprints
+          generate their clients the same way.
+        -->
+        <groupId>org.openapitools</groupId>
+        <artifactId>openapi-generator-maven-plugin</artifactId>
+        <version>7.27.0</version>
+        <executions>
+          <execution>
+            <id>inventory-test-client</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <phase>generate-test-sources</phase>
+            <configuration>
+              <inputSpec>${project.basedir}/src/test/resources/openapi/inventory.yaml</inputSpec>
+              <generatorName>jaxrs-spec</generatorName>
+              <output>${project.build.directory}/generated-test-sources/openapi</output>
+              <apiPackage>io.vanillabp.cockpit.support.rest.restclient.inventory</apiPackage>
+              <modelPackage>io.vanillabp.cockpit.support.rest.restclient.inventory.model</modelPackage>
+              <generateSupportingFiles>false</generateSupportingFiles>
+              <configOptions>
+                <interfaceOnly>true</interfaceOnly>
+                <returnResponse>false</returnResponse>
+                <useJakartaEe>true</useJakartaEe>
+                <useTags>true</useTags>
+                <useSwaggerAnnotations>false</useSwaggerAnnotations>
+                <useMicroProfileOpenAPIAnnotations>false</useMicroProfileOpenAPIAnnotations>
+                <useBeanValidation>false</useBeanValidation>
+                <openApiNullable>false</openApiNullable>
+                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+                <generateJsonIncludeAnnotations>false</generateJsonIncludeAnnotations>
+                <generateJsonSetterNullsAnnotations>false</generateJsonSetterNullsAnnotations>
+                <generatePom>false</generatePom>
+                <dateLibrary>java8</dateLibrary>
+                <sourceFolder>src/gen/java</sourceFolder>
+              </configOptions>
+              <addCompileSourceRoot>false</addCompileSourceRoot>
+              <addTestCompileSourceRoot>true</addTestCompileSourceRoot>
+              <generateApiTests>false</generateApiTests>
+              <generateModelTests>false</generateModelTests>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <compilerArgs combine.children="append">
+            <!-- the generator writes one @return per answer of an operation, which the javadoc
+              check of the root POM refuses. The generated test client is no code of ours. -->
+            <arg>-Xdoclint/package:-io.vanillabp.cockpit.support.rest.restclient.inventory</arg>
+          </compilerArgs>
+        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
