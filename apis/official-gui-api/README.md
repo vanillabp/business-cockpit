@@ -8,7 +8,8 @@ current user and the information about the application are in the cockpit's own 
 [`business-cockpit/src/main/resources/api/gui/v1.yaml`](../../business-cockpit/src/main/resources/api/gui/v1.yaml).
 A user interface generates its client from both files.
 
-`server` is what the cockpit implements. The TypeScript client, once published as
+`server` is what the cockpit implements. [`client`](./client) holds the Java clients a workflow
+module calls the cockpit with, one module per platform. The TypeScript client, once published as
 `@vanillabp/bc-official-gui-client`, is no longer built here. A user interface generates its own
 from `openapi`, see decision 63 in the repository's [DECISIONS.md](../../DECISIONS.md).
 

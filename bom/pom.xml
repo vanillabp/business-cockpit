@@ -177,6 +177,12 @@
         <artifactId>official-gui-api-server</artifactId>
         <version>${project.version}</version>
       </dependency>
+      <dependency>
+        <!-- the client of the official GUI API, for a workflow module on Spring Boot -->
+        <groupId>io.vanillabp.businesscockpit</groupId>
+        <artifactId>official-gui-api-spring-boot-client</artifactId>
+        <version>${project.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
   <profiles>
