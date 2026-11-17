@@ -101,17 +101,17 @@ two platforms never runs.
 |----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Business cockpit container | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fapplication-spring-boot-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/application-spring-boot-report)               |                                                                                                                                                                                                                                                                                                                                                                  |
 | Extension commons          | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fextensions-commons-spring-boot-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/extensions-commons-spring-boot-report) | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fextensions-commons-quarkus-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/extensions-commons-quarkus-report) |
+| Support                    | see the container report                                                                                                                                                                                                                                                                                                                                                 | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fsupport-quarkus-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/support-quarkus-report)                       |
 
 Each badge reads the report it links to, so the number shown here and the number in the report
-cannot drift apart. All three reports are published on every build of the default branch. How they
+cannot drift apart. All four reports are published on every build of the default branch. How they
 are produced, what the gate prints on every run and what a run stopping at `package` does instead is
 in [test-coverage-report](./test-coverage-report).
 
 The Quarkus module of `support` has a fourth report, `test-coverage-report/support/quarkus`, with
 the same gate of 85. It counts that module and the platform-neutral `support/core`, and no Spring
 Boot test. The Spring Boot module of `support` and `support/core` are part of the container report,
-because every cockpit carries them. The fourth report is not published as a page yet, so it has no
-badge.
+because every cockpit carries them.
 
 ## The modules
 
