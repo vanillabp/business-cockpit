@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.vanillabp.businesscockpit</groupId>
+    <artifactId>test-coverage-report</artifactId>
+    <version>0.9.0-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>official-gui-api-spring-boot-report</artifactId>
+  <packaging>pom</packaging>
+  <name>Test coverage report - Spring Boot client of the official GUI API</name>
+  <description>Coverage of the Spring Boot client of the official GUI API, which a workflow module uses to call the cockpit: its auto-configuration and the forwarding of the user's cookie. The interfaces and models the generator writes are left out, because their numbers would measure the generator.</description>
+
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>official-gui-api-spring-boot-client</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <!-- 'report-aggregate' sums up the '*.exec' files of the modules listed in <dependencies> into one report -->
+              <goal>report-aggregate</goal>
+            </goals>
+            <phase>verify</phase>
+            <configuration>
+              <outputDirectory>${project.basedir}/report</outputDirectory>
+              <excludes>
+                <!-- generated from the OpenAPI file -->
+                <exclude>io/vanillabp/cockpit/gui/api/v1/client/*.class</exclude>
+                <exclude>io/vanillabp/cockpit/gui/api/v1/client/model/**</exclude>
+              </excludes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

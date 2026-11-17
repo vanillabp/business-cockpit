@@ -18,6 +18,7 @@
     <module>extensions-commons/spring-boot</module>
     <module>extensions-commons/quarkus</module>
     <module>support/quarkus</module>
+    <module>official-gui-api/spring-boot</module>
     <!-- last: it judges what the modules above produced -->
     <module>coverage-gate</module>
   </modules>

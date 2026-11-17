@@ -98,6 +98,19 @@
   <build>
     <plugins>
       <plugin>
+        <!-- The root POM keeps the agent away from io/vanillabp/cockpit/gui/api/v1, because the
+             cockpit generates its GUI API there. This module writes code of its own below that
+             package, so the agent leaves out only what the generator writes. -->
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <configuration>
+          <excludes combine.self="override">
+            <exclude>io/vanillabp/cockpit/gui/api/v1/client/Official*Api</exclude>
+            <exclude>io/vanillabp/cockpit/gui/api/v1/client/model/*</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
         <executions>

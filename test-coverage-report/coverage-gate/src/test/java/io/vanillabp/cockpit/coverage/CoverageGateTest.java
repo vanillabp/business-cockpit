@@ -62,7 +62,8 @@ public class CoverageGateTest {
           ROOT.resolve("test-coverage-report/application/spring-boot/pom.xml"),
           ROOT.resolve("test-coverage-report/extensions-commons/spring-boot/pom.xml"),
           ROOT.resolve("test-coverage-report/extensions-commons/quarkus/pom.xml"),
-          ROOT.resolve("test-coverage-report/support/quarkus/pom.xml"));
+          ROOT.resolve("test-coverage-report/support/quarkus/pom.xml"),
+          ROOT.resolve("test-coverage-report/official-gui-api/spring-boot/pom.xml"));
 
   /**
    * Modules whose execution data belongs to no coverage report. Each entry is a decision. A
@@ -81,13 +82,7 @@ public class CoverageGateTest {
           // the protobuf API: protoc generates every class of it. Its one test checks the
           // build, that protoc is not newer than the platforms' protobuf-java, and covers
           // no code. Coverage of generated classes would say nothing about our code.
-          "bpms-protobuf-api",
-          // the Spring Boot client of the official GUI API: generated interfaces, plus an
-          // auto-configuration and the cookie forwarding. It runs in a workflow module and
-          // in no cockpit, so the container report is the wrong place, and there is no
-          // report for workflow modules. Its tests cover what is written by hand, and the
-          // HTTP service helper it builds on is counted with the support module.
-          "official-gui-api-spring-boot-client");
+          "bpms-protobuf-api");
 
   @Test
   @DisplayName("Every module producing coverage data is read by an aggregated report")
@@ -141,6 +136,17 @@ public class CoverageGateTest {
         "Business Cockpit support (Quarkus)",
         "support/quarkus",
         "coverage.threshold.support-quarkus");
+
+  }
+
+  @Test
+  @DisplayName("The Spring Boot client of the official GUI API is above the coverage threshold")
+  public void theOfficialGuiApiSpringBootClientReportIsAboveTheThreshold() {
+
+    assertAboveThreshold(
+        "Official GUI API client (Spring Boot)",
+        "official-gui-api/spring-boot",
+        "coverage.threshold.official-gui-api-spring-boot");
 
   }
 

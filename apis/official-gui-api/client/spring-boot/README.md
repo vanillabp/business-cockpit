@@ -130,8 +130,8 @@ The user signed in, `GET /gui/api/v1/app/current-user`, is part of this API:
 `OfficialCurrentUserApi.currentUser(null)` answers the user of the forwarded cookie with all
 groups, or no body if the request carries no login.
 
-Its tests start the client against a stub server. Its coverage counts in no aggregated report,
-because it runs in a workflow module and in no cockpit. `CoverageGateTest` names it among the
-modules which are left out on purpose.
+Its tests start the client against a stub server. Its coverage is the report
+`test-coverage-report/official-gui-api/spring-boot`, without the generated interfaces and models,
+and `CoverageGateTest` holds it at 85 %.
 
 Built as part of the reactor build described in the [root README](../../../../README.md#building-it).
