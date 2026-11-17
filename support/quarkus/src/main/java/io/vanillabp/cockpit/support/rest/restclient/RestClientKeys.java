@@ -70,6 +70,8 @@ final class RestClientKeys {
 
   final boolean log;
 
+  final Optional<Integer> connectionPoolSize;
+
   final Proxy proxy;
 
   final Retry retry;
@@ -129,6 +131,7 @@ final class RestClientKeys {
     tlsConfigurationName = text("tls-configuration-name");
     defaultHeaders = defaultHeaders();
     log = value("log", Boolean.class).orElse(false);
+    connectionPoolSize = value("connection-pool-size", Integer.class);
     proxy = new Proxy(text("proxy.host"), value("proxy.port",
         Integer.class), text("proxy.username"), text("proxy.password"));
     retry = new Retry(
@@ -160,6 +163,7 @@ final class RestClientKeys {
     keys.checkBaseUrl();
     keys.checkProxy();
     keys.checkRetry();
+    keys.checkConnectionPool();
     if (keys.oauth.isOn()) {
       keys.checkOAuth();
     }
@@ -339,6 +343,17 @@ final class RestClientKeys {
       problems.add("""
           The REST clients at '%s' have '%s: %d'. Set at least 1, which sends each request once."""
           .formatted(prefix, key("retry.max-attempts"), retry.maxAttempts()));
+    }
+
+  }
+
+  private void checkConnectionPool() {
+
+    if (connectionPoolSize.isPresent() && (connectionPoolSize.get() < 1)) {
+      problems.add("""
+          The REST clients at '%s' have '%s: %d'. Set at least 1, or remove the key to keep the \
+          default of Quarkus, 50 connections."""
+          .formatted(prefix, key("connection-pool-size"), connectionPoolSize.get()));
     }
 
   }

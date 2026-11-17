@@ -27,6 +27,23 @@ paths:
                 $ref: "#/components/schemas/Item"
         "404":
           description: There is no such item
+  /items/{itemId}/label:
+    get:
+      tags: [inventory]
+      operationId: getLabel
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The label to print on the shelf, as plain text
+          content:
+            text/plain:
+              schema:
+                type: string
   /items:
     get:
       tags: [inventory]

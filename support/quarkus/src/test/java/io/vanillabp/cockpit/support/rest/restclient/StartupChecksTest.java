@@ -13,8 +13,8 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * Keys which cannot work stop the building of a client, and every problem of a prefix is named
- * with its key and what to do: a missing or broken address, an incomplete proxy, retries without
- * attempts, an OAuth client without credentials, a value which cannot be read, and a key nobody
+ * with its key and what to do: a missing or broken address, an incomplete proxy, a pool without
+ * connections, retries without attempts, an OAuth client without credentials, a value which cannot be read, and a key nobody
  * reads, with the key that was meant.
  */
 @ExtendWith(SuppressOutputExtension.class)
@@ -44,6 +44,8 @@ public class StartupChecksTest {
       .overrideConfigKey("no-attempts.base-url", "https://inventory.example.com/api")
       .overrideConfigKey("no-attempts.retry.enabled", "true")
       .overrideConfigKey("no-attempts.retry.max-attempts", "0")
+      .overrideConfigKey("empty-pool.base-url", "https://inventory.example.com/api")
+      .overrideConfigKey("empty-pool.connection-pool-size", "0")
       .overrideConfigKey("wrong-value.base-url", "https://inventory.example.com/api")
       .overrideConfigKey("wrong-value.read-timeout", "a while")
       .overrideConfigKey("wrong-value.redirects", "sometimes")
@@ -118,6 +120,13 @@ public class StartupChecksTest {
             + "Set 'proxy-without-port.proxy.port'.");
     assertThat(problemsOf("proxy-without-host"))
         .contains("have proxy keys, but no 'proxy-without-host.proxy.host'");
+
+  }
+
+  @Test
+  public void a_pool_without_connections_is_refused() {
+
+    assertThat(problemsOf("empty-pool")).contains("'empty-pool.connection-pool-size: 0'. Set at least 1");
 
   }
 
