@@ -231,10 +231,11 @@ because a Quarkus version of it will follow. Its classes moved into the sub-modu
 one. `business-cockpit-bom` manages the new artifact. Replace the `artifactId` in the POM. The
 packages stay `io.vanillabp.cockpit.support...`, so no import changes.
 
-The module now also has `BcUnknownTaskException` and `BcTaskNotOpenException` in
-`io.vanillabp.cockpit.support.usertask`, and `BcUserTaskExceptionHandler`, which answers them with
-`404 Not Found` and `409 Conflict`. A workflow module which wrote its own exceptions for a task id
-it does not know, or for a task which is no longer open, can use these. Nothing registers the
+The module now also has `BcUnknownTaskException`, `BcTaskNotOpenException` and
+`BcTaskClaimedByAnotherUserException` in `io.vanillabp.cockpit.support.usertask`, and
+`BcUserTaskExceptionHandler`, which answers the first two with `404 Not Found` and the third with
+`409 Conflict`. A workflow module which wrote its own exceptions for a task id it does not know, for
+a task which is no longer open, or for a task which another user claimed, can use these. Nothing registers the
 handler on its own: import it with `@Import(BcUserTaskExceptionHandler.class)`.
 
 ### The cockpit no longer injects a `Logger`
@@ -860,3 +861,13 @@ An implementation of `UpdateStreamAudience` has the new method `namingItsInitiat
 `WhatTheStreamsMaySee` has the new last component `initiatorOfEachEntity`. The records
 `UserTaskVisibility.TaskFacts` and `WorkflowVisibility.WorkflowFacts` have the new last components
 `initiator` and `initiatorOfLatestChange`.
+
+### A task which is not open any more answers 404
+
+This concerns only a build which used an earlier snapshot of `main`. `BcUserTaskExceptionHandler`
+on Spring Boot and `BcUserTaskExceptionMapper` on Quarkus answered `BcTaskNotOpenException` with
+`409 Conflict`. They answer it with `404 Not Found` now, like `BcUnknownTaskException`: for a form
+there is no open task of that id either way. `409 Conflict` now means that another user claimed the
+task. A workflow module says so with the new `BcTaskClaimedByAnotherUserException`, which carries
+the ids and, if the module knows it, the user who claimed the task. A user interface which read 409
+as "the task is done" has to read 404 for that now.
