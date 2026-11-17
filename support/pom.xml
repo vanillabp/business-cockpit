@@ -11,7 +11,7 @@
   <artifactId>support-parent</artifactId>
   <packaging>pom</packaging>
   <name>Business Cockpit support</name>
-  <description>What the Business Cockpit and a workflow module behind it share, one module per platform. Today there is the Spring Boot module only.</description>
+  <description>What the Business Cockpit and a workflow module behind it share: a core which knows no platform, and one module per platform on top of it, for Spring Boot and for Quarkus.</description>
 
   <licenses>
     <license>
@@ -30,7 +30,9 @@
   </developers>
 
   <modules>
-    <!-- a module for Quarkus joins it later, as 'quarkus' -->
+    <!-- first: the two platform modules bring it -->
+    <module>core</module>
     <module>spring-boot</module>
+    <module>quarkus</module>
   </modules>
 </project>

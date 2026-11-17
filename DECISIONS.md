@@ -1445,6 +1445,10 @@ Quarkus is `version.quarkus` here and `quarkus.version` there. The name stays, b
 version of this repository follows that pattern, and Renovate reads both names. The script knows
 both. A comment at the property in `extensions-commons/pom.xml` says why it differs.
 
+**Addendum:** the property moved from `extensions-commons/pom.xml` to the root `pom.xml`, together
+with its comment, because the Quarkus module of `support` has to run on the same Quarkus as the
+extension. The script reads it there.
+
 #### Which version is right when they differ
 
 The check does not decide this. The report lists the value of every repository and names the
@@ -4720,4 +4724,80 @@ latest real change, read in the filtering tick.
   `ChangeStreamNotificationsTest`,
   `AChangeInTheGuiAndAReportAtTheSameTimeTest`, `TheUpdateStreamAsItsOpenApiFileSaysTest` in
   `container`
+
+### 103. `support` has a core which knows no platform, and the Quarkus module registers its answers on its own
+
+This entry adds to decision 92, which says that `support` has one module per platform. What it says
+about the Spring Boot module stays true.
+
+#### What was found
+
+A workflow module on Quarkus needs most of what a Spring Boot workflow module gets from `support`:
+the user and the groups, the exceptions of a user task, the TLS helpers of a REST client. Those
+classes use nothing but the JDK. Copying them into a Quarkus module would give two classes with the
+same name and package in two artifacts, and they would drift apart. What differs is how a status
+code is sent, how a login is checked and how a client is built.
+
+On Spring Boot nothing in `support` registers the handler of the user task exceptions. A workflow
+module imports it, or its component scan reaches it. Quarkus has no component scan which an
+application aims at a library. It reads the classes of every jar which carries a Jandex index.
+
+#### The decision
+
+`support` gets a third module, `support/core`, published as
+`io.vanillabp.businesscockpit:business-cockpit-support-core`. It holds the classes which know no
+platform and has no dependency in compile scope. Both platform modules depend on it, so nobody
+names it. The classes keep their packages, `io.vanillabp.cockpit.support...`. So one package can
+have classes in `core` and in a platform module, and no import changes.
+
+A class goes into `core` only if it knows neither Spring nor Quarkus. A class which knows no
+platform but describes what a platform class reads, like the properties of a REST client, stays
+next to that class until its counterpart on the other platform exists.
+
+`support/quarkus`, published as `io.vanillabp.businesscockpit:business-cockpit-quarkus-support`,
+is a plain library and not a Quarkus extension. It has no deployment module, because nothing in it
+needs a build step. Its jar carries a Jandex index, so Quarkus finds its classes. Quarkus itself is
+an optional dependency, so the application decides which extensions it runs.
+
+The Quarkus module answers the exceptions on its own, with methods annotated with
+`@ServerExceptionMapper`: `404` for `BcUnknownTaskException`, `409` for `BcTaskNotOpenException`
+and `401` for `BcUnauthorizedException`, each with the message as plain text. An application which
+has the module and Quarkus REST gets them without a line of its own. On Spring Boot the import
+stays, as decision 92 says.
+
+The Quarkus module brings `spi-for-java` in compile scope, as decision 84 asks of `support`. The
+module `development/workflow-module-on-quarkus-support-only` proves it in every build.
+
+Coverage is measured per platform. `core` counts in the report of the container, which carries the
+Spring Boot module, and in the report `test-coverage-report/support/quarkus`, which carries the
+Quarkus module and no Spring Boot test.
+
+#### What it costs
+
+For a Spring Boot user nothing changes: the Spring Boot module brings `core`, and no signature and
+no package changed. One more artifact is published.
+
+The two platforms register the answers differently. A Spring Boot workflow module which forgets the
+import gets Spring's error page. A Quarkus workflow module which wants other answers writes a
+mapper of its own with a higher priority.
+
+#### Where it applies
+
+- `support/pom.xml`, `support/core`, `support/quarkus` and the `pom.xml` of `support/spring-boot`
+- `support/README.md`, `support/core/README.md`, `support/quarkus/README.md` and
+  `support/spring-boot/README.md`
+- the javadoc of `BcUnknownTaskException`, `BcTaskNotOpenException` and `BcUnauthorizedException`,
+  which name the answers on both platforms
+- `BcUserTaskExceptionMapper` and `BcUnauthorizedExceptionMapper` in `support/quarkus`, and their
+  test `BcUserTaskExceptionMapperTest`
+- `development/workflow-module-on-quarkus-support-only`, its `pom.xml`, its `README.md` and its
+  classes, and the list of modules in the root `pom.xml`
+- `test-coverage-report/support/quarkus`, `test-coverage-report/application/spring-boot/pom.xml`,
+  `CoverageGateTest`, the property `coverage.threshold.support-quarkus` in the root `pom.xml` and
+  `test-coverage-report/README.md`
+- `bom/pom.xml` and `bom/README.md`
+- `README.md`, sections "Test coverage" and "The modules"
+- the property `version.quarkus`, which moved to the root `pom.xml` so that both Quarkus modules
+  use one version, and `bin/check-the-chain.sh`, which reads it there
+- the wiki page "Connecting a workflow module"
 

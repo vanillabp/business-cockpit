@@ -11,13 +11,14 @@
   <artifactId>test-coverage-report</artifactId>
   <packaging>pom</packaging>
   <name>Test coverage report</name>
-  <description>Aggregator of the test coverage reports. Coverage is measured separately per deployable and per platform: the business cockpit container and the two platform halves of the Business Cockpit extension. None of them executes another's code, so a single number spanning them would hide whichever is weakest.</description>
+  <description>Aggregator of the test coverage reports. Coverage is measured separately per deployable and per platform: the business cockpit container, the two platform halves of the Business Cockpit extension and the Quarkus module of the support. None of them executes another's code, so a single number spanning them would hide whichever is weakest.</description>
 
   <modules>
     <module>application/spring-boot</module>
     <module>extensions-commons/spring-boot</module>
     <module>extensions-commons/quarkus</module>
-    <!-- last: it judges what the two modules above produced -->
+    <module>support/quarkus</module>
+    <!-- last: it judges what the modules above produced -->
     <module>coverage-gate</module>
   </modules>
 

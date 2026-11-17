@@ -1,15 +1,29 @@
 # Support
 
-What the Business Cockpit and a workflow module behind it share. A workflow module depends on one
-of the modules below, and so does the cockpit. With it as its only dependency, a workflow module
+What the Business Cockpit and a workflow module behind it share. A workflow module depends on the
+module for its platform, and so does the cockpit. With it as its only dependency, a workflow module
 compiles.
 
-There is one module per platform, because what a workflow module needs to check a login or to answer
-a request depends on the platform it runs on:
+What a workflow module needs to check a login or to answer a request depends on the platform it
+runs on. Everything else is the same on both. So there are three modules:
 
+- [core](./core), published as `io.vanillabp.businesscockpit:business-cockpit-support-core`. The
+  classes which know no platform: `UserDetails`, `UserDetailsImpl`, `UserDirectoryService` and
+  `GroupHierarchyResolver` for the user and the groups, `BcUnauthorizedException`,
+  `BcUnknownTaskException` and `BcTaskNotOpenException`, and `TlsTruststoreUtil` and
+  `ApiVersionAware` for REST clients. It has no dependency in compile scope. Nobody names it
+  directly, because both platform modules bring it.
 - [spring-boot](./spring-boot), published as
-  `io.vanillabp.businesscockpit:business-cockpit-spring-boot-support`. Its README says what it holds.
-- `quarkus` does not exist yet. It will be added next to `spring-boot`.
+  `io.vanillabp.businesscockpit:business-cockpit-spring-boot-support`. The cockpit and a Spring Boot
+  workflow module depend on it. Its README says what it holds.
+- [quarkus](./quarkus), published as `io.vanillabp.businesscockpit:business-cockpit-quarkus-support`.
+  A Quarkus workflow module depends on it. Today it holds the mappers which answer the exceptions
+  for REST requests. Checking the login token and the user of a request follow. Its README says
+  more.
+
+The classes of `core` kept their packages, `io.vanillabp.cockpit.support...`, when they moved out
+of the Spring Boot module. So a package can have classes in `core` and in a platform module. Code
+which used them changes no import.
 
 This directory itself is only the parent POM, `support-parent`, which lists the modules. Nothing
 builds against it.
@@ -24,9 +38,14 @@ client configuration again for every API it calls. The cockpit's development sim
 call the cockpit, and an application uses it to call any other REST API. The classes are in the
 package `io.vanillabp.cockpit.support.rest.adapter`.
 
-Only the Spring Boot module has them today. All classes except `ClientsConfigurationBase` know no
-Spring, so the Quarkus module can reuse them later. `ClientsConfigurationBase` is the part which
-needs a Quarkus counterpart.
+Only the Spring Boot module has them today. `TlsTruststoreUtil` and `ApiVersionAware` know no
+platform and are in `core`. The rest needs Spring: `ClientsConfigurationBase` uses Spring's bean
+factory, and `BearerTokenBasedAuthInterceptor` and `OauthBearerTokenHandler` build on it, the first
+as its subclass and the second through `configureOkHttpClient`. The properties classes `Client`,
+`Authentication`, `OauthAuthentication`, `Proxy` and `Retry` and the Feign helper
+`OffsetDateTimeAwareExpander` know no Spring. They stay in the Spring Boot module anyway, because
+they describe what `ClientsConfigurationBase` reads, and the Quarkus way to build a client is not
+chosen yet. The Quarkus module will get a counterpart for all of them.
 
 ### What `ClientsConfigurationBase` does
 

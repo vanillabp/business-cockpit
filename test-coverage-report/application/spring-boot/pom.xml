@@ -31,6 +31,13 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <!-- the platform-neutral part of support. It is part of every cockpit, and its classes
+           were part of the Spring Boot module before, so they stay counted here -->
+      <groupId>${project.groupId}</groupId>
+      <artifactId>business-cockpit-support-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>spi-for-java</artifactId>
       <version>${project.version}</version>

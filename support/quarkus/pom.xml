@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.vanillabp.businesscockpit</groupId>
+    <artifactId>support-parent</artifactId>
+    <version>0.9.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>business-cockpit-quarkus-support</artifactId>
+  <name>Business Cockpit support - Quarkus</name>
+  <description>What a workflow module behind the Business Cockpit needs on Quarkus: the cockpit's SPI, the user and the groups, and the exceptions of a user task together with the mappers which answer them.</description>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>VanillaBP</id>
+      <organization>Phactum Softwareentwicklung GmbH</organization>
+      <organizationUrl>https://www.phactum.at</organizationUrl>
+    </developer>
+  </developers>
+
+  <properties>
+    <!-- an application or an adapter builds against this module, so its snapshot carries a
+         javadoc jar as well -->
+    <skip.javadoc.jar>false</skip.javadoc.jar>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <!-- imported first, so it wins over the Spring Boot BOM of the root POM for the libraries
+          both name: this module runs in a Quarkus application -->
+        <groupId>io.quarkus</groupId>
+        <artifactId>quarkus-bom</artifactId>
+        <version>${version.quarkus}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <!-- the io.vanillabp coordinates this module reads, at the version the root POM names.
+          That POM also says why the import is repeated here instead of sitting there. -->
+        <groupId>io.vanillabp</groupId>
+        <artifactId>vanillabp-bom</artifactId>
+        <version>${version.vanillabp}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!--
+      The annotations and interfaces of the cockpit's SPI, and through it the SPI of VanillaBP. Not
+      optional: with this module as its only dependency, a workflow module compiles, the same as
+      with the Spring Boot module. See decision 84 in the repository's DECISIONS.md.
+    -->
+    <dependency>
+      <groupId>io.vanillabp.businesscockpit</groupId>
+      <artifactId>spi-for-java</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <!-- the classes which know no platform, the same ones the Spring Boot module brings -->
+    <dependency>
+      <groupId>io.vanillabp.businesscockpit</groupId>
+      <artifactId>business-cockpit-support-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <!--
+      Quarkus itself is optional, like Spring Web in the Spring Boot module. The application brings
+      Quarkus and decides on its version and its extensions. A library which brought an extension
+      would switch it on in every application which uses the library. The scope is not 'provided',
+      because Quarkus leaves a provided dependency out of the application its tests start, and the
+      tests here need both extensions.
+    -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-arc</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <!-- the REST layer the exception mappers belong to -->
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-rest</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit-internal</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- the test framework makes the test class a bean with a build step of ArC, and it looks
+        for that build step on the test class path -->
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-arc-deployment</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- reads the index of this module's jar, to check that Quarkus will find the mappers -->
+      <groupId>io.smallrye</groupId>
+      <artifactId>jandex</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- sends the requests to the test application -->
+      <groupId>io.rest-assured</groupId>
+      <artifactId>rest-assured</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- the output suppression every test class of this module registers -->
+      <groupId>io.vanillabp</groupId>
+      <artifactId>test-utils</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <!--
+          Writes META-INF/jandex.idx into the jar. Quarkus reads the classes of a dependency only if
+          the jar carries such an index, and only then does it find the exception mappers. That is
+          what makes this a plain library and not a Quarkus extension: no build step is needed.
+        -->
+        <groupId>io.smallrye</groupId>
+        <artifactId>jandex-maven-plugin</artifactId>
+        <version>3.6.0</version>
+        <executions>
+          <execution>
+            <id>make-index</id>
+            <goals>
+              <goal>jandex</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <!-- The tests here boot their application IN this JVM, and Quarkus logs that boot into a
+            log context of its own which the output suppression does not reach. So Surefire writes
+            what a test class prints into its report instead of the console. Nothing is dropped
+            and no level is touched. The extension's Quarkus tests in extensions-commons do the
+            same, and their POM says more. -->
+          <redirectTestOutputToFile>true</redirectTestOutputToFile>
+          <systemPropertyVariables>
+            <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+            <quarkus.log.level>INFO</quarkus.log.level>
+            <maven.home>${maven.home}</maven.home>
+            <maven.repo>${settings.localRepository}</maven.repo>
+            <!-- handed to forked Quarkus applications so that they report their coverage -->
+            <jacoco.agent>${jacoco.agent}</jacoco.agent>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

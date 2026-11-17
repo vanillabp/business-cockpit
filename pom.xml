@@ -48,6 +48,7 @@
     <module>development/dev-shell-simulator</module>
     <module>development/simulator</module>
     <module>development/workflow-module-on-support-only</module>
+    <module>development/workflow-module-on-quarkus-support-only</module>
     <module>extensions-commons</module>
     <!-- last: it aggregates and judges what all modules above produced -->
     <module>test-coverage-report</module>
@@ -76,6 +77,13 @@
     <version.org.mapstruct>1.6.3</version.org.mapstruct>
     <version.protobuf>4.31.1</version.protobuf>
     <version.lombok>1.18.48</version.lombok>
+    <!-- 'version.quarkus' like every other version of this repository, while the adapter
+      repositories call it 'quarkus.version'. Renovate reads both names. The value is a promise
+      to those repositories: their Quarkus half runs in the same application as this one, and
+      bin/check-the-chain.sh compares them every night. It is named here and not in a subtree,
+      because the Quarkus half of the extension and the Quarkus module of support run in the same
+      application and so have to agree on one version. -->
+    <version.quarkus>3.40.1.2</version.quarkus>
     <!--
       One property for the whole JUnit family, used by the BOM import below and by the Surefire
       plugin, which reads its dependencies outside of dependency management.
@@ -90,6 +98,9 @@
     <coverage.threshold.application-spring-boot>55</coverage.threshold.application-spring-boot>
     <coverage.threshold.extensions-commons-spring-boot>85</coverage.threshold.extensions-commons-spring-boot>
     <coverage.threshold.extensions-commons-quarkus>85</coverage.threshold.extensions-commons-quarkus>
+    <!-- the Spring Boot module of support is part of the container report. Its Quarkus module
+         runs in no cockpit, only in a workflow module, so it has a report of its own -->
+    <coverage.threshold.support-quarkus>85</coverage.threshold.support-quarkus>
     <!-- the rule every VanillaBP repository is read against. The gate prints each
          measurement against it on every run but never fails on it, because it marks where
          somebody has to look and not the number a build has to hit today. -->

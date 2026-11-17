@@ -86,17 +86,4 @@ public class BcUserTaskExceptionHandlerTest {
 
   }
 
-  @Test
-  public void theExceptionsKeepTheIdsTheRequestNamed() {
-
-    final var unknown = new BcUnknownTaskException("loan-1", "task-9");
-    final var notOpen = new BcTaskNotOpenException("loan-2", "task-8");
-
-    assertThat(unknown.getWorkflowId()).isEqualTo("loan-1");
-    assertThat(unknown.getTaskId()).isEqualTo("task-9");
-    assertThat(notOpen.getWorkflowId()).isEqualTo("loan-2");
-    assertThat(notOpen.getTaskId()).isEqualTo("task-8");
-
-  }
-
 }

@@ -31,12 +31,26 @@ because a plugin is not managed by a BOM. It is the version of `spring-boot-depe
 - The BOMs of Spring Boot and Spring Cloud, and the VanillaBP BOM.
 - `mongodb-changesets`, in the version the cockpit is built with.
 - The artifacts of a derived cockpit: `business-cockpit` and `bpms-protobuf-api`, and the modules
-  the library brings with it, `business-cockpit-spring-boot-support`, `spi-for-java`, `bpms-api-server` and
-  `official-gui-api-server`.
+  the library brings with it, `business-cockpit-spring-boot-support`, `business-cockpit-support-core`,
+  `spi-for-java`, `bpms-api-server` and `official-gui-api-server`.
+- `business-cockpit-quarkus-support`, so the BOM names every artifact of a release. See below for
+  who uses it.
 
-What a workflow module uses is not in it. A workflow module gets the cockpit through the cockpit's
-adapter for its BPMS, which is released in a repository of its own. A workflow module may also run
-on Quarkus, and the Spring BOMs would be wrong there.
+The cockpit's adapters are not in it. A workflow module gets them for its BPMS, and each is released
+in a repository of its own.
+
+A workflow module on Quarkus does not import this BOM. The Spring BOMs in it would be wrong in a
+Quarkus application, because they would win over the versions Quarkus brings. So a Quarkus
+workflow module names the version of `business-cockpit-quarkus-support` itself, for example with a
+property:
+
+```xml
+<dependency>
+  <groupId>io.vanillabp.businesscockpit</groupId>
+  <artifactId>business-cockpit-quarkus-support</artifactId>
+  <version>${business-cockpit.version}</version>
+</dependency>
+```
 
 Protobuf is not pinned. Protobuf 4 generated code calls
 `RuntimeVersion.validateProtobufGencodeVersion()` in every static initializer, and the class fails

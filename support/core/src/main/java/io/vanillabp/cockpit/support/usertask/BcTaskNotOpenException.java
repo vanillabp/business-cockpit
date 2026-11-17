@@ -2,8 +2,9 @@ package io.vanillabp.cockpit.support.usertask;
 
 /**
  * The user task exists, but it was completed or canceled already. A form was sent twice, or it was
- * sent after the workflow took the task away. {@link BcUserTaskExceptionHandler} answers it with
- * {@code 409 Conflict} and sends the message as the body.
+ * sent after the workflow took the task away. {@code BcUserTaskExceptionHandler} on Spring Boot and
+ * {@code BcUserTaskExceptionMapper} on Quarkus answer it with {@code 409 Conflict} and send the
+ * message as the body.
  */
 public class BcTaskNotOpenException extends RuntimeException {
 

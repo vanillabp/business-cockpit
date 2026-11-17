@@ -101,11 +101,17 @@ two platforms never runs.
 |----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Business cockpit container | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fapplication-spring-boot-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/application-spring-boot-report)               |                                                                                                                                                                                                                                                                                                                                                                  |
 | Extension commons          | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fextensions-commons-spring-boot-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/extensions-commons-spring-boot-report) | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fextensions-commons-quarkus-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/extensions-commons-quarkus-report) |
+| Support                    | see the container report                                                                                                                                                                                                                                                                                                                                                 | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fsupport-quarkus-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/support-quarkus-report)                       |
 
 Each badge reads the report it links to, so the number shown here and the number in the report
-cannot drift apart. All three reports are published on every build of the default branch. How they
+cannot drift apart. All four reports are published on every build of the default branch. How they
 are produced, what the gate prints on every run and what a run stopping at `package` does instead is
 in [test-coverage-report](./test-coverage-report).
+
+The Quarkus module of `support` has a fourth report, `test-coverage-report/support/quarkus`, with
+the same gate of 85. It counts that module and the platform-neutral `support/core`, and no Spring
+Boot test. The Spring Boot module of `support` and `support/core` are part of the container report,
+because every cockpit carries them.
 
 ## The modules
 
@@ -116,9 +122,11 @@ In the order they build on each other:
 2. **[support](./support)**:<br>What the cockpit and a workflow module behind it share: the SPI
    above, the check of the cockpit's login token, the user and the groups, the exceptions for a user
    task which is unknown or no longer open, and a REST client for the APIs of a BPMS or of the
-   cockpit. It brings no MongoDB and no Kafka. One sub-module per platform, today only
-   `spring-boot`, published as `business-cockpit-spring-boot-support`. With it as its only
-   dependency, a workflow module compiles.
+   cockpit. It brings no MongoDB and no Kafka. A `core` which knows no platform, published as
+   `business-cockpit-support-core`, and one module per platform on top of it: `spring-boot`,
+   published as `business-cockpit-spring-boot-support`, and `quarkus`, published as
+   `business-cockpit-quarkus-support`. With the module of its platform as its only dependency, a
+   workflow module compiles. The Quarkus module holds the answers to the exceptions so far.
 3. **[apis](./apis)**:<br>The generated clients and servers of the two interfaces the cockpit has:
    `bpms-api` for what workflow modules report, `official-gui-api` for what a user interface reads.
 4. **[extensions-commons](./extensions-commons)**:<br>The platform-neutral half of the integration
@@ -141,7 +149,8 @@ In the order they build on each other:
 8. **[development](./development)**:<br>The local development environment, and the tools which support
    developing a workflow module: the dev shell simulator and the simulator. Next to them,
    `workflow-module-on-support-only` proves in every build that a workflow module compiles with
-   `support` as its only dependency.
+   `support` as its only dependency, and `workflow-module-on-quarkus-support-only` proves the same
+   for Quarkus.
 9. **[test-coverage-report](./test-coverage-report)**:<br>The aggregated coverage reports and the
    gate which judges them. A build writes each report to `report` below its own directory here, and
    the default branch publishes them as the pages the [coverage badges](#test-coverage) read. The

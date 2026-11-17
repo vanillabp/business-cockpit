@@ -61,7 +61,8 @@ public class CoverageGateTest {
       .of(
           ROOT.resolve("test-coverage-report/application/spring-boot/pom.xml"),
           ROOT.resolve("test-coverage-report/extensions-commons/spring-boot/pom.xml"),
-          ROOT.resolve("test-coverage-report/extensions-commons/quarkus/pom.xml"));
+          ROOT.resolve("test-coverage-report/extensions-commons/quarkus/pom.xml"),
+          ROOT.resolve("test-coverage-report/support/quarkus/pom.xml"));
 
   /**
    * Modules whose execution data belongs to no coverage report. Each entry is a decision. A
@@ -123,6 +124,17 @@ public class CoverageGateTest {
         "Business Cockpit extension (Quarkus)",
         "extensions-commons/quarkus",
         "coverage.threshold.extensions-commons-quarkus");
+
+  }
+
+  @Test
+  @DisplayName("The Business Cockpit support's Quarkus report is above the coverage threshold")
+  public void theSupportQuarkusReportIsAboveTheThreshold() {
+
+    assertAboveThreshold(
+        "Business Cockpit support (Quarkus)",
+        "support/quarkus",
+        "coverage.threshold.support-quarkus");
 
   }
 
