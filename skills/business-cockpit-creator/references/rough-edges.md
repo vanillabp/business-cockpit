@@ -14,7 +14,7 @@ code of the cockpit. Read this before the first screen, not when something does 
 7. [The refresh token leads nowhere](#the-refresh-token-leads-nowhere)
 8. [A search pattern goes into the database unescaped](#a-search-pattern-goes-into-the-database-unescaped)
 9. [Two filters on one path](#two-filters-on-one-path)
-10. [An event says that something changed, not what](#an-event-says-that-something-changed-not-what)
+10. [An event names the entity, not its new values](#an-event-names-the-entity-not-its-new-values)
 11. [`filterable` is not read by the server](#filterable-is-not-read-by-the-server)
 12. [A module may report a type of another user interface](#a-module-may-report-a-type-of-another-user-interface)
 13. [The update form has no offset](#the-update-form-has-no-offset)
@@ -97,16 +97,19 @@ matches whole words and has one index per collection. Better ways are being work
 
 ## Two filters on one path
 
-The conditions of a query are joined with AND, but two conditions on the same field are not accepted
-today. Your user interface does not offer it: when the user sets a filter on a path, remove the old
-entry for that path first, then add the new one.
+Conditions on different paths are joined with AND. Two conditions on the same path are meant to be
+joined with OR, but the server does not do that yet. The list and the count answer 500, and the
+suggestions for a search field join the two with AND. Your user interface does not offer it for
+now: when the user sets a filter on a path, remove the old entry for that path first, then add the
+new one.
 
-By intent this is no error, and a later version will allow it.
+By intent this is no error, and a later version joins the two with OR.
 
-## An event says that something changed, not what
+## An event names the entity, not its new values
 
-An event of the update stream is a wake-up call: kind, id, type of change and who made it. It does
-not carry the changed data. Never show anything from an event directly.
+An event of the update stream is a wake-up call. It names the entity exactly: the kind, the id of
+the user task or case, its workflow module, the type of change and who made it. It does not carry
+the new values. Never show anything of the entity from an event directly.
 Ask the server, and take an empty answer as an answer: the row may have left the user's view.
 
 Who made the change is in the event, in `initiator` and `initiatorKind`. Take it from there, not

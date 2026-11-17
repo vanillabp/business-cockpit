@@ -38,24 +38,60 @@ What is written here is the behaviour behind them, which neither file says.
 
 Generate the client from the OpenAPI files. Never write it by hand.
 
-The tool is [`orval`](https://orval.dev), a dev dependency of the project. It runs on Node alone
-(22.18 or newer) and needs no Java. Set `output.client` in `orval.config.ts`:
+The tool is [`@hey-api/openapi-ts`](https://heyapi.dev/openapi-ts/get-started), the generator the
+Business Cockpit blueprints use. Use it in the same way. It is a dev dependency of the project, and
+`package.json` pins it exactly to `0.99.0`. It is a Node program without install scripts, so the
+build needs Node 24 or newer (`"engines": { "node": ">=24" }`) and nothing else: no Java, and no
+download while it runs.
 
-- `fetch` for every framework except Angular. It uses the browser's `fetch`.
-- `angular` for Angular. It writes services that use Angular's `HttpClient`, so the interceptors
-  of the application see every request.
+`openapi-ts.config.mjs` holds the options, with one job per OpenAPI file. The plugins and their
+options are those of the blueprints:
 
-Why `orval`: it covers both kinds of client with one tool and one configuration. Its major version
-is stable (8 in October 2026), and new versions come out every few days. `@hey-api/openapi-ts` also
-has a fetch and an Angular client, but it is still below 1.0, so every minor version may break
-the generated code. `openapi-typescript` with `openapi-fetch` has no Angular client.
-`ng-openapi-gen` writes Angular only, so a second tool would be needed for the other frameworks.
-Pin the version of `orval` exactly in `package.json`.
+```js
+import { defineConfig } from '@hey-api/openapi-ts';
 
-Generate it at build time, for example in a `prebuild` script, into a folder that Git ignores. It is
-never committed. The same goes for every dev shell: it generates its own client from the same
-files. `orval` also writes the TypeScript interfaces of the data, so the types library takes them
-from the same run, see [types.md](types.md#data-from-the-gui-api).
+const client = (name) => ({
+  input: `build/openapi/${name}.yaml`,
+  output: `src/generated/${name}`,
+  plugins: [
+    // An answer which is not a success throws. The index also exports the client.
+    { name: '@hey-api/client-fetch', throwOnError: true, exportFromIndex: true },
+    '@hey-api/typescript',
+    {
+      name: '@hey-api/sdk',
+      // One class per tag: the tag `officialTasklist` becomes OfficialTasklistApi.
+      operations: { strategy: 'byTags', containerName: '{{name}}Api', methods: 'instance' },
+      // A method takes one object with all parameters, the body under the name of its schema.
+      paramsStructure: 'flat',
+      // A method returns the data of the answer, not the answer.
+      responseStyle: 'data',
+    },
+  ],
+});
+
+export default defineConfig([client('official-gui-api'), client('cockpit-gui-api')]);
+```
+
+The generated classes and types hide every REST call. A schema becomes a type of the same name, an
+operation a method of the class of its tag. The first server of the file, `/gui/api/v1`, becomes
+the base URL. Your code creates one instance per class and calls its methods. Nobody writes a
+`fetch` call to the GUI API by hand.
+
+The client uses the browser's `fetch`, in every framework, Angular included. So the interceptors of
+Angular's `HttpClient` do not see these requests. Use the interceptors of the generated `client`
+instead. The generated client throws only the body of an answer which is not a success, without
+its status, so add an error interceptor which keeps the `Response`. The user interface needs the
+status, for example to tell a 401 from other errors, see [Staying logged in](#staying-logged-in).
+
+Why this tool: the generated classes and types carry the boilerplate, so your own code reads well.
+Its version is still 0.x, and a minor version may break the generated code. That is accepted, and
+it is the reason for the exact pin. An update is checked by hand.
+
+Generate it at every build, for example in a `prebuild` script, into `src/generated/`, which Git
+ignores. It is never committed. The same goes for every dev shell: it generates its own client from
+the same files. The plugin `@hey-api/typescript` writes the TypeScript types of the data, and the
+types library generates its types with the same tool and the same version, see
+[types.md](types.md#data-from-the-gui-api).
 
 How the npm project gets the two files: both ship inside jars of the cockpit. The jars lie in the
 Maven repository the cockpit artifacts are deployed to. The interview names that repository and the
@@ -330,9 +366,11 @@ interface passes an input on, escape it, see
 
 `caseInsensitive` switches on the option `i`. Otherwise upper and lower case are told apart.
 
-Several `SearchQuery` entries are joined with AND. Do not send two entries with the same `path`.
-When the user sets a filter on a path, remove the old entry for that path first, see
-[rough-edges.md](rough-edges.md#two-filters-on-one-path).
+Entries with different paths are joined with AND. Entries with the same `path` are meant to be
+joined with OR, but the server does not do that yet. Today the list and the count answer 500 for
+two entries with the same `path`, and the suggestions for a search field join them with AND. So
+send one entry per path for now. When the user sets a filter on a path, remove the old entry for
+that path first, see [rough-edges.md](rough-edges.md#two-filters-on-one-path).
 
 A field that looks like a filter and is not one: `businessIds` of `WorkflowsRequest` is an exact
 match on the field `businessId` and not a search pattern. `POST /workflow`, `PUT /workflow` and
@@ -473,8 +511,10 @@ pages of the window again with `POST` and the same `initialTimestamp` instead, s
 ## The update stream
 
 `GET /gui/api/v1/updates` is a `text/event-stream` (server-sent events). There is one stream per
-browser tab. An event in it is a wake-up call. It names the kind of entity, its id and what
-happened to it. It does not say what changed. Your user interface asks again.
+browser tab. An event in it is a wake-up call. It says exactly which entity it is about: the name of
+the event is the kind (`UserTask` or `Workflow`), `event.id` is the id of that user task or case,
+`event.type` says what happened, and `workflowModuleId` names its workflow module. The new values
+are not in it. Your user interface reads the entity again.
 
 The path is in the cockpit's own file, so the types of the events come from the
 generated client. The connection does not: open it with `EventSource`, or with `fetch` and a reader
