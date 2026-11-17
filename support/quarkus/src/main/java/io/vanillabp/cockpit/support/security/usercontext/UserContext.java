@@ -6,6 +6,7 @@ import io.quarkus.security.identity.SecurityIdentity;
 import io.vanillabp.cockpit.support.security.BcUnauthorizedException;
 import io.vanillabp.cockpit.support.security.jwt.LoginTokenIdentityProvider;
 import jakarta.enterprise.context.RequestScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
 /**
@@ -16,12 +17,18 @@ import jakarta.inject.Inject;
  * It reads the {@link SecurityIdentity} of the request. A request without a user, for example
  * without the cockpit's cookie, ends in {@link BcUnauthorizedException}, which this module answers
  * with {@code 401 Unauthorized}.
+ * <p>
+ * It is there in every application, whatever the login. With the check of the cockpit's login token
+ * switched off, it reads the identity of the application's own login. An application without
+ * {@code quarkus-security} has no identity at all, so for it nobody is logged in. That is why the
+ * identity is looked up and not injected: injected, it would stop the build of an application which
+ * has the support only for its exceptions.
  */
 @RequestScoped
 public class UserContext {
 
   @Inject
-  SecurityIdentity identity;
+  Instance<SecurityIdentity> identityOfTheRequest;
 
   /**
    * Creates the context. Quarkus calls this constructor.
@@ -51,6 +58,10 @@ public class UserContext {
    */
   public UserDetails getUserLoggedInDetails() throws BcUnauthorizedException {
 
+    if (!identityOfTheRequest.isResolvable()) {
+      throw new BcUnauthorizedException("User anonymous");
+    }
+    final var identity = identityOfTheRequest.get();
     if (identity.isAnonymous()) {
       throw new BcUnauthorizedException("User anonymous");
     }

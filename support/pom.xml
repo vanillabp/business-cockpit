@@ -37,5 +37,8 @@
     <!-- the Quarkus module as the dependency of an application, which is how Quarkus finds its
          beans and mappers. Tests only, nothing is published. -->
     <module>quarkus-it</module>
+    <!-- the same without quarkus-security, the way a workflow module has it which only throws
+         the exceptions of a user task. Tests only, nothing is published. -->
+    <module>quarkus-it-without-security</module>
   </modules>
 </project>

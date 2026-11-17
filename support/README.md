@@ -24,6 +24,9 @@ runs on. Everything else is the same on both. So there are three modules:
   follows. Its README says more.
 - [quarkus-it](./quarkus-it), a Quarkus application with the Quarkus module as a plain dependency.
   It is not published. Its tests show that Quarkus finds everything in the jar on its own.
+- [quarkus-it-without-security](./quarkus-it-without-security), the same without
+  `quarkus-security`. It is not published either. Its tests show that a workflow module which has
+  the support only for its exceptions builds and starts.
 
 The classes of `core` kept their packages, `io.vanillabp.cockpit.support...`, when they moved out
 of the Spring Boot module. So a package can have classes in `core` and in a platform module. Code

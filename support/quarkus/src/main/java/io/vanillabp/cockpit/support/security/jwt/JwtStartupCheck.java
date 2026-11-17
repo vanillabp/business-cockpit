@@ -7,9 +7,12 @@ import java.util.Locale;
 import java.util.TreeSet;
 
 import org.eclipse.microprofile.config.Config;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.quarkus.arc.properties.IfBuildProperty;
 import io.quarkus.runtime.StartupEvent;
+import io.quarkus.security.identity.IdentityProviderManager;
 import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryIsMissing;
 import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -25,14 +28,20 @@ import jakarta.inject.Inject;
  * meant. The keys which say how the cookie is written belong to the cockpit alone, and they are
  * refused with that reason;</li>
  * <li>no secret, or one which is no Base64 or too short;</li>
- * <li>no {@link UserDirectoryService}, which gives the groups of a user.</li>
+ * <li>no {@link UserDirectoryService}, which gives the groups of a user;</li>
+ * <li>a secret in an application without {@code quarkus-security}, which could not check a token
+ * with it.</li>
  * </ul>
+ * An application without {@code quarkus-security} and without a secret starts. It has the support
+ * for its exceptions only, so there is no token to check, and one line in the log says so.
  * The build property {@value JwtSettings#ENABLED_KEY}{@code =false} leaves this check out of the
  * application, together with the check of the token.
  */
 @ApplicationScoped
 @IfBuildProperty(name = JwtSettings.ENABLED_KEY, stringValue = "true", enableIfMissing = true)
 public class JwtStartupCheck {
+
+  private static final Logger logger = LoggerFactory.getLogger(JwtStartupCheck.class);
 
   private static final String TOP = "business-cockpit.";
 
@@ -70,6 +79,13 @@ public class JwtStartupCheck {
   Instance<UserDirectoryService> userDirectory;
 
   /**
+   * A bean of the extension {@code quarkus-security}. Without that extension the application cannot
+   * check a token, because nothing would ask the mechanism.
+   */
+  @Inject
+  Instance<IdentityProviderManager> securityLayer;
+
+  /**
    * Creates the check. Quarkus calls this constructor.
    */
   public JwtStartupCheck() {
@@ -79,6 +95,10 @@ public class JwtStartupCheck {
       @Observes final StartupEvent event) {
 
     refuseKeysNobodyReads();
+    if (securityLayer.isUnsatisfied()) {
+      refuseASecretWhichNobodyChecks();
+      return;
+    }
     refuseAMissingSecret();
     refuseAMissingDirectory();
 
@@ -122,6 +142,24 @@ public class JwtStartupCheck {
       return "  - '%s' is no setting of the Business Cockpit. Did you mean '%s'?".formatted(propertyName, nearest);
     }
     return "  - '%s' is no setting of the Business Cockpit.".formatted(propertyName);
+
+  }
+
+  private void refuseASecretWhichNobodyChecks() {
+
+    if (settings.hmacSha256Base64().isPresent()) {
+      throw new IllegalStateException("""
+          The application sets '%s', but it cannot check the cockpit's login token: the Quarkus \
+          extension quarkus-security is missing. Add the dependency 'io.quarkus:quarkus-security' \
+          to check the token. An application which does not read the token removes the key and \
+          sets the build property '%s=false'."""
+          .formatted(JwtSettings.SECRET_KEY, JwtSettings.ENABLED_KEY));
+    }
+    logger.info(
+        "The cockpit's login token is not checked, because the application has no quarkus-security. "
+            + "Add the dependency 'io.quarkus:quarkus-security' to check it, or set the build property "
+            + "'{}=false' to say that this application does not need it.",
+        JwtSettings.ENABLED_KEY);
 
   }
 
