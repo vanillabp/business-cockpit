@@ -36,7 +36,7 @@ public class BcUserTaskExceptionMapper {
   public RestResponse<String> unknownTask(
       final BcUnknownTaskException exception) {
 
-    return plainText(RestResponse.Status.NOT_FOUND, exception);
+    return plainText(BcUnknownTaskException.HTTP_STATUS_CODE, exception);
 
   }
 
@@ -51,7 +51,7 @@ public class BcUserTaskExceptionMapper {
   public RestResponse<String> taskNotOpen(
       final BcTaskNotOpenException exception) {
 
-    return plainText(RestResponse.Status.NOT_FOUND, exception);
+    return plainText(BcTaskNotOpenException.HTTP_STATUS_CODE, exception);
 
   }
 
@@ -65,16 +65,17 @@ public class BcUserTaskExceptionMapper {
   public RestResponse<String> taskClaimedByAnotherUser(
       final BcTaskClaimedByAnotherUserException exception) {
 
-    return plainText(RestResponse.Status.CONFLICT, exception);
+    return plainText(BcTaskClaimedByAnotherUserException.HTTP_STATUS_CODE, exception);
 
   }
 
   private static RestResponse<String> plainText(
-      final RestResponse.Status status,
+      final int status,
       final RuntimeException exception) {
 
     return RestResponse.ResponseBuilder
-        .create(status, exception.getMessage())
+        .<String>create(status)
+        .entity(exception.getMessage())
         .type(MediaType.TEXT_PLAIN_TYPE)
         .build();
 

@@ -75,7 +75,7 @@ public class BcUserTaskExceptionHandlerTest {
 
     final var response = mockMvc
         .perform(post("/unknown/loan-1/task-9"))
-        .andExpect(status().isNotFound())
+        .andExpect(status().is(BcUnknownTaskException.HTTP_STATUS_CODE))
         .andReturn()
         .getResponse();
 
@@ -88,7 +88,7 @@ public class BcUserTaskExceptionHandlerTest {
 
     final var response = mockMvc
         .perform(post("/done/loan-1/task-9"))
-        .andExpect(status().isNotFound())
+        .andExpect(status().is(BcTaskNotOpenException.HTTP_STATUS_CODE))
         .andReturn()
         .getResponse();
 
@@ -101,7 +101,7 @@ public class BcUserTaskExceptionHandlerTest {
 
     final var response = mockMvc
         .perform(post("/claimed/loan-1/task-9/mary"))
-        .andExpect(status().isConflict())
+        .andExpect(status().is(BcTaskClaimedByAnotherUserException.HTTP_STATUS_CODE))
         .andReturn()
         .getResponse();
 

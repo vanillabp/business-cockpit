@@ -7,6 +7,12 @@ package io.vanillabp.cockpit.support.security;
  */
 public class BcUnauthorizedException extends RuntimeException {
 
+  /**
+   * The HTTP status a form answers with: {@value}. The request carries no valid login, so the form
+   * does not know who sends it.
+   */
+  public static final int HTTP_STATUS_CODE = 401;
+
   private static final long serialVersionUID = 1L;
 
   /**

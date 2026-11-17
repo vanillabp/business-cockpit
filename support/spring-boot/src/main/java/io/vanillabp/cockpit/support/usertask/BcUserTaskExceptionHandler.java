@@ -1,6 +1,5 @@
 package io.vanillabp.cockpit.support.usertask;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -36,7 +35,7 @@ public class BcUserTaskExceptionHandler {
       final BcUnknownTaskException exception) {
 
     return ResponseEntity
-        .status(HttpStatus.NOT_FOUND)
+        .status(BcUnknownTaskException.HTTP_STATUS_CODE)
         .contentType(MediaType.TEXT_PLAIN)
         .body(exception.getMessage());
 
@@ -54,7 +53,7 @@ public class BcUserTaskExceptionHandler {
       final BcTaskNotOpenException exception) {
 
     return ResponseEntity
-        .status(HttpStatus.NOT_FOUND)
+        .status(BcTaskNotOpenException.HTTP_STATUS_CODE)
         .contentType(MediaType.TEXT_PLAIN)
         .body(exception.getMessage());
 
@@ -71,7 +70,7 @@ public class BcUserTaskExceptionHandler {
       final BcTaskClaimedByAnotherUserException exception) {
 
     return ResponseEntity
-        .status(HttpStatus.CONFLICT)
+        .status(BcTaskClaimedByAnotherUserException.HTTP_STATUS_CODE)
         .contentType(MediaType.TEXT_PLAIN)
         .body(exception.getMessage());
 

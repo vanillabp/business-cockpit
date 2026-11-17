@@ -88,7 +88,7 @@ public class BcUserTaskExceptionMapperTest {
     when()
         .post("/unknown/loan-1/task-9")
         .then()
-        .statusCode(404)
+        .statusCode(BcUnknownTaskException.HTTP_STATUS_CODE)
         .contentType(startsWith("text/plain"))
         .body(equalTo("There is no such user task 'task-9' in 'loan-1'"));
 
@@ -100,7 +100,7 @@ public class BcUserTaskExceptionMapperTest {
     when()
         .post("/done/loan-1/task-9")
         .then()
-        .statusCode(404)
+        .statusCode(BcTaskNotOpenException.HTTP_STATUS_CODE)
         .contentType(startsWith("text/plain"))
         .body(equalTo("The user task 'task-9' of 'loan-1' is not open any more"));
 
@@ -112,7 +112,7 @@ public class BcUserTaskExceptionMapperTest {
     when()
         .post("/claimed/loan-1/task-9/mary")
         .then()
-        .statusCode(409)
+        .statusCode(BcTaskClaimedByAnotherUserException.HTTP_STATUS_CODE)
         .contentType(startsWith("text/plain"))
         .body(equalTo("The user task 'task-9' of 'loan-1' is claimed by 'mary'"));
 
@@ -124,7 +124,7 @@ public class BcUserTaskExceptionMapperTest {
     when()
         .post("/anonymous")
         .then()
-        .statusCode(401)
+        .statusCode(BcUnauthorizedException.HTTP_STATUS_CODE)
         .contentType(startsWith("text/plain"))
         .body(equalTo("Nobody is logged in"));
 
