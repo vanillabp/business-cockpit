@@ -5241,3 +5241,4 @@ generated client.
 - `support/README.md`, the sections "A group which only some applications use", "A client module
   brings its AutoConfiguration" and "What stops the start"
 - the root `pom.xml`: `skip.sources.jar` and the execution `attach-sources`
+
