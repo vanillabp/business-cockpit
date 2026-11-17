@@ -16,7 +16,9 @@ green.
 
 The module has no REST endpoint. Quarkus itself is an optional dependency of `support`, so it does
 not reach this module, and that is on purpose: the application brings Quarkus. The tests of
-[support/quarkus](../../support/quarkus) run a Quarkus application with a form endpoint instead.
+[support/quarkus](../../support/quarkus) run a Quarkus application with a form endpoint instead,
+and [support/quarkus-it](../../support/quarkus-it) runs one with the Quarkus module as a plain
+dependency, the way a workflow module has it.
 Running a workflow module needs a BPMS and the cockpit's adapter for it, `business-cockpit-*-adapter`,
 and that is not what this module is about.
 
