@@ -1,13 +1,8 @@
 package io.vanillabp.cockpit.support.security.jwt;
 
 import java.time.Clock;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
@@ -18,7 +13,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 
-import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.support.security.usercontext.DirectoryUserLookup;
 import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 
 /**
@@ -33,29 +28,15 @@ import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
  * The user id is the subject of the token. It is the name of the authentication of the login. So
  * a login by user name and password and a login by OpenID Connect both give the id under which the
  * directory knows the user.
+ * <p>
+ * The user and its groups are found by {@link DirectoryUserLookup} of the support's core, the same
+ * lookup a Quarkus workflow module runs.
  */
 public class JwtAuthenticationTokenMapper extends JwtMapper<JwtAuthenticationToken> {
 
   private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationTokenMapper.class);
 
-  /**
-   * How long the mapper keeps quiet about a user the directory does not know, after it warned
-   * about that user once. A browser sends many requests, and one warning for each would flood the
-   * log.
-   */
-  static final Duration UNKNOWN_USER_WARNING_INTERVAL = Duration.ofMinutes(1);
-
-  /**
-   * Above this number of noted warnings, the old ones are dropped, so the map does not grow
-   * forever.
-   */
-  private static final int MAX_NOTED_WARNINGS = 1000;
-
-  private final UserDirectoryService userDirectory;
-
-  private final Function<Collection<String>, Collection<String>> groupResolverFunction;
-
-  private final Map<String, Instant> lastWarningAboutAnUnknownUser = new ConcurrentHashMap<>();
+  private final DirectoryUserLookup userLookup;
 
   private Clock clock = Clock.systemUTC();
 
@@ -74,8 +55,7 @@ public class JwtAuthenticationTokenMapper extends JwtMapper<JwtAuthenticationTok
       final Function<Collection<String>, Collection<String>> groupResolverFunction) {
 
     super(properties);
-    this.userDirectory = userDirectory;
-    this.groupResolverFunction = groupResolverFunction;
+    this.userLookup = lookupWithTheClockOfThisMapper(userDirectory, groupResolverFunction);
 
   }
 
@@ -96,8 +76,19 @@ public class JwtAuthenticationTokenMapper extends JwtMapper<JwtAuthenticationTok
       final Function<Collection<String>, Collection<String>> groupResolverFunction) {
 
     super(properties, keySource);
-    this.userDirectory = userDirectory;
-    this.groupResolverFunction = groupResolverFunction;
+    this.userLookup = lookupWithTheClockOfThisMapper(userDirectory, groupResolverFunction);
+
+  }
+
+  /**
+   * The lookup writes under the name of this class and asks the clock of this mapper, so a test
+   * can change it with {@link #setClock(Clock)}.
+   */
+  private DirectoryUserLookup lookupWithTheClockOfThisMapper(
+      final UserDirectoryService userDirectory,
+      final Function<Collection<String>, Collection<String>> groupResolverFunction) {
+
+    return new DirectoryUserLookup(userDirectory, groupResolverFunction, logger, () -> clock.instant());
 
   }
 
@@ -128,53 +119,14 @@ public class JwtAuthenticationTokenMapper extends JwtMapper<JwtAuthenticationTok
       final Jwt jwt,
       final Collection<GrantedAuthority> bcAuthorities) {
 
-    final var userId = jwt.getSubject();
-    final Optional<UserDetails> user;
-    try {
-      user = userDirectory.getUser(userId);
-    } catch (RuntimeException e) {
-      logger.error("The user directory could not load the user '{}', so the request fails.", userId, e);
-      throw e;
-    }
-
-    if (user.isEmpty()) {
-      warnAboutAnUnknownUser(userId);
-      return new JwtAuthenticationToken(jwt, bcAuthorities);
-    }
-
-    final var groups = Optional
-        .ofNullable(user.get().getAuthorities())
-        .orElse(List.of());
-    groupResolverFunction
-        .apply(groups)
+    final var user = userLookup.lookUp(jwt.getSubject());
+    user
+        .authorities()
         .stream()
         .map(SimpleGrantedAuthority::new)
         .forEach(bcAuthorities::add);
 
-    return new JwtAuthenticationToken(jwt, bcAuthorities, user.get());
-
-  }
-
-  private void warnAboutAnUnknownUser(
-      final String userId) {
-
-    final var now = clock.instant();
-    final var lastWarning = lastWarningAboutAnUnknownUser.get(userId);
-    if ((lastWarning != null) && now.isBefore(lastWarning.plus(UNKNOWN_USER_WARNING_INTERVAL))) {
-      return;
-    }
-    if (lastWarningAboutAnUnknownUser.size() >= MAX_NOTED_WARNINGS) {
-      lastWarningAboutAnUnknownUser
-          .values()
-          .removeIf(noted -> !now.isBefore(noted.plus(UNKNOWN_USER_WARNING_INTERVAL)));
-    }
-    lastWarningAboutAnUnknownUser.put(userId, now);
-    logger.warn("""
-        The user directory does not know the user '{}' of a valid login token. The user keeps its \
-        login, but it has no groups, only its own authority '{}{}'. This warning comes once a \
-        minute at most for each user. Check whether the user was removed from the directory, or \
-        whether the directory knows the user by another id than the subject of the token.""",
-        userId, JwtUserDetails.USER_AUTHORITY_PREFIX, userId);
+    return new JwtAuthenticationToken(jwt, bcAuthorities, user.directoryUser().orElse(null));
 
   }
 

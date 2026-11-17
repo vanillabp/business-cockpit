@@ -10,7 +10,7 @@
 
   <artifactId>business-cockpit-quarkus-support</artifactId>
   <name>Business Cockpit support - Quarkus</name>
-  <description>What a workflow module behind the Business Cockpit needs on Quarkus: the cockpit's SPI, the user and the groups, and the exceptions of a user task together with the mappers which answer them.</description>
+  <description>What a workflow module behind the Business Cockpit needs on Quarkus: the cockpit's SPI, the check of the cockpit's login token, the user and the groups, and the exceptions of a user task together with the mappers which answer them.</description>
 
   <licenses>
     <license>
@@ -93,6 +93,18 @@
       <optional>true</optional>
     </dependency>
     <dependency>
+      <!-- the HTTP layer the mechanism belongs to, which reads the login token from the cookie -->
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-vertx-http</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <!-- the security layer the identity of a request and its roles belong to -->
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-security</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-junit</artifactId>
       <scope>test</scope>
@@ -107,6 +119,27 @@
         for that build step on the test class path -->
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-arc-deployment</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- the build steps of the HTTP and the security layer, which the test framework runs while
+        it builds the test application -->
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-vertx-http-deployment</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-security-deployment</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- LoginTokens, which signs a token the way the cockpit does, and a user directory a test
+        can change. The tests of the Spring Boot module use the same ones. -->
+      <groupId>io.vanillabp.businesscockpit</groupId>
+      <artifactId>business-cockpit-support-core</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
       <scope>test</scope>
     </dependency>
     <dependency>
