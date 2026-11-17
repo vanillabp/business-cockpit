@@ -120,6 +120,38 @@ where its client's keys are.
 Timeouts for all clients at once are Spring Boot's keys `spring.http.clients.connect-timeout` and
 `spring.http.clients.read-timeout`. The key of a group wins over them.
 
+#### A group which only some applications use
+
+Every group which is there needs its `base-url`. A module which calls a service only if the
+application wants it imports its group only if the application sets the address. It puts
+`@ConditionalOnHttpServiceGroupAddress` on the class which imports the group, with the prefix of
+the group:
+
+```java
+@Configuration
+@ConditionalOnHttpServiceGroupAddress(prefix = "orders.inventory")
+@ImportHttpServices(group = "orders-inventory", types = OrdersInventory.class)
+class OrdersInventoryClient {
+
+  @Bean
+  HttpServiceGroupPrefix ordersInventoryKeys() {
+    return HttpServiceGroupPrefix.of("orders-inventory", "orders.inventory");
+  }
+
+}
+```
+
+Without the address there is no group and no client, and the application starts. The class which
+calls the service takes an `ObjectProvider<OrdersInventory>` and skips the call if
+`getIfAvailable()` answers `null`. With the address the group is checked like every other group,
+so a broken address or a key nobody reads still stops the start. The condition only asks whether
+`<prefix>.base-url` is set. Spring Boot's `@ConditionalOnProperty` would read the value and stop
+the start at a placeholder nothing resolves, like `${INVENTORY_URL}`, with a message which does not
+name the group. The condition names the prefix itself, because it is decided before any bean
+exists, and so before the `HttpServiceGroupPrefix` bean. A client module does the same for its own
+group, see [A client module brings its AutoConfiguration](#a-client-module-brings-its-autoconfiguration).
+`AnOptionalGroupTest` shows both.
+
 #### The keys of a group
 
 The keys are relative to the prefix of the group, for example `inventory.client.base-url` for the
@@ -198,7 +230,9 @@ The start stops with one list of every problem of every group, so one restart sh
 names the key to set or to change:
 
 - a group without `base-url`, an address which is no complete `http` or `https` address, and an
-  address with a placeholder nothing resolves, like `${INVENTORY_URL}`;
+  address with a placeholder nothing resolves, like `${INVENTORY_URL}`. A group which only some
+  applications use is not there without its address, see
+  [A group which only some applications use](#a-group-which-only-some-applications-use);
 - a key below the prefix which no setting reads. Environment variables are not checked, because
   their names cannot be told apart from those of other programs;
 - keys below `spring.http.serviceclient.<group>` for a group whose `HttpServiceGroupPrefix` names
@@ -374,6 +408,7 @@ of its type.
 
 ```java
 @AutoConfiguration(before = HttpServiceClientAutoConfiguration.class)
+@ConditionalOnHttpServiceGroupAddress(prefix = "inventory.client")
 @ConditionalOnMissingBean(InventoryApi.class)
 @ImportHttpServices(group = InventoryClientAutoConfiguration.GROUP, types = InventoryClient.class)
 public class InventoryClientAutoConfiguration {
@@ -389,9 +424,12 @@ public class InventoryClientAutoConfiguration {
 ```
 
 `before = HttpServiceClientAutoConfiguration.class` lets Spring Boot see the group: its HTTP
-service client configuration only starts when a group exists. `@ConditionalOnMissingBean` lets the
-module step back when the application imports the API into groups of its own, see step 6. The
-`base-url` is checked at the start, so the module writes no check of its own.
+service client configuration only starts when a group exists.
+`@ConditionalOnHttpServiceGroupAddress` imports the group only if the application sets its
+address, so the dependency alone asks for no key, in a test for example.
+`@ConditionalOnMissingBean` lets the module step back when the application imports the API into
+groups of its own, see step 6. An address which is set is checked at the start, so the module
+writes no check of its own.
 
 **4. Register it.** The file
 `src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
