@@ -43,6 +43,20 @@ final class Cockpit {
 
   }
 
+  static MockResponse currentUser(
+      final String id,
+      final String group) {
+
+    return new MockResponse.Builder()
+        .code(200)
+        .addHeader("Content-Type", "application/json")
+        .body("""
+            {"id": "%s", "display": "Doe, Jane", "groups": [{"id": "%s"}]}"""
+            .formatted(id, group))
+        .build();
+
+  }
+
   /** The next request the stub got, or a failure if none came within a few seconds. */
   static RecordedRequest next(
       final MockWebServer server) {

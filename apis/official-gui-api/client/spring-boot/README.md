@@ -5,11 +5,12 @@ The HTTP interface clients of the official GUI API for a Spring Boot application
 
 The module holds the interfaces the generator `spring` writes with the library
 `spring-http-interface`, one per tag of the OpenAPI file: `OfficialTasklistApi`,
-`OfficialWorkflowlistApi`, `OfficialWorkflowModulesApi` and `OfficialNotificationConfigApi`, in the
+`OfficialWorkflowlistApi`, `OfficialWorkflowModulesApi`, `OfficialNotificationConfigApi` and
+`OfficialCurrentUserApi`, in the
 package `io.vanillabp.cockpit.gui.api.v1.client`, and their models in `...client.model`. Spring
 Framework turns each interface into a client.
 
-`OfficialGuiApiClientAutoConfiguration` builds the clients. It imports the four interfaces into
+`OfficialGuiApiClientAutoConfiguration` builds the clients. It imports the five interfaces into
 the HTTP service group `official-gui-api`, and the HTTP service helper of the
 [support module](../../../../support/README.md#rest-clients) configures the group from keys. So an
 application adds the dependency, sets the keys and injects an interface:
@@ -80,7 +81,7 @@ class LoanApprovalCockpitClient {
 ```
 
 The sub-interface gives the module a bean type of its own. As soon as the application imports one
-of the four interfaces into a group of its own, the group of the auto-configuration steps back, so
+of the five interfaces into a group of its own, the group of the auto-configuration steps back, so
 a missing `base-url` of the unused group does not stop the start.
 
 ## The user's cookie goes along
@@ -125,9 +126,9 @@ class Assignment {
 An answer with an error status comes as Spring's `HttpClientErrorException` or
 `HttpServerErrorException`, no answer at all as `ResourceAccessException`.
 
-The current user, `GET /gui/api/v1/app/current-user`, is not part of this API. It is in the
-cockpit's own OpenAPI file, [`business-cockpit/src/main/resources/api/gui/v1.yaml`](../../../../business-cockpit/src/main/resources/api/gui/v1.yaml),
-which this module does not generate.
+The user signed in, `GET /gui/api/v1/app/current-user`, is part of this API:
+`OfficialCurrentUserApi.currentUser(null)` answers the user of the forwarded cookie with all
+groups, or no body if the request carries no login.
 
 Its tests start the client against a stub server. Its coverage counts in no aggregated report,
 because it runs in a workflow module and in no cockpit. `CoverageGateTest` names it among the

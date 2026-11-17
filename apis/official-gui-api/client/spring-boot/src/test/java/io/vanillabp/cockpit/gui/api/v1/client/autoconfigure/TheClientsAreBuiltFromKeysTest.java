@@ -15,6 +15,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import io.vanillabp.cockpit.gui.api.v1.client.OfficialCurrentUserApi;
 import io.vanillabp.cockpit.gui.api.v1.client.OfficialTasklistApi;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import mockwebserver3.MockWebServer;
@@ -49,6 +50,9 @@ public class TheClientsAreBuiltFromKeysTest {
   @Autowired
   OfficialTasklistApi tasklist;
 
+  @Autowired
+  OfficialCurrentUserApi currentUser;
+
   @Test
   public void a_user_task_is_read_from_the_cockpit() {
 
@@ -74,6 +78,24 @@ public class TheClientsAreBuiltFromKeysTest {
     tasklist.getUserTask("task-1", null);
 
     assertThat(Cockpit.next(cockpit).getHeaders().get("Cookie")).isEqualTo("bc-token=signed-login");
+
+  }
+
+  @Test
+  public void the_user_of_the_forwarded_cookie_is_read_from_the_cockpit() {
+
+    final var usersRequest = new MockHttpServletRequest();
+    usersRequest.addHeader("Cookie", "bc=signed-login");
+    RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(usersRequest));
+    cockpit.enqueue(Cockpit.currentUser("jane", "CLERK"));
+
+    final var user = currentUser.currentUser(null).getBody();
+
+    assertThat(user.getId()).isEqualTo("jane");
+    assertThat(user.getGroups()).extracting(group -> group.getId()).containsExactly("CLERK");
+    final var request = Cockpit.next(cockpit);
+    assertThat(request.getTarget()).isEqualTo("/gui/api/v1/app/current-user");
+    assertThat(request.getHeaders().get("Cookie")).isEqualTo("bc=signed-login");
 
   }
 

@@ -396,6 +396,34 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserTasks'
+  /app/current-user:
+    get:
+      tags:
+        - officialCurrentUser
+      summary: the user signed in
+      description: |
+        The user whose login the request carries, with all groups the user has. The groups are
+        those of the user directory, completed by the group hierarchies of all workflow modules.
+        A workflow module which answers a request of the cockpit's user interface forwards the
+        cookie of that request and so learns who sent it, for example to compare the assignee of a
+        task with the user who sent a form.
+
+        The path is open to everybody, so the user interface can ask before anybody signed in. A
+        request without a login gets 200 without a body.
+      operationId: currentUser
+      parameters:
+        - in: header
+          name: "X-Refresh-Token"
+          description: Sent by the cockpit's user interface. The cockpit does not read it.
+          schema:
+            type: string
+      responses:
+        200:
+          description: The user signed in, or no body if nobody is signed in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
   /user:
     post:
       tags:
@@ -900,6 +928,16 @@ components:
         details:
           type: object
           additionalProperties: true
+    User:
+      description: A person together with all groups the person has.
+      allOf:
+        - $ref: '#/components/schemas/Person'
+        - type: object
+          properties:
+            groups:
+              type: array
+              items:
+                $ref: '#/components/schemas/Group'
     UserSearchResult:
       type: object
       properties:

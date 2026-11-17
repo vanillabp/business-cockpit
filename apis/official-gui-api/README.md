@@ -3,8 +3,10 @@
 What a user interface reads from the cockpit: the two lists, one user task, one business case, and
 the workflow modules it may load components from. The interface of the user task forms as well.
 
-This file holds what the dev-shell simulator plays, and nothing else. The update stream, the
-current user and the information about the application are in the cockpit's own file,
+The file also holds the user signed in, `GET /app/current-user`, because a workflow module asks
+the cockpit for it with the user's cookie, for example to tell whether another user claimed a
+task. The update stream, the settings and rights of the user and the information about the
+application are in the cockpit's own file,
 [`business-cockpit/src/main/resources/api/gui/v1.yaml`](../../business-cockpit/src/main/resources/api/gui/v1.yaml).
 A user interface generates its client from both files.
 

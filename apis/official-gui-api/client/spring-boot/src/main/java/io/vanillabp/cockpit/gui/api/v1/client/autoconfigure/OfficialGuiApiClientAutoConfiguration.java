@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.service.registry.ImportHttpServices;
 
+import io.vanillabp.cockpit.gui.api.v1.client.OfficialCurrentUserApi;
 import io.vanillabp.cockpit.gui.api.v1.client.OfficialNotificationConfigApi;
 import io.vanillabp.cockpit.gui.api.v1.client.OfficialTasklistApi;
 import io.vanillabp.cockpit.gui.api.v1.client.OfficialWorkflowModulesApi;
@@ -39,7 +40,8 @@ public class OfficialGuiApiClientAutoConfiguration {
       OfficialTasklistApi.class,
       OfficialWorkflowlistApi.class,
       OfficialWorkflowModulesApi.class,
-      OfficialNotificationConfigApi.class);
+      OfficialNotificationConfigApi.class,
+      OfficialCurrentUserApi.class);
 
   /**
    * Creates the configuration. Spring Boot creates it from the list of auto-configurations.
@@ -60,10 +62,10 @@ public class OfficialGuiApiClientAutoConfiguration {
   /** The group of the clients, if the application has no clients of this API of its own. */
   @Configuration(proxyBeanMethods = false)
   @ConditionalOnMissingBean({
-      OfficialTasklistApi.class, OfficialWorkflowlistApi.class, OfficialWorkflowModulesApi.class, OfficialNotificationConfigApi.class
+      OfficialTasklistApi.class, OfficialWorkflowlistApi.class, OfficialWorkflowModulesApi.class, OfficialNotificationConfigApi.class, OfficialCurrentUserApi.class
   })
   @ImportHttpServices(group = GROUP, types = {
-      OfficialTasklistApi.class, OfficialWorkflowlistApi.class, OfficialWorkflowModulesApi.class, OfficialNotificationConfigApi.class
+      OfficialTasklistApi.class, OfficialWorkflowlistApi.class, OfficialWorkflowModulesApi.class, OfficialNotificationConfigApi.class, OfficialCurrentUserApi.class
   })
   static class OfficialGuiApiGroup {
   }

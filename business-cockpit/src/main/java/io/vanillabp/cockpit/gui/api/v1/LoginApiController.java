@@ -15,6 +15,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
@@ -24,11 +25,13 @@ import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
 
 /**
  * Answers the GUI's questions about the application and the person signed in, and opens the
- * update stream of a browser tab.
+ * update stream of a browser tab. The person signed in is part of the official GUI API, so a
+ * workflow module which forwards the user's cookie asks it with the generated client of that API.
+ * The information about the application and the update stream are in the cockpit's own file.
  */
 @RestController
 @RequestMapping(path = "/gui/api/v1")
-public class LoginApiController implements LoginApi {
+public class LoginApiController implements LoginApi, OfficialCurrentUserApi {
 
   /** Creates the controller. Spring fills the fields. */
   public LoginApiController() {
@@ -93,6 +96,18 @@ public class LoginApiController implements LoginApi {
         .filter(Objects::nonNull)
         .findFirst();
 
+  }
+
+  /**
+   * The request the generated defaults would answer from. Both generated interfaces bring this
+   * method, so the class has to say which one it means. It is neither: every method is written
+   * here.
+   *
+   * @return Nothing
+   */
+  @Override
+  public Optional<NativeWebRequest> getRequest() {
+    return Optional.empty();
   }
 
   @Override
