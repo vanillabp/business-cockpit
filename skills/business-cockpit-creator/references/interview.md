@@ -4,23 +4,95 @@
 
 Ask these questions before you generate anything. Ask every one of them. Where a default is given,
 propose it, and let the user decide. Write every answer into `INTERVIEW.md` in the generated
-project, with the question id.
+project, with the question id, as soon as the user gives it, see
+[How the interview runs](#how-the-interview-runs).
 
 Each question has an id, for example `Q-FOLLOW-UP`. The checklist
 [reference-1.0.0.md](reference-1.0.0.md) names these ids, so you can see which items depend on
 which answer. Ids are never reused.
 
-1. [The stack](#the-stack)
-2. [The look and the words](#the-look-and-the-words)
-3. [Language](#language)
-4. [The screens](#the-screens)
-5. [The lists](#the-lists)
-6. [A user task and a case](#a-user-task-and-a-case)
-7. [Live updates](#live-updates)
-8. [Extension points](#extension-points)
-9. [Backend and outputs](#backend-and-outputs)
-10. [The backend the skill creates](#the-backend-the-skill-creates)
-11. [Tests](#tests)
+1. [How the interview runs](#how-the-interview-runs)
+2. [The stack](#the-stack)
+3. [The look and the words](#the-look-and-the-words)
+4. [Language](#language)
+5. [The screens](#the-screens)
+6. [The lists](#the-lists)
+7. [A user task and a case](#a-user-task-and-a-case)
+8. [Live updates](#live-updates)
+9. [Extension points](#extension-points)
+10. [Backend and outputs](#backend-and-outputs)
+11. [The backend the skill creates](#the-backend-the-skill-creates)
+12. [Tests](#tests)
+
+## How the interview runs
+
+Before the first question, ask where the UI repository goes, unless the user works in that folder
+already. Then ask the questions one at a time, in the order of this page. The order matters. An
+earlier answer can change what a later question offers, and some questions are asked only after a
+certain answer.
+
+### The user sees where they are
+
+Every question starts with its number and the total, for example `8/47 Q-FOLLOW-UP`. The number is
+the count of questions answered so far, plus one. The total is the number of questions that still
+apply with the answers so far. When an answer makes questions unnecessary, the total goes down, and
+the next question shows the smaller number. For example, a user who keeps their own backend
+(`Q-BACKEND`) is not asked the questions of
+[The backend the skill creates](#the-backend-the-skill-creates). A question skipped this way counts
+neither as answered nor in the total.
+
+### Every answer is saved at once
+
+Before the first question, create the folder of the UI repository and write `INTERVIEW.md` into it.
+After each answer, write the answer into the file before you ask the next question. So the user can
+stop at any time and go on later, also in a new session, and no answer is lost.
+
+The file has a short head and one section per question, in the order of this page:
+
+```markdown
+# Interview
+
+Reference: 1.0.0
+Started: 2026-11-17
+Last answer: 2026-11-18
+
+## Q-FRAMEWORK
+
+Which UI framework does the cockpit use, and which version?
+
+Answer: Vue 3.5
+
+## Q-TASK-INFORMATION-AREA
+
+Not asked, because `Q-TASK-PAGE-AREAS` has no area `information`.
+```
+
+`Reference` is the version of [reference-1.0.0.md](reference-1.0.0.md), the checklist of this
+version of the skill. A question that is not answered yet has no section. A question skipped
+because of an earlier answer gets a section that says so, with the reason.
+
+### Going on later
+
+At the start, look for `INTERVIEW.md` in the folder of the UI repository. If it is there, read it.
+Tell the user how many questions are answered and which question comes next. Then go on with the
+first question of this page that has no section in the file. Do not ask a question again that has
+an answer.
+
+The user may change an earlier answer at any time. Write the new answer into the file. Then look at
+every question whose condition or choices depend on it: ask a question again whose choices
+changed, and ask a question marked "Not asked" whose condition holds now.
+
+Generate nothing before every question that applies has an answer in the file.
+
+### A newer version of the skill
+
+The question ids are the key, not the numbers. A newer version of this skill may add questions, and
+the file names the reference it was written with. Compare the ids in the file with the ids on this
+page. Ask each question that has no section, wherever it stands in the order; it counts in the
+number and in the total like any other. An id that the file has and this page no longer lists stays
+in the file, and you do not ask it. Then write the new reference version into the head. The same
+holds when you upgrade a generated user interface, see
+[Upgrading a generated user interface](../SKILL.md#upgrading-a-generated-user-interface).
 
 ## The stack
 
@@ -63,20 +135,23 @@ header, the list, the page, the messages, the menu. This description says "case"
 
 ## The lists
 
-|          Id          |                                                                                                                                                                                                                                                                                             Question                                                                                                                                                                                                                                                                                              |                                        Default the agent proposes                                        |
-|----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------|
-| `Q-PRIMARY-FILTERS`  | Which primary filters does the task list offer, and which is the default? First explain the follow-up (in German `Wiedervorlage`): a user can put a task aside until a date, its follow-up date. Until then the task is hidden from the default list. Possible: `OpenTasksWithFollowUp` (all open tasks), `OpenTasksWithoutFollowUp` (open tasks without those put aside), `OpenTaskOnlyFollowUp`, `ClosedTasksOnly`. Without a mode in the request the server takes `OpenTasksWithFollowUp`, but the user interface always sends one. The dev shell always asks with `All` and offers no choice. | all four, default `OpenTasksWithoutFollowUp`                                                             |
-| `Q-WORKFLOW-FILTERS` | Which primary filters does the case list offer, and which is the default? Possible: `All`, `InProgress` (not ended, suspended cases included), `Done` (ended). The default of the cockpit is `InProgress`. The dev shell always asks with `All` and offers no choice.                                                                                                                                                                                                                                                                                                                             | `InProgress` and `Done`, default `InProgress`                                                            |
-| `Q-FOLLOW-UP`        | Is there a follow-up feature (put a task aside until a date)?                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | yes                                                                                                      |
-| `Q-CLOSED-TASKS`     | Are closed user tasks shown? They document with which input a task was completed.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | yes                                                                                                      |
-| `Q-NOTES`            | Can user tasks and cases carry notes? A note is written per row in the list, for all selected rows in the list, and in the header of an open task or case. The cockpit has the endpoints for them.                                                                                                                                                                                                                                                                                                                                                                                                | yes                                                                                                      |
-| `Q-TASK-COLUMNS`     | Which fixed columns does the task list have, and in which order? For example id, case kind, title, assignee, candidate users, created, due, follow-up, ended, notes.                                                                                                                                                                                                                                                                                                                                                                                                                              | id, title, due, assignee, candidate users, notes, follow-up, ended; notes only when `Q-NOTES` is yes     |
-| `Q-WORKFLOW-COLUMNS` | Which fixed columns does the case list have, and in which order? For example id, title, case kind, created, ended, notes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | id, title, case kind, notes, created, ended; notes only when `Q-NOTES` is yes                            |
-| `Q-MODULE-COLUMNS`   | Do the workflow modules add columns of their own (dynamic columns)? Some organisations want fixed columns only.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | yes                                                                                                      |
-| `Q-BULK-ACTIONS`     | Which actions are offered for several selected tasks or cases? For tasks: claim, propose to a person (candidate user), mark as read or unread, follow-up, notes. A case list offers notes only.                                                                                                                                                                                                                                                                                                                                                                                                   | tasks: claim, propose, read and unread, follow-up, notes; cases: notes; notes only when `Q-NOTES` is yes |
-| `Q-CLAIM`            | Is claiming informal, or hard (the cockpit lays a barrier over the page until the user claims the task)?                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | hard                                                                                                     |
-| `Q-PAGE-SIZE`        | How many rows does one page of a list load? A list never holds all rows, only the pages around the visible area, see [behaviour.md](behaviour.md#paging-and-the-window-of-loaded-rows). The value can be changed later, to fine-tune how smoothly the list scrolls.                                                                                                                                                                                                                                                                                                                               | 20                                                                                                       |
-| `Q-MAX-LIST-ENTRIES` | How many entries does a list show at most, in its current sort? The count still shows the real total, and a notice after the last row asks the user to narrow the list down. Browsers limit the height of an element, so the limit times the row height must stay below 17.9 million pixels, see [behaviour.md](behaviour.md#the-longest-list-q-max-list-entries).                                                                                                                                                                                                                                | 100,000                                                                                                  |
+|          Id          |                                                                                                                                                                                                                                                                                  Question                                                                                                                                                                                                                                                                                  |                                            Default the agent proposes                                            |
+|----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| `Q-FOLLOW-UP`        | Is there a follow-up feature? A user can put a task aside until a date, its follow-up date (in German `Wiedervorlage`). Until then the task is hidden from the default list. Explain this to the user before you ask.                                                                                                                                                                                                                                                                                                                                                      | yes                                                                                                              |
+| `Q-CLOSED-TASKS`     | Are closed user tasks shown? They document with which input a task was completed.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | yes                                                                                                              |
+| `Q-PRIMARY-FILTERS`  | Which primary filters does the task list offer, and which is the default? Offer only those the answers to `Q-FOLLOW-UP` and `Q-CLOSED-TASKS` allow. Possible: `OpenTasksWithFollowUp` (all open tasks); `OpenTasksWithoutFollowUp` (open tasks without those put aside) and `OpenTaskOnlyFollowUp`, both only when `Q-FOLLOW-UP` is yes; `ClosedTasksOnly`, only when `Q-CLOSED-TASKS` is yes. Without a mode in the request the server takes `OpenTasksWithFollowUp`, but the user interface always sends one. The dev shell always asks with `All` and offers no choice. | all that the two answers allow; default `OpenTasksWithoutFollowUp`, or `OpenTasksWithFollowUp` without follow-up |
+| `Q-WORKFLOW-FILTERS` | Which primary filters does the case list offer, and which is the default? Possible: `All`, `InProgress` (not ended, suspended cases included), `Done` (ended). The default of the cockpit is `InProgress`. The dev shell always asks with `All` and offers no choice.                                                                                                                                                                                                                                                                                                      | `InProgress` and `Done`, default `InProgress`                                                                    |
+| `Q-NOTES`            | Can user tasks and cases carry notes? A note is written per row in the list, for all selected rows in the list, and in the header of an open task or case. The cockpit has the endpoints for them.                                                                                                                                                                                                                                                                                                                                                                         | yes                                                                                                              |
+| `Q-TASK-COLUMNS`     | Which fixed columns does the task list have, and in which order? For example id, case kind, title, assignee, candidate users, created, due, follow-up, ended, notes.                                                                                                                                                                                                                                                                                                                                                                                                       | id, title, due, assignee, candidate users, notes, follow-up, ended; notes only when `Q-NOTES` is yes             |
+| `Q-WORKFLOW-COLUMNS` | Which fixed columns does the case list have, and in which order? For example id, title, case kind, created, ended, notes.                                                                                                                                                                                                                                                                                                                                                                                                                                                  | id, title, case kind, notes, created, ended; notes only when `Q-NOTES` is yes                                    |
+| `Q-MODULE-COLUMNS`   | Do the workflow modules add columns of their own (dynamic columns)? Some organisations want fixed columns only.                                                                                                                                                                                                                                                                                                                                                                                                                                                            | yes                                                                                                              |
+| `Q-BULK-ACTIONS`     | Which actions are offered for several selected tasks or cases? For tasks: claim, propose to a person (candidate user), mark as read or unread, follow-up, notes. A case list offers notes only.                                                                                                                                                                                                                                                                                                                                                                            | tasks: claim, propose, read and unread, follow-up, notes; cases: notes; notes only when `Q-NOTES` is yes         |
+| `Q-CLAIM`            | Is claiming informal, or hard (the cockpit lays a barrier over the page until the user claims the task)?                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | hard                                                                                                             |
+| `Q-PAGE-SIZE`        | How many rows does one page of a list load? A list never holds all rows, only the pages around the visible area, see [behaviour.md](behaviour.md#paging-and-the-window-of-loaded-rows). The value can be changed later, to fine-tune how smoothly the list scrolls.                                                                                                                                                                                                                                                                                                        | 20                                                                                                               |
+| `Q-MAX-LIST-ENTRIES` | How many entries does a list show at most, in its current sort? The count still shows the real total, and a notice after the last row asks the user to narrow the list down. Browsers limit the height of an element, so the limit times the row height must stay below 17.9 million pixels, see [behaviour.md](behaviour.md#the-longest-list-q-max-list-entries).                                                                                                                                                                                                         | 100,000                                                                                                          |
+
+Ask `Q-FOLLOW-UP` and `Q-CLOSED-TASKS` before `Q-PRIMARY-FILTERS`. Their answers decide which
+primary filters the task list can offer at all.
 
 ## A user task and a case
 

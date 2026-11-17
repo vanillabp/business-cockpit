@@ -109,13 +109,23 @@ release is: the cockpit release, the user interface, then the backend repository
 
 ## Phase 1: interview
 
-Ask the questions in [references/interview.md](references/interview.md). Ask all of them, and
-write the answers down. Where a question has a default, propose it, but let the user decide. Never
-fill in an answer because it sounds likely. An organisation that uses the cockpit in one department
-wants different things from one that uses it company-wide.
+Ask the questions in [references/interview.md](references/interview.md), one at a time and in
+the order given there. Ask all of them. Where a question has a default, propose it, but let the user
+decide. Never fill in an answer because it sounds likely. An organisation that uses the cockpit in
+one department wants different things from one that uses it company-wide.
 
-The answers go into the UI repository as `INTERVIEW.md`. The next agent who changes the user
-interface or the backend reads it first.
+Every question shows its number and how many questions there are, for example `8/47`. The total
+counts only the questions that still apply with the answers so far, so it can go down during the
+interview.
+
+Every answer is saved as soon as the user gives it, into `INTERVIEW.md` in the folder of the UI
+repository. So the user can stop the interview and go on later. When the file is there at the
+start, you read it and go on with the first question that has no answer. A newer version of the
+skill may add questions, and you ask only those. The details are in
+[references/interview.md](references/interview.md#how-the-interview-runs).
+
+`INTERVIEW.md` stays in the UI repository. The next agent who changes the user interface or the
+backend reads it first.
 
 ## Phase 2: generate
 
@@ -201,7 +211,9 @@ who upgrades a generated user interface does this:
    and what was removed.
 3. Apply only that difference to the project and to its `CHECKLIST.md`. The `CUST-` items stay as
    they are.
-4. Ask the interview questions that are new in this version.
+4. Ask the interview questions that are new in this version: those whose id has no section in
+   `INTERVIEW.md` yet, see
+   [references/interview.md](references/interview.md#a-newer-version-of-the-skill).
 
 ## The parts of this description
 
@@ -225,8 +237,9 @@ Read them in this order. Each one builds on the one before.
    How a part of a workflow module gets into your page: self-contained ES modules loaded with
    `import()`, the manifest of a module, build recipes per framework, the extension points, data
    entries without a framework, the registry of modules and the central loader, the three steps
-   ask, load and draw with their states, web components with shadow DOM, the areas of a page, and
-   the event protocol.
+   ask, load and draw with their states, a new build of a module without a reload of the page,
+   web components with shadow DOM and names that start with the module id, the areas of a page,
+   and the event protocol.
 6. [references/types.md](references/types.md)<br>
    What goes into the types library and the module kit the generated user interface publishes.
 7. [references/behaviour.md](references/behaviour.md)<br>
