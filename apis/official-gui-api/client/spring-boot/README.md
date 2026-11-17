@@ -13,7 +13,7 @@ Framework turns each interface into a client.
 `OfficialGuiApiClientAutoConfiguration` builds the clients. It imports the five interfaces into
 the HTTP service group `official-gui-api`, and the HTTP service helper of the
 [support module](../../../../support/README.md#rest-clients) configures the group from keys. So an
-application adds the dependency, sets the keys and injects an interface:
+application adds the dependency, sets the address of the cockpit and injects an interface:
 
 ```xml
 <dependency>
@@ -22,12 +22,13 @@ application adds the dependency, sets the keys and injects an interface:
 </dependency>
 ```
 
-The version comes from `business-cockpit-bom`.
+The version comes from `business-cockpit-bom`. The jar comes with a sources jar, which holds the
+generated interfaces and models too.
 
 ## Where the keys live
 
-The application chooses the prefix of the keys. Without a choice, the keys are in Spring Boot's
-place for the group, `spring.http.serviceclient.official-gui-api`:
+The keys of the group are in Spring Boot's place for it,
+`spring.http.serviceclient.official-gui-api`:
 
 ```yaml
 spring:
@@ -35,28 +36,53 @@ spring:
     serviceclient:
       official-gui-api:
         base-url: https://cockpit.example.com/gui/api/v1
-```
-
-A workflow module brings all its settings below its own prefix. It says so with an
-`HttpServiceGroupPrefix` bean for the group:
-
-```java
-@Bean
-HttpServiceGroupPrefix cockpitKeys() {
-  return HttpServiceGroupPrefix.of(OfficialGuiApiClientAutoConfiguration.GROUP, "loan-approval.cockpit");
-}
-```
-
-```yaml
-loan-approval:
-  cockpit:
-    base-url: https://cockpit.example.com/gui/api/v1
-    read-timeout: 2s
+        read-timeout: 2s
 ```
 
 `base-url` is the address of the cockpit followed by `/gui/api/v1`, the server path of the
 OpenAPI file. All other keys of the support module work there as well: timeouts, TLS, proxy,
-logging, retries, OAuth. The start stops with a message if `base-url` is missing.
+logging, retries, OAuth. An address which is set is checked at the start, and so is every other
+key.
+
+A workflow module which keeps its keys below a prefix of its own, for example
+`loan-approval.cockpit`, imports the interfaces it needs into a group of its own, see the next
+section. An `HttpServiceGroupPrefix` for the group `official-gui-api` stops the start with a
+message which says so: the group is decided before any bean exists, so it cannot read a prefix
+from a bean.
+
+## Without the address there is no client
+
+The group is there only if `spring.http.serviceclient.official-gui-api.base-url` is set. Without
+it the application starts and has no client of this API. So the dependency on the class path asks
+for no key: not in a test which does not call the cockpit, and not in an application which runs a
+workflow module without a cockpit.
+
+A class which calls the cockpit only if the application set the address takes an
+`ObjectProvider` of the interface:
+
+```java
+@Component
+class Assignment {
+
+  private final ObjectProvider<OfficialTasklistApi> tasklist;
+
+  Assignment(
+      final ObjectProvider<OfficialTasklistApi> tasklist) {
+    this.tasklist = tasklist;
+  }
+
+  boolean asksTheCockpit() {
+    return tasklist.getIfAvailable() != null;
+  }
+
+}
+```
+
+A class which needs the client stops the start without the address. The message names the key to
+set and the `ObjectProvider` as the way out. A workflow module with a group of its own does the
+same with `@ConditionalOnHttpServiceGroupAddress` and its own prefix, see the section
+[A group which only some applications use](../../../../support/README.md#a-group-which-only-some-applications-use)
+of the support README.
 
 ## Two workflow modules with different keys
 
@@ -81,8 +107,11 @@ class LoanApprovalCockpitClient {
 ```
 
 The sub-interface gives the module a bean type of its own. As soon as the application imports one
-of the five interfaces into a group of its own, the group of the auto-configuration steps back, so
-a missing `base-url` of the unused group does not stop the start.
+of the five interfaces into a group of its own, the group of the auto-configuration steps back.
+A module which calls the cockpit only if the application wants it adds
+`@ConditionalOnHttpServiceGroupAddress(prefix = "loan-approval.cockpit")` of the support module to
+that class and
+takes an `ObjectProvider<LoanApprovalTasklist>`.
 
 ## The user's cookie goes along
 

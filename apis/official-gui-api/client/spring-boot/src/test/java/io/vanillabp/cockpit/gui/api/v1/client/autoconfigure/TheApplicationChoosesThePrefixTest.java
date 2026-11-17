@@ -15,6 +15,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.web.service.registry.ImportHttpServices;
 
 import io.vanillabp.cockpit.gui.api.v1.client.OfficialTasklistApi;
 import io.vanillabp.cockpit.support.rest.httpservice.HttpServiceGroupPrefix;
@@ -22,9 +23,9 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import mockwebserver3.MockWebServer;
 
 /**
- * The application gives the group a prefix of its choice, here {@code loan-approval.cockpit}, and
- * sets all keys of the cockpit's client there. A cookie set by a key wins over the one of the
- * user's request.
+ * The application reads the keys of the cockpit's client below a prefix of its choice, here
+ * {@code loan-approval.cockpit}. It imports the interface it needs into a group of its own and
+ * gives that group the prefix. A cookie set by a key wins over the one of the user's request.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SpringBootTest(
@@ -52,11 +53,12 @@ public class TheApplicationChoosesThePrefixTest {
   }
 
   @Configuration
+  @ImportHttpServices(group = "loan-approval-cockpit", types = OfficialTasklistApi.class)
   static class LoanApproval {
 
     @Bean
     HttpServiceGroupPrefix cockpitKeys() {
-      return HttpServiceGroupPrefix.of(OfficialGuiApiClientAutoConfiguration.GROUP, "loan-approval.cockpit");
+      return HttpServiceGroupPrefix.of("loan-approval-cockpit", "loan-approval.cockpit");
     }
 
   }
