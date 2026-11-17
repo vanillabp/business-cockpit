@@ -5084,8 +5084,8 @@ own OpenAPI file, so the generated clients of the official GUI API could not ask
   of the request the application answers, to the methods of the official API only. Quarkus users
   name its version themselves.
 - `GET /app/current-user` and its model `User` move from the cockpit's own OpenAPI file into the
-  official one, under the tag `officialCurrentUser`. The cockpit answers it with the controller and
-  the open security path it had. Both generated clients get `OfficialCurrentUserApi`.
+  official one, under the tag `officialCurrentUser`. The cockpit answers it with a controller of its
+  own, `CurrentUserApiController`, and the open security path it had. Both generated clients get `OfficialCurrentUserApi`.
 - The exceptions of `support/core` which a form answers name their status as `HTTP_STATUS_CODE`, so
   the handler, the mappers and the tests of a workflow module read the same constant.
 - Both clients of the official GUI API are measured: the Spring Boot client in the report
@@ -5110,7 +5110,7 @@ of a key below `quarkus.rest-client`.
   and their tests on both platforms
 - `apis/official-gui-api/client/quarkus`, new, and `apis/official-gui-api/client/README.md`
 - `apis/official-gui-api/openapi/v1.yaml`, `business-cockpit/src/main/resources/api/gui/v1.yaml`,
-  `LoginApiController` and `TheCurrentUserIsPartOfTheOfficialApiTest`
+  `CurrentUserApiController` and `TheCurrentUserIsPartOfTheOfficialApiTest`
 - `OfficialGuiApiClientAutoConfiguration` and the tests of the Spring Boot client
 - `test-coverage-report/official-gui-api/spring-boot`, new, `test-coverage-report/support/quarkus`,
   `CoverageGateTest` and the threshold `coverage.threshold.official-gui-api-spring-boot` of the

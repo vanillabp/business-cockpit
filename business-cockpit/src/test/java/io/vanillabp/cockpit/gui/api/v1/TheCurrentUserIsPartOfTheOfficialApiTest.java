@@ -45,7 +45,7 @@ class TheCurrentUserIsPartOfTheOfficialApiTest {
 
     userContext = mock(UserContext.class);
     personAndGroupMapper = mock(PersonAndGroupApiMapper.class);
-    final var controller = new LoginApiController();
+    final var controller = new CurrentUserApiController();
     ReflectionTestUtils.setField(controller, "userContext", userContext);
     ReflectionTestUtils.setField(controller, "personAndGroupMapper", personAndGroupMapper);
     mvc = MockMvcBuilders.standaloneSetup(controller).build();
@@ -55,7 +55,7 @@ class TheCurrentUserIsPartOfTheOfficialApiTest {
   @Test
   void theControllerImplementsTheInterfaceOfTheOfficialApi() {
 
-    assertThat(OfficialCurrentUserApi.class).isAssignableFrom(LoginApiController.class);
+    assertThat(OfficialCurrentUserApi.class).isAssignableFrom(CurrentUserApiController.class);
 
   }
 
