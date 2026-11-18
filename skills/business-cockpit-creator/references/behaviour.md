@@ -995,10 +995,11 @@ list must scroll smoothly. A larger window of loaded rows scrolls more smoothly,
 rows are already there, but it costs more memory. Find the size of the window that passes both
 tests, and do not trade one for the other.
 
-The data for both tests is large and mixed. Simulate three or four workflow modules that together
-report 30,000 user tasks or cases. The TypeScript simulator the end-to-end tests run against holds
-them, see [project.md](project.md#testing-without-java). Each module brings its own columns, so
-the rows differ the way they do in production. Run the tests on the primary filter for closed tasks
+The data for both tests is large and mixed. Report 30,000 user tasks or cases for the three
+example modules the TypeScript simulator of the end-to-end tests serves, see
+[project.md](project.md#testing-without-java). The simulator keeps them in memory. Spread the rows
+over the modules and give them different business data, so the rows differ the way they do in
+production. Run the tests on the primary filter for closed tasks
 as well (`ClosedTasksOnly`). Closed tasks are never removed, so that is where the most rows pile
 up.
 

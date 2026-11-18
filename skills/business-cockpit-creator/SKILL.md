@@ -163,40 +163,45 @@ down the result. Then do what [How you know it is done](#how-you-know-it-is-done
 The VanillaBP kit `@vanillabp/bc-module-kit` is the minimum every cockpit keeps, see
 [references/types.md](references/types.md#the-vanillabp-kit-is-the-minimum). Its repository
 `vanillabp/business-cockpit-module-kit` has three example modules, the same module written in
-React, in Vue and in Angular, and a browser test for them. Run that test against your cockpit
-(`EXT-040`). It passes for a cockpit with areas and for one without, because the example modules
-offer both.
+React, in Vue and in Angular, and a browser test for them. Run that test as an end-to-end test of
+the UI repository, against the TypeScript simulator, see
+[references/project.md](references/project.md#testing-without-java) (`EXT-040`). It passes for a
+cockpit with areas and for one without, because the example modules offer both.
 
 1. Take the kit's repository at the version your module kit covers. Run `npm ci`,
    `npm run build:examples` and `npm run build:conformance`. This writes the folder
    `dist/conformance`, which works on its own: the built modules below `wm/react-module/`,
    `wm/vue-module/` and `wm/angular-module/`, a small web server `serve.mjs`, the test
    `cockpit.test.js` and a `package.json` with its one dependency, `playwright`.
-2. In that folder run `npm install` and `npx playwright install chromium`, then start
-   `node serve.mjs`. It prints the address of each module, for example
-   `http://localhost:4173/wm/react-module`.
-3. Register the three modules in your cockpit, the way a workflow module registers itself: one
-   `POST /bpms/api/v1_1/workflow-module/{id}` per module, with the id `react-module`, `vue-module`
-   or `angular-module` and the printed address as `uri`. Give it `accessibleToGroups` the test user
-   has. Your cockpit then forwards `/wm/<id>/` to `serve.mjs`.
+2. The TypeScript simulator serves the three built modules itself, below `/wm/react-module/`,
+   `/wm/vue-module/` and `/wm/angular-module/`, the way the cockpit forwards to a module. These are
+   the only modules it serves. `serve.mjs` is not needed then.
+3. Register the three modules at the simulator, the way a workflow module registers itself at the
+   cockpit: one `POST /bpms/api/v1_1/workflow-module/{id}` per module, with the id `react-module`,
+   `vue-module` or `angular-module` and the address of the module below the simulator as `uri`.
+   Give it `accessibleToGroups` the test user has.
 4. Create one user task per module with `POST /bpms/api/v1_1/usertask/created`: the module's id as
    `workflowModuleId`, `bpmnProcessId` `TaxiRide`, `taskDefinition` `confirmRide`, the ES module
    value of `Q-UI-URI-TYPE` (by default `ES_MODULES`) as `uiUriType` and `/bc-manifest.json` as
    `uiUriPath`, plus the other fields `UserTaskCreatedEvent` requires, such as `id`,
    `workflowId` and `timestamp`. Make the test user a candidate. Write both steps into a setup
-   script of the end-to-end tests, with the credentials your cockpit asks for on the BPMS API, so
-   they run again for every test run.
-5. Run the test with the address of your cockpit and the path of the page of each user task:
+   script of the end-to-end tests, so they run again for every test run. The simulator keeps the
+   data in memory only.
+5. Run the test with the address of your user interface and the path of the page of each user task:
 
    ```bash
-   BC_COCKPIT_URL=http://localhost:8080 \
+   BC_COCKPIT_URL=http://localhost:5173 \
    BC_USER_TASK_PAGES="react-module=/tasks/4711 vue-module=/tasks/4712 angular-module=/tasks/4713" \
    BC_STORAGE_STATE=e2e/.auth/user.json \
    node --test cockpit.test.js
    ```
 
    `BC_STORAGE_STATE` names a file with a logged-in session, as Playwright's `storageState` writes
-   it. Leave it out if your cockpit needs no login for the test.
+   it. Leave it out if the simulator needs no login for the test.
+
+The same steps work against a running cockpit backend, with the credentials it asks for on the BPMS
+API and `serve.mjs` as the server of the modules. Do that once more in
+[How you know it is done](#how-you-know-it-is-done).
 
 The test opens each page and works with the form the way a user does. It finds the form in an open
 shadow root, fills in a comment, claims the task and opens a dialog. A failure means that your
@@ -449,8 +454,11 @@ Then:
 11. The backend repository builds and serves the user interface the way `Q-HOSTING` chose: with the
     UI jar as a dependency (`embedded`), through its gateway route to the nginx image (`behind`), or
     behind the nginx image (`in-front`).
-12. When the skill created the backend: `docker compose up` and the profile `local` start a cockpit
-    a user logs in to the way `Q-LOGIN-KIND` chose, and every list of `Q-LIST-CONTROLLERS` answers.
+12. When the skill created the backend: `docker compose up` and the profile `local` start a
+    cockpit, and the end-to-end tests of the backend repository pass: a user logs in the way
+    `Q-LOGIN-KIND` chose, and every list of `Q-LIST-CONTROLLERS` answers, see
+    [references/backend.md](references/backend.md#the-end-to-end-tests-of-the-backend).
 13. A module built against the kit loads in your cockpit: the conformance test with the kit's
-    example modules in React, Vue and Angular passes, see
+    example modules in React, Vue and Angular passes, as an end-to-end test against the simulator
+    and once more against the running cockpit, see
     [A module built against the kit loads in your cockpit](#a-module-built-against-the-kit-loads-in-your-cockpit).

@@ -577,14 +577,29 @@ interface, and a test of the user interface that needed it would make the builds
 circle. The tests run against a simulator written in TypeScript instead. It lies in `e2e/simulator/`
 and is part of the npm project.
 
-The simulator stands in for the cockpit backend:
+The simulator stands in for the cockpit backend. It does not copy the whole behaviour of the
+cockpit. It answers what the tests need, and it keeps its data in memory only, like the dev shell
+simulator:
 
-- It answers the GUI API with the data each test sets up. It takes the types of its answers from
-  the same two OpenAPI files the user interface generates its client from, so both sides speak the
-  same API.
-- It serves the built parts of the workflow modules the tests use, below `/wm/<workflowModuleId>/`,
-  the way the cockpit forwards to a module.
-- It sends the events of the update stream when a test changes its data.
+- The GUI API under `/gui/api/v1`, with the update stream. It sends the events of the stream when
+  a test changes its data.
+- The BPMS API under `/bpms/api/v1_1`, so a test can set up its data the way a workflow module
+  does: register a module, report a case or a user task, then read the list. Nothing else is
+  checked there.
+- The official GUI API below `/official-api/gui/api/v1`, for the end-to-end tests of the dev shells
+  of the repository. The simulators share one rule for their paths: each simulated system gets a
+  prefix of its own, and below it is the path of the original, see
+  [dev-shell.md](dev-shell.md#the-dev-shell-simulator). A test that compares a part in the cockpit
+  and in a dev shell reads the same user task from both paths, see
+  [dev-shell.md](dev-shell.md#a-browser-test-for-it).
+- The built parts of the three example modules of the VanillaBP kit, below `/wm/react-module/`,
+  `/wm/vue-module/` and `/wm/angular-module/`, the way the cockpit forwards to a module. They are
+  the modules of the conformance test, see
+  [A module built against the kit loads in your cockpit](../SKILL.md#a-module-built-against-the-kit-loads-in-your-cockpit).
+  The simulator serves no other module.
+
+It takes the types of its answers from the same OpenAPI files the user interface and the dev shells
+generate their clients from, so both sides speak the same API.
 
 Playwright starts it with `webServer`, next to the user interface. The test machine needs Node.js
 and a browser, nothing else.

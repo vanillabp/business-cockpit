@@ -299,4 +299,4 @@ right comes from.
 The OIDC login of [backend.md](backend.md#oidc-the-default) follows the wiki page
 [Security](https://github.com/vanillabp/business-cockpit/wiki/Security), but the cockpit has no
 test for it yet. A login with OAuth2 is still to come. Until then the end-to-end test of the login
-in the generated project is the proof (`BE-007`).
+in the generated backend repository is the proof (`BE-007`).

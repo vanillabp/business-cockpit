@@ -287,7 +287,7 @@ The limit holds for the data entry only, not for a form. A form is a visual entr
 large as its framework makes it. A visual entry is only checked for its file.
 
 The end-to-end tests of the cockpit check the same from the other side: loading the data entries of
-a blueprint module fetches no file of the module's framework.
+an example module of the kit fetches no file of the module's framework.
 
 The types library lists the names of the data entries as `DATA_ENTRIES`, and the module kit
 exports them again, so the script and the cockpit agree on them. A module whose data entries go

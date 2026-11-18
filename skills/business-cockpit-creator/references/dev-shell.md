@@ -109,9 +109,12 @@ notices when somebody forgets.
 
 ### A browser test for it
 
-The end-to-end tests of the generated project prove the rule too (`DS-018`, `DS-019`). The test
-opens a user task of the same workflow module and task definition once in the cockpit and once in
-the dev shell, finds the host element by its name, and compares:
+The end-to-end tests of the generated project prove the rule too (`DS-018`, `DS-019`). They run
+against the TypeScript simulator of the UI repository, see
+[project.md](project.md#testing-without-java). The simulator answers the GUI API for the cockpit
+and the official GUI API below `/official-api/gui/api/v1` for the dev shell, so both show the same
+user task. The test opens a user task of the same workflow module and task definition once in the
+cockpit and once in the dev shell, finds the host element by its name, and compares:
 
 - the chain of ancestors, from the host element up to `<html>`: the element names, `display`,
   `position` and `overflow`, and the width of the box of the area, with the same size of
@@ -351,7 +354,9 @@ dev shell generates its clients from the OpenAPI files in the jars, the same way
 interface does. This simulator is a Java application, and the developer starts it.
 
 The UI repository of the module is a pure npm repository, like the UI repository of the cockpit.
-Its end-to-end tests run against a simulator written in TypeScript, made for these tests. It also
+Its end-to-end tests run against a simulator written in TypeScript, made for these tests. Like the
+simulator of the cockpit's UI repository, it keeps its data in memory and follows the same rule for
+its paths, for example the official GUI API below `/official-api/gui/api/v1`. It also
 takes the OpenAPI files from the jars of the backend. So the end-to-end tests of a user interface
 need no Java, neither those of the cockpit nor those of a workflow module, see
 [project.md](project.md#testing-without-java).
