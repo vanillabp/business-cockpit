@@ -221,7 +221,7 @@ public class HttpServiceGroupProperties extends HttpClientProperties {
 
   /**
    * Sends a request again when it got no answer. Off by default. The other defaults are the ones
-   * of {@code ClientsConfigurationBase}, which took them from Feign's {@code Retryer.Default}.
+   * of the REST client of version 1, which took them from Feign's {@code Retryer.Default}.
    */
   public static class Retry {
 
@@ -413,7 +413,7 @@ public class HttpServiceGroupProperties extends HttpClientProperties {
     /**
      * How client id and secret reach the token endpoint, the key
      * {@code oauth.client-authentication-method}: {@value #CLIENT_SECRET_POST} in the form, as
-     * {@code ClientsConfigurationBase} does by default, or {@value #CLIENT_SECRET_BASIC} in an
+     * the REST client of version 1 did by default, or {@value #CLIENT_SECRET_BASIC} in an
      * HTTP basic authentication header.
      *
      * @return {@value #CLIENT_SECRET_POST} by default

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.vanillabp.businesscockpit</groupId>
+    <artifactId>business-cockpit-parent</artifactId>
+    <version>0.9.0-SNAPSHOT</version>
+    <relativePath>../../../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>dev-shell-simulator-api-client</artifactId>
+  <name>Spring client of the dev shell simulator's own API</name>
+  <description>Spring HTTP interfaces for the paths only the dev shell simulator answers, generated from dev-shell-simulator-api.yaml. A test of a workflow module reads the reports of its user tasks with them. The jar carries the OpenAPI file as well.</description>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>VanillaBP</id>
+      <organization>Phactum Softwareentwicklung GmbH</organization>
+      <organizationUrl>https://www.phactum.at</organizationUrl>
+    </developer>
+  </developers>
+
+  <properties>
+    <!-- the tests of a workflow module build against this module, so its snapshot carries a
+         javadoc jar -->
+    <skip.javadoc.jar>false</skip.javadoc.jar>
+  </properties>
+
+  <!--
+    Only what the generated sources import. No Spring Boot starter and no auto-configuration: the
+    caller turns an interface into a client with a RestClient of his own.
+  -->
+  <dependencies>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jspecify</groupId>
+      <artifactId>jspecify</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <resources>
+      <resource>
+        <!-- the OpenAPI file goes into the jar, at its root, so a Quarkus test can generate a
+             client of its own from the same artifact -->
+        <filtering>false</filtering>
+        <directory>../openapi</directory>
+        <includes>
+          <include>dev-shell-simulator-api.yaml</include>
+        </includes>
+      </resource>
+    </resources>
+    <plugins>
+      <plugin>
+        <groupId>org.openapitools</groupId>
+        <artifactId>openapi-generator-maven-plugin</artifactId>
+        <version>7.27.0</version>
+        <executions>
+          <execution>
+            <id>generate-api-client</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${project.basedir}/../openapi/dev-shell-simulator-api.yaml</inputSpec>
+              <output>${project.build.directory}/generated-sources</output>
+              <generatorName>spring</generatorName>
+              <!-- writes @HttpExchange interfaces for Spring Framework's HTTP interface clients -->
+              <library>spring-http-interface</library>
+              <apiPackage>io.vanillabp.cockpit.devshell.simulator.api.client</apiPackage>
+              <modelPackage>io.vanillabp.cockpit.devshell.simulator.api.client.model</modelPackage>
+              <!-- the same settings as the Spring Boot client of the official GUI API, see its POM -->
+              <configOptions>
+                <sourceFolder>openapi</sourceFolder>
+                <useSpringBoot4>true</useSpringBoot4>
+                <useJakartaEe>true</useJakartaEe>
+                <useTags>true</useTags>
+                <interfaceOnly>true</interfaceOnly>
+                <useBeanValidation>false</useBeanValidation>
+                <openApiNullable>false</openApiNullable>
+                <containerDefaultToNull>true</containerDefaultToNull>
+                <useJspecify>true</useJspecify>
+                <generateJsonIncludeAnnotations>false</generateJsonIncludeAnnotations>
+                <generateJsonSetterNullsAnnotations>false</generateJsonSetterNullsAnnotations>
+              </configOptions>
+              <generateApiTests>false</generateApiTests>
+              <generateModelTests>false</generateModelTests>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

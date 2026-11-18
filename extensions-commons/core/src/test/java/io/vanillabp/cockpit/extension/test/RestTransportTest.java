@@ -243,6 +243,22 @@ public class RestTransportTest {
   }
 
   @Test
+  @DisplayName("The path of the API follows a path of the address, with or without a slash at its end")
+  public void thePathOfTheApiFollowsThePathOfTheAddress() {
+
+    for (final var path : List.of("/cockpit", "/cockpit/")) {
+      received.clear();
+      final var address = "http://localhost:%d%s".formatted(server.getAddress().getPort(), path);
+      new RestTransport(
+          new RestTransportConfiguration(address, null, null, null, null, null, true, null, null, null))
+          .registerWorkflowModule(EventFixture.workflowModule());
+
+      assertEquals("/cockpit/bpms/api/v1_1/workflow-module/test-module", theRequest().path());
+    }
+
+  }
+
+  @Test
   @DisplayName("A workflow module is registered under its own id")
   public void workflowModuleIsRegistered() {
 
@@ -452,6 +468,25 @@ public class RestTransportTest {
     assertFalse(
         PhaseTwoPermanentFailure.isPermanent(failure),
         "a server which failed on its own side ended the report");
+
+  }
+
+  @Test
+  @DisplayName("A cockpit server which cannot be reached has the entry repeated and is named")
+  public void anUnreachableServerHasTheReportRepeated() {
+
+    final var port = server.getAddress().getPort();
+    server.stop(0);
+
+    final var failure = assertThrows(
+        RuntimeException.class,
+        () -> transport.publishUserTaskEvent(EventFixture.userTask(UserTaskEventKind.CREATED)));
+
+    assertFalse(
+        PhaseTwoPermanentFailure.isPermanent(failure),
+        "a server which could not be reached ended the report");
+    assertTrue(failure.getMessage().contains("got no answer"), failure.getMessage());
+    assertTrue(failure.getMessage().contains("localhost:%d".formatted(port)), failure.getMessage());
 
   }
 

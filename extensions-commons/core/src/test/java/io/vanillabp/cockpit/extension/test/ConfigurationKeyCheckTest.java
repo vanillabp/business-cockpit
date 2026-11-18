@@ -70,7 +70,7 @@ public class ConfigurationKeyCheckTest {
 
     final var log = refusalOf("vanillabp.cockpit.rest.log");
     assertTrue(log.contains("version 1"), log);
-    assertTrue(log.contains("BpmsApi"), log);
+    assertTrue(log.contains("io.vanillabp.cockpit.extension.transport.RestTransport"), log);
 
     final var retry = refusalOf("vanillabp.cockpit.rest.retry.max-attempts");
     assertTrue(retry.contains("vanillabp.outbox.*"), retry);

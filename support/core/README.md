@@ -28,8 +28,6 @@ depends on the module of its platform.
   `409 Conflict`. Each of them, and `BcUnauthorizedException` with `401`, names its status as
   `HTTP_STATUS_CODE`, so a test of a form reads, for example,
   `assertThat(status).isEqualTo(BcTaskClaimedByAnotherUserException.HTTP_STATUS_CODE)`.
-- `io.vanillabp.cockpit.support.rest.adapter`: `tls.TlsTruststoreUtil`, which builds trust managers
-  and key managers out of a PKCS12 file, and `versioning.ApiVersionAware`.
 
 The packages are the same as in the platform modules. The classes moved here out of the Spring Boot
 module and kept their packages, so no import changed.

@@ -28,8 +28,8 @@ import mockwebserver3.MockWebServer;
 
 /**
  * What a caller gets: JSON bodies read and written with the application's Jackson, form bodies as
- * forms, and Spring's exceptions for an error status or a missing answer. Feign's exceptions of
- * {@code ClientsConfigurationBase} are gone.
+ * forms, and Spring's exceptions for an error status or a missing answer, where the REST client of
+ * version 1 threw Feign's.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SpringBootTest(

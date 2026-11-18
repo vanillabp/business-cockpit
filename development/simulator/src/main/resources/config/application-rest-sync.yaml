@@ -1,7 +1,5 @@
-application:
-  business-cockpit:
-    base-url: http://localhost:8080/bpms/api/v1_1
-    authentication:
-      basic: true
-      username: abc
-      password: 123
+business-cockpit:
+  base-url: http://localhost:8080
+  # basic authentication of the user 'abc' with the password '123'
+  default-header:
+    Authorization: Basic YWJjOjEyMw==

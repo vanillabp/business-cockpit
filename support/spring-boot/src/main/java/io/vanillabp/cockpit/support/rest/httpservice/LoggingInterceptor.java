@@ -14,8 +14,8 @@ import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.util.StreamUtils;
 
 /**
- * Logs each request and its answer with headers and bodies at level INFO, as
- * {@code ClientsConfigurationBase} does with {@code log: true}. Neither Spring Framework nor Spring
+ * Logs each request and its answer with headers and bodies at level INFO, as the REST client of
+ * version 1 did with {@code log: true}. Neither Spring Framework nor Spring
  * Boot has such logging for a {@code RestClient}. At DEBUG it names the Java object it writes and
  * the type it reads into, but not the URL, the status or the body of the answer.
  * <p>

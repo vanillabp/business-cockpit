@@ -55,12 +55,10 @@ below name them where they belong, whichever module holds them.
   application, the clients Spring Framework builds from generated `@HttpExchange` interfaces. The
   keys of a group live below a prefix the client module or the application chooses. Next to Spring
   Boot's keys a group gets a proxy, `verify-ssl`, retries, logging and OAuth, and the start stops
-  with a list of every missing or misspelled key. This is the way to build a new REST client.
+  with a list of every missing or misspelled key. The requests go through the JDK's own
+  `HttpClient`, so the module brings no HTTP library.
 
-- `io.vanillabp.cockpit.support.rest.adapter`: the older REST client built on OpenFeign and
-  OkHttp, `ClientsConfigurationBase`. It stays until the clients built with it have moved.
-
-  The section [REST clients](../README.md#rest-clients) of the support README describes both, lists
+  The section [REST clients](../README.md#rest-clients) of the support README describes it, lists
   every key with its default and shows, step by step, how a client module brings its own
   auto-configuration.
 

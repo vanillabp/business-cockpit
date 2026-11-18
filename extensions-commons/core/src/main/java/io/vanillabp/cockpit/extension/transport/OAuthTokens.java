@@ -1,22 +1,18 @@
 package io.vanillabp.cockpit.extension.transport;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 
-import javax.net.ssl.HttpsURLConnection;
-
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import feign.RequestInterceptor;
-import feign.RequestTemplate;
 import io.vanillabp.cockpit.extension.config.RestTransportConfiguration;
 import io.vanillabp.integration.spi.PhaseTwoRetryLater;
 
@@ -34,7 +30,7 @@ import io.vanillabp.integration.spi.PhaseTwoRetryLater;
  * authorization server which is unreachable gives the report back to the outbox instead of
  * ending it. A token which cannot be fetched now is the kind of thing which works in a minute.
  */
-public class OAuthTokens implements RequestInterceptor {
+public class OAuthTokens {
 
   /**
    * How long before its expiry a token is replaced. A token which expires while a report is on
@@ -48,7 +44,11 @@ public class OAuthTokens implements RequestInterceptor {
 
   private static final ObjectMapper JSON = new ObjectMapper();
 
+  private static final int OK = 200;
+
   private final RestTransportConfiguration.OAuth oauth;
+
+  private final HttpClient client;
 
   private volatile String token;
 
@@ -65,15 +65,20 @@ public class OAuthTokens implements RequestInterceptor {
       final RestTransportConfiguration configuration) {
 
     this.oauth = configuration.oauth();
+    this.client = RestClientSetup.httpClientOf(oauth).build();
 
   }
 
-  @Override
-  public void apply(
-      final RequestTemplate template) {
+  /**
+   * What a report carries as its <code>Authorization</code>: a token which is valid now, fetched
+   * where the one held has run out.
+   *
+   * @return The value of the header
+   */
+  public String authorization() {
 
-    template.header("Authorization", "Bearer "
-        + current());
+    return "Bearer "
+        + current();
 
   }
 
@@ -105,86 +110,65 @@ public class OAuthTokens implements RequestInterceptor {
 
   private Token fetch() {
 
-    try {
-      final var connection = open();
-      try {
-        connection.setRequestMethod("POST");
-        connection.setDoOutput(true);
-        connection
-            .setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-        connection.setRequestProperty("Accept", "application/json");
-        final var proxyAuthorization = RestClientSetup.proxyAuthorizationOf(oauth.proxy());
-        if (proxyAuthorization != null) {
-          connection.setRequestProperty("Proxy-Authorization", proxyAuthorization);
-        }
-        if (oauth.clientInAuthorizationHeader()) {
-          connection
-              .setRequestProperty(
-                  "Authorization",
-                  RestClientSetup.basic(oauth.clientId(), oauth.clientSecret()));
-        }
-        connection.getOutputStream().write(form().getBytes(StandardCharsets.UTF_8));
-        final var status = connection.getResponseCode();
-        if (status != HttpURLConnection.HTTP_OK) {
-          throw new PhaseTwoRetryLater(
-              """
-                  The authorization server at '%s' answered the token request of client '%s' with \
-                  %d. The report waits and is sent again once a token can be fetched."""
-                  .formatted(oauth.tokenUrl(), oauth.clientId(), status), null);
-        }
-        try (InputStream answer = connection.getInputStream()) {
-          final var json = JSON.readTree(answer.readAllBytes());
-          final var accessToken = json.path("access_token").asText(null);
-          if ((accessToken == null) || accessToken.isBlank()) {
-            throw new PhaseTwoRetryLater(
-                """
-                    The authorization server at '%s' answered the token request of client '%s' \
-                    without an 'access_token'."""
-                    .formatted(oauth.tokenUrl(), oauth.clientId()), null);
-          }
-          final var expiresIn = json.path("expires_in").asLong(0);
-          return new Token(
-              accessToken, expiresIn > 0 ? Duration.ofSeconds(expiresIn) : ASSUMED_LIFETIME);
-        }
-      } finally {
-        connection.disconnect();
-      }
-    } catch (final IOException e) {
-      final var unreachable = new PhaseTwoRetryLater(
-          """
-              The authorization server at '%s' could not be reached for a token of client '%s'. \
-              The report waits and is sent again."""
-              .formatted(oauth.tokenUrl(), oauth.clientId()), null);
-      unreachable.initCause(e);
-      throw unreachable;
+    final var request = HttpRequest
+        .newBuilder(URI.create(oauth.tokenUrl()))
+        .timeout(RestClientSetup.readTimeoutOf(oauth))
+        .header("Content-Type", "application/x-www-form-urlencoded")
+        .header("Accept", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString(form(), StandardCharsets.UTF_8));
+    final var proxyAuthorization = RestClientSetup.proxyAuthorizationOf(oauth.proxy());
+    if (proxyAuthorization != null) {
+      request.header("Proxy-Authorization", proxyAuthorization);
     }
+    if (oauth.clientInAuthorizationHeader()) {
+      request.header("Authorization", RestClientSetup.basic(oauth.clientId(), oauth.clientSecret()));
+    }
+    final HttpResponse<byte[]> answer;
+    try {
+      answer = client.send(request.build(), HttpResponse.BodyHandlers.ofByteArray());
+    } catch (final IOException e) {
+      throw unreachable(e);
+    } catch (final InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw unreachable(e);
+    }
+    if (answer.statusCode() != OK) {
+      throw new PhaseTwoRetryLater(
+          """
+              The authorization server at '%s' answered the token request of client '%s' with \
+              %d. The report waits and is sent again once a token can be fetched."""
+              .formatted(oauth.tokenUrl(), oauth.clientId(), answer.statusCode()), null);
+    }
+    final JsonNode json;
+    try {
+      json = JSON.readTree(answer.body());
+    } catch (final IOException e) {
+      throw unreachable(e);
+    }
+    final var accessToken = json.path("access_token").asText(null);
+    if ((accessToken == null) || accessToken.isBlank()) {
+      throw new PhaseTwoRetryLater(
+          """
+              The authorization server at '%s' answered the token request of client '%s' \
+              without an 'access_token'."""
+              .formatted(oauth.tokenUrl(), oauth.clientId()), null);
+    }
+    final var expiresIn = json.path("expires_in").asLong(0);
+    return new Token(
+        accessToken, expiresIn > 0 ? Duration.ofSeconds(expiresIn) : ASSUMED_LIFETIME);
 
   }
 
-  private HttpURLConnection open() throws IOException {
+  private PhaseTwoRetryLater unreachable(
+      final Exception cause) {
 
-    final var url = URI.create(oauth.tokenUrl()).toURL();
-    final var proxy = oauth.proxy();
-    final var connection = (HttpURLConnection) (proxy == null
-        ? url.openConnection()
-        : url
-            .openConnection(
-                new Proxy(
-                    Proxy.Type.HTTP, new InetSocketAddress(proxy.host(), proxy.port()))));
-    final var timeouts = RestClientSetup.timeoutsOf(oauth);
-    connection.setConnectTimeout(timeouts.connectTimeoutMillis());
-    connection.setReadTimeout(timeouts.readTimeoutMillis());
-    if (connection instanceof final HttpsURLConnection https) {
-      final var context = RestClientSetup.sslContextOf(oauth);
-      if (context != null) {
-        https.setSSLSocketFactory(context.getSocketFactory());
-      }
-      final var hostnames = RestClientSetup.hostnameVerifierOf(oauth);
-      if (hostnames != null) {
-        https.setHostnameVerifier(hostnames);
-      }
-    }
-    return connection;
+    final var unreachable = new PhaseTwoRetryLater(
+        """
+            The authorization server at '%s' could not be reached for a token of client '%s'. \
+            The report waits and is sent again."""
+            .formatted(oauth.tokenUrl(), oauth.clientId()), null);
+    unreachable.initCause(cause);
+    return unreachable;
 
   }
 

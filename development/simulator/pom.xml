@@ -80,8 +80,10 @@
       <artifactId>spring-boot-starter-freemarker</artifactId>
     </dependency>
     <dependency>
+      <!-- the messages of the BPMS API, which the client generated below sends. The client of the
+           extensions, bpms-api-client, carries classes of the same names, so it stays out. -->
       <groupId>${project.groupId}</groupId>
-      <artifactId>bpms-api-client</artifactId>
+      <artifactId>bpms-api-server</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -148,6 +150,53 @@
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.openapitools</groupId>
+        <artifactId>openapi-generator-maven-plugin</artifactId>
+        <version>7.27.0</version>
+        <executions>
+          <execution>
+            <id>generate-bpms-api-client</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${project.basedir}/../../apis/bpms-api/openapi/v1_1.yaml</inputSpec>
+              <!-- the sources land in 'generated-sources/openapi', where the javadoc check of the
+                   root POM looks up the types the code written by hand uses -->
+              <output>${project.build.directory}/generated-sources</output>
+              <!-- an HTTP service client of support: an @HttpExchange interface, which Spring
+                   Framework turns into a client -->
+              <generatorName>spring</generatorName>
+              <library>spring-http-interface</library>
+              <!-- only the interface. The messages are the ones of bpms-api-server, generated from
+                   the same file into the package named here. -->
+              <generateModels>false</generateModels>
+              <modelPackage>io.vanillabp.cockpit.bpms.api.v1_1</modelPackage>
+              <apiPackage>io.vanillabp.cockpit.simulator.bpms</apiPackage>
+              <!-- one file of our own beside the interface: BpmsApiPath, the server path of the
+                   OpenAPI file, with the template of bpms-api-client, see src/main/openapi/config.yaml -->
+              <configurationFile>${project.basedir}/src/main/openapi/config.yaml</configurationFile>
+              <templateDirectory>${project.basedir}/../../apis/bpms-api/client/generator</templateDirectory>
+              <supportingFilesToGenerate>BpmsApiPath.java</supportingFilesToGenerate>
+              <generateApiTests>false</generateApiTests>
+              <generateModelTests>false</generateModelTests>
+              <configOptions>
+                <sourceFolder>openapi</sourceFolder>
+                <useSpringBoot4>true</useSpringBoot4>
+                <useJakartaEe>true</useJakartaEe>
+                <useTags>true</useTags>
+                <interfaceOnly>true</interfaceOnly>
+                <useBeanValidation>false</useBeanValidation>
+                <openApiNullable>false</openApiNullable>
+                <useJspecify>true</useJspecify>
+              </configOptions>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
   </build>
 
   <profiles>

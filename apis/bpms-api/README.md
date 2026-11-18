@@ -6,6 +6,14 @@ module itself, each as it is created, changed, completed or cancelled.
 Three modules are built from one specification. `client` is what an integration sends with, `server`
 is what the cockpit receives with, and `protobuf` is the same messages for the Kafka transport.
 
+The server URL of each specification is the full path below the address of the cockpit:
+`/bpms/api/v1` and `/bpms/api/v1_1`. The client brings the path of version 1.1 along as
+`BpmsApiPath.PATH`, generated from the server URL by the template in `client/generator`. So a
+sender is configured with the address of the cockpit only, like `https://cockpit.example.com`, and
+adds the path itself. The REST transport of the extension does that, and it stops the start if
+`vanillabp.cockpit.rest.base-url` ends with the path already. A client of a new version of the API
+brings its new path along, and no constant written by hand has to change.
+
 Both specifications, `openapi/v1.yaml` and `openapi/v1_1.yaml`, say what the cockpit answers where a
 report does not go through, and what the sender does about it. A `400` means: change the report
 first, because the same report is refused again. A `422` means: the cockpit understood the report
@@ -41,8 +49,10 @@ it gets about the record. That happens when the end overtakes the creation. With
 the timestamp of the end, so every record the user interface shows has a start. A creation which
 arrives later still fills in what the end left out, and its own start replaces that of the end.
 
-The client names its own dependencies rather than reaching them through another artifact of the
-cockpit, so that it drags no web framework into a consumer which has to stay free of one. Decision 1
-of the [decision log](../../DECISIONS.md) says why.
+The client is generated with the library `native` of the generator `java`. It sends with the JDK's
+own `java.net.http.HttpClient` and reads and writes JSON with Jackson, so it brings no HTTP library.
+It names its own dependencies rather than reaching them through another artifact of the cockpit, so
+that it drags no web framework into a consumer which has to stay free of one. Decision 1 of the
+[decision log](../../DECISIONS.md) says why.
 
 Built as part of the reactor build described in the [root README](../../README.md#building-it).

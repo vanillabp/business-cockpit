@@ -1,25 +1,30 @@
 package io.vanillabp.cockpit.extension.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.URI;
+import java.net.http.HttpClient;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.time.Duration;
+import java.util.List;
+
+import javax.net.ssl.SSLContext;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 
-import feign.Client;
-import feign.DefaultClient;
 import io.vanillabp.cockpit.extension.config.RestTransportConfiguration;
 import io.vanillabp.cockpit.extension.transport.RestClientSetup;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
@@ -29,8 +34,8 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * <p>
  * The tests check the parts the client is built from, not a connection. A certificate check
  * only shows against a server which presents a certificate, and a test cannot issue one itself.
- * A test can say which stack a configuration leads to, and that a deployment which configures
- * nothing keeps the stack of the generated client.
+ * A test can say what the JDK's client is built with for a configuration, and that a deployment
+ * which configures nothing gets the client as the JDK builds it.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class RestClientSetupTest {
@@ -69,44 +74,44 @@ public class RestClientSetupTest {
   }
 
   @Test
-  @DisplayName("What was not configured keeps the timeouts the client brings")
-  public void unconfiguredTimeoutsStayTheClientsOwn() {
+  @DisplayName("What was not configured keeps the timeouts of version 1")
+  public void unconfiguredTimeoutsStayTheDefaults() {
 
-    final var defaults = RestClientSetup
-        .timeoutsOf(configuration(null, null, null, true, null, null));
-    final var configured = RestClientSetup
-        .timeoutsOf(
-            configuration(Duration.ofMillis(250), null, null, true, null, null));
+    final var configured = configuration(Duration.ofMillis(250), null, null, true, null, null);
 
-    assertEquals(250, configured.connectTimeoutMillis());
+    assertEquals(Duration.ofMillis(250), RestClientSetup.connectTimeoutOf(configured));
     assertEquals(
-        defaults.readTimeoutMillis(), configured.readTimeoutMillis(),
+        RestTransportConfiguration.DEFAULT_READ_TIMEOUT, RestClientSetup.readTimeoutOf(configured),
         "a connect timeout of its own changed how long the server may take to answer");
+    assertEquals(
+        Duration.ofMillis(250), RestClientSetup.httpClientOf(configured).build().connectTimeout().orElseThrow());
 
   }
 
   @Test
-  @DisplayName("A deployment which configures nothing keeps the generated client's own stack")
-  public void nothingConfiguredKeepsTheGeneratedClient() {
+  @DisplayName("A deployment which configures nothing gets the JDK's client with HTTP/1.1 and no proxy")
+  public void nothingConfiguredKeepsTheJdksClient() {
 
-    assertNull(RestClientSetup.clientOf(configuration(null, null, null, true, null, null)));
+    final var client = RestClientSetup
+        .httpClientOf(configuration(null, null, null, true, null, null))
+        .build();
+
+    assertEquals(HttpClient.Version.HTTP_1_1, client.version());
+    assertTrue(client.proxy().isEmpty(), "a client without a configured proxy has a proxy");
     assertNull(RestClientSetup.sslContextOf(configuration(null, null, null, true, null, null)));
-    assertNull(
-        RestClientSetup.hostnameVerifierOf(configuration(null, null, null, true, null, null)));
 
   }
 
   @Test
-  @DisplayName("A certificate check switched off trusts and accepts everything")
-  public void aCheckSwitchedOffTrustsEverything() {
+  @DisplayName("A certificate check switched off trusts everything")
+  public void aCheckSwitchedOffTrustsEverything() throws Exception {
 
     final var configuration = configuration(null, null, null, false, null, null);
 
-    assertInstanceOf(DefaultClient.class, RestClientSetup.clientOf(configuration));
     assertNotNull(RestClientSetup.sslContextOf(configuration));
-    assertTrue(
-        RestClientSetup.hostnameVerifierOf(configuration).verify("nobody.example", null),
-        "a check which was switched off still refused a host");
+    assertNotEquals(
+        SSLContext.getDefault(), RestClientSetup.httpClientOf(configuration).build().sslContext(),
+        "a check which was switched off kept the JVM's own certificates");
 
   }
 
@@ -142,9 +147,15 @@ public class RestClientSetupTest {
         new RestTransportConfiguration.Proxy("proxy.internal", 3128, "walter", "s3cret"), true,
         null, null);
 
-    assertInstanceOf(Client.Proxied.class, RestClientSetup.clientOf(withoutAUser));
+    final var proxy = RestClientSetup
+        .httpClientOf(withoutAUser)
+        .build()
+        .proxy()
+        .orElseThrow()
+        .select(URI.create("http://cockpit.internal:8080"));
+    assertEquals(
+        List.of(new Proxy(Proxy.Type.HTTP, new InetSocketAddress("proxy.internal", 3128))), proxy);
     assertNull(RestClientSetup.proxyAuthorizationOf(withoutAUser.proxy()));
-    assertInstanceOf(Client.Proxied.class, RestClientSetup.clientOf(withAUser));
     assertEquals(
         "Basic d2FsdGVyOnMzY3JldA==", RestClientSetup.proxyAuthorizationOf(withAUser.proxy()));
     assertNull(RestClientSetup.proxyAuthorizationOf(null));
