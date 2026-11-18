@@ -25,15 +25,16 @@ of the library reaches it by the component scan, exactly like the application yo
 1. [Spring Boot only](#spring-boot-only)
 2. [The layout](#the-layout)
 3. [The parent pom](#the-parent-pom)
-4. [The application](#the-application)
-5. [The controllers of the lists](#the-controllers-of-the-lists)
-6. [The login](#the-login)
-7. [The BPMS API](#the-bpms-api)
-8. [The user directory](#the-user-directory)
-9. [The configuration](#the-configuration)
-10. [The docker-compose.yaml](#the-docker-composeyaml)
-11. [The test that starts the application](#the-test-that-starts-the-application)
-12. [The README](#the-readme)
+4. [With Gradle](#with-gradle)
+5. [The application](#the-application)
+6. [The controllers of the lists](#the-controllers-of-the-lists)
+7. [The login](#the-login)
+8. [The BPMS API](#the-bpms-api)
+9. [The user directory](#the-user-directory)
+10. [The configuration](#the-configuration)
+11. [The docker-compose.yaml](#the-docker-composeyaml)
+12. [The test that starts the application](#the-test-that-starts-the-application)
+13. [The README](#the-readme)
 
 ## Spring Boot only
 
@@ -64,6 +65,9 @@ keycloak/
   realm.json                    the realm Keycloak imports at the start, for Q-LOGIN-KIND oidc
 README.md                       how to start it, and the order of the builds
 ```
+
+This is the layout with Maven. With Gradle (`Q-BUILD-TOOL`) the build files differ and everything
+else stays the same, see [With Gradle](#with-gradle).
 
 The module `types` builds the types jar for the workflow modules, see
 [project.md](project.md#the-types-jar). The module `application` is the counterpart of `container`.
@@ -110,6 +114,43 @@ from the snapshot repository of Maven Central
 (`https://central.sonatype.com/repository/maven-snapshots/`), and the parent names that
 repository only for as long as `Q-COCKPIT-VERSION` is a snapshot. Propose a release version in
 `Q-COCKPIT-VERSION`.
+
+## With Gradle
+
+When `Q-BUILD-TOOL` is Gradle, the repository has the same two modules and follows the same rules.
+Only the build files differ. The skill writes them in the Kotlin DSL and commits the Gradle wrapper,
+so a build agent needs a JDK and nothing else:
+
+```
+settings.gradle.kts             the two modules: include("types", "application")
+build.gradle.kts                what both modules share: the group, the version, the Java version
+gradle.properties               business-cockpit.version and ui.version
+types/build.gradle.kts          downloads <scope>/bc-types, writes and compiles UiUriTypes.java
+application/build.gradle.kts    business-cockpit, the UI jar, the optional starters
+gradlew, gradle/wrapper/        the Gradle wrapper
+```
+
+What [The parent pom](#the-parent-pom) says for Maven looks like this with Gradle:
+
+- The cockpit's BOM comes in as a platform, and the dependencies then name no version:
+
+  ```kotlin
+  val cockpitVersion = property("business-cockpit.version")
+  implementation(platform("io.vanillabp.businesscockpit:business-cockpit-bom:$cockpitVersion"))
+  ```
+- Do not apply the plugin `io.spring.dependency-management`. Next to the Spring Boot plugin it
+  imports the Spring Boot BOM in the version of the plugin, which is a second import of the Spring
+  BOMs.
+- The plugin `org.springframework.boot` goes into `application` only. It gets the version of
+  `spring-boot-dependencies` that the cockpit's BOM imports, read from `bom/pom.xml` of the
+  `business-cockpit` repository at the tag of `Q-COCKPIT-VERSION`.
+- The Java version of `Q-JAVA-VERSION` is a toolchain:
+  `java { toolchain { languageVersion = JavaLanguageVersion.of(25) } }`.
+- The snapshot repository of Maven Central is in `repositories` only for as long as
+  `Q-COCKPIT-VERSION` is a snapshot.
+
+Where this page names the `pom.xml` of a module, take its `build.gradle.kts`. `./gradlew build`
+builds both modules, and `./gradlew :application:bootRun` starts the application.
 
 ## The application
 
@@ -519,8 +560,11 @@ title. A second request, without a login, to a list answers 401. With OIDC the t
 Keycloak: it also checks that a page without a login is sent on to the provider.
 
 This test proves that the generated application starts and that nothing of the library is missing.
-The end-to-end tests of the UI repository prove the rest, against the running backend of
-`docker-compose.yaml`.
+The end-to-end tests of the UI repository do not start this backend. They run against the
+TypeScript simulator of the UI repository, see
+[project.md](project.md#testing-without-java). The user interface together with this backend, the
+login and the lists of `Q-LIST-CONTROLLERS` are proven by the check against a running cockpit, see
+[How you know it is done](../SKILL.md#how-you-know-it-is-done).
 
 ## The README
 

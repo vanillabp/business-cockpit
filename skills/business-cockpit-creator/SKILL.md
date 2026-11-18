@@ -1,6 +1,6 @@
 ---
 name: business-cockpit-creator
-description: Generate a VanillaBP Business Cockpit that fits an organisation's own tech stack, as two repositories. The frontend is one npm workspaces repository with the user interface in any web framework, the types, the cockpit's own module kit and module host, the theme, dev shells for workflow module parts and an nginx image. The backend is a Maven project with the cockpit application on the business-cockpit library, the list controllers, the login (OIDC with Keycloak by default), a types jar and a docker-compose.yaml with MongoDB, Mailpit, Keycloak, Kafka if wanted. The agent interviews the user, generates both repositories and verifies them against a versioned checklist. Covers the GUI API, lists over large data, loading workflow module parts at runtime as ES modules and web components, and the behaviour users expect. Use whenever somebody wants their own Business Cockpit, its user interface or backend, wants to upgrade a generated one to a newer checklist, or needs a dev shell for the parts of a workflow module.
+description: Generate a VanillaBP Business Cockpit that fits an organisation's own tech stack, as two repositories. The frontend is one npm workspaces repository with the user interface in any web framework, the types, the cockpit's own module kit and module host, the theme, dev shells for workflow module parts and an nginx image. The backend is a Maven or Gradle project with the cockpit application on the business-cockpit library, the list controllers, the login (OIDC with Keycloak by default), a types jar and a docker-compose.yaml with MongoDB, Mailpit, Keycloak, Kafka if wanted. The agent interviews the user, generates both repositories and verifies them against a versioned checklist. Covers the GUI API, lists over large data, loading workflow module parts at runtime as ES modules and web components, and the behaviour users expect. Use whenever somebody wants their own Business Cockpit, its user interface or backend, wants to upgrade a generated one to a newer checklist, or needs a dev shell for the parts of a workflow module.
 license: Apache-2.0
 metadata:
   author: vanillabp
@@ -57,9 +57,10 @@ The UI repository is one npm repository with npm workspaces. Every npm package b
 workspace of it, and one `package-lock.json` at the root pins the dependencies of all of them, see
 [references/project.md](references/project.md#the-npm-workspaces). It produces:
 
-- The types library `<scope>/bc-types`. It holds the data of the GUI API and every constant of the
-  contract with the workflow modules, such as the entries, the areas and the `ui-uri-type` values
-  this user interface understands. It has no dependencies.
+- The types library `<scope>/bc-types`. It holds the data of the GUI API, the interfaces a part of a
+  workflow module gets, such as `BcUserTask` and `BcWorkflow` with the functions of the cockpit, and
+  every constant of the contract with the workflow modules, such as the entries, the areas and the
+  `ui-uri-type` values this user interface understands. It has no dependencies.
 - The module kit `<scope>/bc-module-kit`, the package a workflow module installs. It is this
   cockpit's own copy of the VanillaBP kit `@vanillabp/bc-module-kit`, made to fit the interview.
   It is built on the types library and exports its types again, and it brings the runtime code a
@@ -80,8 +81,8 @@ workspace of it, and one `package-lock.json` at the root pins the dependencies o
 - A `Dockerfile` that serves the user interface with nginx, for an organisation that deploys it
   apart from the backend (`Q-HOSTING` is `behind` or `in-front`).
 
-The backend repository is a Maven project with a parent `pom.xml` and two modules, see
-[references/backend.md](references/backend.md):
+The backend repository is built with Maven or Gradle, as the user chooses in the interview
+(`Q-BUILD-TOOL`). It has two modules, see [references/backend.md](references/backend.md):
 
 - `application`, the cockpit application of the organisation, the counterpart of the `container`
   module of the cockpit. It depends on the `business-cockpit` library and brings what the library
@@ -95,7 +96,8 @@ The backend repository is a Maven project with a parent `pom.xml` and two module
   MongoDB, Mailpit, Keycloak for an OIDC login, and Kafka with `Q-KAFKA`.
 
 When the organisation keeps a backend of its own, the skill does not create one. It tells the user
-which dependency to add, and the types jar comes from a small Maven project of its own instead.
+which dependency to add, and the types jar comes from a small Maven or Gradle project of its own
+instead.
 
 The user interface can also run in an nginx of its own. Then the backend still answers every request
 of the browser and passes on to that nginx only what the cockpit does not know itself. The three ways
@@ -223,10 +225,11 @@ Read them in this order. Each one builds on the one before.
    The questions you ask before you generate anything, and their defaults.
 2. [references/project.md](references/project.md)<br>
    The two repositories: the npm workspaces of the UI repository, the user interface, the UI jar,
-   the upload into the Maven repository, the nginx image, the backend repository, the types jar, the
-   types library, the module kit, the module host, the theme library and the dev shells.
+   the upload into the Maven repository, the nginx image, the backend repository, the types jar,
+   testing without Java, the types library, the module kit, the module host, the theme library and
+   the dev shells.
 3. [references/backend.md](references/backend.md)<br>
-   The backend repository the skill creates: the parent pom, the application, the controllers of
+   The backend repository the skill creates: the build files, the application, the controllers of
    the lists, the login, the BPMS API, the user directory, the configuration, the
    `docker-compose.yaml` and the test that starts the application.
 4. [references/gui-api.md](references/gui-api.md)<br>
@@ -366,7 +369,7 @@ seeing anything.
 1. The project skeleton: the npm workspaces with the types library, the module kit, the module host
    and the theme, the generated GUI API client, and the UI jar with an empty shell, uploaded into
    the Maven repository.
-2. The backend repository, when the skill creates it: the parent pom, the application with the
+2. The backend repository, when the skill creates it: the build files, the application with the
    controllers of the lists, the login and the user directory, the `docker-compose.yaml` and the
    test that starts the application. Start it with the UI jar and see the shell load after the
    login. With a backend of the organisation's own, add the UI jar to it instead.
@@ -392,9 +395,15 @@ seeing anything.
 8. The dev shells, one per framework the workflow modules use.
 9. The types jar: the module `types` of the backend repository, or the types module of its own with
    its `README.md`. Then the nginx image when `Q-HOSTING` is `behind` or `in-front`.
-10. The end-to-end tests, one per checklist item.
+10. The end-to-end tests, one per checklist item. They run against the TypeScript simulator of the
+    UI repository, see
+    [references/project.md](references/project.md#testing-without-java).
 
 ## How you know it is done
+
+The end-to-end tests of the UI repository run against its TypeScript simulator and need no Java,
+see [references/project.md](references/project.md#testing-without-java). This last check is
+different. It is done once the backend is built, and it needs a running cockpit backend.
 
 Run the generated user interface against a running cockpit with workflow modules. As workflow
 modules, use the Business Cockpit blueprints in the `vanillabp-blueprints` organisation. They do not

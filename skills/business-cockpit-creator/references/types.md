@@ -6,8 +6,10 @@ VanillaBP gives no types for the user interface, and no user interface either. T
 interface publishes the contract with its workflow modules itself, in two npm packages of its own
 (`Q-NPM-SCOPE`), see [project.md](project.md#which-package-holds-what):
 
-- The types library `<scope>/bc-types` holds the data and the names: the types and every constant.
-  It has no dependencies and no runtime code beyond constants.
+- The types library `<scope>/bc-types` holds the data, the types and the names: the data of the
+  GUI API, the interfaces a part of a module gets from the cockpit, such as `BcUserTask` and
+  `BcWorkflow` with the functions the cockpit offers, and every constant. It has no dependencies and
+  no runtime code beyond constants.
 - The module kit `<scope>/bc-module-kit` holds the runtime code a module needs, and it exports
   everything of the types library again. Its one dependency is the types library.
 
@@ -17,7 +19,8 @@ module is in these two packages. Nothing else is. Apart from them, the cockpit a
 meet through DOM events.
 
 For the Java side of a workflow module there is the types jar with the constants of `ui-uri-type`.
-It is generated from the list in the types library, by Maven, see
+It is generated from the list in the types library, by the Java build of `Q-BUILD-TOOL`, Maven or
+Gradle, see
 [project.md](project.md#the-types-jar).
 
 1. [The VanillaBP kit is the minimum](#the-vanillabp-kit-is-the-minimum)
@@ -166,8 +169,12 @@ the column. The server does not read `filterable`; the user interface does.
 ## BcUserTask and BcWorkflow
 
 These are the objects a part of a module works with. They are the data from the server plus
-functions the cockpit provides. Every function returns a promise, because below it runs the
-[event protocol](#the-event-protocol):
+functions the cockpit provides. The UI of a workflow module needs these types to know which data it
+gets and which functions of the cockpit it may call. So they are in the types library, together with
+the types of the other functions below, and the module kit exports them again. The code that adds
+the functions to the data, `toBcUserTask` and `toBcWorkflow`, is in the module kit, see
+[The event protocol](#the-event-protocol). Every function returns a promise, because below it runs
+the [event protocol](#the-event-protocol):
 
 ```typescript
 export interface BcUserTask extends UserTask, BcPageMessaging {
@@ -252,7 +259,8 @@ into the objects above:
 Every web component also gets the functions `showNotification`, `openDialog`, `closeDialog`,
 `sendTo`, `receiveMessage` and `request`. `request(action, args, timeoutMs)` is the way to any
 other action, for example one of an extension point of this cockpit. These are the properties of
-the VanillaBP kit's `BcElementProps`, and the generated packages use the same names.
+the VanillaBP kit's `BcElementProps`, and the generated packages use the same names. The types
+library has the type of these properties, with the types of each function.
 
 The web component of the area `all` gets `area` as `all`.
 

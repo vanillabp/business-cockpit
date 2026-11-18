@@ -11,8 +11,9 @@ The dev shell is the way out. It simulates the Business Cockpit for the develope
 a small web application, written in the framework of the module, that imports the module's
 components directly from their source files, not through the built visual entry. So the dev server
 swaps them while the developer types. It still draws each component inside a host element with a
-shadow root, as the cockpit does. Behind it runs the dev shell simulator, a Java application that answers what the
-cockpit would answer. The workflow module itself runs unchanged against the dev shell.
+shadow root, as the cockpit does. Behind it runs the dev shell simulator, a Java application that
+answers what the cockpit would answer, or the simulator of the module's backend, which extends it.
+The workflow module itself runs unchanged against the dev shell.
 
 The generated project has one dev shell package per framework the modules use
 (`Q-MODULE-FRAMEWORKS`), see [project.md](project.md#the-dev-shell-libraries).
@@ -26,6 +27,7 @@ The generated project has one dev shell package per framework the modules use
 4. [What it shows](#what-it-shows)
 5. [Where the data comes from](#where-the-data-comes-from)
 6. [The dev shell simulator](#the-dev-shell-simulator)
+   - [The simulators of a workflow module](#the-simulators-of-a-workflow-module)
 7. [The proxy of the dev server](#the-proxy-of-the-dev-server)
 8. [Where it differs from the cockpit on purpose](#where-it-differs-from-the-cockpit-on-purpose)
 9. [Developing inside the cockpit instead](#developing-inside-the-cockpit-instead)
@@ -325,8 +327,9 @@ A report about a user task carries more than the GUI API shows: `excludedCandida
 ended the task, exactly as the module sent it. No cockpit answers this path, so a dev shell uses it
 only to show the developer what the module reports, and never in a form.
 
-A project which extends the simulator with an application of its own (`extends DevShellSimulator`)
-keeps its defaults: port, H2, schema update and the JWT secret come from
+A project which extends the simulator with an application of its own (`extends DevShellSimulator`),
+like the backend of a workflow module, see
+[The simulators of a workflow module](#the-simulators-of-a-workflow-module), keeps its defaults: port, H2, schema update and the JWT secret come from
 `dev-shell-simulator-defaults.yaml` with the lowest priority. Its own `application.yaml` names only
 what differs, and the users.
 
@@ -336,6 +339,22 @@ cockpit answers, or a form runs here and not there.
 What it does not answer is the rest of the GUI API: claim, assign, mark as read, follow-up, the update
 form of the lists, the user search, the suggestions for the search field and the update stream. A
 shell that calls one of these calls into nothing.
+
+### The simulators of a workflow module
+
+A workflow module has two simulators, one for developing its user interface and one for testing it.
+
+The backend of the module has a simulator for development. It extends the dev shell simulator
+(`extends DevShellSimulator`) and adds what is special to this module, for example the answers of
+a system the module talks to. It is the backend of the dev shell while somebody writes a form. The
+dev shell generates its clients from the OpenAPI files in the jars, the same way as the cockpit user
+interface does. This simulator is a Java application, and the developer starts it.
+
+The UI repository of the module is a pure npm repository, like the UI repository of the cockpit.
+Its end-to-end tests run against a simulator written in TypeScript, made for these tests. It also
+takes the OpenAPI files from the jars of the backend. So the end-to-end tests of a user interface
+need no Java, neither those of the cockpit nor those of a workflow module, see
+[project.md](project.md#testing-without-java).
 
 ## The proxy of the dev server
 

@@ -8,20 +8,26 @@ The skill fills two repositories, and each one needs only one build tool.
   a workspace of it: the types library, the module kit, the module host, the theme, the user
   interface and the dev shells. It also builds the UI jar and an nginx image. It has no `pom.xml`,
   and its build needs no Java.
-- The backend repository is a Maven project. When the skill creates it (`Q-BACKEND`), it has a
-  parent `pom.xml` and two modules: `types`, which builds the types jar for the workflow modules,
-  and `application`, the cockpit application on the `business-cockpit` library. The application
-  pulls the UI jar as an ordinary dependency. The repository has no `package.json`. See
-  [backend.md](backend.md).
+- The backend repository is built with the Java build tool of the interview (`Q-BUILD-TOOL`),
+  Maven or Gradle. When the skill creates it (`Q-BACKEND`), it has two modules: `types`, which
+  builds the types jar for the workflow modules, and `application`, the cockpit application on the
+  `business-cockpit` library. With Maven they sit below a parent `pom.xml`, with Gradle below a
+  `settings.gradle.kts`. The application pulls the UI jar as an ordinary dependency. The repository
+  has no `package.json`. See [backend.md](backend.md).
 
 When the organisation keeps a backend of its own and the skill creates none, the types jar comes
-from a small Maven project of its own instead, the types module, see
+from a small project of its own instead, the types module, built with the same tool, see
 [The types jar](#the-types-jar).
 
-Many companies run build agents that have either npm or Maven, not both. Many also treat a build
-that downloads a second tool chain later, like `frontend-maven-plugin` does, as a security risk.
-Keeping npm and Maven apart avoids both problems, and a Maven release of the backend stays an
-ordinary Maven release.
+Many companies run build agents that have either npm or a Java build tool, not both. Many also
+treat a build that downloads a second tool chain later, like `frontend-maven-plugin` or the Gradle
+plugin `com.github.node-gradle.node` do, as a security risk. Keeping npm and the Java build apart
+avoids both problems, and a release of the backend stays an ordinary Maven or Gradle release.
+
+This page says "Maven repository" for the place the jars come from and go to, for example Maven
+Central, Nexus or Artifactory. That is the format of the repository, not the build tool. Gradle
+reads from and publishes to the same Maven repositories, so these parts are the same for both
+answers of `Q-BUILD-TOOL`.
 
 1. [The UI repository](#the-ui-repository)
 2. [The npm workspaces](#the-npm-workspaces)
@@ -31,7 +37,7 @@ ordinary Maven release.
 6. [The nginx image](#the-nginx-image)
 7. [The backend repository](#the-backend-repository)
 8. [The types jar](#the-types-jar)
-9. [What still needs Java](#what-still-needs-java)
+9. [Testing without Java](#testing-without-java)
 10. [The types library](#the-types-library)
 11. [The module kit](#the-module-kit)
 12. [The module host](#the-module-host)
@@ -49,7 +55,8 @@ renovate.json                 groups the updates of a framework across the works
 INTERVIEW.md                  the answers of the interview
 CHECKLIST.md                  the checklist, see ../SKILL.md
 packages/
-  bc-types/                   <scope>/bc-types: the data of the GUI API and the constants,
+  bc-types/                   <scope>/bc-types: the data of the GUI API, the interfaces a
+                              part of a module gets, such as BcUserTask, and the constants;
                               no dependencies
   bc-module-kit/              <scope>/bc-module-kit: what a workflow module installs; the
                               runtime helpers, and the types of bc-types again
@@ -70,6 +77,8 @@ docker/
   nginx.conf.template
 e2e/                          the end-to-end tests, one per checklist item, and the
                               measurement of the lists, see behaviour.md
+  simulator/                  the TypeScript simulator the end-to-end tests run against,
+                              see Testing without Java
 ```
 
 The packages are separate npm packages, each a workspace of the same repository. A dev shell needs
@@ -106,27 +115,36 @@ like the rest of the user interface.
 
 There is one place for each name, so no name has two sources:
 
-|         Package          |                                                                                                            What it holds                                                                                                            |   Depends on    |
-|--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------|
-| `<scope>/bc-types`       | the data of the GUI API, generated from the OpenAPI files, the other types, and every constant: entries, export names, areas, `ui-uri-type` values, event names, action names, error codes, names of theme tokens                   | nothing         |
-| `<scope>/bc-module-kit`  | the runtime helpers a module needs: `defineBcElement`, the names of the web components, the module's side of the event protocol, the manifest functions, `bc-check-entries`; it exports the types and constants of `bc-types` again | `bc-types`      |
-| `<scope>/bc-module-host` | the registry of modules, the central loader, the check of new builds and of the names of the web components, ask, load and draw, and the cockpit's side of the event protocol                                                       | `bc-module-kit` |
+|         Package          |                                                                                                                                                           What it holds                                                                                                                                                            |   Depends on    |
+|--------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------|
+| `<scope>/bc-types`       | the data of the GUI API, generated from the OpenAPI files; the interfaces a part of a module gets, such as `BcUserTask`, `BcWorkflow` and the functions the cockpit offers; the other types; and every constant: entries, export names, areas, `ui-uri-type` values, event names, action names, error codes, names of theme tokens | nothing         |
+| `<scope>/bc-module-kit`  | the runtime helpers a module needs: `defineBcElement`, the names of the web components, the module's side of the event protocol, the manifest functions, `bc-check-entries`; it exports the types and constants of `bc-types` again                                                                                                | `bc-types`      |
+| `<scope>/bc-module-host` | the registry of modules, the central loader, the check of new builds and of the names of the web components, ask, load and draw, and the cockpit's side of the event protocol                                                                                                                                                      | `bc-module-kit` |
 
 A workflow module depends on the module kit only. It gets every type and constant from there and
-never names `bc-types` itself. The types library is the base the kit is built on, and the Maven
-types module reads it, see [The types jar](#the-types-jar).
+never names `bc-types` itself. The types library is the base the kit is built on, and the types
+jar reads it, see [The types jar](#the-types-jar).
 
-A question that is still open: does the kit ship only `.d.ts` files to the workflow modules? The
-default is no. The kit has runtime code that every module needs: `defineBcElement`, the event
-protocol and `bc-check-entries`. Only the types reach the module as `.d.ts` files, because types do
-not exist at runtime.
+The kit ships runtime code and type declarations. A workflow module needs its runtime code:
+`defineBcElement`, the module's side of the event protocol, the manifest functions and
+`bc-check-entries`. The types reach the module as `.d.ts` files, because types do not exist at run
+time.
 
 The GUI API client is generated at build time into `packages/ui` and into each dev shell, see
 [gui-api.md](gui-api.md#generating-the-client). It is not committed. `scripts/fetch-openapi.mjs`
-loads the two OpenAPI files first. It reads the jars of the cockpit from the Maven repository of
-the interview (`Q-COCKPIT-VERSION`, `Q-COCKPIT-REPOSITORY`). By default that is Maven Central,
-which needs no token. Only a company repository with a login needs one, from the environment
-variable the interview names.
+loads the two OpenAPI files first. They are not written by hand in the UI repository. They come out
+of the released jars of the Business Cockpit:
+
+- the `official-gui-api` is `v1.yaml` at the root of the jar
+  `io.vanillabp.businesscockpit:official-gui-api-server`,
+- the cockpit's own file is `api/gui/v1.yaml` in the jar
+  `io.vanillabp.businesscockpit:business-cockpit`.
+
+So the user interface depends on the cockpit backend. The version of `Q-COCKPIT-VERSION` must be
+built and deployed to a Maven repository before the UI repository can build. The script reads the
+jars from the Maven repository of the interview (`Q-COCKPIT-VERSION`, `Q-COCKPIT-REPOSITORY`). By
+default that is Maven Central, which needs no token. Only a company repository with a login needs
+one, from the environment variable the interview names.
 
 ## The npm workspaces
 
@@ -150,7 +168,7 @@ neither pnpm nor Lerna. The root `package.json` lists the workspaces:
 ```
 
 Every npm package of the repository is a workspace. A new npm package, for example a second theme,
-becomes one more entry in this list, not a repository of its own. The Maven projects stay outside,
+becomes one more entry in this list, not a repository of its own. The Java projects stay outside,
 see [The backend repository](#the-backend-repository) and [The types jar](#the-types-jar).
 
 One `npm ci` at the root installs every workspace. There is one `package-lock.json`, at the root,
@@ -304,34 +322,38 @@ the static files into the native image when the image is built. So the UI jar mu
 at that moment. A file added afterwards is never served.
 
 `jars/build-jars.mjs` builds the jar with a zip library from npm, for example `yazl` or `archiver`.
-No Maven and no JDK are needed for it, because the jar holds no compiled class. The version of the
-jar is the version in the root `package.json`. The script also writes the pom of the jar, with the
-coordinates from `Q-UI-JAR`, packaging `jar` and no dependencies.
+No Maven, no Gradle and no JDK are needed for it, because the jar holds no compiled class. The
+version of the jar is the version in the root `package.json`. The script also writes the pom of the
+jar, with the coordinates from `Q-UI-JAR`, packaging `jar` and no dependencies. Gradle reads this
+pom as well.
 
 ## Uploading the UI jar into the Maven repository
 
 `jars/publish-jars.mjs` uploads the UI jar with HTTP `PUT` into the Maven repository from
 `Q-MAVEN-REPOSITORY`. Nexus, Artifactory, GitHub Packages and a plain WebDAV server all take a
-`PUT` on the path Maven expects:
+`PUT` on the path a Maven repository uses. Maven and Gradle both read the jar from there:
 
 ```
 <repository>/<group as path>/<artifactId>/<version>/<artifactId>-<version>.jar
 <repository>/<group as path>/<artifactId>/<version>/<artifactId>-<version>.pom
 ```
 
-For each of the two files the script also uploads the checksums Maven reads, `.sha1` and `.md5`,
-and `.sha256` and `.sha512` as well. The credentials come from the environment variables named in
-the interview, never from a file in the repository.
+For each of the two files the script also uploads the checksums Maven and Gradle read, `.sha1` and
+`.md5`, and `.sha256` and `.sha512` as well. The credentials come from the environment variables
+named in the interview, never from a file in the repository.
 
-So that a Maven release of the backend works:
+So that a release of the backend works, with Maven or with Gradle:
 
-- The script uploads release versions only, like `1.4.0`. A Maven release refuses a dependency
-  with `-SNAPSHOT`. A snapshot would also need time-stamped file names and its own
-  `maven-metadata.xml`, which the script would have to write.
+- The script uploads release versions only, like `1.4.0`. The Maven release plugin refuses a
+  dependency with `-SNAPSHOT`. A Gradle release should not depend on one either, because a
+  snapshot can change under the same version. A snapshot would also need time-stamped file names
+  and its own `maven-metadata.xml`, which the script would have to write.
 - A release version is uploaded once. Before the upload the script asks with `HEAD` for the jar.
   If it is there, the script stops with a message. It never overwrites a release.
-- A build for trying something out gets a version of its own, for example `1.4.0-dev.7`. Maven
-  treats it like a release version, so it never clashes with a snapshot and is never overwritten.
+- A build for trying something out gets a version of its own, for example `1.4.0-snapshot.7`. Only
+  a version that ends in `-SNAPSHOT` is a snapshot, so Maven and Gradle treat `1.4.0-snapshot.7`
+  like a release version. It never clashes with a real snapshot and is never overwritten, and it
+  sorts before `1.4.0`. For npm it is a pre-release of `1.4.0`.
 - The version of the npm packages and of the UI jar is the same, the one in the root `package.json`.
   `scripts/set-version.mjs` sets it in every workspace, see
   [One version, each package published on its own](#one-version-each-package-published-on-its-own).
@@ -400,11 +422,14 @@ The backend then needs no UI jar. It still has to trust the forwarded headers, i
 
 ## The backend repository
 
-The backend repository is the cockpit application of the organisation, built with Maven. When the
-user wants it (`Q-BACKEND`), the skill creates it:
+The backend repository is the cockpit application of the organisation, built with the tool of
+`Q-BUILD-TOOL`, Maven or Gradle. When the user wants it (`Q-BACKEND`), the skill creates it:
 
 ```
-pom.xml                       the parent: the versions, the two modules
+pom.xml                       with Maven: the parent, the versions, the two modules
+settings.gradle.kts           with Gradle, instead of pom.xml: the two modules
+build.gradle.kts              with Gradle: what both modules share
+gradle.properties             with Gradle: the versions, ui.version among them
 types/                        the types jar with the ui-uri-type constants
 application/                  the cockpit application, the counterpart of container
 docker-compose.yaml           MongoDB, Mailpit, Keycloak for an OIDC login, Kafka with Q-KAFKA
@@ -415,9 +440,10 @@ The application has the `business-cockpit` library, the main class, the controll
 the security configuration of the login, the user directory and its configuration files.
 [backend.md](backend.md) describes all of it.
 
-When the repository exists already, read its `pom.xml` for `Q-BACKEND-FRAMEWORK`, and tell the user
-which dependency to add. In both cases the application takes the UI jar as an ordinary dependency,
-when `Q-HOSTING` is `embedded`:
+When the repository exists already, read its build files (`pom.xml`, or `build.gradle.kts` or
+`build.gradle`) for `Q-BUILD-TOOL` and `Q-BACKEND-FRAMEWORK`, and tell the user which dependency to
+add. In both cases the application takes the UI jar as an ordinary dependency, when `Q-HOSTING` is
+`embedded`. With Maven:
 
 ```xml
 <dependency>
@@ -428,8 +454,16 @@ when `Q-HOSTING` is `embedded`:
 </dependency>
 ```
 
-A new version of the user interface is a new value of `ui.version` in the parent `pom.xml`, and the
-backend is released as usual.
+With Gradle, `ui.version` is a property in `gradle.properties`:
+
+```kotlin
+dependencies {
+    runtimeOnly("com.example.cockpit:business-cockpit-ui:${property("ui.version")}")
+}
+```
+
+A new version of the user interface is a new value of `ui.version`, in the parent `pom.xml` or in
+`gradle.properties`, and the backend is released as usual.
 
 Repacking a finished runnable jar, for example turning `container-without-ui` into `container` by
 putting the files of the user interface into it, is not the way this skill takes. If somebody wants
@@ -444,7 +478,7 @@ it anyway, two rules apply, and neither is proven by a test yet:
 
 The values of `ui-uri-type` are a convention between this user interface and its workflow modules.
 VanillaBP knows no names for them and has no constant for them. So that a workflow module does not
-have to type the string, there is a small Maven artifact with constants (`Q-TYPES-JAR`):
+have to type the string, there is a small jar with constants (`Q-TYPES-JAR`):
 
 ```java
 package com.example.cockpit.ui;
@@ -473,23 +507,25 @@ and nothing else, so it fits every module.
 
 ### Where the types jar is built
 
-The types jar is built with Maven, never in the UI repository. Where it is built depends on
-`Q-BACKEND`:
+The types jar is built with the Java build tool of `Q-BUILD-TOOL`, Maven or Gradle, never in the UI
+repository. Where it is built depends on `Q-BACKEND`:
 
 - The skill creates the backend: the types jar is the module `types` of the backend repository,
   next to the module `application`.
-- The organisation keeps a backend of its own: the types jar comes from a small Maven project of
-  its own, the types module, for example `business-cockpit-ui-types`, in a repository of its own.
+- The organisation keeps a backend of its own: the types jar comes from a small Maven or Gradle
+  project of its own, the types module, for example `business-cockpit-ui-types`, in a repository of
+  its own.
 
 The reason is the order of the builds. Each step needs the one before:
 
-1. A release of the cockpit. Its jars carry the OpenAPI files of the GUI API.
+1. A release of the cockpit, the backend of VanillaBP. Its jars carry the OpenAPI files of the GUI
+   API.
 2. The user interface, built with npm. It needs the OpenAPI files from the cockpit jars, see
    [gui-api.md](gui-api.md#generating-the-client). It publishes the npm package of the types
    library and uploads the UI jar.
-3. The backend repository, built with Maven. Its module `types` reads the npm package of the types
-   library, and its module `application` takes the UI jar. With a backend of the organisation's
-   own, the types module builds first and the backend after it.
+3. The backend repository, built with Maven or Gradle. Its module `types` reads the npm package of
+   the types library, and its module `application` takes the UI jar. With a backend of the
+   organisation's own, the types module builds first and the backend after it.
 4. The workflow modules take the types jar.
 
 Put the types into the build of the cockpit, and that build needs the npm package of the user
@@ -501,21 +537,23 @@ It is built like this:
 
 1. The UI repository decides the list. The types library carries it as `ui-uri-types.json`, see
    [types.md](types.md#data-from-the-gui-api).
-2. The Maven build downloads the npm package `<scope>/bc-types` from the npm registry. In the
-   backend repository it takes the version in `ui.version`, the same version as the UI jar. A
-   tarball is a plain file, so a plain download needs no npm, for example with
-   `download-maven-plugin`.
+2. The build downloads the npm package `<scope>/bc-types` from the npm registry. In the backend
+   repository it takes the version in `ui.version`, the same version as the UI jar. A tarball is a
+   plain file, so a plain download needs no npm. With Maven, use for example
+   `download-maven-plugin`. With Gradle, use for example the plugin `de.undercouch.download`.
 3. A short build step writes `UiUriTypes.java` from `ui-uri-types.json`, one constant per entry,
-   with the description as Javadoc. Maven compiles it as usual.
+   with the description as Javadoc. The build compiles it as usual.
 4. In the backend repository the types jar has the version of the backend. It holds the values of
    the user interface that this backend serves, so a workflow module takes the types jar of the
    cockpit it reports to. The types module of its own has the version of the types library
    instead: `1.4.0` of the jar holds the values of `1.4.0` of the user interface.
 
-The types module of its own, when the skill creates no backend, has two files (`Q-TYPES-JAR`):
+The types module of its own, when the skill creates no backend, has few files (`Q-TYPES-JAR`):
 
 ```
-pom.xml                       downloads the tarball, writes and compiles UiUriTypes.java
+pom.xml                       with Maven: downloads the tarball, writes and compiles UiUriTypes.java
+settings.gradle.kts           with Gradle, instead of pom.xml: the name of the project
+build.gradle.kts              with Gradle: downloads the tarball, writes and compiles UiUriTypes.java
 README.md                     the order of the builds and why
 ```
 
@@ -527,32 +565,69 @@ says, in the words of the project:
 - If the types were part of the cockpit build, the builds would form a circle. If they were part of
   the UI build, the npm-only UI repository would need Java.
 - The order of a release. With the backend of the skill: the cockpit release, then the user
-  interface (npm), then the backend repository (Maven, the types jar and the application). With a
-  backend of the organisation's own: the cockpit release, then the user interface, then the types
-  module (Maven, reads the npm tarball), then the backend.
+  interface (npm), then the backend repository (Maven or Gradle, the types jar and the
+  application). With a backend of the organisation's own: the cockpit release, then the user
+  interface, then the types module (Maven or Gradle, reads the npm tarball), then the backend.
 
-## What still needs Java
+## Testing without Java
 
-The UI repository needs no Java to build. Two things around it still run on Java:
+The UI repository needs no Java, neither to build nor to test. Its end-to-end tests do not start the
+cockpit backend. That backend takes the UI jar as a dependency, so it is built after the user
+interface, and a test of the user interface that needed it would make the builds go round in a
+circle. The tests run against a simulator written in TypeScript instead. It lies in `e2e/simulator/`
+and is part of the npm project.
 
-- The end-to-end tests run against a running cockpit with workflow modules, and both are Java
-  applications. Run them as container images where the organisation has them. Otherwise the test
-  machine needs a Java runtime, but only to start them, not to build anything.
-- The dev shell simulator is a runnable jar, see
-  [dev-shell.md](dev-shell.md#the-dev-shell-simulator). A module developer needs a Java runtime to
-  start it. The UI repository does not build it.
+The simulator stands in for the cockpit backend:
+
+- It answers the GUI API with the data each test sets up. It takes the types of its answers from
+  the same two OpenAPI files the user interface generates its client from, so both sides speak the
+  same API.
+- It serves the built parts of the workflow modules the tests use, below `/wm/<workflowModuleId>/`,
+  the way the cockpit forwards to a module.
+- It sends the events of the update stream when a test changes its data.
+
+Playwright starts it with `webServer`, next to the user interface. The test machine needs Node.js
+and a browser, nothing else.
+
+The dev shell simulator is a different thing, see
+[dev-shell.md](dev-shell.md#the-dev-shell-simulator). It is a Java application that comes from the
+`business-cockpit` repository, the backend. It simulates the Business Cockpit for a workflow
+module. It cannot serve the tests of the cockpit user interface, because it comes from the backend,
+and the backend depends on the user interface. The UI repository neither builds it nor starts it.
+
+The dev shell simulator is the base for the simulators of the workflow modules. The backend of a
+module has a simulator that extends it with what is special to that module. That simulator is the
+backend of the dev shell while somebody writes a form. The UI repository of a workflow module
+follows the same rule as the UI repository of the cockpit: it is a pure npm repository, it takes
+the OpenAPI files from the jars of the backend, and its end-to-end tests run against a TypeScript
+simulator made for them. So no user interface needs Java to run its end-to-end tests, neither the
+cockpit's nor a module's, see
+[dev-shell.md](dev-shell.md#the-simulators-of-a-workflow-module).
+
+Java remains on the other side. The backend repository builds with Java, and its own test starts
+the application, see [backend.md](backend.md#the-test-that-starts-the-application).
 
 ## The types library
 
-`<scope>/bc-types` holds the data and the names of the contract. It has no dependencies and no
-peer dependencies, and it has no runtime code beyond constants. It holds the data of the GUI API
-as TypeScript interfaces, generated from the OpenAPI files, the other types of the contract, and
-every constant: the entries and the names of their functions, the areas, the `ui-uri-type` values
-with `ui-uri-types.json`, the names of the events and actions of the event protocol, its error
-codes, and the names of the theme tokens. [types.md](types.md) lists what goes into it.
+`<scope>/bc-types` holds the data, the types and the names of the contract. It has no
+dependencies and no peer dependencies, and it has no runtime code beyond constants. It holds:
+
+- the data of the GUI API as TypeScript interfaces, generated from the OpenAPI files,
+- the interfaces a part of a workflow module gets from the cockpit: `BcUserTask` and `BcWorkflow`,
+  the data plus the functions the cockpit offers on them, such as `claim` or `getUserTasks`, the
+  types of the other functions, such as `ShowNotificationFunction` and `OpenDialogFunction`, and
+  the properties a web component gets. A module needs them to know which data it gets and which
+  functions of the cockpit it may call,
+- the types of the extension points, the manifest and the event protocol,
+- every constant: the entries and the names of their functions, the areas, the `ui-uri-type`
+  values with `ui-uri-types.json`, the names of the events and actions of the event protocol, its
+  error codes, and the names of the theme tokens.
+
+The code behind the functions, for example `toBcUserTask`, is in the module kit.
+[types.md](types.md) lists what goes into the types library.
 
 A workflow module does not install it directly. It gets everything of it through the module kit.
-The Maven build of the types jar reads its tarball, see [The types jar](#the-types-jar).
+The build of the types jar reads its tarball, see [The types jar](#the-types-jar).
 
 It is published to the npm registry from the interview (`Q-NPM-SCOPE`). Its version follows the
 version of the user interface, because both sides of a contract change together.

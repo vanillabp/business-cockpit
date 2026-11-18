@@ -996,14 +996,15 @@ rows are already there, but it costs more memory. Find the size of the window th
 tests, and do not trade one for the other.
 
 The data for both tests is large and mixed. Simulate three or four workflow modules that together
-report 30,000 user tasks or cases, for example with a simulator that reports them through the BPMS
-API. Each module brings its own columns, so the rows differ the way they do in production. Run the
-tests on the primary filter for closed tasks as well (`ClosedTasksOnly`). Closed tasks are never
-removed, so that is where the most rows pile up.
+report 30,000 user tasks or cases. The TypeScript simulator the end-to-end tests run against holds
+them, see [project.md](project.md#testing-without-java). Each module brings its own columns, so
+the rows differ the way they do in production. Run the tests on the primary filter for closed tasks
+as well (`ClosedTasksOnly`). Closed tasks are never removed, so that is where the most rows pile
+up.
 
 An end-to-end test proves the memory. It is mandatory:
 
-1. Fill the cockpit the test runs against with that data.
+1. Fill the simulator the test runs against with that data.
 2. Open the case list and scroll from the top to the bottom.
 3. Force a garbage collection and read the JavaScript heap with Playwright through the Chrome
    DevTools Protocol: a `CDPSession` with `HeapProfiler.collectGarbage` and then
