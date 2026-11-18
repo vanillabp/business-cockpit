@@ -885,6 +885,10 @@ module, a workflow or a user task. Version 1 ignored such a key without a word. 
 the key and the one it is nearest to, or, for a key of version 1, what became of it. Remove the key
 or write the one the message names. Quarkus refused these keys before.
 
+This includes the `cockpit` section of a user task written below `tasks.<task>` instead of
+`user-tasks.<task>`. On Spring Boot the check let such a key through, and nobody read it. The
+message names the key below `user-tasks`.
+
 ### An event of the update stream names who made the change
 
 The `event` of each element of `GET /gui/api/v1/updates` has two new optional fields.

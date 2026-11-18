@@ -65,6 +65,32 @@ public class ConfigurationKeyCheckTest {
   }
 
   @Test
+  @DisplayName("A key of a user task below 'tasks' names its place below 'user-tasks'")
+  public void aKeyOfAUserTaskBelowTasksNamesItsPlace() {
+
+    final var refusal = refusalOf(
+        "vanillabp.workflow-modules.taxi.workflows.TaxiRide.tasks.approve.cockpit.template-path");
+
+    assertTrue(
+        refusal.contains("'vanillabp.workflow-modules.taxi.workflows.TaxiRide.tasks.approve.cockpit.template-path'"),
+        refusal);
+    assertTrue(refusal.contains("below 'user-tasks', not below 'tasks'"), refusal);
+    assertTrue(
+        refusal
+            .contains("'vanillabp.workflow-modules.taxi.workflows.TaxiRide.user-tasks.approve.cockpit.template-path'"),
+        refusal);
+    // the same key below 'user-tasks' and below the workflow itself is read
+    assertDoesNotThrow(
+        () -> ConfigurationKeyCheck
+            .refuseKeysNobodyReads(
+                List
+                    .of(
+                        "vanillabp.workflow-modules.taxi.workflows.TaxiRide.user-tasks.approve.cockpit.template-path",
+                        "vanillabp.workflow-modules.taxi.workflows.TaxiRide.cockpit.template-path")));
+
+  }
+
+  @Test
   @DisplayName("A key of version 1 which is gone says what became of it")
   public void aKeyOfVersionOneSaysWhatBecameOfIt() {
 
