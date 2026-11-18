@@ -275,7 +275,7 @@ interface:
 [Configuration](https://github.com/vanillabp/business-cockpit/wiki/Configuration),
 [Building a custom Business Cockpit](https://github.com/vanillabp/business-cockpit/wiki/Building-a-custom-Business-Cockpit)
 and
-[User task forms and status sites](https://github.com/vanillabp/business-cockpit/wiki/User-task-forms-and-status-sites).
+[Loading the parts of a workflow module](https://github.com/vanillabp/business-cockpit/wiki/Loading-the-parts-of-a-workflow-module).
 
 ## What a cockpit user interface never does
 
