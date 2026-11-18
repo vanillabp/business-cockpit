@@ -1,0 +1,192 @@
+openapi: 3.0.0
+info:
+  title: dev-shell-simulator
+  version: '1.0'
+  description: |
+    What the dev shell simulator answers and no cockpit does. The simulator answers three
+    interfaces, and this file describes the third one:
+
+    - The BPMS API at /bpms/api/v1_1, described in apis/bpms-api. A workflow module reports its
+      user tasks and cases there, as it does to the cockpit.
+    - The official GUI API at /official-api/v1, described in apis/official-gui-api. A user
+      interface and a workflow module read from it, as they read from the cockpit at
+      /gui/api/v1. The simulator answers the lists, a single user task or case, the user signed
+      in and the notification settings of that user.
+    - The paths below, which belong to the simulator alone. A dev shell switches between made-up
+      users with them, and a test of a workflow module reads what the module reported.
+
+    Every path is written in full, so a client takes the address of the simulator as its base
+    address, for example http://localhost:8079. None of the paths needs a login.
+servers:
+  - url: /
+
+paths:
+  /simulator-api/usertask/{userTaskId}/report:
+    get:
+      tags:
+        - simulator
+      summary: the last report about a user task
+      description: |
+        The last report about a user task which created, updated or ended it, exactly as the
+        workflow module sent it to the BPMS API. A suspension or an activation does not replace
+        it. The report shows what the official API leaves out, for example who must not work on
+        the task, who may see it although he is no candidate, and how notifications are
+        delivered.
+      operationId: getLastReportOfUserTask
+      parameters:
+        - in: path
+          name: userTaskId
+          required: true
+          description: The id of the user task
+          schema:
+            type: string
+      responses:
+        200:
+          description: |
+            The report, a JSON object with the fields of the BPMS API event which carried it
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        404:
+          description: The simulator holds no user task of this id
+  /dev-shell/user/all/id:
+    get:
+      tags:
+        - devShellUser
+      summary: the ids of all users
+      description: The dev shell lists these ids in its choice of users.
+      operationId: allUsersIds
+      responses:
+        200:
+          description: The ids of all configured users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+  /dev-shell/user/all:
+    get:
+      tags:
+        - devShellUser
+      summary: all users
+      operationId: allUsers
+      responses:
+        200:
+          description: All configured users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DevShellUser'
+  /dev-shell/user/:
+    get:
+      tags:
+        - devShellUser
+      summary: the id of the user the dev shell switched to
+      description: The id comes from the login cookie of the request.
+      operationId: getUser
+      responses:
+        200:
+          description: The id of the user, as plain text
+          content:
+            text/plain:
+              schema:
+                type: string
+        404:
+          description: Nobody is signed in
+  /dev-shell/user/details:
+    get:
+      tags:
+        - devShellUser
+      summary: the user the dev shell switched to
+      description: |
+        The user comes from the login cookie of the request. The official GUI API answers the
+        same user at /official-api/v1/app/current-user, there in the form the cockpit answers.
+      operationId: getUserDetails
+      responses:
+        200:
+          description: The user signed in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DevShellUser'
+        404:
+          description: Nobody is signed in, or the simulator does not know the user
+  /dev-shell/user/{userId}:
+    get:
+      tags:
+        - devShellUser
+      summary: one user
+      operationId: getUserById
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          description: The id of the user
+          schema:
+            type: string
+      responses:
+        200:
+          description: The user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DevShellUser'
+        404:
+          description: The simulator does not know the user
+    post:
+      tags:
+        - devShellUser
+      summary: switch to another user
+      description: |
+        The answer sets the login cookie of the user, the same cookie the cockpit sets. The id
+        '---' signs the current user out and removes the cookie.
+      operationId: changeUser
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          description: The id of the user, or '---' to sign out
+          schema:
+            type: string
+      responses:
+        200:
+          description: Switched
+        400:
+          description: The id is empty
+        404:
+          description: The simulator does not know the user
+
+components:
+  schemas:
+    DevShellUser:
+      type: object
+      description: A made-up user, as the configuration of the simulator lists it.
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          description: The id the user signs in with
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        groups:
+          type: array
+          description: The groups of the user, which become the user's authorities
+          items:
+            type: string
+        attributes:
+          type: object
+          description: More attributes, each with a list of values
+          additionalProperties:
+            type: array
+            items:
+              type: string

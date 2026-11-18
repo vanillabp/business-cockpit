@@ -1,7 +1,13 @@
 package io.vanillabp.cockpit.devshell.simulator.businesscockpit;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.WorkflowModule;
 import io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.WorkflowModuleRepository;
@@ -59,6 +65,25 @@ public class WorkflowModuleService {
         .orElseThrow(() -> new IllegalStateException("Workflow module with ID "
             + workflowModuleId
             + " not found"));
+
+  }
+
+  /**
+   * The group hierarchy of every registered workflow module which sent one. The cockpit merges
+   * them to find all groups of a user, and so does the simulator.
+   *
+   * @return One hierarchy per workflow module, each saying for a group which groups it stands for
+   */
+  @Transactional(readOnly = true)
+  public List<Map<String, Collection<String>>> getGroupHierarchies() {
+
+    return workflowModules
+        .findAll()
+        .stream()
+        .map(WorkflowModule::getGroupHierarchy)
+        .filter(Objects::nonNull)
+        .map(hierarchy -> Map.<String, Collection<String>>copyOf(hierarchy))
+        .toList();
 
   }
 

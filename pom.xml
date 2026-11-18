@@ -45,6 +45,8 @@
     <module>apis/official-gui-api/server</module>
     <module>apis/official-gui-api/client/spring-boot</module>
     <module>apis/official-gui-api/client/quarkus</module>
+    <module>apis/dev-shell-simulator-api/server</module>
+    <module>apis/dev-shell-simulator-api/client</module>
     <module>business-cockpit</module>
     <module>container</module>
     <module>development/dev-shell-simulator</module>

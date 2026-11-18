@@ -8,12 +8,10 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.TransientSecurityContext;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.vanillabp.cockpit.devshell.simulator.api.DevShellUser;
+import io.vanillabp.cockpit.devshell.simulator.api.DevShellUserApi;
 import io.vanillabp.cockpit.devshell.simulator.config.Properties;
 import io.vanillabp.cockpit.support.security.jwt.JwtProperties;
 import jakarta.servlet.http.Cookie;
@@ -22,17 +20,19 @@ import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * The REST endpoints the dev shell uses to list the made-up users and to switch between them.
- * Business applications use them too, to load the current user.
+ * Business applications use them too, to load the current user. The paths and the answers are
+ * described in the simulator's own OpenAPI file, {@code dev-shell-simulator-api.yaml}.
  */
 @RestController
-@RequestMapping("/dev-shell/user")
-public class UserController {
+public class UserController implements DevShellUserApi {
 
   private final Properties properties;
 
   private final JwtServerSecurityContextRepository securityContextRepository;
 
   private final JwtProperties jwtProperties;
+
+  private final SignedInUser signedInUser;
 
   /**
    * Creates the controller.
@@ -49,6 +49,7 @@ public class UserController {
     this.properties = properties;
     this.securityContextRepository = securityContextRepository;
     this.jwtProperties = jwtProperties;
+    this.signedInUser = new SignedInUser(securityContextRepository);
 
   }
 
@@ -57,7 +58,7 @@ public class UserController {
    *
    * @return The ids of all configured users
    */
-  @GetMapping(value = "/all/id", produces = "application/json")
+  @Override
   public ResponseEntity<List<String>> allUsersIds() {
 
     return ResponseEntity.ok(properties.getUsers().stream().map(User::getId).toList());
@@ -69,67 +70,42 @@ public class UserController {
    *
    * @return All configured users
    */
-  @GetMapping(value = "/all", produces = "application/json")
-  public ResponseEntity<List<User>> allUsers() {
+  @Override
+  public ResponseEntity<List<DevShellUser>> allUsers() {
 
-    return ResponseEntity.ok(properties.getUsers());
+    return ResponseEntity.ok(properties.getUsers().stream().map(UserController::toApi).toList());
 
   }
 
   /**
    * Used by Dev-Shell to retrieve the user id based on the JWT.
    *
-   * @param request The request, which carries the JWT cookie
    * @return The id of the current user, or "not found" if nobody is logged in
    */
-  @GetMapping(value = "/", produces = "text/plain")
-  public ResponseEntity<String> getUser(
-      final HttpServletRequest request) {
+  @Override
+  public ResponseEntity<String> getUser() {
 
-    final var context = securityContextRepository
-        .loadDeferredContext(request)
-        .get();
-    if (context == null) {
-      return ResponseEntity.notFound().build();
-    }
-    final var auth = context.getAuthentication();
-    if (auth == null) {
-      return ResponseEntity.notFound().build();
-    }
-    return ResponseEntity.ok(auth.getName());
+    return signedInUser
+        .id()
+        .map(ResponseEntity::ok)
+        .orElseGet(() -> ResponseEntity.notFound().build());
 
   }
 
   /**
    * Used by business applications to load the current user based on the JWT.
    *
-   * @param request The request, which carries the JWT cookie
    * @return The current user, or "not found" if nobody is logged in or the user is unknown
    */
-  @GetMapping(value = "/details", produces = "application/json")
-  public ResponseEntity<User> getUserDetails(
-      final HttpServletRequest request) {
+  @Override
+  public ResponseEntity<DevShellUser> getUserDetails() {
 
-    final var context = securityContextRepository
-        .loadDeferredContext(request)
-        .get();
-    if (context == null) {
-      return ResponseEntity.notFound().build();
-    }
-    final var auth = context.getAuthentication();
-    if (auth == null) {
-      return ResponseEntity.notFound().build();
-    }
-    final var userId = auth.getName();
-    if (userId == null) {
-      return ResponseEntity.notFound().build();
-    }
-    final var user = properties.getUser(userId);
-    if (user == null) {
-      return ResponseEntity.notFound().build();
-    }
-
-    return ResponseEntity.ok(user);
+    return signedInUser
+        .id()
+        .map(properties::getUser)
+        .map(UserController::toApi)
+        .map(ResponseEntity::ok)
+        .orElseGet(() -> ResponseEntity.notFound().build());
 
   }
 
@@ -139,14 +115,15 @@ public class UserController {
    * @param userId The id of the user
    * @return The user, or "not found" if the id is unknown
    */
-  @GetMapping(value = "/{userId}", produces = "application/json")
-  public ResponseEntity<User> getUserById(
-      @PathVariable("userId") final String userId) {
+  @Override
+  public ResponseEntity<DevShellUser> getUserById(
+      final String userId) {
 
     return Optional
         .ofNullable(properties.getUser(userId))
+        .map(UserController::toApi)
         .map(ResponseEntity::ok)
-        .orElse(ResponseEntity.notFound().build());
+        .orElseGet(() -> ResponseEntity.notFound().build());
 
   }
 
@@ -154,26 +131,39 @@ public class UserController {
    * Used by Dev-Shell to change the user logged on. The user id {@code ---} logs the
    * current user out.
    *
-   * @param request The current request
-   * @param response The response, which gets the new JWT cookie
    * @param userId The id of the user to switch to
-   * @return "bad request" if the id is empty, otherwise "ok"
+   * @return "bad request" if the id is empty, "not found" if no user has the id, otherwise "ok"
    */
-  @PostMapping(value = "/{userId}")
+  @Override
   public ResponseEntity<Void> changeUser(
-      final HttpServletRequest request,
-      final HttpServletResponse response,
-      @PathVariable("userId") final String userId) {
+      final String userId) {
 
     if (!StringUtils.hasText(userId)) {
       return ResponseEntity.badRequest().build();
     }
     if (userId.equals("---")) {
-      logout(response);
-    } else {
-      setJwtForChangedUser(request, response, userId);
+      logout(SignedInUser.currentResponse());
+      return ResponseEntity.ok().build();
     }
+    final var user = properties.getUser(userId);
+    if (user == null) {
+      return ResponseEntity.notFound().build();
+    }
+    setJwtForChangedUser(SignedInUser.currentRequest(), SignedInUser.currentResponse(), user);
     return ResponseEntity.ok().build();
+
+  }
+
+  private static DevShellUser toApi(
+      final User user) {
+
+    return new DevShellUser()
+        .id(user.getId())
+        .email(user.getEmail())
+        .firstName(user.getFirstName())
+        .lastName(user.getLastName())
+        .groups(user.getGroups())
+        .attributes(user.getAttributes());
 
   }
 
@@ -200,9 +190,8 @@ public class UserController {
   private void setJwtForChangedUser(
       final HttpServletRequest request,
       final HttpServletResponse response,
-      @PathVariable("userId") final String userId) {
+      final User user) {
 
-    final var user = properties.getUser(userId);
     final var authorities = Optional.ofNullable(user.getGroups())
         .map(groups -> groups.stream().map(SimpleGrantedAuthority::new).toList())
         .orElse(List.of());

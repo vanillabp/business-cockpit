@@ -931,3 +931,17 @@ its client from both files finds the operation `currentUser` under the new tag
 `officialCurrentUser` instead of `login`. In a TypeScript client that is `OfficialCurrentUserApi`
 instead of `LoginApi`. The model `User` moved along: it is in `official-gui-api-server` now, in the
 same package `io.vanillabp.cockpit.gui.api.v1`.
+
+### The dev-shell simulator describes what only it answers
+
+The paths only the dev-shell simulator answers, `/simulator-api/**` and `/dev-shell/user/**`, are
+described in an OpenAPI file of their own, `apis/dev-shell-simulator-api/openapi/dev-shell-simulator-api.yaml`.
+A test of a workflow module reads the report of a user task with the generated client
+`io.vanillabp.businesscockpit:dev-shell-simulator-api-client` instead of a call written by hand.
+The paths and the answers stay as they were, with one exception: `POST /dev-shell/user/{userId}`
+for a user the simulator does not know answers 404. Before, it answered 500.
+
+The simulator now also answers `GET /official-api/v1/app/current-user` and the notification
+settings below `/official-api/v1/notifications`, as the cockpit answers them below `/gui/api/v1`. A
+workflow module which asks for the user signed in works with the simulator as it does with the
+cockpit.

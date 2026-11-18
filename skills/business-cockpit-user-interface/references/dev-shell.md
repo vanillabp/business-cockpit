@@ -133,9 +133,13 @@ MongoDB noch BPMS noch Cockpit sind nötig.
 Sie hat zwei Seiten:
 
 Nach vorne, zur Dev Shell, spricht sie die offizielle GUI-API unter `/official-api/v1`. Sie
-beantwortet davon fünf Aufrufe: eine Aufgabe, die Aufgabenliste, einen Fall, die Fallliste und die
-Aufgaben eines Falls. Seitenweise lesen und Sortieren macht sie im Speicher, die Seitengröße ist
-standardmäßig 20, und die Standardsortierung ist `createdAt` absteigend.
+beantwortet davon eine Aufgabe, die Aufgabenliste, einen Fall, die Fallliste und die Aufgaben eines
+Falls. Seitenweise lesen und Sortieren macht sie im Speicher, die Seitengröße ist standardmäßig 20,
+und die Standardsortierung ist `createdAt` absteigend. Dazu kommen der angemeldete Benutzer,
+`GET /app/current-user`, wie im Cockpit mit allen Gruppen samt den Gruppenhierarchien der
+angemeldeten Workflow-Module, und die Einstellungen der Benachrichtigungen unter `/notifications`.
+Ein Medium bietet der Simulator nicht an, denn er verschickt nichts, und die Einstellungen hält er
+nur im Speicher.
 
 Nach hinten, zum Workflow-Modul, spricht sie die BPMS-API unter `/bpms/api/v1_1`. Dort meldet sich
 ein Workflow-Modul an, und dort melden seine Berichte über Aufgaben und Fälle herein, genau wie beim
@@ -160,6 +164,13 @@ Dazu kommt eine eigene kleine Schnittstelle für die Shell, unter `/dev-shell/us
 | `GET /dev-shell/user/details`   | Anwendung | der gerade gewählte Benutzer, aus dem Cookie         |
 | `GET /dev-shell/user/{userId}`  | Anwendung | ein Benutzer nach Kennung                            |
 
+Diese Aufrufe und `GET /simulator-api/usertask/{userTaskId}/report`, den letzten Bericht eines
+Workflow-Moduls über eine Aufgabe, beschreibt eine eigene OpenAPI-Datei,
+`apis/dev-shell-simulator-api/openapi/dev-shell-simulator-api.yaml`. Sie liegt auch im Jar
+`io.vanillabp.businesscockpit:dev-shell-simulator-api-client`, und eine Shell erzeugt ihren Client
+daraus wie aus der Datei der offiziellen GUI-API. Ein Wechsel zu einem unbekannten Benutzer
+antwortet 404.
+
 Die vorgetäuschten Benutzer stehen in `development/dev-shell-simulator/users.yaml`, unter dem
 Schlüssel `dev-shell-simulator.users`. Je Benutzer `id`, `email`, `first-name`, `last-name`, `groups`
 als kommagetrennte Liste und `attributes` als freie Abbildung. Mitgeliefert sind `john`, `jane` und
@@ -167,8 +178,9 @@ als kommagetrennte Liste und `attributes` als freie Abbildung. Mitgeliefert sind
 
 Diese Benutzer sind drei Dinge auf einmal: die Einträge der Auswahlliste in der Shell, die
 Benutzerverwaltung des Simulators, und die Gruppen werden zu den Berechtigungen im Token. Der
-Simulator löst Gruppen dabei absichtlich nicht auf. Eine Gruppenhierarchie ist Sache der
-Geschäftsanwendung.
+Simulator löst Gruppen im Token absichtlich nicht auf. Eine Gruppenhierarchie ist Sache der
+Geschäftsanwendung. Nur `GET /official-api/v1/app/current-user` antwortet wie das Cockpit mit den
+aufgelösten Gruppen.
 
 Angemeldet wird nicht. Der Simulator schreibt denselben JWT in dasselbe Cookie, das auch das Cockpit
 benutzt, mit demselben Satz Klassen aus `support`, und der Wechsel des Benutzers ist ein `POST`. Das
@@ -181,7 +193,7 @@ antworten, was das Cockpit antwortet, sonst läuft ein Formular hier und dort ni
 
 Was er nicht beantwortet, ist der Rest der GUI-API: Übernehmen, Zuweisen, Als-gelesen-markieren,
 Wiedervorlage, die Aktualisierungsform der Listen, die Benutzersuche, die Vorschläge für das
-Suchfeld, die Benachrichtigungen und den Ereignisstrom. Eine Shell, die eine dieser Funktionen echt
+Suchfeld und den Ereignisstrom. Eine Shell, die eine dieser Funktionen echt
 ruft, ruft ins Leere. Rechne damit, wenn du die Funktionen von `BcUserTask` echt bauen willst.
 
 ## Der Proxy des Dev-Servers

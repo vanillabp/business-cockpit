@@ -159,6 +159,18 @@
         <artifactId>official-gui-api-spring-boot-client</artifactId>
         <version>${project.version}</version>
       </dependency>
+      <dependency>
+        <!-- what only the dev shell simulator answers: the interfaces it implements -->
+        <groupId>io.vanillabp.businesscockpit</groupId>
+        <artifactId>dev-shell-simulator-api-server</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <!-- the same, as a client for the tests of a workflow module -->
+        <groupId>io.vanillabp.businesscockpit</groupId>
+        <artifactId>dev-shell-simulator-api-client</artifactId>
+        <version>${project.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
   <profiles>
