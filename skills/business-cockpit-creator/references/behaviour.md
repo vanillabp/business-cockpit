@@ -754,13 +754,89 @@ fresh one, so the steps below run in that click handler:
    history, so this rarely works. If the tab is still open afterwards, the cockpit shows a hint that
    the list is in another tab or window.
 
-Measured on 2026-10-29 and 2026-10-30: Chrome, Edge, Chromium and Firefox bring the list to the front
-this way, as a tab and as a window, also after the task tab was reloaded. The answer of the list came
-within 0 to 13 ms, well inside the time a click gives. Safari 26 on macOS does the same. Only the
-WebKit browsers of Linux (GNOME Web, the Playwright MiniBrowser) leave the list behind, and the user
-sees the hint there. A tab in the background never brings itself to the front, in no browser, also
-not when it receives a `postMessage` or a `BroadcastChannel` message. So the call must come from the
-tab the user just clicked in.
+This way is fixed for version 1.0.0 of the checklist; build it as written. It was tried by hand and
+with real clicks in Chrome, Edge, Chromium and Firefox, and in Safari 26 on macOS. All of them bring
+the list to the front, as a tab and as a window, also after the task tab was reloaded. The answer of
+the list came within 0 to 13 ms, well inside the time a click gives. Only the WebKit browsers of
+Linux (GNOME Web, the Playwright MiniBrowser) leave the list behind, and the user sees the hint
+there. A tab in the background never brings itself to the front, in no browser, also not when it
+receives a `postMessage` or a `BroadcastChannel` message. So the call must come from the tab the
+user just clicked in.
+
+The code of both pages, in plain JavaScript. `LIST_URL`, `LIST_PATH`, `warnOnLeave` and `showHint`
+come from your cockpit. Wrap the code in your framework, but keep the order of the steps. Before the
+call that brings the list to the front, the code waits for nothing but the first answer of the list:
+
+```js
+// the list page
+window.name = 'bc-list';
+const channel = new BroadcastChannel('bc-cockpit');
+channel.onmessage = (e) => {
+  if (e.data?.type === 'list-ping') {
+    channel.postMessage({ type: 'list-pong', id: e.data.id, visible: document.visibilityState === 'visible' });
+  }
+};
+
+// the task page
+const channel = new BroadcastChannel('bc-cockpit');
+let listWindow = null;
+
+function openListWindow() {                       // the button "list in its own window"
+  listWindow = window.open(LIST_URL, 'bc-list');  // never 'noopener'
+}
+
+function askList(timeoutMs) {                     // the answer of a list, or null
+  return new Promise((resolve) => {
+    const id = crypto.randomUUID();
+    const on = (e) => {
+      if (e.data?.type === 'list-pong' && e.data.id === id) {
+        clearTimeout(timer); channel.removeEventListener('message', on); resolve(e.data);
+      }
+    };
+    const timer = setTimeout(() => { channel.removeEventListener('message', on); resolve(null); }, timeoutMs);
+    channel.addEventListener('message', on);
+    channel.postMessage({ type: 'list-ping', id });
+  });
+}
+
+function listByReference() {
+  try {
+    return listWindow && !listWindow.closed && listWindow.location.origin === location.origin
+      && listWindow.location.pathname === LIST_PATH ? listWindow : null;
+  } catch { return null; }                        // another origin: not usable
+}
+
+// runs in the click handler of the confirm button of the cockpit's own dialog
+async function backToTheList() {
+  window.removeEventListener('beforeunload', warnOnLeave);
+  const ref = listByReference();
+  if (ref) {
+    ref.focus();
+  } else if (await askList(300)) {
+    window.open('', 'bc-list');
+  } else {
+    return closeOrHint();
+  }
+  await new Promise((r) => setTimeout(r, 300));
+  const answer = await askList(300);
+  if (!answer?.visible) closeOrHint();
+}
+
+function closeOrHint() {
+  window.close();
+  setTimeout(() => { if (!window.closed) showHint(); }, 300);   // "The list is open in another tab or window."
+}
+```
+
+The end-to-end tests prove what a browser test can see: the window object is kept and not
+`closed`, the list answers the question over the channel, no empty tab opens when no list answers,
+the hint shows when the list was closed, and the dialog of the cockpit comes first. A browser test
+cannot prove that a window really came to the front, because the window manager decides that. So
+the test checks the `visibilityState` the list reports, not the screen.
+
+Not tried yet: Safari 27 and 18, Safari on iOS, Chrome on Android, and the window mode on Windows,
+where the window manager may decide differently. The way stays the same there. Where the list stays
+behind, the hint is the answer.
 
 #### Closing the task tab
 
@@ -768,10 +844,6 @@ Closing or reloading the task tab warns with `beforeunload`, and the user can st
 this question only after the user has interacted with the page, and some browsers (GNOME Web) never
 show it. So the dialog of the cockpit stays the real protection for "back to the list", and
 `beforeunload` only covers closing the tab.
-
-Not measured yet: Safari 27 and 18, Safari on iOS, Chrome on Android, and the window mode on Windows,
-where the window manager may decide differently. Where the list stays behind, the hint is the
-answer.
 
 ### What the page does
 
