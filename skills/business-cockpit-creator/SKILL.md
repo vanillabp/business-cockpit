@@ -148,7 +148,7 @@ Then write `CHECKLIST.md` into the project:
    their own id prefix, `CUST-`, and number them from `CUST-001`.
 
 Every end-to-end test names the id of the item it proves, for example in its title:
-`TL-004 the primary filter shows its count`. An item without a test is not done.
+`TL-003 each primary filter shows its count`. An item without a test is not done.
 
 Ids are never reused and never renumbered. An item that no longer holds is marked as removed, and
 its id stays taken.
