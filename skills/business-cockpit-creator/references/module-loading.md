@@ -177,7 +177,8 @@ one to keep the master data a process needs. Both may open modal dialogs, see
 [The other extension points](#the-other-extension-points). For the cockpit there is no difference
 between the four and the others. They all come from the same organisation's generated user
 interface. The cockpit and the modules of one organisation agree on the list, and it holds for
-every module. Write it into the types library, and the module kit exports it again, see
+every module. Write it into the types library, each entry with the name of its function in
+`EXPORT_NAMES`, and the module kit exports it again, see
 [types.md](types.md#the-extension-points).
 
 An extension point outside the lists, the page of a user task and the page of a case, like the
@@ -192,7 +193,9 @@ a blueprint module that offers `Header` works in every cockpit, and in a cockpit
 extension point only the header part is missing. The same holds for areas, see
 [The page of a user task or a case](#the-page-of-a-user-task-or-a-case).
 
-The entry name is the contract, and so are the names of the exports. A module that names
+The entry name is the contract, and so are the names of the exports. The host takes the name of
+the function from `EXPORT_NAMES` of the types library, never from a name written into its own
+code. A module that names
 `UserTaskForm` but calls its export differently is loaded and shows nothing. Report that in the
 console with the module id.
 
@@ -289,10 +292,14 @@ large as its framework makes it. A visual entry is only checked for its file.
 The end-to-end tests of the cockpit check the same from the other side: loading the data entries of
 an example module of the kit fetches no file of the module's framework.
 
-The types library lists the names of the data entries as `DATA_ENTRIES`, and the module kit
-exports them again, so the script and the cockpit agree on them. A module whose data entries go
-beyond them names each one with `--data-entry <name>`. A blueprint built against the VanillaBP kit
-does that for `Header`, because that kit knows only the four minimum ones.
+The types library has one list of the data entries: `EXPORT_NAMES`, which maps each data entry to
+the function its file exports. `DATA_ENTRIES` is only the keys of it, see
+[types.md](types.md#the-extension-points). The module kit exports both again. The module host
+reads the name of the function it calls from `EXPORT_NAMES`, and the script takes its data entries
+from the same `EXPORT_NAMES`, so the script and the cockpit always agree. A module needs
+`--data-entry <name>` only for a data entry of its own that no extension point asks. A blueprint
+built against the VanillaBP kit names `Header` that way, because the `EXPORT_NAMES` of that kit has
+only the four minimum ones.
 
 ## Which data finds the part
 

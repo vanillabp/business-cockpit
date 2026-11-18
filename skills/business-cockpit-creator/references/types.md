@@ -350,8 +350,9 @@ host, the same as the VanillaBP kit.
 The types library names every extension point of this cockpit: the four minimum ones and those
 from `Q-EXTENSION-POINTS`. For each one it exports the entry name, the type of the function the
 module exports, and the properties the host sets. The module kit exports them again. The four
-minimum ones, `EXPORT_NAMES`, `AREA_ALL` and the types of their functions are the same as in the
-VanillaBP kit. Here is an example for an organisation
+minimum ones, the names of their functions in `EXPORT_NAMES`, `AREA_ALL` and the types of their
+functions are the same as in the VanillaBP kit. `EXPORT_NAMES` adds the extension points of the
+interview. Here is an example for an organisation
 which chose `Header` and `Pages`:
 
 ```typescript
@@ -360,20 +361,27 @@ export const USER_TASK_LIST = 'UserTaskList';
 export const WORKFLOW_LIST = 'WorkflowList';
 export const USER_TASK_FORM = 'UserTaskForm';
 export const WORKFLOW_PAGE = 'WorkflowPage';
+export const AREA_ALL = 'all';
+
+// Extension points of this organisation, from the interview
+export const HEADER = 'Header';
+export const PAGES = 'Pages';
+
+/**
+ * Entry -> the function the entry's file exports. Every entry of this cockpit that exports a
+ * function is here: the four minimum ones and those from the interview.
+ */
 export const EXPORT_NAMES = {
   UserTaskList: 'userTaskListColumns',
   WorkflowList: 'workflowListColumns',
   UserTaskForm: 'userTaskForm',
   WorkflowPage: 'workflowPage',
+  Header: 'header',
+  Pages: 'pages',
 } as const;
-export const AREA_ALL = 'all';
-
-// Extension points of this organisation, from the interview
-export const HEADER = 'Header';                 // exports: header
-export const PAGES = 'Pages';                   // exports: pages
 
 /** The entries that carry no framework; bc-check-entries checks their size and content. */
-export const DATA_ENTRIES = [USER_TASK_LIST, WORKFLOW_LIST, USER_TASK_FORM, WORKFLOW_PAGE, HEADER, PAGES] as const;
+export const DATA_ENTRIES = Object.freeze(Object.keys(EXPORT_NAMES)) as readonly (keyof typeof EXPORT_NAMES)[];
 
 /** A web component that a data entry names, and the visual entry that defines it. */
 export interface BcElementRef {
@@ -424,9 +432,21 @@ export type PagesFunction = (currentUser: CurrentUser) => BcPage[] | undefined;
 [What a part gets](#what-a-part-gets). All six are data entries. Their functions name web
 components, and `entry` says which visual entry of the same manifest defines them.
 
-`DATA_ENTRIES` names the four minimum entries and the data entries from the interview, here
-`Header` and `Pages`. In the VanillaBP kit, `DATA_ENTRIES` has only the four. A blueprint module
-with a `Header` names it to `bc-check-entries` with `--data-entry Header`. Your cockpit asks `Header`
+`EXPORT_NAMES` is the one list of the data entries. It says which function the file of an entry
+exports, for example `header` for `Header`. That is a fixed contract between the cockpit and its
+modules, and it never changes with a build. The manifest says something else: which file holds an
+entry. `BcManifest.entries` changes with every build of a module, see
+[The manifest and its check](#the-manifest-and-its-check). Every entry that exports a function is
+a data entry, so `DATA_ENTRIES` is not written by hand. It is the keys of `EXPORT_NAMES`. A visual
+entry exports no function. It only defines web components, so it is in neither list.
+
+The module host reads the name of the function it calls from `EXPORT_NAMES` of this types library,
+and `bc-check-entries` of this module kit takes its data entries from the same `EXPORT_NAMES`. So
+adding an extension point to `EXPORT_NAMES` is enough for both. The VanillaBP kit works the same
+way, but its `EXPORT_NAMES` has only the four minimum entries. A blueprint module built against it
+that offers a `Header` names that entry to `bc-check-entries` with `--data-entry Header`. A module
+of your organisation, built against your kit, does not need `--data-entry` for `Header`, only for a
+data entry of its own that no extension point of the cockpit asks. Your cockpit asks `Header`
 only if it has that extension point. A cockpit ignores every entry and every area it does not
 know, without an error, so such a module still works there, only without that part, see
 [module-loading.md](module-loading.md#extension-points). `BcPageParts`
@@ -467,11 +487,12 @@ The module kit also ships `bc-check-entries` as a `bin` script, plain Node.js wi
 dependencies. A module runs it after its build:
 
 ```bash
-npx bc-check-entries dist/bc-manifest.json --limit 32kb --metafile dist/meta.json --data-entry Header
+npx bc-check-entries dist/bc-manifest.json --limit 32kb --metafile dist/meta.json
 ```
 
-It reads the manifest, follows the relative imports of every data entry in `DATA_ENTRIES` and of
-every entry named with `--data-entry`, and fails the build when
+It reads the manifest, follows the relative imports of every data entry, that is every entry of
+`EXPORT_NAMES` the manifest names, and of every entry named with `--data-entry`, and fails the
+build when
 
 - the manifest breaks a rule, or an entry it names has no file,
 - a data entry, together with every file it imports, is larger than the limit,

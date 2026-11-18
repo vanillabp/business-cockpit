@@ -60,7 +60,10 @@ workspace of it, and one `package-lock.json` at the root pins the dependencies o
 - The types library `<scope>/bc-types`. It holds the data of the GUI API, the interfaces a part of a
   workflow module gets, such as `BcUserTask` and `BcWorkflow` with the functions of the cockpit, and
   every constant of the contract with the workflow modules, such as the entries, the areas and the
-  `ui-uri-type` values this user interface understands. It has no dependencies.
+  `ui-uri-type` values this user interface understands. It has no dependencies. Its `EXPORT_NAMES`
+  is the one list of the data entries, with the function each one exports. The module host and
+  `bc-check-entries` both read it, see
+  [references/types.md](references/types.md#the-extension-points).
 - The module kit `<scope>/bc-module-kit`, the package a workflow module installs. It is this
   cockpit's own copy of the VanillaBP kit `@vanillabp/bc-module-kit`, made to fit the interview.
   It is built on the types library and exports its types again, and it brings the runtime code a

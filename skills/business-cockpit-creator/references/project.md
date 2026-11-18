@@ -109,7 +109,9 @@ cockpit's own kit, never the VanillaBP one.
 The copy keeps the whole minimum of the VanillaBP kit, with the same names and the same behaviour:
 `USER_TASK_LIST`, `WORKFLOW_LIST`, `USER_TASK_FORM`, `WORKFLOW_PAGE`, `DATA_ENTRIES`,
 `EXPORT_NAMES` and `AREA_ALL`, the manifest, the event protocol, `defineBcElement` and
-`bc-check-entries`. It only adds. So a blueprint built against the VanillaBP kit still loads in the
+`bc-check-entries`. It only adds. `EXPORT_NAMES` holds the four minimum entries and the extension
+points of the interview, and `DATA_ENTRIES` is its keys, so `bc-check-entries` of the copy checks
+every data entry of the cockpit without `--data-entry`. So a blueprint built against the VanillaBP kit still loads in the
 generated cockpit, see [types.md](types.md#the-vanillabp-kit-is-the-minimum). The copy does not
 depend on the VanillaBP packages and does not bundle them. It is written from this description,
 like the rest of the user interface.
