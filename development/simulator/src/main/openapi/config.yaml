@@ -1,0 +1,7 @@
+# One file of our own beside the generated interface. The folder is relative to the output
+# directory and holds the package of the interface.
+files:
+  ApiPath.mustache:
+    templateType: SupportingFiles
+    folder: openapi/io/vanillabp/cockpit/simulator/bpms
+    destinationFilename: BpmsApiPath.java

@@ -14,12 +14,12 @@ import org.slf4j.LoggerFactory;
 
 import com.devskiller.jfairy.Fairy;
 
-import io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi;
 import io.vanillabp.cockpit.bpms.api.v1_1.RegisterWorkflowModuleEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCancelledEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCreatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowUpdatedEvent;
+import io.vanillabp.cockpit.simulator.bpms.BpmsApi;
 import io.vanillabp.cockpit.simulator.usertask.testdata.TestData1;
 
 /**
