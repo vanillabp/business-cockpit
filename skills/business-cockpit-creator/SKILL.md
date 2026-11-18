@@ -162,19 +162,22 @@ down the result. Then do what [How you know it is done](#how-you-know-it-is-done
 
 The VanillaBP kit `@vanillabp/bc-module-kit` is the minimum every cockpit keeps, see
 [references/types.md](references/types.md#the-vanillabp-kit-is-the-minimum). Its repository
-`vanillabp/business-cockpit-module-kit` has three example modules, the same module written in
-React, in Vue and in Angular, and a browser test for them. Run that test as an end-to-end test of
-the UI repository, against the TypeScript simulator, see
-[references/project.md](references/project.md#testing-without-java) (`EXT-040`). It passes for a
-cockpit with areas and for one without, because the example modules offer both.
+`vanillabp/business-cockpit-module-kit` has three example modules, one in React, one in Vue and
+one in Angular, and a browser test for them. The modules differ in what they bring, for example in
+their columns, so a list shows mixed rows. Run that test as an end-to-end test of the UI
+repository, against the TypeScript simulator of the cockpit user interface, see
+[references/project.md](references/project.md#the-simulators) (`EXT-040`). It passes for a cockpit
+with areas and for one without, because the example modules offer both.
 
 1. Take the kit's repository at the version your module kit covers. Run `npm ci`,
    `npm run build:examples` and `npm run build:conformance`. This writes the folder
    `dist/conformance`, which works on its own: the built modules below `wm/react-module/`,
    `wm/vue-module/` and `wm/angular-module/`, a small web server `serve.mjs`, the test
    `cockpit.test.js` and a `package.json` with its one dependency, `playwright`.
-2. The TypeScript simulator serves the three built modules itself, below `/wm/react-module/`,
-   `/wm/vue-module/` and `/wm/angular-module/`, the way the cockpit forwards to a module. These are
+2. The TypeScript simulator serves the three test modules of the UI repository itself, below
+   `/wm/react-module/`, `/wm/vue-module/` and `/wm/angular-module/`, the way the cockpit forwards
+   to a module. They start from the kit's example modules and add the extension points of the
+   interview, see [references/project.md](references/project.md#the-three-test-modules). These are
    the only modules it serves. `serve.mjs` is not needed then.
 3. Register the three modules at the simulator, the way a workflow module registers itself at the
    cockpit: one `POST /bpms/api/v1_1/workflow-module/{id}` per module, with the id `react-module`,
@@ -402,12 +405,12 @@ seeing anything.
    its `README.md`. Then the nginx image when `Q-HOSTING` is `behind` or `in-front`.
 10. The end-to-end tests, one per checklist item. They run against the TypeScript simulator of the
     UI repository, see
-    [references/project.md](references/project.md#testing-without-java).
+    [references/project.md](references/project.md#the-simulators).
 
 ## How you know it is done
 
-The end-to-end tests of the UI repository run against its TypeScript simulator and need no Java,
-see [references/project.md](references/project.md#testing-without-java). This last check is
+The end-to-end tests of the UI repository run against its TypeScript simulators and need no Java,
+see [references/project.md](references/project.md#the-simulators). This last check is
 different. It is done once the backend is built, and it needs a running cockpit backend.
 
 Run the generated user interface against a running cockpit with workflow modules. As workflow
@@ -427,9 +430,12 @@ the same names, and adds what only this user interface knows, such as its `ui-ur
 `Header` or the areas of a page (`PKG-043`). So a blueprint which passes against the VanillaBP kit
 loads in every generated cockpit. A blueprint that offers a `Header` or
 areas your cockpit does not have still loads, only without that part. One of the blueprints shows
-user tasks, one shows a workflow details page, and one shows an extension of the header. If the
-organisation's cockpit has extension points that no blueprint offers, extend a blueprint, so that
-every extension point is tested by a real module.
+user tasks, one shows a workflow details page, and one shows an extension of the header.
+
+The blueprints hold what fits most organisations. The extension points and areas your interview
+chose fit this one cockpit and may not be in any blueprint. The end-to-end tests of the UI
+repository test them with its three test modules, see
+[references/project.md](references/project.md#the-three-test-modules) (`PKG-056`).
 
 Then:
 
@@ -455,9 +461,9 @@ Then:
     UI jar as a dependency (`embedded`), through its gateway route to the nginx image (`behind`), or
     behind the nginx image (`in-front`).
 12. When the skill created the backend: `docker compose up` and the profile `local` start a
-    cockpit, and the end-to-end tests of the backend repository pass: a user logs in the way
+    cockpit, and the integration tests of the backend repository pass: a user logs in the way
     `Q-LOGIN-KIND` chose, and every list of `Q-LIST-CONTROLLERS` answers, see
-    [references/backend.md](references/backend.md#the-end-to-end-tests-of-the-backend).
+    [references/backend.md](references/backend.md#the-integration-tests-of-the-backend).
 13. A module built against the kit loads in your cockpit: the conformance test with the kit's
     example modules in React, Vue and Angular passes, as an end-to-end test against the simulator
     and once more against the running cockpit, see

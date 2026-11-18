@@ -133,6 +133,17 @@ types too. Do not use a generated call for the stream itself, because a stream n
 stream with `EventSource`, or with `fetch` and a reader on the body, see
 [The update stream](#the-update-stream).
 
+### The base path is configuration
+
+The base path of the GUI API is a configuration value of the generated user interface. Its default
+is `/gui/api/v1`, the path of the cockpit. A test or a dev shell may point it somewhere else, for
+example to `/official-api/gui/api/v1` of a simulator, where each simulated system has a prefix of
+its own, see [dev-shell.md](dev-shell.md#the-dev-shell-simulator).
+
+Read the value once at start and set it on both generated clients, with `setConfig({ baseUrl })`
+of their `client`. The update stream takes the same base path. No other code of the user interface
+names `/gui/api/v1`.
+
 ## Protection and login
 
 Which paths stay open depends on where the user interface runs (`Q-HOSTING`, see

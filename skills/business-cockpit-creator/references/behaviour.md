@@ -996,12 +996,11 @@ rows are already there, but it costs more memory. Find the size of the window th
 tests, and do not trade one for the other.
 
 The data for both tests is large and mixed. Report 30,000 user tasks or cases for the three
-example modules the TypeScript simulator of the end-to-end tests serves, see
-[project.md](project.md#testing-without-java). The simulator keeps them in memory. Spread the rows
-over the modules and give them different business data, so the rows differ the way they do in
-production. Run the tests on the primary filter for closed tasks
-as well (`ClosedTasksOnly`). Closed tasks are never removed, so that is where the most rows pile
-up.
+test modules the TypeScript simulator of the end-to-end tests serves, see
+[project.md](project.md#the-three-test-modules). The simulator keeps them in memory. Each module
+brings other columns, so the rows differ the way they do in production. Run the tests on the
+primary filter for closed tasks as well (`ClosedTasksOnly`). Closed tasks are never removed, so
+that is where the most rows pile up.
 
 An end-to-end test proves the memory. It is mandatory:
 

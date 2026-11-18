@@ -34,7 +34,7 @@ of the library reaches it by the component scan, exactly like the application yo
 10. [The configuration](#the-configuration)
 11. [The docker-compose.yaml](#the-docker-composeyaml)
 12. [The test that starts the application](#the-test-that-starts-the-application)
-13. [The end-to-end tests of the backend](#the-end-to-end-tests-of-the-backend)
+13. [The integration tests of the backend](#the-integration-tests-of-the-backend)
 14. [The README](#the-readme)
 
 ## Spring Boot only
@@ -60,7 +60,8 @@ application/
   src/main/resources/config/
     application.yaml            what every environment shares
     application-local.yaml      the values for docker-compose.yaml
-  src/test/java/<package>/      the test that starts the application, the end-to-end tests
+  src/test/java/<package>/      the test that starts the application, the integration tests
+                                and the simulator they use
 docker-compose.yaml             MongoDB, Mailpit, Keycloak for Q-LOGIN-KIND oidc, Kafka for Q-KAFKA
 keycloak/
   realm.json                    the realm Keycloak imports at the start, for Q-LOGIN-KIND oidc
@@ -307,8 +308,8 @@ redirect to the provider and fail there. With a 401 the user interface sends the
 the login, see [gui-api.md](gui-api.md#staying-logged-in).
 
 The wiki shows this chain, but the cockpit has no test for an OIDC login yet. Write the
-end-to-end test of the login first (`BE-007`), before anything builds on it. It is one of the
-[end-to-end tests of the backend](#the-end-to-end-tests-of-the-backend), see
+integration test of the login first (`BE-007`), before anything builds on it. It is one of the
+[integration tests of the backend](#the-integration-tests-of-the-backend), see
 [rough-edges.md](rough-edges.md#what-needs-a-newer-cockpit).
 
 ### A login form
@@ -563,30 +564,35 @@ Keycloak: it also checks that a page without a login is sent on to the provider.
 
 This test proves that the generated application starts and that nothing of the library is missing.
 The end-to-end tests of the UI repository do not start this backend. They run against the
-TypeScript simulator of the UI repository, see
-[project.md](project.md#testing-without-java). The login and the lists are proven by the
-end-to-end tests of this repository, see below.
+TypeScript simulator of the UI repository, see [project.md](project.md#the-simulators). The login
+and the lists are proven by the integration tests of this repository, see below.
 
-## The end-to-end tests of the backend
+## The integration tests of the backend
 
-The backend repository has end-to-end tests of its own. They prove what only the backend does:
+The backend repository has integration tests of its own. They prove what only the backend does,
+and they use no mocks and change no data directly. The data comes in the way it comes in
+production: the test tells the simulator of the backend to call an API of the cockpit, for example
+the BPMS API to report a case or a user task. The simulator is Java code in the tests of the
+repository, simulator 2 of [the list of simulators](project.md#the-simulators). The test then
+checks the result from the outside, through the GUI API. Most of the time that is enough. Where it
+helps, it also reads the state inside, for example records loaded through a repository of the
+Spring test context, when the effect outside comes only with a delay.
 
-- the login of `Q-LOGIN-KIND`. With `oidc`, a browser without a login is sent to the Keycloak of
-  `docker-compose.yaml`, logs in there and comes back with the cookie of the cockpit, and
-  `GET /gui/api/v1/app/current-user` shows the user with the groups from the claim (`BE-007`). With
-  `form`, the login form does the same (`BE-009`),
+They prove:
+
+- the login of `Q-LOGIN-KIND`. With `oidc`, a request without a login is sent on to Keycloak. The
+  test follows the redirects with an HTTP client that keeps cookies, sends the login form of
+  Keycloak and comes back with the cookie of the cockpit. Then `GET /gui/api/v1/app/current-user`
+  shows the user with the groups from the claim (`BE-007`). With `form`, the login form of the
+  backend does the same (`BE-009`),
 - every list of `Q-LIST-CONTROLLERS`: it answers, and it shows each test user only the user tasks
-  and cases that user may see (`BE-004`). The test reports the data through the BPMS API first,
-  then reads the lists as different users.
+  and cases that user may see (`BE-004`). The simulator reports the data through the BPMS API
+  first, then the test reads the lists as different users.
 
-They run against the application with the profile `local` and the services of
-`docker-compose.yaml`. They are written in Java, so the repository stays without a `package.json`
-(`PKG-014`). For the browser part, use the Java library of the tool of `Q-E2E-TOOL`, by default
-Playwright for Java, `com.microsoft.playwright:playwright`. The lists need no browser; plain HTTP
-requests with the cookie of the login are enough.
-
-The check against a running cockpit in
-[How you know it is done](../SKILL.md#how-you-know-it-is-done) runs these tests as well.
+They start the application the way the test above does, with MongoDB of Testcontainers, and with
+`oidc` also a Keycloak of Testcontainers that imports `keycloak/realm.json`. They are plain Java
+tests and need no browser, so the repository stays without a `package.json` (`PKG-014`).
+`Q-E2E-TOOL` holds for the UI repository only.
 
 ## The README
 

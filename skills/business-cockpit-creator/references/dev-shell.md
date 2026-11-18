@@ -174,13 +174,13 @@ themselves, see [module-loading.md](module-loading.md#cells-drawn-by-a-workflow-
 The developer hands over their parts and an address, and the shell builds the application from them.
 What is handed over is the real contract:
 
-|                 What                  |                                                            Why the shell needs it                                                            |
-|---------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
-| the address of the GUI API            | it builds its client from it, with the simulator `/official-api/gui/api/v1`                                                                  |
-| the functions of the data entries     | `userTaskForm`, `workflowPage`, and for the other extension points for example `header` and `pages`; the shell asks them as the cockpit does |
-| the components, by web component name | what the shell draws for each name the functions return; the module builds the names with the same `names` as its data entries               |
-| the style of the components           | the stylesheet text the module's web components write into their shadow roots, so the shell writes the same, see [The rule](#the-rule)       |
-| the workflow module id                | for the frame, and for the requests of a form through `/wm/`                                                                                 |
+|                 What                  |                                                               Why the shell needs it                                                               |
+|---------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| the address of the GUI API            | it builds its client from it, with the dev shell simulator `/official-api/gui/api/v1`, see [gui-api.md](gui-api.md#the-base-path-is-configuration) |
+| the functions of the data entries     | `userTaskForm`, `workflowPage`, and for the other extension points for example `header` and `pages`; the shell asks them as the cockpit does       |
+| the components, by web component name | what the shell draws for each name the functions return; the module builds the names with the same `names` as its data entries                     |
+| the style of the components           | the stylesheet text the module's web components write into their shadow roots, so the shell writes the same, see [The rule](#the-rule)             |
+| the workflow module id                | for the frame, and for the requests of a form through `/wm/`                                                                                       |
 
 The form of the entry point follows the framework, and it does not have to be the same everywhere:
 
@@ -332,7 +332,8 @@ only to show the developer what the module reports, and never in a form.
 
 A project which extends the simulator with an application of its own (`extends DevShellSimulator`),
 like the backend of a workflow module, see
-[The simulators of a workflow module](#the-simulators-of-a-workflow-module), keeps its defaults: port, H2, schema update and the JWT secret come from
+[The simulators of a workflow module](#the-simulators-of-a-workflow-module), keeps its defaults:
+port, H2, schema update and the JWT secret come from
 `dev-shell-simulator-defaults.yaml` with the lowest priority. Its own `application.yaml` names only
 what differs, and the users.
 
@@ -345,21 +346,20 @@ shell that calls one of these calls into nothing.
 
 ### The simulators of a workflow module
 
-A workflow module has two simulators, one for developing its user interface and one for testing it.
+A workflow module has two simulators, numbers 5 and 6 of
+[the list of simulators](project.md#the-simulators).
 
-The backend of the module has a simulator for development. It extends the dev shell simulator
+The backend of the module has a simulator in Java (5). It is built on the dev shell simulator
 (`extends DevShellSimulator`) and adds what is special to this module, for example the answers of
-a system the module talks to. It is the backend of the dev shell while somebody writes a form. The
-dev shell generates its clients from the OpenAPI files in the jars, the same way as the cockpit user
-interface does. This simulator is a Java application, and the developer starts it.
+a system the module talks to. It serves the integration tests of the module's backend, and it is the
+backend of the dev shell while somebody writes a form. The dev shell generates its clients from the
+OpenAPI files in the jars, the same way as the cockpit user interface does. Where a module needs
+nothing special, the dev shell simulator itself (4) is the backend of the dev shell.
 
 The UI repository of the module is a pure npm repository, like the UI repository of the cockpit.
-Its end-to-end tests run against a simulator written in TypeScript, made for these tests. Like the
-simulator of the cockpit's UI repository, it keeps its data in memory and follows the same rule for
-its paths, for example the official GUI API below `/official-api/gui/api/v1`. It also
-takes the OpenAPI files from the jars of the backend. So the end-to-end tests of a user interface
-need no Java, neither those of the cockpit nor those of a workflow module, see
-[project.md](project.md#testing-without-java).
+It takes the OpenAPI files from the jars of the backend, and its end-to-end tests run against a
+simulator written in TypeScript (6), made for these tests. So the end-to-end tests of a user
+interface need no Java, neither those of the cockpit nor those of a workflow module.
 
 ## The proxy of the dev server
 
