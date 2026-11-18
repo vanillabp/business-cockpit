@@ -7,9 +7,10 @@ The module builds its parts as plain ES modules, and the cockpit loads them into
 runtime with `import()`. Nothing else is needed: no import map, no shim and no federation library.
 
 The wiki page
-[User task forms and status sites](https://github.com/vanillabp/business-cockpit/wiki/User-task-forms-and-status-sites)
-describes the module's side: what it offers and how it builds. Here is the other side, what the
-host does. The host is your user interface.
+[Loading the parts of a workflow module](https://github.com/vanillabp/business-cockpit/wiki/Loading-the-parts-of-a-workflow-module)
+is the short version of this description for the authors of workflow modules, and the cockpit
+frontend blueprints link it. Here is the full description of what the host does. The host is your
+user interface. When you change a rule here, change the wiki page with it.
 
 1. [Self-contained ES modules](#self-contained-es-modules)
 2. [The manifest](#the-manifest)
