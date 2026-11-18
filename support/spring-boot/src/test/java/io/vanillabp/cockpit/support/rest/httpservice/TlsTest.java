@@ -36,7 +36,7 @@ import okhttp3.tls.HeldCertificate;
 
 /**
  * TLS: a Spring Boot SSL bundle named in {@code ssl.bundle} holds the certificates the client
- * trusts and its own certificate, like the truststore file of {@code ClientsConfigurationBase}.
+ * trusts and its own certificate, like the truststore file of the REST client of version 1.
  * {@code verify-ssl: false} trusts every server and keeps the client certificate of the bundle. A
  * token request uses the TLS settings of its group.
  */

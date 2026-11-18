@@ -2,7 +2,6 @@ package io.vanillabp.cockpit.simulator.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import io.vanillabp.cockpit.support.rest.adapter.Client;
 import io.vanillabp.cockpit.support.security.jwt.JwtProperties;
 
 /**
@@ -11,33 +10,12 @@ import io.vanillabp.cockpit.support.security.jwt.JwtProperties;
 @ConfigurationProperties(prefix = "application", ignoreUnknownFields = false)
 public class ApplicationProperties {
 
-  private Client businessCockpit;
-
   private JwtProperties jwt;
 
   /**
    * Creates empty properties. Spring Boot fills them by the setters.
    */
   public ApplicationProperties() {
-  }
-
-  /**
-   * How to reach the Business Cockpit: its base URL and the settings of the REST client.
-   *
-   * @return The client settings
-   */
-  public Client getBusinessCockpit() {
-    return businessCockpit;
-  }
-
-  /**
-   * Sets how to reach the Business Cockpit.
-   *
-   * @param businessCockpit The client settings
-   */
-  public void setBusinessCockpit(
-      Client businessCockpit) {
-    this.businessCockpit = businessCockpit;
   }
 
   /**

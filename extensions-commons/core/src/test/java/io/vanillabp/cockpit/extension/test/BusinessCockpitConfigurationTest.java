@@ -90,6 +90,35 @@ public class BusinessCockpitConfigurationTest {
   }
 
   @Test
+  @DisplayName("An address which ends with the path of the BPMS API stops the start and names the address without it")
+  public void anAddressWithThePathOfTheApiIsRefused() {
+
+    for (final var baseUrl : List.of(
+        "http://localhost:8080/bpms/api/v1_1",
+        "http://localhost:8080/bpms/api/v1_1/")) {
+      final var defects = defectsOf(
+          ConfigurationFixture.aConfiguredApplication().with("rest.base-url", baseUrl), false);
+
+      assertTrue(defects.contains("'vanillabp.cockpit.rest.base-url'"), defects);
+      assertTrue(defects.contains("ends with '/bpms/api/v1_1'"), defects);
+      assertTrue(defects.contains("without it: 'http://localhost:8080'"), defects);
+    }
+
+  }
+
+  @Test
+  @DisplayName("An address with a path of its own in front of the cockpit is kept as it is")
+  public void anAddressWithAPathOfItsOwnIsRead() {
+
+    final var configuration = read(
+        ConfigurationFixture.aConfiguredApplication().with("rest.base-url", "https://example.com/cockpit/"),
+        false);
+
+    assertEquals("https://example.com/cockpit/", configuration.getRest().baseUrl());
+
+  }
+
+  @Test
   @DisplayName("Both halves of the cockpit are reported to unless a switch says otherwise")
   public void theTwoSwitchesAreRead() {
 

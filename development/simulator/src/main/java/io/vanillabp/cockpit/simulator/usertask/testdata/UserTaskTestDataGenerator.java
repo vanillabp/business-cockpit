@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 
 import com.devskiller.jfairy.Fairy;
 
-import io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi;
 import io.vanillabp.cockpit.bpms.api.v1_1.RegisterWorkflowModuleEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskActivatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCancelledEvent;
@@ -22,6 +21,7 @@ import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCreatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskSuspendedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskUpdatedEvent;
+import io.vanillabp.cockpit.simulator.bpms.BpmsApi;
 import io.vanillabp.cockpit.simulator.common.FairyHelper;
 
 /**

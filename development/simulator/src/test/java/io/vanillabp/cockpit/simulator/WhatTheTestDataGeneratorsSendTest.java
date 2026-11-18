@@ -17,7 +17,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.devskiller.jfairy.Fairy;
 
-import io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi;
+import io.vanillabp.cockpit.simulator.bpms.BpmsApi;
 import io.vanillabp.cockpit.simulator.common.FairyHelper;
 import io.vanillabp.cockpit.simulator.usertask.testdata.UserTaskTestDataGenerator;
 import io.vanillabp.cockpit.simulator.usertask.testdata.UserTaskTestDataParameters;

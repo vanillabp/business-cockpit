@@ -1,17 +1,17 @@
 package io.vanillabp.cockpit.extension.transport;
 
+import java.net.http.HttpHeaders;
 import java.time.Duration;
-import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collection;
-import java.util.Map;
 
-import feign.FeignException;
-import feign.RetryableException;
-import feign.auth.BasicAuthRequestInterceptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.vanillabp.cockpit.bpms.api.v1_1.ApiClient;
+import io.vanillabp.cockpit.bpms.api.v1_1.ApiException;
 import io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi;
+import io.vanillabp.cockpit.bpms.api.v1_1.BpmsApiPath;
 import io.vanillabp.cockpit.extension.config.ConfigurationKeys;
 import io.vanillabp.cockpit.extension.config.RestTransportConfiguration;
 import io.vanillabp.cockpit.extension.event.RegisterWorkflowModuleEvent;
@@ -24,7 +24,8 @@ import io.vanillabp.integration.spi.PhaseTwoRetryLater;
  * Reports events to the cockpit server over its REST API, version 1.1.
  * <p>
  * The client is the one generated from the cockpit's own OpenAPI document, so the payloads
- * cannot drift from what the server accepts.
+ * cannot drift from what the server accepts. It sends with the JDK's own HTTP client, so the
+ * transport brings no HTTP library into the workflow module.
  * <p>
  * What stands between the workflow module and the server is configured too: a proxy, a
  * certificate its own authority signed, an authorization server issuing the token. Where nothing
@@ -40,8 +41,7 @@ import io.vanillabp.integration.spi.PhaseTwoRetryLater;
  */
 public class RestTransport implements BusinessCockpitTransport {
 
-  /** What the cockpit server serves its BPMS API of version 1.1 under. */
-  static final String API_PATH = "/bpms/api/v1_1";
+  private static final Logger logger = LoggerFactory.getLogger(RestTransport.class);
 
   /** The header in which a server says how long it will be unavailable. */
   static final String RETRY_AFTER_HEADER = "Retry-After";
@@ -51,6 +51,9 @@ public class RestTransport implements BusinessCockpitTransport {
 
   /** How much of what the server wrote into a refusal goes into the message. */
   static final int MAXIMUM_REASON_LENGTH = 300;
+
+  /** What the generated client says where no answer came at all, for example a refused connection. */
+  private static final int NO_ANSWER = 0;
 
   private static final int FIRST_CLIENT_ERROR = 400;
 
@@ -84,26 +87,33 @@ public class RestTransport implements BusinessCockpitTransport {
 
     this.baseUrl = configuration.baseUrl();
     final var client = new ApiClient();
+    client.setHttpClientBuilder(RestClientSetup.httpClientOf(configuration));
+    // the path of the API comes with the client, from the server URL of the OpenAPI file it was
+    // generated from, so base-url is the address of the cockpit only
     client
-        .setBasePath(
+        .updateBaseUri(
             baseUrl.endsWith("/")
-                ? baseUrl.substring(0, baseUrl.length() - 1) + API_PATH
-                : baseUrl + API_PATH);
-    final var feign = client.getFeignBuilder();
-    feign.options(RestClientSetup.timeoutsOf(configuration));
-    final var ownClient = RestClientSetup.clientOf(configuration);
-    if (ownClient != null) {
-      feign.client(ownClient);
-    }
-    if (configuration.oauth() != null) {
-      feign.requestInterceptor(new OAuthTokens(configuration));
-    } else if (configuration.authenticates()) {
-      feign
-          .requestInterceptor(
-              new BasicAuthRequestInterceptor(
-                  configuration.username(), configuration.password()));
-    }
-    this.api = client.buildClient(BpmsApi.class);
+                ? baseUrl.substring(0, baseUrl.length() - 1) + BpmsApiPath.PATH
+                : baseUrl + BpmsApiPath.PATH);
+    client.setReadTimeout(RestClientSetup.readTimeoutOf(configuration));
+    final var proxyAuthorization = RestClientSetup.proxyAuthorizationOf(configuration.proxy());
+    final var tokens = configuration.oauth() == null ? null : new OAuthTokens(configuration);
+    final var basic = (tokens == null) && configuration.authenticates()
+        ? RestClientSetup.basic(configuration.username(), configuration.password())
+        : null;
+    client
+        .setRequestInterceptor(
+            request -> {
+              if (proxyAuthorization != null) {
+                request.header("Proxy-Authorization", proxyAuthorization);
+              }
+              if (tokens != null) {
+                request.header("Authorization", tokens.authorization());
+              } else if (basic != null) {
+                request.header("Authorization", basic);
+              }
+            });
+    this.api = new BpmsApi(client);
 
   }
 
@@ -206,13 +216,22 @@ public class RestTransport implements BusinessCockpitTransport {
    */
   private void send(
       final String what,
-      final Runnable call) {
+      final Call call) {
 
     try {
       call.run();
-    } catch (final FeignException e) {
+      logger.debug("Reported {} to {}", what, describe());
+    } catch (final ApiException e) {
       throw failureOf(what, e);
     }
+
+  }
+
+  /** One call of the generated client, which says what went wrong by a checked exception. */
+  @FunctionalInterface
+  private interface Call {
+
+    void run() throws ApiException;
 
   }
 
@@ -226,15 +245,21 @@ public class RestTransport implements BusinessCockpitTransport {
    */
   private RuntimeException failureOf(
       final String what,
-      final FeignException failure) {
+      final ApiException failure) {
 
-    final var status = failure.status();
+    final var status = failure.getCode();
+    if (status == NO_ANSWER) {
+      return new IllegalStateException(
+          """
+              Reporting %s to %s got no answer: %s. The report is sent again."""
+              .formatted(what, describe(), failure.getMessage()), failure);
+    }
     if ((status == SERVICE_UNAVAILABLE) || (status == TOO_MANY_REQUESTS)) {
       return new PhaseTwoRetryLater(
           """
               Reporting %s to %s was answered with %d, so the server is not taking reports right \
               now. The report waits and is sent again."""
-              .formatted(what, describe(), status), retryAfterOf(failure));
+              .formatted(what, describe(), status), retryAfterOf(failure.getResponseHeaders()));
     }
     final var blamesTheClient = (status >= FIRST_CLIENT_ERROR) && (status < FIRST_SERVER_ERROR) && (status != REQUEST_TIMEOUT);
     // 501 is a status of the server, but it says that the server does not handle this kind of
@@ -247,7 +272,10 @@ public class RestTransport implements BusinessCockpitTransport {
               %s"""
               .formatted(what, describe(), status, reasonOf(failure), whatToCheckFor(status)), failure);
     }
-    return failure;
+    return new IllegalStateException(
+        """
+            Reporting %s to %s was answered with %d. The report is sent again. %s"""
+            .formatted(what, describe(), status, reasonOf(failure)), failure);
 
   }
 
@@ -257,9 +285,9 @@ public class RestTransport implements BusinessCockpitTransport {
    *         sentence saying that it wrote nothing
    */
   private static String reasonOf(
-      final FeignException failure) {
+      final ApiException failure) {
 
-    final var body = failure.contentUTF8();
+    final var body = failure.getResponseBody();
     if ((body == null) || body.isBlank()) {
       return "The server gave no reason.";
     }
@@ -288,7 +316,7 @@ public class RestTransport implements BusinessCockpitTransport {
     final var versions = """
         The workflow module and the cockpit server speak different versions of the BPMS API. \
         This workflow module speaks version 1.1, under '%s'. Use a cockpit server of the same \
-        release as this extension, or a newer one.""".formatted(API_PATH);
+        release as this extension, or a newer one.""".formatted(BpmsApiPath.PATH);
     return switch (status) {
       case UNAUTHORIZED -> stepsOf(
           """
@@ -348,45 +376,18 @@ public class RestTransport implements BusinessCockpitTransport {
   }
 
   /**
-   * @param failure What the client threw
+   * @param headers What the server answered with
    * @return How long the server asked to wait, or <code>null</code> where it did not say and
    *         the outbox store's own backoff decides
    */
   private static Duration retryAfterOf(
-      final FeignException failure) {
+      final HttpHeaders headers) {
 
-    // Feign reads 'Retry-After' itself and hands on the moment instead of the header, so that
-    // is the first place to look. The header is read where an answer came through unparsed
-    if (failure instanceof final RetryableException retryable) {
-      final var until = retryable.retryAfter();
-      if (until != null) {
-        return positive(Duration.between(Instant.now(), Instant.ofEpochMilli(until)));
-      }
-    }
-    return retryAfterOf(failure.responseHeaders());
-
-  }
-
-  /**
-   * @param headers What the server answered with
-   * @return How long the server asked to wait, or <code>null</code> where it did not say
-   */
-  private static Duration retryAfterOf(
-      final Map<String, Collection<String>> headers) {
-
-    final var values = headers == null
-        ? null
-        : headers
-            .entrySet()
-            .stream()
-            .filter(header -> header.getKey().equalsIgnoreCase(RETRY_AFTER_HEADER))
-            .map(Map.Entry::getValue)
-            .findFirst()
-            .orElse(null);
-    if ((values == null) || values.isEmpty()) {
+    final var header = headers == null ? null : headers.firstValue(RETRY_AFTER_HEADER).orElse(null);
+    if ((header == null) || header.isBlank()) {
       return null;
     }
-    final var value = values.iterator().next().trim();
+    final var value = header.trim();
     try {
       return Duration.ofSeconds(Long.parseLong(value));
     } catch (final NumberFormatException e) {

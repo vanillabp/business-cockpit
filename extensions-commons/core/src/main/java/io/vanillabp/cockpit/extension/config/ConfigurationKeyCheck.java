@@ -114,7 +114,7 @@ public final class ConfigurationKeyCheck {
     gone
         .put(
             "rest.log",
-            "the client logs through SLF4J, so set the logger 'io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi' to DEBUG");
+            "the transport logs each report it sent through SLF4J, so set the logger 'io.vanillabp.cockpit.extension.transport.RestTransport' to DEBUG");
     gone
         .put(
             "rest.additional-get-parameters",

@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi;
+import io.vanillabp.cockpit.simulator.bpms.BpmsApi;
 import io.vanillabp.cockpit.simulator.common.FairyHelper;
 import jakarta.annotation.PostConstruct;
 

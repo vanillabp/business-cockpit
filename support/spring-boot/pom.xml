@@ -111,41 +111,6 @@
       <artifactId>spring-security-oauth2-client</artifactId>
       <optional>true</optional>
     </dependency>
-    <!-- the REST client half of 'ClientsConfigurationBase', OpenFeign and OkHttp, which stays for
-         the clients built with it -->
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-beans</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.github.openfeign</groupId>
-      <artifactId>feign-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.github.openfeign</groupId>
-      <artifactId>feign-okhttp</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.github.openfeign</groupId>
-      <!--
-        Jackson 3 variant, classes are feign.jackson3.Jackson3Decoder/Jackson3Encoder. The version comes
-        from the feign-bom imported in the root pom - it has to match feign-core, see the comment there.
-      -->
-      <artifactId>feign-jackson3</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.github.openfeign</groupId>
-      <artifactId>feign-slf4j</artifactId>
-    </dependency>
-    <dependency>
-      <!-- part of OpenFeign since 13.x, so the feign-bom keeps it on the version of feign-core -->
-      <groupId>io.github.openfeign</groupId>
-      <artifactId>feign-form</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.squareup.okhttp3</groupId>
-      <artifactId>logging-interceptor</artifactId>
-    </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>

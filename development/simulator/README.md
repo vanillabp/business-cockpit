@@ -4,6 +4,13 @@ A standalone Spring Boot application which stands in for a business service: it 
 and workflows to the cockpit the way a workflow module does. Cockpit features can be built against
 it without a BPMS and without a real application.
 
+In the profile `rest-sync` it reports by REST, with an HTTP service client of
+[`support`](../../support/README.md#http-service-clients). Its keys are those of an HTTP service
+group below `business-cockpit`, for example `business-cockpit.base-url`. That is the address of
+the cockpit only, like `http://localhost:8080`. The client adds the path of the BPMS API itself, and
+an address which ends with that path stops the start. `business-cockpit.default-header.Authorization`
+carries the basic authentication.
+
 It also answers a part of the cockpit's official API. A user task or a case asked for by id is
 made up and kept, so the next request gets the same one. `POST /usertask/count` and
 `POST /workflow/count` count what it keeps, by the modes of the cockpit. It has no lists.

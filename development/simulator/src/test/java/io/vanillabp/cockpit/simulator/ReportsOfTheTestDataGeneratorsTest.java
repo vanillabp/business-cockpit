@@ -31,9 +31,9 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * field the schema asks for. Otherwise the cockpit answers {@code 400 Bad Request}, and the
  * simulator shows no end at all.
  *
- * <p>The generated client classes carry no validation, so the fields are checked against the
- * {@code required} lists of {@code apis/bpms-api/openapi/v1_1.yaml}. The server classes generated
- * from the same file mark them {@code @NotNull}. Nothing is sent.
+ * <p>The simulator sends the message classes of {@code bpms-api-server}, which mark the required
+ * fields {@code @NotNull} but check nothing themselves. So the fields are checked against the
+ * {@code required} lists of {@code apis/bpms-api/openapi/v1_1.yaml}. Nothing is sent.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class ReportsOfTheTestDataGeneratorsTest {
