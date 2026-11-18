@@ -24,6 +24,7 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
 import io.vanillabp.cockpit.devshell.simulator.usermanagement.JwtServerSecurityContextRepository;
+import io.vanillabp.cockpit.devshell.simulator.usermanagement.SignedInUser;
 import io.vanillabp.cockpit.devshell.simulator.usermanagement.SimulatedUserDirectoryService;
 import io.vanillabp.cockpit.devshell.simulator.usermanagement.UserController;
 import io.vanillabp.cockpit.support.security.jwt.JwtAuthenticationTokenMapper;
@@ -136,6 +137,21 @@ public class SecurityConfig {
       final JwtProperties jwtProperties) {
 
     return new JwtServerSecurityContextRepository(jwtProperties, jwtMapper);
+
+  }
+
+  /**
+   * Tells which user the dev shell switched to, for the paths which answer as that user.
+   *
+   * @param securityContextRepository Reads the login cookie
+   * @return The helper
+   */
+  @Bean
+  @ConditionalOnMissingBean
+  public SignedInUser signedInUser(
+      final JwtServerSecurityContextRepository securityContextRepository) {
+
+    return new SignedInUser(securityContextRepository);
 
   }
 

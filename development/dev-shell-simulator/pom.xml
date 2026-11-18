@@ -54,6 +54,12 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <!-- the paths only the simulator answers, described in its own OpenAPI file -->
+      <groupId>${project.groupId}</groupId>
+      <artifactId>dev-shell-simulator-api-server</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <!-- the cockpit's login token, which the simulator issues like the cockpit does -->
       <groupId>${project.groupId}</groupId>
       <artifactId>business-cockpit-spring-boot-support</artifactId>
@@ -97,6 +103,14 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- the tests call the simulator's own paths through the generated client, so they prove
+           that the simulator answers what its OpenAPI file describes -->
+      <groupId>${project.groupId}</groupId>
+      <artifactId>dev-shell-simulator-api-client</artifactId>
+      <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>

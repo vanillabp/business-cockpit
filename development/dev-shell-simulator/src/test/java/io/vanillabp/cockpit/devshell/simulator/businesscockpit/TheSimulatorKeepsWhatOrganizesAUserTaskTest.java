@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.devshell.simulator.businesscockpit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -10,15 +11,21 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.support.RestClientAdapter;
+import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 
+import io.vanillabp.cockpit.devshell.simulator.api.client.SimulatorApi;
 import io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.UserTaskRepository;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * A workflow module reports who must not work on a user task, who may see it although he is no
@@ -26,7 +33,8 @@ import tools.jackson.databind.json.JsonMapper;
  * simulator keeps these values and shows the last report as it came in at
  * {@code GET /simulator-api/usertask/{id}/report}. The reports go over HTTP, like a workflow
  * module sends them, and the report is read without a login, like the rest of the simulator's
- * APIs.
+ * APIs. The test reads it through the client generated from the simulator's OpenAPI file, the way
+ * a test of a workflow module reads it.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
@@ -46,8 +54,18 @@ class TheSimulatorKeepsWhatOrganizesAUserTaskTest {
   @Autowired
   private UserTaskRepository userTasks;
 
-  @Autowired
-  private JsonMapper jsonMapper;
+  private SimulatorApi simulatorApi;
+
+  @BeforeEach
+  void createTheClient() {
+
+    simulatorApi = HttpServiceProxyFactory
+        .builderFor(RestClientAdapter.create(RestClient.create("http://localhost:"
+            + port)))
+        .build()
+        .createClient(SimulatorApi.class);
+
+  }
 
   @AfterEach
   void removeTheUserTasks() {
@@ -96,27 +114,19 @@ class TheSimulatorKeepsWhatOrganizesAUserTaskTest {
 
   }
 
-  @SuppressWarnings("unchecked")
-  private Map<String, Object> lastReport() throws Exception {
+  private Map<String, Object> lastReport() {
 
-    final var request = HttpRequest
-        .newBuilder(URI.create("http://localhost:"
-            + port
-            + "/simulator-api/usertask/"
-            + USER_TASK_ID
-            + "/report"))
-        .GET()
-        .build();
-    final var answer = client.send(request, HttpResponse.BodyHandlers.ofString());
-    assertThat(answer.statusCode()).isEqualTo(200);
-    return jsonMapper.readValue(answer.body(), Map.class);
+    final var answer = simulatorApi.getLastReportOfUserTask(USER_TASK_ID);
+    assertThat(answer.getStatusCode()).isEqualTo(HttpStatus.OK);
+    return answer.getBody();
 
   }
 
   @Test
   void theCreatingReportIsKeptAndShown() throws Exception {
 
-    assertThat(send("POST", "/bpms/api/v1_1/usertask/created", report("auditor", "FORCE"))).isEqualTo(200);
+    assertThat(send("POST", "/bpms/api/v1_1/usertask/created", report("auditor", "FORCE")))
+        .isEqualTo(HttpStatus.OK.value());
 
     final var stored = userTasks.findById(USER_TASK_ID).orElseThrow();
     assertThat(stored.getExcludedCandidateUsers()).containsExactly("jane");
@@ -139,7 +149,7 @@ class TheSimulatorKeepsWhatOrganizesAUserTaskTest {
     assertThat(send("POST", "/bpms/api/v1_1/usertask/"
         + USER_TASK_ID
         + "/updated", report("controller", "SUPPRESS")))
-        .isEqualTo(200);
+        .isEqualTo(HttpStatus.OK.value());
 
     final var stored = userTasks.findById(USER_TASK_ID).orElseThrow();
     assertThat(stored.getAdmittedUsers()).containsExactly("controller");
@@ -152,16 +162,11 @@ class TheSimulatorKeepsWhatOrganizesAUserTaskTest {
   }
 
   @Test
-  void anUnknownUserTaskHasNoReport() throws Exception {
+  void anUnknownUserTaskHasNoReport() {
 
-    final var request = HttpRequest
-        .newBuilder(URI.create("http://localhost:"
-            + port
-            + "/simulator-api/usertask/no-such-task/report"))
-        .GET()
-        .build();
-
-    assertThat(client.send(request, HttpResponse.BodyHandlers.discarding()).statusCode()).isEqualTo(404);
+    assertThatThrownBy(() -> simulatorApi.getLastReportOfUserTask("no-such-task"))
+        .isInstanceOfSatisfying(HttpClientErrorException.class,
+            e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND));
 
   }
 
