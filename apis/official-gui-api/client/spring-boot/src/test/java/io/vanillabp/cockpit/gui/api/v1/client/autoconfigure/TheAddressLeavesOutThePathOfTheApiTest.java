@@ -19,8 +19,8 @@ import io.vanillabp.cockpit.support.rest.httpservice.HttpServiceGroupPrefix;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * 'base-url' is the address of the cockpit only. The interfaces add the path of the API, the
- * server path of the OpenAPI file, themselves, so a client of a new version of the API brings its
+ * 'base-url' is the address of the cockpit only. The client adds the path of the API, the server
+ * path of the OpenAPI file, itself, so a client of a new version of the API brings its
  * new path along. An address which ends with that path would send each call to
  * '/gui/api/v1/gui/api/v1/...', so it stops the start and the message shows the address to set.
  */
@@ -54,7 +54,7 @@ public class TheAddressLeavesOutThePathOfTheApiTest {
         .contains("'https://cockpit.example.com/gui/api/v1' in '"
             + OfficialGuiApiClientAutoConfiguration.ADDRESS
             + "' ends with '/gui/api/v1'")
-        .contains("of the HTTP service group 'official-gui-api' adds to each call itself")
+        .contains("the path of the API which the HTTP service group 'official-gui-api' adds to the address itself")
         .endsWith("to the address without it: 'https://cockpit.example.com'.");
 
   }
@@ -68,9 +68,9 @@ public class TheAddressLeavesOutThePathOfTheApiTest {
 
     assertThat(problems).containsExactly("""
         The address 'https://example.com/cockpit/gui/api/v1/' in 'loan-approval.cockpit.base-url' \
-        ends with '/gui/api/v1', the path which the interface LoanApprovalTasklist of the HTTP \
-        service group 'loan-approval-cockpit' adds to each call itself. Set \
-        'loan-approval.cockpit.base-url' to the address without it: 'https://example.com/cockpit'.""");
+        ends with '/gui/api/v1', the path of the API which the HTTP service group \
+        'loan-approval-cockpit' adds to the address itself. Set 'loan-approval.cockpit.base-url' to \
+        the address without it: 'https://example.com/cockpit'.""");
 
   }
 

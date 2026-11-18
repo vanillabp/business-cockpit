@@ -136,6 +136,7 @@
           <excludes combine.self="override">
             <exclude>io/vanillabp/cockpit/gui/api/v1/client/Official*Api</exclude>
             <exclude>io/vanillabp/cockpit/gui/api/v1/client/model/*</exclude>
+            <exclude>io/vanillabp/cockpit/gui/api/v1/client/OfficialGuiApiPath</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -192,12 +193,15 @@
                    root POM looks up the types the code written by hand uses -->
               <output>${project.build.directory}/generated-sources</output>
               <generatorName>jaxrs-spec</generatorName>
-              <!-- the generator's templates with the server path of the OpenAPI file on each
-                   interface, so 'base-url' is the address of the cockpit only -->
-              <templateDirectory>${project.basedir}/src/main/openapi-templates</templateDirectory>
+              <!-- one file of our own beside the generated ones: OfficialGuiApiPath, the server path
+                   of the OpenAPI file, see ../generator/config.yaml. The generator's own templates stay
+                   as they are. -->
+              <configurationFile>${project.basedir}/../generator/config.yaml</configurationFile>
+              <templateDirectory>${project.basedir}/../generator</templateDirectory>
               <apiPackage>io.vanillabp.cockpit.gui.api.v1.client</apiPackage>
               <modelPackage>io.vanillabp.cockpit.gui.api.v1.client.model</modelPackage>
-              <generateSupportingFiles>false</generateSupportingFiles>
+              <!-- of the supporting files only our own, see ../generator/config.yaml -->
+              <supportingFilesToGenerate>OfficialGuiApiPath.java</supportingFilesToGenerate>
               <!-- leaves out the two operations with the method OPTIONS, the suggestions of words
                    for the search in the task list and in the workflow list. They send a body,
                    which Quarkus' REST client warns about while the application is built. They

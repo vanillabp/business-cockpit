@@ -12,11 +12,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.service.registry.ImportHttpServices;
 
 import io.vanillabp.cockpit.gui.api.v1.client.OfficialCurrentUserApi;
+import io.vanillabp.cockpit.gui.api.v1.client.OfficialGuiApiPath;
 import io.vanillabp.cockpit.gui.api.v1.client.OfficialNotificationConfigApi;
 import io.vanillabp.cockpit.gui.api.v1.client.OfficialTasklistApi;
 import io.vanillabp.cockpit.gui.api.v1.client.OfficialWorkflowModulesApi;
 import io.vanillabp.cockpit.gui.api.v1.client.OfficialWorkflowlistApi;
 import io.vanillabp.cockpit.support.rest.httpservice.ConditionalOnHttpServiceGroupAddress;
+import io.vanillabp.cockpit.support.rest.httpservice.HttpServiceApiPath;
 import io.vanillabp.cockpit.support.rest.httpservice.HttpServiceClientsMisconfigured;
 import io.vanillabp.cockpit.support.rest.httpservice.HttpServiceGroupPrefix;
 
@@ -54,9 +56,8 @@ public class OfficialGuiApiClientAutoConfiguration {
 
   /**
    * The key of the address of the cockpit, with its context path if it has one. The path of the
-   * API is not part of it: each interface carries the server path of the OpenAPI file in
-   * {@code @HttpExchange} on the type, and an address which ends with that path stops the start.
-   * Without the key, the group is not there.
+   * API is not part of it: {@link #officialGuiApiPath()} adds it, and an address which ends with
+   * that path stops the start. Without the key, the group is not there.
    */
   public static final String ADDRESS = KEYS
       + ".base-url";
@@ -73,6 +74,18 @@ public class OfficialGuiApiClientAutoConfiguration {
    * Creates the configuration. Spring Boot creates it from the list of auto-configurations.
    */
   public OfficialGuiApiClientAutoConfiguration() {
+  }
+
+  /**
+   * The path of the API, which every group with an interface of this API adds to its address: the
+   * server path of the OpenAPI file, which the generator writes into {@link OfficialGuiApiPath}. It
+   * applies to the group of this class and to the groups of the application alike.
+   *
+   * @return the path and the interfaces of the API
+   */
+  @Bean
+  HttpServiceApiPath officialGuiApiPath() {
+    return new HttpServiceApiPath(OfficialGuiApiPath.PATH, APIS);
   }
 
   /**

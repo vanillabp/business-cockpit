@@ -1,0 +1,16 @@
+package {{apiPackage}};
+
+/**
+ * The path of the official GUI API below the address of the cockpit: the server URL of its
+ * OpenAPI file. Generated from that file, so a client of a new version of the API brings its new
+ * path along.
+ */
+public final class OfficialGuiApiPath {
+
+  /** The path, for example {@code /gui/api/v1}. */
+  public static final String PATH = "{{{contextPath}}}";
+
+  private OfficialGuiApiPath() {
+  }
+
+}

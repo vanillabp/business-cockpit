@@ -5,9 +5,9 @@ import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.boot.diagnostics.AbstractFailureAnalyzer;
 import org.springframework.boot.diagnostics.FailureAnalysis;
 import org.springframework.core.Ordered;
-import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.env.Environment;
-import org.springframework.web.service.annotation.HttpExchange;
+
+import io.vanillabp.cockpit.gui.api.v1.client.OfficialGuiApiPath;
 
 /**
  * Says which key is missing if a bean needs a client of the official GUI API and there is none.
@@ -62,17 +62,8 @@ public class TheOfficialGuiApiHasNoAddress extends AbstractFailureAnalyzer<NoSuc
             an ObjectProvider of %s instead. To read the keys below a prefix of your own, import the \
             interfaces into an HTTP service group of your own, see the README of \
             official-gui-api-spring-boot-client."""
-            .formatted(OfficialGuiApiClientAutoConfiguration.ADDRESS, pathOf(missingType), missingType
+            .formatted(OfficialGuiApiClientAutoConfiguration.ADDRESS, OfficialGuiApiPath.PATH, missingType
                 .getSimpleName()), cause);
-
-  }
-
-  /** The path of the API, which the generator writes into {@code @HttpExchange} on the type. */
-  private static String pathOf(
-      final Class<?> api) {
-
-    final var exchange = AnnotatedElementUtils.findMergedAnnotation(api, HttpExchange.class);
-    return exchange == null ? "" : exchange.url();
 
   }
 

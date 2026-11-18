@@ -216,7 +216,7 @@ public class TheClientsCallTheCockpitTest {
     assertThat(failure).isNotNull();
     assertThat(failure.getProblems()).singleElement().asString()
         .contains("in 'with-the-path.cockpit.base-url' ends with '/gui/api/v1'")
-        .contains("the interface OfficialTasklistApi adds to each call itself")
+        .contains("the path of the API which the client OfficialTasklistApi adds to the address itself")
         .endsWith("to the address without it: 'http://127.0.0.1:"
             + Integer.getInteger(TheCockpitOfTheTests.PORT)
             + "'.");
