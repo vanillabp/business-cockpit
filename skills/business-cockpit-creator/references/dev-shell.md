@@ -223,7 +223,13 @@ so the developer sees the mistake in the shell and not first in the cockpit.
 
 Three surfaces are enough:
 
-- A start page, with a way to each part and to each extension point, and the choice of the user.
+- A start page, with a way to each part and to each extension point, the choice of the user and
+  the choice of the workflow module. The list of workflow modules shows only the modules the chosen
+  user sees. The page gets them with `GET /official-api/gui/api/v1/workflow-module`, through the
+  same generated client as the other data, and gets them again after every change of the user. So
+  the developer sees for whom the cockpit loads the parts of their module which belong to no case,
+  for example a button in the header. If the user sees no module, the start page says so instead of
+  showing an empty list.
 - A page per part, with the id of the user task or the case in the address, for example
   `/tasks/<id>` and `/workflows/<id>`.
 - A header with a drop-down list of the user tasks or cases there are, searchable by name and with
@@ -278,8 +284,11 @@ client of the GUI API should point to the simulator sets only the address with t
 `spring.http.serviceclient.official-gui-api.base-url=http://localhost:8079/official-api`, and the
 client adds `/gui/api/v1` itself, as with the cockpit.
 
-Of the GUI API, the simulator answers a user task, the task list, a case, the case list and the
-user tasks of a case. Paging and sorting happen in memory, the page size is 20 by default, and the
+Of the GUI API, the simulator answers a user task, the task list, a case, the case list, the
+user tasks of a case, and the workflow modules the logged-in user sees, `GET /workflow-module` and
+`GET /workflow-module/{id}`. As in the cockpit, a module which registered groups is seen only by
+users in one of them, group hierarchies included; a module without groups is seen by everybody.
+Paging and sorting happen in memory, the page size is 20 by default, and the
 default order is `createdAt` descending. It also answers the user who is logged in,
 `GET /app/current-user`, as the cockpit does, with all groups including the group hierarchies of the
 registered workflow modules, and the notification settings under `/notifications`. It offers no
@@ -309,8 +318,9 @@ There is also a small interface of its own for the shell, under `/dev-shell/user
 | `GET /dev-shell/user/details`   | application | the user chosen now, from the cookie   |
 | `GET /dev-shell/user/{userId}`  | application | one user by id                         |
 
-These calls and `GET /simulator-api/usertask/{userTaskId}/report`, the last report of a workflow
-module about a user task (see below), are described in an OpenAPI file of their own,
+These calls, `GET /simulator-api/usertask/{userTaskId}/report`, the last report of a workflow
+module about a user task (see below), and `GET /simulator-api/workflow-module?user=<id>`, the
+workflow modules a user sees, are described in an OpenAPI file of their own,
 `apis/dev-shell-simulator-api/openapi/dev-shell-simulator-api.yaml`. It is also in the jar
 `io.vanillabp.businesscockpit:dev-shell-simulator-api-client`, and a shell generates its client from
 it the same way as from the file of the official GUI API. Switching to an unknown user answers 404.
@@ -323,7 +333,8 @@ groups `ADMIN` and `RISK_ASSESSMENT`.
 These users are three things at once: the entries of the user choice in the shell, the user
 directory of the simulator, and their groups become the rights in the token. The simulator does not
 resolve groups in the token on purpose. A group hierarchy is the business application's job. Only
-`GET /official-api/gui/api/v1/app/current-user` answers with the resolved groups, as the cockpit does.
+`GET /official-api/gui/api/v1/app/current-user` answers with the resolved groups, as the cockpit does,
+and the simulator decides with the same groups which workflow modules a user sees.
 
 Nobody logs in. The simulator writes the same JWT into the same cookie the cockpit uses, and switching
 the user is a `POST`. The secret for signing is in plain text in its configuration, because the point
@@ -389,7 +400,9 @@ them, so they do not believe their form passed a check the shell never makes:
 - There are no live updates. The simulator has no update stream.
 - There is no login. The user is chosen, not logged in. The cookie is real, but the data paths
   check nothing.
-- The visibility rules of the cockpit are not copied. What the shell shows, it shows to everybody.
+- The visibility rules of the cockpit for user tasks and cases are not copied. What the shell shows
+  of them, it shows to everybody. Only the list of workflow modules follows the rules of the
+  cockpit.
 - The paths have a prefix. The GUI API is under `/official-api/gui/api/v1` instead of
   `/gui/api/v1`, because each simulated system gets a prefix of its own. Below it the path is the
   same as in the original, so only the address a client gets changes.
