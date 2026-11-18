@@ -970,3 +970,24 @@ the prefix `/official-api`.
 
 The BPMS API stays at `/bpms/api/v1_1`, so `vanillabp.cockpit.rest.base-url` stays the bare address
 of the simulator.
+
+### Giving back somebody else's task answers 400
+
+`PATCH /usertask/{id}/claim?unclaim=true` and its list form answered 200 for a task another user had
+claimed, and changed nothing. Only the assignee can give a task back, so they answer
+`400 Bad Request` now and write nothing. The list form is all or nothing, as it is for an ended
+task: if another user claimed one of the tasks the user may see, none of them is given back. A task
+without an assignee still answers 200.
+
+The answers come in this order: 404 for a task the user may not see, 409 for a task which has
+ended, and 400 for a task another user claimed. The 400 and the 409 of claim and unclaim carry a
+plain text body which says why.
+
+A user interface which shows "give back" only for the user's own tasks sees no difference. One
+which offers it for every task reads the task again after a 400, redraws the row and tells the user
+that somebody else holds the task.
+
+The forms of a workflow module answer a task another user claimed with 409, see "A task which is
+not open any more answers 404" above. The two APIs answer different questions. A form refuses an
+answer for a task that is not the user's, and that is a conflict of two users. Giving back a task
+that is not yours is a request which cannot work, whatever the state of the task.
