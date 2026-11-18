@@ -12,6 +12,7 @@ import feign.RetryableException;
 import feign.auth.BasicAuthRequestInterceptor;
 import io.vanillabp.cockpit.bpms.api.v1_1.ApiClient;
 import io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi;
+import io.vanillabp.cockpit.bpms.api.v1_1.BpmsApiPath;
 import io.vanillabp.cockpit.extension.config.ConfigurationKeys;
 import io.vanillabp.cockpit.extension.config.RestTransportConfiguration;
 import io.vanillabp.cockpit.extension.event.RegisterWorkflowModuleEvent;
@@ -39,9 +40,6 @@ import io.vanillabp.integration.spi.PhaseTwoRetryLater;
  * repeated.
  */
 public class RestTransport implements BusinessCockpitTransport {
-
-  /** What the cockpit server serves its BPMS API of version 1.1 under. */
-  static final String API_PATH = "/bpms/api/v1_1";
 
   /** The header in which a server says how long it will be unavailable. */
   static final String RETRY_AFTER_HEADER = "Retry-After";
@@ -84,11 +82,13 @@ public class RestTransport implements BusinessCockpitTransport {
 
     this.baseUrl = configuration.baseUrl();
     final var client = new ApiClient();
+    // the path of the API comes with the client, from the server URL of the OpenAPI file it was
+    // generated from, so base-url is the address of the cockpit only
     client
         .setBasePath(
             baseUrl.endsWith("/")
-                ? baseUrl.substring(0, baseUrl.length() - 1) + API_PATH
-                : baseUrl + API_PATH);
+                ? baseUrl.substring(0, baseUrl.length() - 1) + BpmsApiPath.PATH
+                : baseUrl + BpmsApiPath.PATH);
     final var feign = client.getFeignBuilder();
     feign.options(RestClientSetup.timeoutsOf(configuration));
     final var ownClient = RestClientSetup.clientOf(configuration);
@@ -288,7 +288,7 @@ public class RestTransport implements BusinessCockpitTransport {
     final var versions = """
         The workflow module and the cockpit server speak different versions of the BPMS API. \
         This workflow module speaks version 1.1, under '%s'. Use a cockpit server of the same \
-        release as this extension, or a newer one.""".formatted(API_PATH);
+        release as this extension, or a newer one.""".formatted(BpmsApiPath.PATH);
     return switch (status) {
       case UNAUTHORIZED -> stepsOf(
           """

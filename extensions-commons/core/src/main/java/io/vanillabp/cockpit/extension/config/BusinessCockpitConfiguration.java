@@ -18,6 +18,7 @@ import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.vanillabp.cockpit.bpms.api.v1_1.BpmsApiPath;
 import io.vanillabp.cockpit.extension.templating.Templating;
 import io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport;
 import io.vanillabp.integration.adapter.migration.config.MigrationAdapterProperties;
@@ -560,6 +561,7 @@ public final class BusinessCockpitConfiguration {
     if ((baseUrl == null) || baseUrl.isBlank()) {
       return null;
     }
+    refuseABaseUrlWithThePathOfTheApi(baseUrl, defects);
     final var authentication = rest.authentication() == null
         ? new CockpitSettings.Authentication(null, null, null, null)
         : rest.authentication();
@@ -574,6 +576,50 @@ public final class BusinessCockpitConfiguration {
                     ConfigurationKeys.REST_VERIFY_SSL, true, defects), readTruststore(
                         rest.sslTruststoreFilename(), rest.sslTruststorePassword(),
                         ConfigurationKeys.REST_PREFIX, defects), rest.sslTruststorePassword(), oauth);
+
+  }
+
+  /**
+   * Refuses an address which ends with the path of the BPMS API.
+   * <p>
+   * The REST transport adds the path to the address itself, as version 1 did. An address which
+   * ends with it as well sends every report to {@code /bpms/api/v1_1/bpms/api/v1_1/...}, and
+   * the mistake shows only as a 404 at the first report. A client generated from the OpenAPI
+   * file and used on its own takes the address with the path, so a value copied from such a
+   * client is the likely cause.
+   *
+   * @param baseUrl What the application configured
+   * @param defects Where a defect of the configuration is collected
+   */
+  private static void refuseABaseUrlWithThePathOfTheApi(
+      final String baseUrl,
+      final List<String> defects) {
+
+    final var address = withoutTrailingSlashes(baseUrl.trim());
+    if (!address.endsWith(BpmsApiPath.PATH)) {
+      return;
+    }
+    defects
+        .add(
+            """
+                The address '%s' in '%s' ends with '%s', the path of the BPMS API which the REST \
+                transport adds to the address itself. Set '%s' to the address of the cockpit \
+                without it: '%s'."""
+                .formatted(
+                    baseUrl, ConfigurationKeys.globalKey(ConfigurationKeys.REST_BASE_URL),
+                    BpmsApiPath.PATH, ConfigurationKeys.globalKey(ConfigurationKeys.REST_BASE_URL),
+                    address.substring(0, address.length() - BpmsApiPath.PATH.length())));
+
+  }
+
+  private static String withoutTrailingSlashes(
+      final String text) {
+
+    var result = text;
+    while (result.endsWith("/")) {
+      result = result.substring(0, result.length() - 1);
+    }
+    return result;
 
   }
 

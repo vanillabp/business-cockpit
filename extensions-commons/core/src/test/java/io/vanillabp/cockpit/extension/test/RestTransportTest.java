@@ -243,6 +243,22 @@ public class RestTransportTest {
   }
 
   @Test
+  @DisplayName("The path of the API follows a path of the address, with or without a slash at its end")
+  public void thePathOfTheApiFollowsThePathOfTheAddress() {
+
+    for (final var path : List.of("/cockpit", "/cockpit/")) {
+      received.clear();
+      final var address = "http://localhost:%d%s".formatted(server.getAddress().getPort(), path);
+      new RestTransport(
+          new RestTransportConfiguration(address, null, null, null, null, null, true, null, null, null))
+          .registerWorkflowModule(EventFixture.workflowModule());
+
+      assertEquals("/cockpit/bpms/api/v1_1/workflow-module/test-module", theRequest().path());
+    }
+
+  }
+
+  @Test
   @DisplayName("A workflow module is registered under its own id")
   public void workflowModuleIsRegistered() {
 
