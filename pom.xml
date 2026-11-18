@@ -82,7 +82,7 @@
     <!-- checks the signature of the cockpit's login token in support/core. Neither the Spring Boot
       BOM nor the vanillabp-bom manages it. Keep it on the version spring-security-oauth2-jose
       reads, so the cockpit has one Nimbus on its class path. The Quarkus BOM names the same today. -->
-    <version.nimbus-jose-jwt>10.9.1</version.nimbus-jose-jwt>
+    <version.nimbus-jose-jwt>10.10</version.nimbus-jose-jwt>
     <!-- 'version.quarkus' like every other version of this repository, while the adapter
       repositories call it 'quarkus.version'. Renovate reads both names. The value is a promise
       to those repositories: their Quarkus half runs in the same application as this one, and
