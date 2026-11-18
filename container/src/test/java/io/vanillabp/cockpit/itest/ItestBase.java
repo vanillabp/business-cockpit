@@ -47,7 +47,10 @@ import io.vanillabp.integration.test.utils.ContainerImages;
  * <p>All test classes share the same infrastructure. That is one MongoDB replica set container,
  * one Apache Kafka container and one stub HTTP server. The MongoDB has to be a replica set,
  * because change streams and the changeset migration need one. The stub server plays the
- * dev-shell simulator which the 'local' profile loads its users from. The containers live in
+ * dev-shell simulator which the 'local' profile loads its users from. The profile 'basic-auth'
+ * lets the tests log in with a user name and a password, instead of the provider the profile
+ * 'local' sends a browser to. {@link ALoginAtAnOpenIdConnectProviderTest} tests that login. The
+ * containers live in
  * static fields which are initialized once per JVM, and every test class uses the same context
  * configuration, so Spring caches a single application context.
  */
@@ -62,7 +65,9 @@ import io.vanillabp.integration.test.utils.ContainerImages;
         // records published before the group's first assignment
         "spring.kafka.consumer.auto-offset-reset=earliest"
     })
-@ActiveProfiles("local")
+@ActiveProfiles({
+    "local", "basic-auth"
+})
 public abstract class ItestBase {
 
   public static final String KAFKA_USER_TASK_TOPIC = "itest-user-tasks";

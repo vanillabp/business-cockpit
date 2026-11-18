@@ -1,5 +1,34 @@
 server:
   port: 8079
+  servlet:
+    session:
+      cookie:
+        # a browser sends a cookie to every port of a host. The cockpit on port 8080 keeps the
+        # login it started in its session cookie JSESSIONID. With the same name here, the login at
+        # the simulator would replace that cookie, and the cockpit would not find its login again.
+        name: SIMULATOR_SESSION
+
+spring:
+  security:
+    oauth2:
+      authorizationserver:
+        client:
+          # the module 'container' logs in with this client in its profile 'local'. Id and secret
+          # are for a developer's machine only.
+          business-cockpit:
+            registration:
+              client-id: business-cockpit
+              client-secret: "{noop}business-cockpit-secret"
+              client-authentication-methods:
+                - client_secret_basic
+              authorization-grant-types:
+                - authorization_code
+              redirect-uris:
+                - http://localhost:8080/login/oauth2/code/simulator
+              scopes:
+                - openid
+                - profile
+            require-authorization-consent: false
 
 application:
   jwt:

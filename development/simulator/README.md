@@ -19,6 +19,18 @@ does for the cockpit. A user task or a case asked for by id is made up and kept,
 request gets the same one. `POST /usertask/count` and
 `POST /workflow/count` count what it keeps, by the modes of the cockpit. It has no lists.
 
+It is also the OpenID Connect provider which `container` logs a person in at in its profile
+`local`. That is Spring Authorization Server, configured in `AuthorizationServerConfiguration`. The
+persons are the users of `dev-shell-simulator.users`, and each logs in with `test` at the login
+form of the simulator. The client `business-cockpit` with its secret and the address the browser
+goes back to, `http://localhost:8080/login/oauth2/code/simulator`, are Spring Boot keys below
+`spring.security.oauth2.authorizationserver.client` in `config/application.yaml`. The key which
+signs the tokens is new at every start. That is enough, because the cockpit reads the tokens of the
+provider only once, at the login, and keeps the login in a cookie of its own. Once the code is
+issued, the simulator ends the session of the person, so the next login asks again. Its session
+cookie is `SIMULATOR_SESSION`, so it does not replace the `JSESSIONID` of the cockpit on the same
+host.
+
 How to run it and what its test data form does is in
 [development/README.md](../README.md#simulation-service).
 

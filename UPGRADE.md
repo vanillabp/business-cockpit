@@ -996,3 +996,28 @@ A user interface which leaves the four actions out for a suspended task sees no 
 which offers them reads the task again after a 409, redraws the row and shows the text of the
 answer. A bulk action leaves the suspended tasks out of its request, or the whole request is
 refused.
+
+### The runnable jar logs a person in at the simulator
+
+The profile `local` of `container` logs a person in by OpenID Connect now, at the simulator of
+`development/simulator`. The simulator is the provider: it shows a login form on port 8079, and
+every user of `dev-shell-simulator.users` logs in with `test`. The login ends in the cookie `bc`, as
+before, so nothing changes for a user interface or a workflow module. The token in the cookie stays
+the same.
+
+So start the simulator before the cockpit, as you did for the users. If you run the cockpit with
+the dev-shell simulator alone, or from a script, add the profile `basic-auth`. It brings back the
+login with a user name and a password, `test` for every user:
+
+```sh
+java -Dspring.profiles.active=local,basic-auth -jar target/container-*-runnable.jar
+```
+
+An application built on `business-cockpit` with a login by OpenID Connect of its own checks one
+line. The wiki showed `oauth2Login(login -> login.securityContextRepository(..))`, and that line has
+no effect: Spring Security replaces the repository while it builds the chain. The login then stays
+in the HTTP session. The browser does not notice, but no cookie `bc` is written, so a workflow
+module behind the proxy does not know the user, and the login is not renewed. Set the repository
+with a post processor of the login filter instead, as `GuiSecurityConfiguration` of `container`
+does and the wiki page [Security](https://github.com/vanillabp/business-cockpit/wiki/Security)
+shows now.

@@ -9,6 +9,33 @@ spring:
   # reaches the server it just talked to.
   mongodb:
     uri: mongodb://business-cockpit:business-cockpit@localhost:27017/business-cockpit?directConnection=true
+  # A person logs in at the simulator of the development tools, which plays an OpenID Connect
+  # provider on port 8079 (development/simulator). Client id and secret are the ones the simulator
+  # registers in its application.yaml, and they are for a developer's machine only. The endpoints
+  # are named one by one instead of by "issuer-uri": with an issuer Spring Boot asks the provider
+  # while the application starts, and the cockpit would not start before the simulator.
+  # The profile "basic-auth" logs in with a user name and a password instead.
+  security:
+    oauth2:
+      client:
+        registration:
+          simulator:
+            provider: simulator
+            client-id: business-cockpit
+            client-secret: business-cockpit-secret
+            client-authentication-method: client_secret_basic
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - profile
+        provider:
+          simulator:
+            authorization-uri: http://localhost:8079/oauth2/authorize
+            token-uri: http://localhost:8079/oauth2/token
+            jwk-set-uri: http://localhost:8079/oauth2/jwks
+            # the id of the user, which the user directory knows the user by
+            user-name-attribute: sub
 
 bpms-api:
   username: abc

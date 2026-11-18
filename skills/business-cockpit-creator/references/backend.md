@@ -162,7 +162,8 @@ The module `application` depends on:
 - `io.vanillabp.businesscockpit:business-cockpit`, without a version, from the BOM,
 - the UI jar of `Q-UI-JAR` in the version `ui.version`, with scope `runtime`, when `Q-HOSTING` is
   `embedded`,
-- `spring-boot-starter-oauth2-client` when `Q-LOGIN-KIND` is `oidc`,
+- `spring-boot-starter-security-oauth2-client` when `Q-LOGIN-KIND` is `oidc`. The older name
+  `spring-boot-starter-oauth2-client` is deprecated,
 - `spring-kafka` and `io.vanillabp.businesscockpit:bpms-protobuf-api`, without a version, when
   `Q-KAFKA` is yes. The library marks both optional.
 - `spring-boot-starter-mail` when `Q-MAIL` is yes. The library marks it optional.
@@ -263,10 +264,17 @@ The chain differs only in how the user logs in (`Q-LOGIN-KIND`).
 ### OIDC, the default
 
 The user logs in at an OpenID Connect provider, by default the Keycloak of `docker-compose.yaml`.
-Spring Security's `oauth2Login` handles the redirect, and its `securityContextRepository` is the
-`JwtSecurityContextRepository`, so the login ends in the cockpit's cookie:
+Spring Security's `oauth2Login` handles the redirect. A post processor of its filter sets the
+`JwtSecurityContextRepository`, so the login ends in the cockpit's cookie. The chain sends PKCE,
+although the client has a secret:
 
 ```java
+final var authorizationRequests = new DefaultOAuth2AuthorizationRequestResolver(
+    clientRegistrationRepository,
+    OAuth2AuthorizationRequestRedirectFilter.DEFAULT_AUTHORIZATION_REQUEST_BASE_URI);
+authorizationRequests.setAuthorizationRequestCustomizer(
+    OAuth2AuthorizationRequestCustomizers.withPkce());
+
 http
     .csrf(AbstractHttpConfigurer::disable)
     .cors(AbstractHttpConfigurer::disable)
@@ -277,14 +285,23 @@ http
         .permitAll()
         .anyRequest()
         .authenticated())
-    .oauth2Login(login -> login
-        .securityContextRepository(jwtSecurityContextRepository))
     // the GUI API answers 401 instead of a redirect to the provider, so the user interface
-    // notices a lost login and sends the whole browser to the login
+    // notices a lost login and sends the whole browser to the login. It comes before
+    // oauth2Login, so it is asked first
     .exceptionHandling(exceptions -> exceptions
         .defaultAuthenticationEntryPointFor(
             new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
             PathPatternRequestMatcher.withDefaults().matcher("/gui/api/**")))
+    .oauth2Login(login -> login
+        .authorizationEndpoint(endpoint -> endpoint
+            .authorizationRequestResolver(authorizationRequests))
+        .withObjectPostProcessor(new ObjectPostProcessor<OAuth2LoginAuthenticationFilter>() {
+          @Override
+          public <O extends OAuth2LoginAuthenticationFilter> O postProcess(final O filter) {
+            filter.setSecurityContextRepository(jwtSecurityContextRepository);
+            return filter;
+          }
+        }))
     .logout(logout -> logout
         .logoutUrl("/logout")
         .logoutSuccessHandler(jwtLogoutSuccessHandler))
@@ -304,19 +321,29 @@ below `spring.security.oauth2.client.registration.<id>` and `.provider.<id>`, th
 from an environment variable. The login paths are Spring Security's: `/oauth2/authorization/<id>` and
 `/login/oauth2/code/<id>`. They go into `Q-LOGIN`.
 
+Do not write `oauth2Login(login -> login.securityContextRepository(..))`. It has no effect: while
+Spring Security builds the chain, it replaces that repository with the one of the whole chain,
+which keeps the login in the HTTP session. The login then seems to work in the browser, but no
+cookie is written, and a workflow module behind the proxy gets no user. The post processor runs
+after that replacement. PKCE is needed because Spring Authorization Server asks every client for
+it, and Spring Security adds it on its own only for a client without a secret.
+
 A request of the GUI API without a login answers 401, not a redirect. A `fetch` would follow the
 redirect to the provider and fail there. With a 401 the user interface sends the whole browser to
 the login, see [gui-api.md](gui-api.md#staying-logged-in).
 
-The wiki shows this chain, but the cockpit has no test for an OIDC login yet. Write the
-integration test of the login first (`BE-007`), before anything builds on it. It is one of the
-[integration tests of the backend](#the-integration-tests-of-the-backend), see
-[rough-edges.md](rough-edges.md#what-needs-a-newer-cockpit).
+The module `container` of the `business-cockpit` repository has this chain, in
+`GuiSecurityConfiguration`, and a test which logs in at a provider played by a test server,
+`ALoginAtAnOpenIdConnectProviderTest`. Write the integration test of the login of the generated
+backend first anyway (`BE-007`), before anything builds on it. It is one of the
+[integration tests of the backend](#the-integration-tests-of-the-backend).
 
 ### A login form
 
 The user logs in with a form of the backend. Spring Security's `formLogin` takes the place of
-`oauth2Login`, with the same `securityContextRepository`. The users and their passwords come from
+`oauth2Login`. The `JwtSecurityContextRepository` comes the same way, with a post processor of
+`UsernamePasswordAuthenticationFilter`, because `formLogin`'s own `securityContextRepository` is
+replaced like the one of `oauth2Login`. The users and their passwords come from
 the user directory, see [The user directory](#the-user-directory). The login paths are `/login` and
 `/logout`. This way is not proven by a test of the cockpit either.
 

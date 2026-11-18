@@ -353,7 +353,9 @@ The library brings no login. How a user logs in is decided by the backend applic
 security chains (`Q-LOGIN-KIND`). A backend the skill creates logs the user in at an OIDC provider,
 by default the Keycloak of its `docker-compose.yaml`, or with a login form, see
 [references/backend.md](references/backend.md#the-login). The runnable `container` jar is an example
-that runs out of the box. Only it uses basic authentication, with a local user directory. See
+that runs out of the box. It logs the user in by OIDC at the simulator of the `business-cockpit`
+repository, with a local user directory, and by basic authentication in its profile `basic-auth`.
+See
 [Security](https://github.com/vanillabp/business-cockpit/wiki/Security) and
 [references/rough-edges.md](references/rough-edges.md#what-needs-a-newer-cockpit).
 

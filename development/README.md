@@ -168,8 +168,9 @@ java -Dspring.profiles.active=local -jar target/container-*-runnable.jar
 
 With the profile `local` the cockpit loads its users from `http://localhost:8079/dev-shell/user`
 when it starts, and it does not start if nothing answers there. So start the
-[simulation service](#simulation-service) or the dev shell simulator first. Both listen on port 8079
-and serve the users.
+[simulation service](#simulation-service) first. It listens on port 8079, serves the users and is
+the OpenID Connect provider a person logs in at. The dev shell simulator serves the users as well,
+but it is no provider. With it alone, add the profile `basic-auth`, see below.
 
 The runnable jar is built from `container`, the business cockpit as an application. The module next
 to it, `business-cockpit`, is the same functionality as a library, and it is what a custom cockpit
@@ -177,9 +178,24 @@ application depends on. It produces no runnable jar. Backend changes usually lan
 `business-cockpit`.
 
 Neither jar carries a user interface. The service answers its APIs at
-[http://localhost:8080/](http://localhost:8080/), and a path no API knows gets 404. The login for a
-local run is user `test` with password `test`. Every user of the dev shell simulator logs in with
-`test` as well, there and at the cockpit.
+[http://localhost:8080/](http://localhost:8080/), and a path no API knows gets 404. A page without a
+login sends the browser to the login form of the simulator, and the login for a local run is user
+`test` with password `test`. Every user of `dev-shell-simulator.users` logs in with `test`, at the
+simulator and at the dev shell simulator. Back at the cockpit, the browser has the cookie `bc`, and
+the GUI API answers. A request of the GUI API without a login gets 401, not the redirect.
+
+The simulator forgets the person once the login is done, so the next login asks again, and `/logout`
+at the cockpit really logs out. The simulator names its own session cookie `SIMULATOR_SESSION`.
+A browser sends a cookie to every port of `localhost`, and the cockpit keeps the login it started in
+`JSESSIONID`.
+
+The profile `basic-auth` logs in with a user name and a password instead, the same `test` and
+`test`. Use it for `curl` and other scripts, and with the dev shell simulator alone:
+
+```sh
+java -Dspring.profiles.active=local,basic-auth -jar target/container-*-runnable.jar
+curl -u test:test http://localhost:8080/gui/api/v1/app/current-user
+```
 
 To build again after a change, build the modules you touched and what they depend on:
 
