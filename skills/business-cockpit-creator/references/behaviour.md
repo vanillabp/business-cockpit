@@ -373,7 +373,8 @@ the user interface always sends one, see
 translated label, for example "Open" or "Closed", with the count in brackets, see [Counts](#counts).
 The primary filter last chosen is a user setting and is used again next time, in every browser, see
 [User settings](#user-settings). On the right, the status line shows a colour legend for the states
-of a row, for example new, changed, removed and inactive.
+of a row, for example new, changed and removed, and the looks of a completed, a cancelled and a
+suspended row, see [How the state of a row looks](#how-the-state-of-a-row-looks).
 
 ### A row
 
@@ -388,15 +389,40 @@ or similar columns.
 A row whose task the user has not read yet is bold, the whole row. The user can mark tasks as read or
 unread, in the list and on the task page. Opening a task marks it as read.
 
-### Closed and cancelled rows
+### How the state of a row looks
 
-In `ClosedTasksOnly` a completed task looks like any other row, without grey. Only a cancelled task
-looks inactive: grey, with its title struck through. One style stands for "inactive", so there is no
-second colour for a second kind of inactive. `endReason` tells the two apart: `COMPLETED` or
-`CANCELLED`, see [gui-api.md](gui-api.md#how-a-row-ended).
+A user task or a case is active, completed, cancelled or suspended. Each state has its own look. It
+holds for the rows of the task lists and of the case list, and for the application header while a
+task or a case is open:
 
-What the page of a task or a case shows is the module's business, whatever the status. The cockpit
-only handles the row and the page the same way, open or closed, active or inactive.
+|   State   | Background |             Text             |
+|-----------|------------|------------------------------|
+| active    | normal     | normal                       |
+| completed | grey       | normal                       |
+| cancelled | grey       | normal, title struck through |
+| suspended | normal     | lighter                      |
+
+Only the title of a cancelled row is struck through, not the other cells. The header of an open task
+or case shows no title, so there nothing is struck through: a cancelled task or case has the grey
+background only.
+
+The fields of the GUI API decide the state, see [gui-api.md](gui-api.md#how-a-row-ended) and
+[gui-api.md](gui-api.md#suspended-tasks-and-cases). `endedAt` decides first: a row with `endedAt`
+is completed or cancelled, as `endReason` says (`COMPLETED` or `CANCELLED`). A task or a case that
+was cancelled while it was suspended keeps `suspendedAt`, but it is cancelled and looks cancelled.
+Only a row without `endedAt` and with `suspendedAt` is suspended. All other rows are active.
+
+The organisation may want other or more markers (`Q-STATE-MARKERS`). The default is the table above,
+with no symbols. One choice is a symbol right before the title: none for an active row, a green
+check mark for a completed one, a pause symbol for a suspended one and a prohibition sign for a
+cancelled one. The backgrounds and the lighter text stay. With symbols, nothing is struck through,
+so the symbol stays easy to see. The header of an open task
+or case has no title, so there the symbol stands at the start of the header.
+
+What the page of a task or a case shows is the module's business, whatever the state. The cockpit
+handles the row and the page the same way, open or closed, active or suspended. The only things it
+adds are the look above and, for a suspended task, the barrier and the disabled actions, see
+[Suspended tasks](#suspended-tasks).
 
 ### Fixed columns
 
@@ -601,6 +627,39 @@ Closed tasks: disable claim, unclaim, propose, remove candidate, follow-up and n
 is set. The server refuses them with 409, see [gui-api.md](gui-api.md#ended-tasks). Mark as read and
 unread stay enabled.
 
+### Suspended tasks
+
+A suspended task cannot be worked on until it is activated again. It is suspended while
+`suspendedAt` is set and `endedAt` is not, see
+[How the state of a row looks](#how-the-state-of-a-row-looks).
+
+The server refuses claim, unclaim, assign (propose) and remove candidate for a suspended task with
+409, see [gui-api.md](gui-api.md#suspended-tasks-and-cases). The BPMS refuses to complete the task,
+and that is the answer the module's form gets when it sends the form.
+
+The user interface does not wait for these answers. While a task is suspended, it disables claim,
+unclaim, propose and remove candidate, in the row and in the header of the open task. Taking a task
+that nobody can work on only confuses the colleagues. Follow-up, note, mark as read and mark as
+unread stay enabled. They organise the user's own work and do not touch the task in the BPMS.
+
+A bulk action is not simply disabled when the selection holds suspended tasks. For claim, unclaim,
+propose and remove candidate, the user interface first asks, worded for the action and translated,
+for example "The selection also holds suspended tasks. Assign all but the suspended ones?" On yes,
+it sends the request without the suspended tasks. On no, it sends nothing. The server answers a list
+that holds a suspended task with 409 and changes none of the tasks, so the suspended ones must
+never go out. Follow-up, note and read or unread go out for all selected tasks without a question.
+
+A 409 for a task that was not suspended when the user acted means the task was suspended or ended
+in the meantime. Read the task again, redraw the row and tell the user which of the two it was.
+
+On the page of the task, the cockpit lays its barrier over the areas, whatever `Q-CLAIM` says, see
+[The barrier](#the-barrier). The barrier says that the task is suspended. So the form cannot be
+sent, and the user still reads it.
+
+When the task is activated again, an update event comes, the cockpit reads the task again and
+`suspendedAt` is gone. The actions are enabled again, and the barrier goes away, without a reload.
+If claiming is hard and the user has not claimed the task, the barrier of the claim stays.
+
 ## Opening and working on a user task
 
 The user works on the task to complete it in business terms.
@@ -638,6 +697,10 @@ The header stands in the same place for all kinds of tasks, so it is a visual an
 The controls of the actions are always in the same place. Its content can never break it: each
 value of the information gets its own share of the width, and each value that is too long for its
 share is cut with "..." on its own. One long value never pushes the others out.
+
+The header has the look of the state of the task, the same as its row: grey for an ended task,
+lighter text for a suspended one, see
+[How the state of a row looks](#how-the-state-of-a-row-looks).
 
 The header belongs to the cockpit, not to the workflow module.
 
@@ -782,8 +845,10 @@ frame of the cockpit.
 ### The barrier
 
 If claiming is hard (`Q-CLAIM`), the cockpit lays a barrier over the areas of the page until the
-user has claimed the task. Usually it is a half-transparent layer. The barrier belongs to the
-cockpit. How it looks is up to the organisation, with two rules:
+user has claimed the task. It also lays it over the page of a suspended task, until the task is
+activated again, however claiming is set up, see [Suspended tasks](#suspended-tasks). Usually it
+is a half-transparent layer. The barrier belongs to the cockpit. How it looks is up to the
+organisation, with two rules:
 
 - The content under the layer stays readable. The user wants to see the task before taking it.
 - Each area can still be scrolled. A layer inside the scroll container of the area, as high as the
@@ -797,8 +862,8 @@ Then the barrier goes away, without a reload.
 Whether the form is read-only is not the cockpit's business. The form, that is the visual entry of
 the module, decides it itself from `assignee` of the user task together with the current user (the
 properties `userTask` and `currentUser`, see [types.md](types.md#what-a-part-gets)). A form may also
-be read-only when `endedAt` is set, or the module may show another presentation of a closed task
-instead. The cockpit only passes the objects and the current user. It never makes a form read-only
+be read-only when `endedAt` or `suspendedAt` is set, or the module may show another presentation
+of a closed task instead. The cockpit only passes the objects and the current user. It never makes a form read-only
 and never checks that a form is. So, with the new `userTask` after a claim, a form which was
 read-only shows itself ready to edit.
 
@@ -858,8 +923,9 @@ columns. The case list has its own fixed columns (`Q-WORKFLOW-COLUMNS`). There i
 and no read function. A case list without bulk actions has no selection column. Notes work as in
 the task list, per row and for all selected rows, see [Notes](#notes).
 
-In `Done` a completed case looks like any other row. Only a cancelled case looks inactive: grey,
-with its title struck through, the same as for user tasks. `endReason` tells the two apart.
+A case row looks as its state says, the same as a task row, see
+[How the state of a row looks](#how-the-state-of-a-row-looks). So in `Done` every row is grey, and a
+cancelled case also has its title struck through. A suspended case in `InProgress` has lighter text.
 
 Some organisations want fixed columns only, as for the task lists (`Q-MODULE-COLUMNS`).
 
@@ -881,6 +947,9 @@ The page works like the page of a user task, with these differences:
   (`Q-WORKFLOW-HEADER-ACTIONS`), for example the note of the case. It
   shows no task actions. The same rule holds as for the task: each value has its own share of the
   width, and the controls stay in the same place. There is no header or footer of the case's own.
+- The header has the look of the state of the case, the same as its row, see
+  [How the state of a row looks](#how-the-state-of-a-row-looks). A suspended case gets no barrier;
+  what its page offers is the module's business.
 
 The page asks the loader for `WorkflowPage` and calls `workflowPage` with the case. The function
 names the visual entry and one web component for the all-in-one form, or one per area
@@ -1124,9 +1193,12 @@ Changes to the data shown become visible soon, without the user doing anything.
 ### How it looks (`Q-LIVE-MODE` is `live`)
 
 A new task appears in the list, highlighted in one colour. A change shows right away, highlighted
-in another colour. A task that ended while the user watched looks inactive, grey; a cancelled one
-also has its title struck through. These markers stay, so a user who comes back to the screen sees
-what happened. A button acknowledges the changes. Then the markers and the inactive rows go away.
+in another colour. A task that ended while the user watched takes the look of its end, see
+[How the state of a row looks](#how-the-state-of-a-row-looks): grey, and a cancelled one also has
+its title struck through. A task that is suspended while the user watches gets lighter text, and one
+activated again gets its normal text back. These markers stay, so a user who comes back to the
+screen sees what happened. A button acknowledges the changes. Then the markers go away, and so do the
+ended rows a list of open rows still showed.
 
 A change the current user made is not marked as changed. The user expects it, so the row just shows
 the new data. Each event of the update stream says who made the change, in `initiator` and
@@ -1150,8 +1222,8 @@ when changes were reported. Nothing else moves.
 
 ### The rules
 
-- A list with a primary filter for active rows still contains rows that became inactive while the
-  user watched, the ones reported as ended. Scrolling must still work correctly.
+- A list with a primary filter for open rows still contains rows that ended while the user
+  watched. Scrolling must still work correctly.
 - The counts are updated when something changes, see [Counts](#counts).
 - A row never disappears under the user's hands. It is coloured and stays, until the user
   acknowledges, or until its page leaves the window.
@@ -1181,11 +1253,11 @@ when changes were reported. Nothing else moves.
 6. The user's selection stays.
 7. The counts are asked again, see [Counts](#counts).
 8. Acknowledging loads the list again with a new start timestamp. That drops the markers and the
-   inactive rows.
+   ended rows a list of open rows still showed.
 
 The states `INITIAL`, `NEW`, `UPDATED`, `ENDED` and `REMOVED_FROM_LIST` each have a look from the
-theme (`Q-THEME`), and the legend in the status line explains them. `ENDED` uses the one style for
-inactive rows.
+theme (`Q-THEME`), and the legend in the status line explains them. An `ENDED` row has the
+look of its end, see [How the state of a row looks](#how-the-state-of-a-row-looks).
 
 An event of the type `FOLLOWUP` is the reason a list must not only ask about rows it knows. The
 server sends it when a follow-up date has come. The task was filtered out of the list until then. It
