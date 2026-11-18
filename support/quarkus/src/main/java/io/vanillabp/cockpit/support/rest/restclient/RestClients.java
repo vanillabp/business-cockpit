@@ -22,7 +22,6 @@ import io.quarkus.rest.client.reactive.QuarkusRestClientBuilder;
 import io.quarkus.tls.TlsConfiguration;
 import io.quarkus.tls.TlsConfigurationRegistry;
 import jakarta.inject.Singleton;
-import jakarta.ws.rs.Path;
 
 /**
  * Builds REST clients of Quarkus' REST client from the keys at a prefix the caller chooses, for
@@ -55,11 +54,10 @@ import jakarta.ws.rs.Path;
  * with different keys: each builds its client at a prefix of its own, and tells the two beans apart
  * by a qualifier. What the two share, they write twice or bring in a library of their own.
  * <p>
- * An interface with {@code @Path} on the type, for example {@code @Path("/gui/api/v1")}, adds that
- * path to each call itself. A generated client of a cockpit API carries the server path of its
- * OpenAPI file there, so its {@code base-url} is the address of the cockpit only. A
- * {@code base-url} which ends with that path stops the start, because each call would hold the path
- * twice.
+ * A client module may declare the path of its API as a {@link RestClientApiPath} bean, for example
+ * {@code /gui/api/v1}. It is added to {@code base-url} for every client of an interface of that API,
+ * so {@code base-url} is the address of the server only. A {@code base-url} which ends with the path
+ * stops the start, because each call would hold it twice.
  * <p>
  * All interfaces built at one prefix share its settings and its OAuth token. Every problem of a
  * prefix, a key nobody reads included, ends in one {@link RestClientsMisconfigured} which lists
@@ -130,8 +128,11 @@ public class RestClients {
       final Consumer<QuarkusRestClientBuilder> customizer) {
 
     final var conventions = prefixes.computeIfAbsent(checked(prefix), this::conventionsOf);
-    checkBaseUrlLeavesOutThePathOf(api, conventions.keys);
     final var builder = conventions.clientBuilder();
+    final var apiPath = apiPathOf(api);
+    if (apiPath != null) {
+      builder.baseUri(URI.create(baseUrlWith(apiPath, conventions.keys, api)));
+    }
     customizer.accept(builder);
     final var client = builder.build(api);
     final var retry = conventions.keys.retry;
@@ -164,44 +165,44 @@ public class RestClients {
   }
 
   /**
-   * An interface which adds a path to each call itself must not get it in {@code base-url} as well,
-   * or every call goes to {@code /gui/api/v1/gui/api/v1/...} and fails only when it is made.
+   * The path of the API the interface belongs to, from the {@link RestClientApiPath} beans, or
+   * {@code null} if there is none. Without a running container, in a plain unit test for example,
+   * there are no such beans.
    */
-  private static void checkBaseUrlLeavesOutThePathOf(
-      final Class<?> api,
-      final RestClientKeys keys) {
+  private static String apiPathOf(
+      final Class<?> api) {
 
-    final var pathOfTheApi = withoutTrailingSlash(pathOf(api));
-    if (pathOfTheApi.isEmpty()) {
-      return;
+    final var container = Arc.container();
+    if (container == null) {
+      return null;
     }
-    final var baseUrl = withoutTrailingSlash(keys.baseUrl.orElseThrow());
-    if (!withoutTrailingSlash(URI.create(baseUrl).getPath()).endsWith(pathOfTheApi)) {
-      return;
+    for (final var apiPath : container.select(RestClientApiPath.class)) {
+      if (apiPath.covers(api)) {
+        return apiPath.path();
+      }
     }
-    throw new RestClientsMisconfigured(keys.prefix, List.of("""
-        The address '%s' in '%s' ends with '%s', the path which the interface %s adds to each call \
-        itself. Set '%s' to the address without it: '%s'."""
-        .formatted(keys.baseUrl.get(), keys.key("base-url"), pathOfTheApi, api.getSimpleName(), keys.key(
-            "base-url"), baseUrl.substring(0, baseUrl.length() - pathOfTheApi.length()))));
+    return null;
 
   }
 
-  /** The path in {@code @Path} on the type or on an interface it extends, or nothing. */
-  private static String pathOf(
-      final Class<?> type) {
+  /**
+   * The address with the path of the API. A {@code base-url} which ends with the path already would
+   * send every call to {@code /gui/api/v1/gui/api/v1/...} and fail only when it is made.
+   */
+  private static String baseUrlWith(
+      final String apiPath,
+      final RestClientKeys keys,
+      final Class<?> api) {
 
-    final var path = type.getAnnotation(Path.class);
-    if (path != null) {
-      return path.value();
+    final var baseUrl = withoutTrailingSlash(keys.baseUrl.orElseThrow());
+    if (withoutTrailingSlash(URI.create(baseUrl).getPath()).endsWith(apiPath)) {
+      throw new RestClientsMisconfigured(keys.prefix, List.of("""
+          The address '%s' in '%s' ends with '%s', the path of the API which the client %s adds to \
+          the address itself. Set '%s' to the address without it: '%s'."""
+          .formatted(keys.baseUrl.get(), keys.key("base-url"), apiPath, api.getSimpleName(), keys.key(
+              "base-url"), baseUrl.substring(0, baseUrl.length() - apiPath.length()))));
     }
-    for (final var extended : type.getInterfaces()) {
-      final var pathOfExtended = pathOf(extended);
-      if (!pathOfExtended.isEmpty()) {
-        return pathOfExtended;
-      }
-    }
-    return "";
+    return baseUrl + apiPath;
 
   }
 

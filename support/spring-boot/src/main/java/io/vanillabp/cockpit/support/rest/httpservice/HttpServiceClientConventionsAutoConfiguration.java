@@ -35,11 +35,12 @@ public class HttpServiceClientConventionsAutoConfiguration {
       final ObjectProvider<SslBundles> sslBundles,
       final ObjectProvider<HttpClientSettings> defaultSettings,
       final ObjectProvider<ClientHttpRequestFactoryBuilder<?>> requestFactoryBuilder,
-      final ObjectProvider<HttpServiceGroupPrefix> prefixes) {
+      final ObjectProvider<HttpServiceGroupPrefix> prefixes,
+      final ObjectProvider<HttpServiceApiPath> apiPaths) {
 
     return new HttpServiceClientConventions(
         environment, sslBundles.getIfAvailable(), defaultSettings.getIfAvailable(), requestFactoryBuilder
-            .getIfAvailable(), prefixes.orderedStream().toList());
+            .getIfAvailable(), prefixes.orderedStream().toList(), apiPaths.orderedStream().toList());
 
   }
 

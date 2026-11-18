@@ -5,7 +5,6 @@ import java.net.ProxySelector;
 import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -29,13 +28,11 @@ import org.springframework.boot.ssl.NoSuchSslBundleException;
 import org.springframework.boot.ssl.SslBundle;
 import org.springframework.boot.ssl.SslBundles;
 import org.springframework.core.Ordered;
-import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.env.Environment;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.util.ClassUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.support.RestClientHttpServiceGroupConfigurer;
-import org.springframework.web.service.annotation.HttpExchange;
 import org.springframework.web.service.registry.HttpServiceGroup;
 
 /**
@@ -44,10 +41,10 @@ import org.springframework.web.service.registry.HttpServiceGroup;
  * <ul>
  * <li>A missing or broken {@code base-url} stops the start and names the key. Spring Boot would
  * build the client and fail only at the first request.</li>
- * <li>A {@code base-url} which ends with the path an interface of the group carries in
- * {@code @HttpExchange} on the type stops the start as well, because each call would hold that path
- * twice. A generated client of a cockpit API carries the server path of its OpenAPI file there, so
- * its {@code base-url} is the address of the cockpit only.</li>
+ * <li>The path of an API, declared by a client module as an {@link HttpServiceApiPath} bean, is
+ * added to the {@code base-url} of every group with an interface of that API. So {@code base-url}
+ * is the address of the server only. A {@code base-url} which ends with the path stops the start,
+ * because each call would hold it twice.</li>
  * <li>A proxy, with or without login: {@code proxy.*}.</li>
  * <li>{@code verify-ssl: false}, which trusts every server.</li>
  * <li>Retries ({@code retry.*}) and logging with bodies ({@code log}).</li>
@@ -90,8 +87,10 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
 
   private final Map<String, String> prefixes;
 
+  private final List<HttpServiceApiPath> apiPaths;
+
   /**
-   * Creates the conventions. Two prefixes for one group stop the start here already.
+   * Creates the conventions for groups without the path of an API.
    *
    * @param environment           where the keys are read from
    * @param sslBundles            the SSL bundles of the application, or {@code null} if it has none
@@ -108,6 +107,31 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
       final @Nullable ClientHttpRequestFactoryBuilder<?> requestFactoryBuilder,
       final List<HttpServiceGroupPrefix> prefixes) {
 
+    this(environment, sslBundles, defaultSettings, requestFactoryBuilder, prefixes, List.of());
+
+  }
+
+  /**
+   * Creates the conventions. Two prefixes for one group stop the start here already.
+   *
+   * @param environment           where the keys are read from
+   * @param sslBundles            the SSL bundles of the application, or {@code null} if it has none
+   * @param defaultSettings       the settings for all clients, from {@code spring.http.clients.*}
+   * @param requestFactoryBuilder Spring Boot's, so its {@code ClientHttpRequestFactoryBuilderCustomizer}
+   *                              beans apply. {@code null} builds with the JDK's HttpClient.
+   * @param prefixes              where the keys of the groups live which do not use Spring Boot's
+   *                              place
+   * @param apiPaths              the paths of APIs which the groups with their interfaces add to
+   *                              their address
+   */
+  public HttpServiceClientConventions(
+      final Environment environment,
+      final @Nullable SslBundles sslBundles,
+      final @Nullable HttpClientSettings defaultSettings,
+      final @Nullable ClientHttpRequestFactoryBuilder<?> requestFactoryBuilder,
+      final List<HttpServiceGroupPrefix> prefixes,
+      final List<HttpServiceApiPath> apiPaths) {
+
     this.environment = environment;
     this.sslBundles = sslBundles;
     this.settingsMapper = new HttpClientSettingsPropertyMapper(sslBundles, defaultSettings == null ? DEFAULT_SETTINGS
@@ -115,6 +139,7 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
     this.requestFactoryBuilder = requestFactoryBuilder == null
         ? ClientHttpRequestFactoryBuilder.jdk()
         : requestFactoryBuilder;
+    this.apiPaths = List.copyOf(apiPaths);
     this.prefixes = new HashMap<>();
     final var declaredTwice = new TreeSet<String>();
     prefixes.forEach(prefix -> {
@@ -205,8 +230,9 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
       return problems;
     }
 
-    if (checkBaseUrl(name, prefix, keys, problems)) {
-      checkBaseUrlLeavesOutThePathOfTheInterfaces(group, prefix, keys, problems);
+    final var apiPath = apiPathOf(group, problems);
+    if (checkBaseUrl(name, prefix, keys, problems) && (apiPath != null)) {
+      checkBaseUrlLeavesOutTheApiPath(name, prefix, keys, apiPath, problems);
     }
     checkProxy(name, prefix, keys, problems);
     checkRetry(name, prefix, keys, problems);
@@ -220,7 +246,9 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
     }
 
     builder.requestFactory(requestFactory);
-    builder.baseUrl(keys.getBaseUrl());
+    builder.baseUrl(apiPath == null
+        ? keys.getBaseUrl()
+        : withoutTrailingSlash(keys.getBaseUrl()) + apiPath);
     if (!keys.getDefaultHeader().isEmpty()) {
       builder.defaultHeaders(headers -> headers.putAll(keys.getDefaultHeader()));
     }
@@ -299,45 +327,51 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
   }
 
   /**
-   * An interface with {@code @HttpExchange("/gui/api/v1")} on the type adds that path to each call
-   * itself. A {@code base-url} which ends with it as well sends every call to
-   * {@code /gui/api/v1/gui/api/v1/...}, and the mistake shows only as a 404 at the first call.
+   * The path of the API the interfaces of the group belong to, or {@code null} if none of them
+   * belongs to an API with an {@link HttpServiceApiPath}. Interfaces of two APIs with different
+   * paths cannot share one address, so they are a problem.
    */
-  private static void checkBaseUrlLeavesOutThePathOfTheInterfaces(
+  private @Nullable String apiPathOf(
       final HttpServiceGroup group,
-      final String prefix,
-      final HttpServiceGroupProperties keys,
       final List<String> problems) {
 
-    final var baseUrl = withoutTrailingSlash(keys.getBaseUrl());
-    final var path = withoutTrailingSlash(URI.create(baseUrl).getPath());
-    group
-        .httpServiceTypes()
+    final var paths = new TreeSet<String>();
+    group.httpServiceTypes().forEach(type -> apiPaths
         .stream()
-        .sorted(Comparator.comparing(Class::getName))
-        .filter(type -> {
-          final var pathOfTheType = pathOf(type);
-          return !pathOfTheType.isEmpty() && path.endsWith(pathOfTheType);
-        })
-        .findFirst()
-        .ifPresent(type -> {
-          final var pathOfTheType = pathOf(type);
-          problems.add("""
-              The address '%s' in '%s.base-url' ends with '%s', the path which the interface %s of \
-              the HTTP service group '%s' adds to each call itself. Set '%s.base-url' to the \
-              address without it: '%s'."""
-              .formatted(keys.getBaseUrl(), prefix, pathOfTheType, type.getSimpleName(), group.name(), prefix,
-                  baseUrl.substring(0, baseUrl.length() - pathOfTheType.length())));
-        });
+        .filter(apiPath -> apiPath.covers(type))
+        .forEach(apiPath -> paths.add(apiPath.path())));
+    if (paths.size() > 1) {
+      problems.add("""
+          The HTTP service group '%s' holds interfaces of APIs with the paths %s, but a group has one \
+          address. Import the interfaces of each API into a group of its own."""
+          .formatted(group.name(), paths));
+      return null;
+    }
+    return paths.isEmpty() ? null : paths.first();
 
   }
 
-  /** The path in {@code @HttpExchange} on the type or on an interface it extends, or nothing. */
-  private static String pathOf(
-      final Class<?> type) {
+  /**
+   * The group adds the path of its API to the address itself. A {@code base-url} which ends with it
+   * as well sends every call to {@code /gui/api/v1/gui/api/v1/...}, and the mistake shows only as a
+   * 404 at the first call.
+   */
+  private static void checkBaseUrlLeavesOutTheApiPath(
+      final String name,
+      final String prefix,
+      final HttpServiceGroupProperties keys,
+      final String apiPath,
+      final List<String> problems) {
 
-    final var exchange = AnnotatedElementUtils.findMergedAnnotation(type, HttpExchange.class);
-    return exchange == null ? "" : withoutTrailingSlash(exchange.url());
+    final var baseUrl = withoutTrailingSlash(keys.getBaseUrl());
+    if (!withoutTrailingSlash(URI.create(baseUrl).getPath()).endsWith(apiPath)) {
+      return;
+    }
+    problems.add("""
+        The address '%s' in '%s.base-url' ends with '%s', the path of the API which the HTTP service \
+        group '%s' adds to the address itself. Set '%s.base-url' to the address without it: '%s'."""
+        .formatted(keys.getBaseUrl(), prefix, apiPath, name, prefix, baseUrl.substring(0, baseUrl.length() - apiPath
+            .length())));
 
   }
 

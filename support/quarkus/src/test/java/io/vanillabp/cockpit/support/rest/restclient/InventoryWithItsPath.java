@@ -6,10 +6,9 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 
 /**
- * A client interface which adds the path of its API to each call itself, as a generated client of
- * a cockpit API does with the server path of its OpenAPI file.
+ * A client interface of an API whose path is declared by {@link InventoryApiPath}, as a client
+ * module of a cockpit API declares the server path of its OpenAPI file.
  */
-@Path("/inventory/v2")
 public interface InventoryWithItsPath {
 
   /**
