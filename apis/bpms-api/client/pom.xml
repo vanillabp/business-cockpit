@@ -119,8 +119,13 @@
           <addCompileSourceRoot>true</addCompileSourceRoot>
           <generateApiTests>false</generateApiTests>
           <generateModelTests>false</generateModelTests>
+          <!-- one file of our own beside the generated ones: BpmsApiPath, the server path of the
+               OpenAPI file, see generator/config.yaml. The generator's own templates stay as they
+               are. -->
+          <configurationFile>${project.basedir}/generator/config.yaml</configurationFile>
+          <templateDirectory>${project.basedir}/generator</templateDirectory>
           <!-- RFC3339JavaTimeModule was added by openapi-generator 7.x; ApiClient references it -->
-          <supportingFilesToGenerate>RFC3339DateFormat.java,RFC3339JavaTimeModule.java,RFC3339InstantDeserializer.java,StringUtil.java,ApiResponse.java,ApiClient.java,EncodingUtils.java,HttpBasicAuth.java,ApiResponseDecoder.java,ApiKeyAuth.java,HttpBearerAuth.java</supportingFilesToGenerate>
+          <supportingFilesToGenerate>RFC3339DateFormat.java,RFC3339JavaTimeModule.java,RFC3339InstantDeserializer.java,StringUtil.java,ApiResponse.java,ApiClient.java,EncodingUtils.java,HttpBasicAuth.java,ApiResponseDecoder.java,ApiKeyAuth.java,HttpBearerAuth.java,BpmsApiPath.java</supportingFilesToGenerate>
         </configuration>
         <executions>
           <execution>

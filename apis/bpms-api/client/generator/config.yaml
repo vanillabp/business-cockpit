@@ -1,0 +1,5 @@
+files:
+  ApiPath.mustache:
+    templateType: SupportingFiles
+    folder: src/main/java/io/vanillabp/cockpit/bpms/api/v1_1
+    destinationFilename: BpmsApiPath.java
