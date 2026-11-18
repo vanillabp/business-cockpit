@@ -271,6 +271,8 @@ that login gets no token at all. A library older than `1.0.0` answers
 right comes from.
 
 The OIDC login of [backend.md](backend.md#oidc-the-default) follows the wiki page
-[Security](https://github.com/vanillabp/business-cockpit/wiki/Security), but the cockpit has no
-test for it yet. A login with OAuth2 is still to come. Until then the integration test of the login
-in the generated backend repository is the proof (`BE-007`).
+[Security](https://github.com/vanillabp/business-cockpit/wiki/Security) and the module `container`,
+which tests it since `1.0.0`. A chain which was copied from the wiki before writes no cookie: its
+`oauth2Login(login -> login.securityContextRepository(..))` has no effect, see
+[backend.md](backend.md#oidc-the-default). The integration test of the login in the generated
+backend repository is still the proof for the backend itself (`BE-007`).
