@@ -109,7 +109,7 @@ public class WithoutSpringTest {
         "labels.client.base-url", Stubs.apiUrl(server),
         "labels.client.default-header.X-Tenant", "north")));
     final var conventions = new HttpServiceClientConventions(environment, null, null, null, List.of(
-        HttpServiceGroupPrefix.of(GROUP, "labels.client")));
+        HttpServiceGroupPrefix.of(GROUP, "labels.client")), List.of());
     final var builder = RestClient.builder();
 
     conventions.configureGroups(new OneGroup(builder));

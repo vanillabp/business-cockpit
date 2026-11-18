@@ -90,28 +90,6 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
   private final List<HttpServiceApiPath> apiPaths;
 
   /**
-   * Creates the conventions for groups without the path of an API.
-   *
-   * @param environment           where the keys are read from
-   * @param sslBundles            the SSL bundles of the application, or {@code null} if it has none
-   * @param defaultSettings       the settings for all clients, from {@code spring.http.clients.*}
-   * @param requestFactoryBuilder Spring Boot's, so its {@code ClientHttpRequestFactoryBuilderCustomizer}
-   *                              beans apply. {@code null} builds with the JDK's HttpClient.
-   * @param prefixes              where the keys of the groups live which do not use Spring Boot's
-   *                              place
-   */
-  public HttpServiceClientConventions(
-      final Environment environment,
-      final @Nullable SslBundles sslBundles,
-      final @Nullable HttpClientSettings defaultSettings,
-      final @Nullable ClientHttpRequestFactoryBuilder<?> requestFactoryBuilder,
-      final List<HttpServiceGroupPrefix> prefixes) {
-
-    this(environment, sslBundles, defaultSettings, requestFactoryBuilder, prefixes, List.of());
-
-  }
-
-  /**
    * Creates the conventions. Two prefixes for one group stop the start here already.
    *
    * @param environment           where the keys are read from
