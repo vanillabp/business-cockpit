@@ -7,23 +7,22 @@ code of the cockpit. Read this before the first screen, not when something does 
 
 1. [Assigning makes a candidate](#assigning-makes-a-candidate)
 2. [Claiming overwrites](#claiming-overwrites)
-3. [Giving back somebody else's task answers 200](#giving-back-somebody-elses-task-answers-200)
-4. [Bulk actions do not say which ids they skipped](#bulk-actions-do-not-say-which-ids-they-skipped)
-5. [A search in the middle of a value uses no index well](#a-search-in-the-middle-of-a-value-uses-no-index-well)
-6. [Two filters on one path](#two-filters-on-one-path)
-7. [An event names the entity, not its new values](#an-event-names-the-entity-not-its-new-values)
-8. [`filterable` is not read by the server](#filterable-is-not-read-by-the-server)
-9. [A module may report a type of another user interface](#a-module-may-report-a-type-of-another-user-interface)
-10. [The update form has no offset](#the-update-form-has-no-offset)
-11. [The bundler rewrites `import()`](#the-bundler-rewrites-import)
-12. [`zone.js` in a module slows every part down](#zonejs-in-a-module-slows-every-part-down)
-13. [A data entry pulls in the framework](#a-data-entry-pulls-in-the-framework)
-14. [A shared chunk carries the framework into a data entry](#a-shared-chunk-carries-the-framework-into-a-data-entry)
-15. [Vue in a shadow root](#vue-in-a-shadow-root)
-16. [Angular in a shadow root](#angular-in-a-shadow-root)
-17. [Removing a web component before its answer](#removing-a-web-component-before-its-answer)
-18. [A component library keeps destroyed rows](#a-component-library-keeps-destroyed-rows)
-19. [What needs a newer cockpit](#what-needs-a-newer-cockpit)
+3. [Bulk actions do not say which ids they skipped](#bulk-actions-do-not-say-which-ids-they-skipped)
+4. [A search in the middle of a value uses no index well](#a-search-in-the-middle-of-a-value-uses-no-index-well)
+5. [Two filters on one path](#two-filters-on-one-path)
+6. [An event names the entity, not its new values](#an-event-names-the-entity-not-its-new-values)
+7. [`filterable` is not read by the server](#filterable-is-not-read-by-the-server)
+8. [A module may report a type of another user interface](#a-module-may-report-a-type-of-another-user-interface)
+9. [The update form has no offset](#the-update-form-has-no-offset)
+10. [The bundler rewrites `import()`](#the-bundler-rewrites-import)
+11. [`zone.js` in a module slows every part down](#zonejs-in-a-module-slows-every-part-down)
+12. [A data entry pulls in the framework](#a-data-entry-pulls-in-the-framework)
+13. [A shared chunk carries the framework into a data entry](#a-shared-chunk-carries-the-framework-into-a-data-entry)
+14. [Vue in a shadow root](#vue-in-a-shadow-root)
+15. [Angular in a shadow root](#angular-in-a-shadow-root)
+16. [Removing a web component before its answer](#removing-a-web-component-before-its-answer)
+17. [A component library keeps destroyed rows](#a-component-library-keeps-destroyed-rows)
+18. [What needs a newer cockpit](#what-needs-a-newer-cockpit)
 
 ## Assigning makes a candidate
 
@@ -42,21 +41,13 @@ out of a colleague's hands. Ask first when the task already has another assignee
 
 Claiming a task you already have changes nothing and answers 200.
 
-## Giving back somebody else's task answers 200
-
-`claim?unclaim=true` only removes the assignee if it is the given person. If it hits nobody, nothing
-changes, and the answer is still 200. So your user interface does not learn whether it worked. Read
-the task again afterwards, or rely on the update stream.
-
-One more thing about giving back: the server reads the task again afterwards without checking the
-visibility, and returns it. That is on purpose. A task that is given back often disappears from the
-very list it was given back from, and the user interface still needs it to redraw the row.
-
 ## Bulk actions do not say which ids they skipped
 
 The form with a list of ids leaves out the ids this user may not see, without a word. After a bulk
 action you do not know whether every id was changed. Ended tasks are not among the silent cases:
-they make the whole request fail with 409, see [gui-api.md](gui-api.md#ended-tasks).
+they make the whole request fail with 409, see [gui-api.md](gui-api.md#ended-tasks). Neither is
+giving back a task of another user: that makes it fail with 400, see
+[gui-api.md](gui-api.md#giving-back).
 
 The single form answers 404, both for a task that does not exist and for one this user may not see.
 That is on purpose: the answer must not reveal that the task exists. So write nothing into your
@@ -246,6 +237,9 @@ This description counts on features of the `business-cockpit` repository that ca
 - answers 409 for every change to an ended user task: claim, unclaim, propose, remove candidate,
   follow-up and note, the list form all or nothing; mark as read and unread stay allowed, see
   [gui-api.md](gui-api.md#ended-tasks),
+- answers 400 for giving back a task which another user claimed, the list form all or nothing,
+  and a plain text body which says why for this 400 and for the 409 of claim and unclaim, see
+  [gui-api.md](gui-api.md#giving-back),
 - the open modes of a task list `OpenTasksWithFollowUp` and `OpenTasksWithoutFollowUp`, without
   `OpenTasks`; without `mode` the server takes `OpenTasksWithFollowUp` for user tasks and the open
   cases for cases,

@@ -23,18 +23,19 @@ What is written here is the behaviour behind them, which neither file says.
 3. [Staying logged in](#staying-logged-in)
 4. [The endpoints](#the-endpoints)
 5. [Ended tasks](#ended-tasks)
-6. [Reading page by page](#reading-page-by-page)
-7. [Sorting](#sorting)
-8. [Counting](#counting)
-9. [Filtering over reported business data](#filtering-over-reported-business-data)
-10. [Suggestions for a search field](#suggestions-for-a-search-field)
-11. [The primary filter: which rows come at all](#the-primary-filter-which-rows-come-at-all)
-12. [The timestamp that keeps a list stable](#the-timestamp-that-keeps-a-list-stable)
-13. [The second form of the same query](#the-second-form-of-the-same-query)
-14. [The update stream](#the-update-stream)
-15. [How a row ended](#how-a-row-ended)
-16. [User settings](#user-settings)
-17. [What the cockpit serves](#what-the-cockpit-serves)
+6. [Giving back](#giving-back)
+7. [Reading page by page](#reading-page-by-page)
+8. [Sorting](#sorting)
+9. [Counting](#counting)
+10. [Filtering over reported business data](#filtering-over-reported-business-data)
+11. [Suggestions for a search field](#suggestions-for-a-search-field)
+12. [The primary filter: which rows come at all](#the-primary-filter-which-rows-come-at-all)
+13. [The timestamp that keeps a list stable](#the-timestamp-that-keeps-a-list-stable)
+14. [The second form of the same query](#the-second-form-of-the-same-query)
+15. [The update stream](#the-update-stream)
+16. [How a row ended](#how-a-row-ended)
+17. [User settings](#user-settings)
+18. [What the cockpit serves](#what-the-cockpit-serves)
 
 ## Generating the client
 
@@ -232,7 +233,7 @@ The endpoints, all relative to the base path:
 | `PUT /usertask`                                                          | the same query as an update, see below                                                                     |
 | `OPTIONS /usertask`                                                      | suggestions for a search field over user tasks                                                             |
 | `GET /usertask/{id}`                                                     | one user task, with `markAsRead` also marked as read                                                       |
-| `PATCH /usertask/{id}/claim`, `PATCH /usertask/claim`                    | set the assignee, with `unclaim=true` give it back; 409 for an ended task                                  |
+| `PATCH /usertask/{id}/claim`, `PATCH /usertask/claim`                    | set the assignee, with `unclaim=true` give it back; 409 for an ended task, 400 for a task of another user  |
 | `PATCH /usertask/{id}/assign`, `PATCH /usertask/assign`                  | add a person as candidate user, with `unassign=true` remove them; 409 for an ended task                    |
 | `PATCH /usertask/{id}/mark-as-read`, `PATCH /usertask/mark-as-read`      | mark as read, with `unread=true` take it back                                                              |
 | `PATCH /usertask/{id}/follow-up-date`                                    | set or delete the follow-up date                                                                           |
@@ -294,8 +295,32 @@ Only a task the user may see and which has ended gets 409.
 Mark as read and mark as unread still work for an ended task, for one task and for a list, and so
 does `GET /usertask/{id}?markAsRead=true`. "Read" only switches off the bold row in the list.
 
+The 409 of claim and unclaim carries a plain text body which says that the task has ended.
+
 So switch these actions off in your user interface when `endedAt` is set, and treat a 409 as "the
 task ended in the meantime": read the task again, redraw the row and tell the user.
+
+## Giving back
+
+Only the assignee can give a task back. `claim?unclaim=true` for a task which another user claimed
+answers 400 and writes nothing. The list form is all or nothing: if another user claimed one of the
+tasks this user may see, none of them is given back, and the answer is 400. Ids this user may not
+see are still left out without a word. A task without an assignee answers 200, and nothing
+changes.
+
+The answers come in this order: 404 for a task this user may not see or which does not exist, 409
+for a task which has ended, then 400. The 400 carries a plain text body which says that another
+user claimed the task. It names no user.
+
+So offer "give back" only for the user's own tasks. If a 400 comes anyway, somebody else claimed
+the task in the meantime: read the task again, redraw the row and tell the user.
+
+The forms of a workflow module answer a task another user claimed with 409, not 400. That is the
+module's answer to sending a form, not the cockpit's answer to giving a task back.
+
+After giving a task back, the server reads the task again without checking the visibility, and
+returns it. That is on purpose. A task that is given back often disappears from the very list it
+was given back from, and the user interface still needs it to redraw the row.
 
 ## Reading page by page
 

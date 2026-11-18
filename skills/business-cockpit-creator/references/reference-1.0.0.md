@@ -241,6 +241,7 @@ These items apply when the skill creates the backend (`Q-BACKEND`). Without it t
 | `ACT-012` | Claiming a task that has another assignee always asks the user first, every time; the question has no "don't ask again", and no setting turns it off. | always                           |
 | `ACT-013` | A 409 of an action reads the task again and redraws the row, and the user is told that the task has ended.                                            | always                           |
 | `ACT-014` | After every action the user interface reads the row again.                                                                                            | `Q-LIVE-MODE` = `refresh-button` |
+| `ACT-015` | A 400 of unclaim reads the task again and redraws the row, and the user is told that another user holds the task.                                     | always                           |
 
 ## TF: the page of a user task
 
