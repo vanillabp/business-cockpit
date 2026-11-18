@@ -3,7 +3,7 @@ package io.vanillabp.cockpit.tasklist;
 /**
  * Thrown if a user tries to give back a user task which another user claimed. Only the assignee can
  * give a task back. The message is written for the user and names no other user, because it is the
- * body of the answer.
+ * body of the answer. See decision 115.
  */
 public class UserTaskClaimedByAnotherUserException extends RuntimeException {
 
