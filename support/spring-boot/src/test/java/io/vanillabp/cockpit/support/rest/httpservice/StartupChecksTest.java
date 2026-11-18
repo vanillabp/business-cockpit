@@ -9,6 +9,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.service.annotation.GetExchange;
+import org.springframework.web.service.annotation.HttpExchange;
 import org.springframework.web.service.registry.ImportHttpServices;
 
 import io.vanillabp.cockpit.support.rest.httpservice.inventory.InventoryApi;
@@ -35,6 +38,27 @@ public class StartupChecksTest {
     @Bean
     HttpServiceGroupPrefix ordersInventoryKeys() {
       return HttpServiceGroupPrefix.of("orders-inventory", "orders.inventory");
+    }
+
+  }
+
+  /** An interface which adds the path of its API to each call itself, as a generated client does. */
+  @HttpExchange("/inventory/v2")
+  interface InventoryWithItsPath {
+
+    @GetExchange("/items/{id}")
+    String item(
+        @PathVariable String id);
+
+  }
+
+  @Configuration
+  @ImportHttpServices(group = "shop-inventory", types = InventoryWithItsPath.class)
+  static class ShopModule {
+
+    @Bean
+    HttpServiceGroupPrefix shopInventoryKeys() {
+      return HttpServiceGroupPrefix.of("shop-inventory", "shop.inventory");
     }
 
   }
@@ -109,6 +133,18 @@ public class StartupChecksTest {
 
     assertThat(problems).singleElement().asString()
         .contains("'inventory.example.com/api' in 'orders.inventory.base-url' is no complete http or https address");
+
+  }
+
+  @Test
+  public void an_address_which_ends_with_the_path_of_the_interface_is_refused() {
+
+    final var problems = Starts.problemsOf(new Class<?>[]{
+        TestApplication.class, ShopModule.class
+    }, "shop.inventory.base-url=http://localhost:1/shop/inventory/v2/");
+
+    assertThat(problems).containsExactly(
+        "The address 'http://localhost:1/shop/inventory/v2/' in 'shop.inventory.base-url' ends with '/inventory/v2', the path which the interface InventoryWithItsPath of the HTTP service group 'shop-inventory' adds to each call itself. Set 'shop.inventory.base-url' to the address without it: 'http://localhost:1/shop'.");
 
   }
 

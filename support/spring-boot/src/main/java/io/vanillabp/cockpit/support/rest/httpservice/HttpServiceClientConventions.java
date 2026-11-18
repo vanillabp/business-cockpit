@@ -5,6 +5,7 @@ import java.net.ProxySelector;
 import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -28,11 +29,13 @@ import org.springframework.boot.ssl.NoSuchSslBundleException;
 import org.springframework.boot.ssl.SslBundle;
 import org.springframework.boot.ssl.SslBundles;
 import org.springframework.core.Ordered;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.env.Environment;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.util.ClassUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.support.RestClientHttpServiceGroupConfigurer;
+import org.springframework.web.service.annotation.HttpExchange;
 import org.springframework.web.service.registry.HttpServiceGroup;
 
 /**
@@ -41,6 +44,10 @@ import org.springframework.web.service.registry.HttpServiceGroup;
  * <ul>
  * <li>A missing or broken {@code base-url} stops the start and names the key. Spring Boot would
  * build the client and fail only at the first request.</li>
+ * <li>A {@code base-url} which ends with the path an interface of the group carries in
+ * {@code @HttpExchange} on the type stops the start as well, because each call would hold that path
+ * twice. A generated client of a cockpit API carries the server path of its OpenAPI file there, so
+ * its {@code base-url} is the address of the cockpit only.</li>
  * <li>A proxy, with or without login: {@code proxy.*}.</li>
  * <li>{@code verify-ssl: false}, which trusts every server.</li>
  * <li>Retries ({@code retry.*}) and logging with bodies ({@code log}).</li>
@@ -198,7 +205,9 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
       return problems;
     }
 
-    checkBaseUrl(name, prefix, keys, problems);
+    if (checkBaseUrl(name, prefix, keys, problems)) {
+      checkBaseUrlLeavesOutThePathOfTheInterfaces(group, prefix, keys, problems);
+    }
     checkProxy(name, prefix, keys, problems);
     checkRetry(name, prefix, keys, problems);
     final var useOAuth = keys.getOauth().getTokenUri() != null;
@@ -247,7 +256,8 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
 
   }
 
-  private static void checkBaseUrl(
+  /** Answers whether the address is a complete http or https address. */
+  private static boolean checkBaseUrl(
       final String name,
       final String prefix,
       final HttpServiceGroupProperties keys,
@@ -259,7 +269,7 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
           The HTTP service group '%s' has no address. Set '%s.base-url' to where the service \
           answers, for example 'https://inventory.example.com/api'."""
           .formatted(name, prefix));
-      return;
+      return false;
     }
     final var placeholder = baseUrl.indexOf("${");
     if (placeholder >= 0) {
@@ -269,7 +279,7 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
           The address '%s' of the HTTP service group '%s' holds a placeholder nothing resolves. Set \
           the key or environment variable '%s', or write the address into '%s.base-url'."""
           .formatted(baseUrl, name, unresolved.split(":", 2)[0], prefix));
-      return;
+      return false;
     }
     try {
       final var uri = URI.create(baseUrl);
@@ -282,7 +292,66 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
           The address '%s' in '%s.base-url' is no complete http or https address. Write it with \
           scheme and host, for example 'https://inventory.example.com/api'."""
           .formatted(baseUrl, prefix));
+      return false;
     }
+    return true;
+
+  }
+
+  /**
+   * An interface with {@code @HttpExchange("/gui/api/v1")} on the type adds that path to each call
+   * itself. A {@code base-url} which ends with it as well sends every call to
+   * {@code /gui/api/v1/gui/api/v1/...}, and the mistake shows only as a 404 at the first call.
+   */
+  private static void checkBaseUrlLeavesOutThePathOfTheInterfaces(
+      final HttpServiceGroup group,
+      final String prefix,
+      final HttpServiceGroupProperties keys,
+      final List<String> problems) {
+
+    final var baseUrl = withoutTrailingSlash(keys.getBaseUrl());
+    final var path = withoutTrailingSlash(URI.create(baseUrl).getPath());
+    group
+        .httpServiceTypes()
+        .stream()
+        .sorted(Comparator.comparing(Class::getName))
+        .filter(type -> {
+          final var pathOfTheType = pathOf(type);
+          return !pathOfTheType.isEmpty() && path.endsWith(pathOfTheType);
+        })
+        .findFirst()
+        .ifPresent(type -> {
+          final var pathOfTheType = pathOf(type);
+          problems.add("""
+              The address '%s' in '%s.base-url' ends with '%s', the path which the interface %s of \
+              the HTTP service group '%s' adds to each call itself. Set '%s.base-url' to the \
+              address without it: '%s'."""
+              .formatted(keys.getBaseUrl(), prefix, pathOfTheType, type.getSimpleName(), group.name(), prefix,
+                  baseUrl.substring(0, baseUrl.length() - pathOfTheType.length())));
+        });
+
+  }
+
+  /** The path in {@code @HttpExchange} on the type or on an interface it extends, or nothing. */
+  private static String pathOf(
+      final Class<?> type) {
+
+    final var exchange = AnnotatedElementUtils.findMergedAnnotation(type, HttpExchange.class);
+    return exchange == null ? "" : withoutTrailingSlash(exchange.url());
+
+  }
+
+  private static String withoutTrailingSlash(
+      final @Nullable String text) {
+
+    if (text == null) {
+      return "";
+    }
+    var result = text;
+    while (result.endsWith("/")) {
+      result = result.substring(0, result.length() - 1);
+    }
+    return result;
 
   }
 
