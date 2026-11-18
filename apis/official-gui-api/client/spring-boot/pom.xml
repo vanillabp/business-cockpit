@@ -143,6 +143,9 @@
               <generatorName>spring</generatorName>
               <!-- writes @HttpExchange interfaces for Spring Framework's HTTP interface clients -->
               <library>spring-http-interface</library>
+              <!-- the generator's template with one line more: the server path of the OpenAPI file
+                   on each interface, so 'base-url' is the address of the cockpit only -->
+              <templateDirectory>${project.basedir}/src/main/openapi-templates</templateDirectory>
               <apiPackage>io.vanillabp.cockpit.gui.api.v1.client</apiPackage>
               <modelPackage>io.vanillabp.cockpit.gui.api.v1.client.model</modelPackage>
               <configOptions>
