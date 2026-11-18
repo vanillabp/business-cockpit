@@ -35,7 +35,6 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.dao.DataAccessResourceFailureException;
-import org.testcontainers.kafka.KafkaContainer;
 
 import com.google.protobuf.Timestamp;
 
@@ -80,7 +79,7 @@ class KafkaReportWhichCouldNotBeStoredTest {
   /** Long enough for two failures and the backoff after them, which is one and two seconds. */
   private static final Duration ARRIVAL = Duration.ofSeconds(60);
 
-  private static final KafkaContainer BROKER = new KafkaContainer("apache/kafka:3.8.0");
+  private static final KafkaBroker BROKER = new KafkaBroker();
 
   private static KafkaProducer<String, byte[]> producer;
 

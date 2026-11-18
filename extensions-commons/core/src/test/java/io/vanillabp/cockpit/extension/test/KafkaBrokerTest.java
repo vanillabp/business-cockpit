@@ -17,7 +17,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.kafka.KafkaContainer;
 
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
 import io.vanillabp.cockpit.extension.BusinessCockpitAssembly;
@@ -47,7 +46,7 @@ public class KafkaBrokerTest {
   private static final String USER_TASK_TOPIC = "user-task";
 
   @Container
-  private final KafkaContainer broker = new KafkaContainer("apache/kafka:3.8.0");
+  private final KafkaBroker broker = new KafkaBroker();
 
   private KafkaTransport transportTo(
       final String bootstrapServers) {
