@@ -114,7 +114,6 @@ export interface Person {
   display?: string;
   displayShort?: string;
   email?: string;
-  avatar?: number;
   details?: { [key: string]: unknown };
 }
 ```
@@ -239,7 +238,11 @@ survives `structuredClone`.
 
 `showNotification` shows a toast in the cockpit, for example
 `showNotification({ level: 'success', text: 'Saved' })`. A `sticky` toast stays until the user
-clicks it away.
+clicks it away. The part passes the text in the language it got as `language`. That is the default
+language, or the language the user chose if the user may switch, see the interview questions
+`Q-LANGUAGE-DEFAULT`, `Q-LANGUAGE-SWITCH` and `Q-LANGUAGES` in
+[interview.md](interview.md#language). The cockpit shows the text as it comes and does not
+translate it.
 
 Build them all. A function that does nothing cannot be told apart from a bug by the author of a
 form.

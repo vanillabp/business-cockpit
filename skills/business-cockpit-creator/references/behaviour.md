@@ -121,10 +121,11 @@ What else the header shows depends on the view:
   buttons modules add (`Q-EXTENSION-POINTS`) and the refresh button (`Q-LIVE-MODE` is
   `refresh-button`).
 
-The menu opens from a burger icon. At its top it shows the user who is logged in, with the avatar
-and the short form of the name.
+The menu opens from a burger icon. At its top it shows the user who is logged in, with a round
+badge of the initials and the short form of the name. The GUI API has no picture of a person, so the
+badge shows the initials, taken from the long form of the name, or from the user id without one.
 
-- On mouse-over of the avatar: the long form of the name, the user id and the email address.
+- On mouse-over of the badge: the long form of the name, the user id and the email address.
 - On mouse-over of the name: an overview of all rights of the user and where each right comes from,
   see [The rights of the user](#the-rights-of-the-user).
 
@@ -167,7 +168,7 @@ The cockpit gives the data for all modules in one answer, see
 The overview opens below the user's name when the mouse moves over the name. It closes when the
 mouse leaves both the name and the overview. The mouse can move into the overview, so the user can
 scroll a long table and select a name to copy it. The overview looks like the details of the
-avatar, aligned to the right edge of the name. It is at most about two thirds of the window high
+badge, aligned to the right edge of the name. It is at most about two thirds of the window high
 and scrolls inside when it is longer.
 
 The data is asked on the first mouse-over, not when the application starts. It is kept until the
@@ -502,7 +503,7 @@ The reason for the second row: a person is stored in the document with the field
 and `sort`, and `sort` is the value to sort by. The application builds it itself, for example from
 last name and first name. The general rule, which holds for filtering too: a path reaches into the
 document the server stores, not into the JSON you got. For `details.*` both are the same. For
-`assignee` they are not: the API returns `display`, `displayShort`, `email` and `avatar`, and the
+`assignee` they are not: the API returns `display`, `displayShort` and `email`, and the
 stored fields are `id`, `fulltext` and `sort`.
 
 Whether a module may draw cells itself is an open question, see
@@ -1205,6 +1206,10 @@ a module. See [project.md](project.md#the-user-interface-bundle).
 
 The chosen language must reach every place where a text per language is drawn: the column header,
 the cell, the title of a row, and every web component of a module, through the property `language`.
+This includes notifications. The cockpit's own toasts, for example the one about a task changed by
+another user, come from the language files. A module passes the text of `showNotification` in the
+language it got, see [types.md](types.md#bcusertask-and-bcworkflow). Every toast is in the
+default language, or in the language the user chose.
 
 Decide once what happens when a language is missing, and keep to it everywhere: take the default
 language, and if that is missing too, the first language there is. A header, a cell of type `i18n`

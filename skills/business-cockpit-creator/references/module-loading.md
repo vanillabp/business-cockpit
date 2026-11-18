@@ -921,7 +921,9 @@ in order, and drops the others. `ready` of the subscription resolves at that mom
 `showNotification` is the request `cockpit.showNotification`. The cockpit shows a toast with the
 `text` in the look of the `level`: `info`, `success`, `warning` or `error`. With `sticky: true` the
 toast stays until the user clicks it away. Otherwise it goes away by itself after a few seconds.
-The text comes in the user's language; the part knows it from the property `language`.
+The text comes in the user's language; the part knows it from the property `language`. That is
+the default language, or the language the user chose (`Q-LANGUAGE-DEFAULT`, `Q-LANGUAGE-SWITCH`,
+see [interview.md](interview.md#language)).
 
 ### Error codes
 
