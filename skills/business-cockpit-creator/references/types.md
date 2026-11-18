@@ -26,13 +26,14 @@ Gradle, see
 1. [The VanillaBP kit is the minimum](#the-vanillabp-kit-is-the-minimum)
 2. [Data from the GUI API](#data-from-the-gui-api)
 3. [Translatable and Person](#translatable-and-person)
-4. [Column](#column)
-5. [BcUserTask and BcWorkflow](#bcusertask-and-bcworkflow)
-6. [What a part gets](#what-a-part-gets)
-7. [The module kit](#the-module-kit)
-8. [The event protocol](#the-event-protocol)
-9. [The extension points](#the-extension-points)
-10. [The manifest and its check](#the-manifest-and-its-check)
+4. [The picture of a person](#the-picture-of-a-person)
+5. [Column](#column)
+6. [BcUserTask and BcWorkflow](#bcusertask-and-bcworkflow)
+7. [What a part gets](#what-a-part-gets)
+8. [The module kit](#the-module-kit)
+9. [The event protocol](#the-event-protocol)
+10. [The extension points](#the-extension-points)
+11. [The manifest and its check](#the-manifest-and-its-check)
 
 ## The VanillaBP kit is the minimum
 
@@ -120,6 +121,34 @@ export interface Person {
 
 `Person` has the same fields as the person of the GUI API. A column of type `person` expects this
 shape at its path.
+
+## The picture of a person
+
+`Person` has no picture, because the person of the GUI API has none. With pictures of persons
+(`Q-AVATARS`) the backend of the application serves them from an endpoint of its own and names its
+address in `additionalProperties` of `GET /app/info`, see
+[behaviour.md](behaviour.md#pictures-of-persons). The types library holds the two names of that
+agreement as constants, so the user interface and the simulator of the UI repository use the same
+ones:
+
+```typescript
+/** The key in additionalProperties of GET /app/info whose value is the address of a picture. */
+export const PERSON_PICTURE_URI_PROPERTY = 'person-picture-uri';
+/** The placeholder in that address which the user id of a person replaces. */
+export const PERSON_PICTURE_USER_ID = '{userId}';
+```
+
+The function that builds the address is runtime code, so it is not in the types library. It lives
+in the user interface:
+
+```typescript
+export function personPictureUrl(template: string | undefined, userId: string): string | undefined {
+  return template?.replace(PERSON_PICTURE_USER_ID, encodeURIComponent(userId));
+}
+```
+
+Without the key the function returns nothing, and the badge shows the initials only. The user id is
+encoded as one part of a path, so an id with `/`, `?` or `#` still names one person.
 
 ## Column
 

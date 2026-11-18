@@ -31,11 +31,12 @@ of the library reaches it by the component scan, exactly like the application yo
 7. [The login](#the-login)
 8. [The BPMS API](#the-bpms-api)
 9. [The user directory](#the-user-directory)
-10. [The configuration](#the-configuration)
-11. [The docker-compose.yaml](#the-docker-composeyaml)
-12. [The test that starts the application](#the-test-that-starts-the-application)
-13. [The integration tests of the backend](#the-integration-tests-of-the-backend)
-14. [The README](#the-readme)
+10. [The pictures of persons](#the-pictures-of-persons)
+11. [The configuration](#the-configuration)
+12. [The docker-compose.yaml](#the-docker-composeyaml)
+13. [The test that starts the application](#the-test-that-starts-the-application)
+14. [The integration tests of the backend](#the-integration-tests-of-the-backend)
+15. [The README](#the-readme)
 
 ## Spring Boot only
 
@@ -444,6 +445,67 @@ the attributes when the directory is an Active Directory. The wiki page
 [Security](https://github.com/vanillabp/business-cockpit/wiki/Security) lists every key. The
 application tells the rest while it starts: a missing key ends the start, with a line to copy.
 
+## The pictures of persons
+
+Write this part only when the interview says there are pictures of persons (`Q-AVATARS`). Without
+it the user interface shows the initials of a person, and the backend has nothing to do.
+
+The GUI API of the cockpit has no picture of a person, and the library brings no endpoint for one.
+So the application writes a controller of its own, in `users/`, that serves the picture of a person
+by user id:
+
+```
+GET /person-pictures/{userId}
+```
+
+The source is the directory of the organisation, as `Q-AVATAR-SOURCE` says. For example, with
+Microsoft Entra ID the controller asks Microsoft Graph for the photo of the user, with a client of
+its own that may read the photos of all users. The secret of that client comes from an environment
+variable. With an LDAP directory the picture is often an attribute of the user, for example
+`jpegPhoto` or `thumbnailPhoto`. How a user id of the cockpit becomes the key of the source is part
+of the answer, for example the user principal name in Entra ID.
+
+The controller answers:
+
+- 200 with the picture, its own content type, for example `image/jpeg`, and
+  `X-Content-Type-Options: nosniff`. A content type that is not an image is not passed on; the
+  answer is 404 instead.
+- 404 when the person has no picture, and also when the source does not know the user. The answer
+  does not tell the two apart.
+- 404 as well when the source does not answer, with a warning in the log. The user interface keeps
+  the initials either way.
+
+Security:
+
+- Only a user who is logged in gets a picture. The path is not one of the open matchers of
+  [The login](#the-login), and no other matcher opens it. `anyRequest()` is `authenticated()`, so the
+  chain `guiHttpSecurity` protects it like the GUI API.
+- Without a login the path answers 401, not a redirect to the provider. Add its pattern
+  `/person-pictures/**` to the `defaultAuthenticationEntryPointFor` of the chain, next to
+  `/gui/api/**`. A redirect would only make the browser load the login page as a picture.
+- Every user who is logged in may see the picture of every person, as they may see the name.
+- The user id is checked before it reaches the source: it must not be empty, and it is passed to
+  the source as one encoded value, never pasted into a path, a filter or a query of the source
+  unescaped.
+
+Caching, as `Q-AVATAR-CACHE` says:
+
+- The controller keeps each picture in the memory of the application for that time, and also the
+  fact that a person has none. So it asks the source once per person in that time, not on every
+  request. The cache holds a limited number of pictures and drops the oldest first.
+- Every answer, 200 and 404, carries `Cache-Control: private, max-age=<seconds>` with the same time.
+  `private`, because only a user who is logged in may see it, so no shared cache must keep it. The
+  browser then asks again only when the time has run out.
+
+The application names the address for the user interface in `business-cockpit.additional-properties`,
+under the key `person-picture-uri`, see [The configuration](#the-configuration). The user interface
+asks for no picture without that key. With `Q-HOSTING` `in-front` the nginx image forwards
+`/person-pictures/**` to the backend, like the GUI API.
+
+With a backend of the organisation's own, the skill writes none of this. Tell the user that their
+backend has to serve the pictures with the same answers, protection and headers, and name the
+address in `person-picture-uri`. The path may then be a different one.
+
 ## The configuration
 
 `application.yaml` holds what every environment shares. `container`'s
@@ -489,6 +551,8 @@ business-cockpit:
   in base64. It comes from the environment.
 - `business-cockpit.additional-properties` carries the languages of `Q-LANGUAGES`, see
   [gui-api.md](gui-api.md#protection-and-login).
+  With `Q-AVATARS` it also carries `person-picture-uri: /person-pictures/{userId}`, see
+  [The pictures of persons](#the-pictures-of-persons).
 - `business-cockpit.default-locale` is `Q-LANGUAGE-DEFAULT`, the language of a notification e-mail
   for a user who has none of their own.
 - `application.spa-default-file` and the static locations only matter for `Q-HOSTING` `embedded`.
@@ -587,7 +651,12 @@ They prove:
   backend does the same (`BE-009`),
 - every list of `Q-LIST-CONTROLLERS`: it answers, and it shows each test user only the user tasks
   and cases that user may see (`BE-004`). The simulator reports the data through the BPMS API
-  first, then the test reads the lists as different users.
+  first, then the test reads the lists as different users,
+- with `Q-AVATARS`, the pictures of persons: a picture for a person who has one, 404 for a person
+  who has none, 401 without a login, the `Cache-Control` header, and that the source is asked once
+  per person within the time of `Q-AVATAR-CACHE` (`BE-021`, `BE-022`, `BE-023`). The simulator
+  stands in for the source of `Q-AVATAR-SOURCE`, for example as an HTTP server that answers like
+  Microsoft Graph, and counts the requests.
 
 They start the application the way the test above does, with MongoDB of Testcontainers, and with
 `oidc` also a Keycloak of Testcontainers that imports `keycloak/realm.json`. They are plain Java

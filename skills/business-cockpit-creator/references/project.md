@@ -633,6 +633,10 @@ shell simulator:
   The kit made them for that test, so they check exactly the contract of the kit. They have the
   same module ids as the three test modules, so the conformance test starts the simulator with
   them in place of the test modules.
+- With pictures of persons (`Q-AVATARS`), the endpoint of the pictures below `/person-pictures/`,
+  named in `person-picture-uri` of `GET /app/info`: a picture for one test user, 404 for another,
+  and a slow answer or an error for a third, so the tests see the initials as placeholder in every
+  case, see [behaviour.md](behaviour.md#pictures-of-persons).
 
 It serves no other module.
 

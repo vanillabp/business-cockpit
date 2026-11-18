@@ -122,8 +122,9 @@ What else the header shows depends on the view:
   `refresh-button`).
 
 The menu opens from a burger icon. At its top it shows the user who is logged in, with a round
-badge of the initials and the short form of the name. The GUI API has no picture of a person, so the
-badge shows the initials, taken from the long form of the name, or from the user id without one.
+badge and the short form of the name. The badge shows the initials, taken from the long form of the
+name, or from the user id without one. With pictures of persons (`Q-AVATARS`) it shows the picture
+of the user, and the initials are its placeholder, see [Pictures of persons](#pictures-of-persons).
 
 - On mouse-over of the badge: the long form of the name, the user id and the email address.
 - On mouse-over of the name: an overview of all rights of the user and where each right comes from,
@@ -132,6 +133,48 @@ badge shows the initials, taken from the long form of the name, or from the user
 Below the user come the menu entries: the screens of the interview, the notification settings and
 the entries of modules. Below the entries comes the language switch (`Q-LANGUAGE-SWITCH`), and at
 the end the logout.
+
+### Pictures of persons
+
+The GUI API of the cockpit has no picture of a person. So by default every badge of a person shows
+the initials, and that is the whole badge.
+
+With `Q-AVATARS` the application has pictures. The backend of the application serves the picture of
+a person by user id, from an endpoint of its own, see
+[backend.md](backend.md#the-pictures-of-persons). Its source is the directory of the organisation,
+for example Microsoft Entra ID through Microsoft Graph. The backend names the address in
+`business-cockpit.additional-properties`, under the key `person-picture-uri`, with the placeholder
+`{userId}`, for example `/person-pictures/{userId}`. `GET /app/info` returns it in
+`additionalProperties`. The user interface puts the user id into the placeholder, encoded as a part
+of a path, see [types.md](types.md#the-picture-of-a-person). Without the key the user interface
+shows the initials only and asks for no picture, so a backend without the endpoint still works.
+
+The initials stay the default, and they are the placeholder of the picture:
+
+- The badge shows the initials at once. When the picture has loaded, it takes their place. The
+  badge keeps its size and its round shape, and the picture fills it, cut to the circle. So nothing
+  moves when the picture comes.
+- A person without a picture keeps the initials. The backend answers 404 for them.
+- A picture that does not load, for whatever reason, leaves the initials. The user interface shows
+  no error and logs nothing for the user. It does not ask for that picture again until the page is
+  loaded again.
+- The picture is a plain `<img>` with the address above. The browser sends the cookie of the login
+  with it, because the address is on the same origin. The picture has an empty `alt`, because the
+  name stands next to it or in the details.
+
+The rule holds wherever the user interface shows a person with a badge:
+
+- the badge of the user at the top of the menu,
+- the details of a person on mouse-over, for the assignee, a candidate user, and a column of type
+  `person`: a larger badge above the long form of the name,
+- the hits of the search when the user proposes a task to a person.
+
+The cells of a list stay text, with the short form of the person, as described in
+[Fixed columns](#fixed-columns). A list with thousands of rows asks for no picture, and the row
+height does not change. Only the details on mouse-over load the picture of that one person.
+
+The overview of the rights shows no person and no picture. It opens below the name, aligned to the
+right edge of the name, whether the badge shows initials or a picture.
 
 ### The rights of the user
 
@@ -363,7 +406,8 @@ The fixed columns behave and look different from the columns filled with a modul
 - `title`: the text is a link that opens the full view inside the application, in the same tab. It
   is a real `<a>` element, so "open in new tab" from the right mouse button works.
 - `assignee`: the short form of the person. On mouse-over of the name, the details of the person:
-  the long form, the user id and the email address. On mouse-over of the cell, a checkbox appears
+  the long form, the user id and the email address, and with `Q-AVATARS` the badge of the person
+  above them, see [Pictures of persons](#pictures-of-persons). On mouse-over of the cell, a checkbox appears
   inside the cell that claims the task. It appears whether or not the details show. If the current
   user has claimed the task, a vertical bar stands before the short form, and the names to the right
   of the bar stay aligned with all other names. In that case the checkbox is checked and gives the
@@ -478,7 +522,7 @@ Each `type` expects a different structure at `path`, and the cockpit draws it li
 |-------------|-------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `value`     | a single value                                        | localised: an integer with thousands separators, a decimal number with the local decimal mark, a boolean as "Yes" or "No" in the user's language. Text left-aligned, everything else right-aligned, decimal numbers aligned at the decimal mark |
 | `i18n`      | a map with language codes as keys and texts as values | the text in the language of the user interface, falling back to the default language                                                                                                                                                            |
-| `person`    | a `Person`                                            | `displayShort`, else `email`, else `id`. On mouse-over: `display`, an empty line, `id`, `email`                                                                                                                                                 |
+| `person`    | a `Person`                                            | `displayShort`, else `email`, else `id`. On mouse-over: `display`, an empty line, `id`, `email`; with `Q-AVATARS` the badge of the person above them                                                                                            |
 | `date`      | a string `YYYY-MM-DD`                                 | the localised date                                                                                                                                                                                                                              |
 | `date-time` | a string in ISO 8601 extended format                  | the localised date, a space and the localised hour and minute. Never a `T` between date and time, as in the ISO value. On mouse-over also the seconds, in the same form                                                                         |
 | `time`      | a string `hh:mm[:ss]`                                 | the localised hour and minute. On mouse-over also the seconds, if present                                                                                                                                                                       |
