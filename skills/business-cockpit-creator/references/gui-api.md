@@ -281,6 +281,11 @@ business-cockpit:
     languages: en,de
 ```
 
+Write the languages as one string, separated by commas, and split it in the user interface. Do not
+write a YAML list. The cockpit binds `additional-properties` as a map of objects, and Spring Boot
+turns a list there into a map with the keys `0`, `1` and so on. So `GET /app/info` would return an
+object, not an array, and the order of its keys is not certain.
+
 ## Ended tasks
 
 A user task that has ended is a record: it shows with which input it was completed. The server

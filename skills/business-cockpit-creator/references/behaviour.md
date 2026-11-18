@@ -934,7 +934,8 @@ A list never holds all its rows. An Angular cockpit of a customer that kept ever
 browser out of memory at 10,360 cases, and the page could no longer be used. So:
 
 - The list scrolls virtually: only the rows near the visible area exist in the page. The scroll
-  bar is sized from `totalElements` and a fixed row height.
+  bar is sized from `min(totalElements, Q-MAX-LIST-ENTRIES)` and a fixed row height, see
+  [The longest list](#the-longest-list-q-max-list-entries).
 - It holds a window of pages (`Q-PAGE-SIZE`). The window covers the visible area plus one page
   ahead above and one below. So the user does not notice that rows load while scrolling, in either
   direction.

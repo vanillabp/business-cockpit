@@ -355,8 +355,8 @@ it.
 
 What the loader does:
 
-1. It reads the manifest of each module of the registry on its own:
-   `fetch('/wm/<id>/bc-manifest.json', { cache: 'no-cache' })`. All at once and each on its own, so
+1. It reads the manifest of a module when a part of that module is first needed, not before:
+   `fetch('/wm/<id>/bc-manifest.json', { cache: 'no-cache' })`. Each module is read on its own, so
    that a module that fails to answer does not stop the others. A module without a manifest (404)
    has no parts to load. The loader remembers that and does not ask again in this session.
 2. A row of a module that is not in the registry yet, because the module registered after the page

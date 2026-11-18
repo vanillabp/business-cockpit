@@ -325,7 +325,9 @@ the user directory, see [The user directory](#the-user-directory). The login pat
 The cockpit reads the token from its cookie only. `PassiveJwtSecurityFilter` knows no
 `Authorization` header. So the generated backend always uses the cookie, and `Q-TOKEN` is `cookie`.
 If the user asks for the header, tell them that the cockpit cannot read it today. Do not generate
-a filter of your own for it. Without the header, `Q-HOSTING` `in-front` has no reason left, see
+a filter of your own for it. Without the header, `Q-HOSTING` `in-front` loses its main reason, a
+user interface that loads before the login. It stays an option: an nginx in front of the user
+interface and the backend still gives the browser one origin for both, see
 [SKILL.md](../SKILL.md#where-the-user-interface-runs).
 
 The same configuration class writes the bean `userDetailsProvider`, a `JwtUserDetailsProvider`.
@@ -541,7 +543,7 @@ business-cockpit:
   application-uri: ${COCKPIT_URI}
   default-locale: en
   additional-properties:
-    languages: [ en, de ]
+    languages: en,de
   jwt:
     hmacSHA256-base64: ${COCKPIT_JWT_KEY}
 ```
@@ -549,8 +551,8 @@ business-cockpit:
 - `spring.mongodb.uri` names MongoDB. Spring Boot 4 no longer reads `spring.data.mongodb`.
 - `business-cockpit.jwt.hmacSHA256-base64` is the key the cookie's token is signed with, 32 bytes
   in base64. It comes from the environment.
-- `business-cockpit.additional-properties` carries the languages of `Q-LANGUAGES`, see
-  [gui-api.md](gui-api.md#protection-and-login).
+- `business-cockpit.additional-properties` carries the languages of `Q-LANGUAGES` as one string,
+  see [gui-api.md](gui-api.md#the-endpoints).
   With `Q-AVATARS` it also carries `person-picture-uri: /person-pictures/{userId}`, see
   [The pictures of persons](#the-pictures-of-persons).
 - `business-cockpit.default-locale` is `Q-LANGUAGE-DEFAULT`, the language of a notification e-mail
@@ -647,7 +649,7 @@ They prove:
 - the login of `Q-LOGIN-KIND`. With `oidc`, a request without a login is sent on to Keycloak. The
   test follows the redirects with an HTTP client that keeps cookies, sends the login form of
   Keycloak and comes back with the cookie of the cockpit. Then `GET /gui/api/v1/app/current-user`
-  shows the user with the groups from the claim (`BE-007`). With `form`, the login form of the
+  shows the user with the groups from the user directory (`BE-007`). With `form`, the login form of the
   backend does the same (`BE-009`),
 - every list of `Q-LIST-CONTROLLERS`: it answers, and it shows each test user only the user tasks
   and cases that user may see (`BE-004`). The simulator reports the data through the BPMS API
