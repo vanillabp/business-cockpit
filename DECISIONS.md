@@ -4731,7 +4731,7 @@ latest real change, read in the filtering tick.
 - `UserTaskService.setNote`, `UserTaskService.unclaimTask`, `WorkflowlistService.setNote` and the
   saves of reports in `WorkflowlistService`, `Workflow.initiatorOfLatestChange`
 - `UPGRADE.md`: "An event of the update stream names who made the change"
-- `skills/business-cockpit-user-interface/references/gui-api.md`
+- `skills/business-cockpit-creator/references/gui-api.md`
 - Tests: `AnUpdateEventNamesItsInitiatorTest`, `EveryUpdateOfATaskOrACaseSaysWhoMadeItTest`,
   `ChangeStreamNotificationsTest`,
   `AChangeInTheGuiAndAReportAtTheSameTimeTest`, `TheUpdateStreamAsItsOpenApiFileSaysTest` in
@@ -5373,7 +5373,7 @@ OpenAPI file and reaches every test which uses the generated client.
   tests `TheSimulatorKeepsWhatOrganizesAUserTaskTest`, `TheDevShellSwitchesUsersAsTheFileDescribesTest`,
   `TheSimulatorAnswersTheUserSignedInLikeTheCockpitTest`, `TheSimulatorAnswersTheNotificationSettingsTest`
 - `apis/README.md`, `bom/pom.xml`, the root `pom.xml`, `UPGRADE.md`
-- `skills/business-cockpit-user-interface/references/dev-shell.md`
+- `skills/business-cockpit-creator/references/dev-shell.md`
 
 The README of `apis/dev-shell-simulator-api` cites decision 94.
 
@@ -5494,6 +5494,6 @@ front. A dev shell and the proxy of its dev server name `/official-api/gui/api/v
 - `development/simulator`: `OfficialTasklistApiController`, `OfficialWorkflowlistApiController`,
   `README.md`
 - `apis/dev-shell-simulator-api`: the description of the OpenAPI file and `README.md`
-- `skills/business-cockpit-user-interface/references/dev-shell.md`
+- `skills/business-cockpit-creator/references/dev-shell.md`
 - `UPGRADE.md`
 

@@ -88,11 +88,12 @@ the cockpit. The parent imports it in its `dependencyManagement`, with the versi
 ```
 
 The BOM brings `spring-boot-dependencies`, `spring-cloud-dependencies` (the library's proxy under
-`/wm/` is `spring-cloud-starter-gateway-server-webmvc`), `io.vanillabp:vanillabp-bom`, the BOMs
-of OpenFeign and OkHttp, `mongodb-changesets`, and the cockpit's own artifacts, among them
-`business-cockpit` and `bpms-protobuf-api`. So the modules name all of them without a version.
-Do not import the Spring BOMs a second time, and do not import one before this BOM. The first
-import of a coordinate wins, and Spring Cloud alone brings an OpenFeign that fails at runtime.
+`/wm/` is `spring-cloud-starter-gateway-server-webmvc`), `io.vanillabp:vanillabp-bom`,
+`mongodb-changesets`, and the cockpit's own artifacts, among them `business-cockpit` and
+`bpms-protobuf-api`. So the modules name all of them without a version. Neither the BOM nor the
+library brings OpenFeign or OkHttp. An application that uses them for clients of its own names them,
+with their versions, in its own POM. Do not import the Spring BOMs a second time, and do not import
+one before this BOM. The first import of a coordinate wins.
 
 Pin `spring-boot-maven-plugin` to the version of `spring-boot-dependencies` that the BOM imports,
 because a BOM gives no plugin a version and no `spring-boot-starter-parent` does either. Read it

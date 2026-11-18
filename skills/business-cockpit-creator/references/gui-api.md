@@ -6,14 +6,15 @@ The GUI API is everything a cockpit user interface gets from the server. It live
 `/gui/api/v1`. Two OpenAPI files describe it, and these two files are the truth:
 
 - `apis/official-gui-api/openapi/v1.yaml`, the `official-gui-api`: the lists, a user task, a case,
-  the workflow modules and the notifications.
+  the workflow modules, the notifications and the user who is logged in, `GET /app/current-user`.
 - `business-cockpit/src/main/resources/api/gui/v1.yaml`, the cockpit's own file: `GET /app/info`,
-  `GET /app/current-user`, where the rights of the user come from, the user settings and the update
-  stream.
+  where the rights of the user come from, the user settings and the update stream.
 
 The rule between the two: the `official-gui-api` holds what the dev shell simulator fakes, and
-what the simulator does not offer, such as the current user, the settings and the update stream,
-is in the cockpit's own file.
+what the simulator does not offer, such as the settings and the update stream, is in the cockpit's
+own file. A workflow module asks the user who is logged in with the generated client of the
+`official-gui-api` and the forwarded cookie, for example to tell whether another user claimed a
+task.
 
 What is written here is the behaviour behind them, which neither file says.
 
@@ -98,10 +99,10 @@ Maven repository the cockpit artifacts are deployed to. The interview names that
 Maven coordinates of the cockpit (`Q-COCKPIT-VERSION`, `Q-COCKPIT-REPOSITORY`). By default the
 group is `io.vanillabp.businesscockpit`.
 
-|                                     File                                     |                   Jar                   | Path inside the jar |
-|------------------------------------------------------------------------------|-----------------------------------------|---------------------|
-| the `official-gui-api`                                                       | `official-gui-api-server-<version>.jar` | `v1.yaml`           |
-| the cockpit's own file: `app/info`, `current-user`, the settings, `/updates` | `business-cockpit-<version>.jar`        | `api/gui/v1.yaml`   |
+|                             File                             |                   Jar                   | Path inside the jar |
+|--------------------------------------------------------------|-----------------------------------------|---------------------|
+| the `official-gui-api`                                       | `official-gui-api-server-<version>.jar` | `v1.yaml`           |
+| the cockpit's own file: `app/info`, the settings, `/updates` | `business-cockpit-<version>.jar`        | `api/gui/v1.yaml`   |
 
 A script downloads the two jars with HTTP `GET` from the path Maven uses,
 `<repository>/<group as path>/<artifactId>/<version>/<artifactId>-<version>.jar`. It unpacks the two
@@ -619,7 +620,7 @@ only and guesses nothing from other fields.
 
 The cockpit gives the user a map `customSettings` and has endpoints that read and write one entry
 of it. They are in the cockpit's own file, `api/gui/v1.yaml` in the `business-cockpit` jar, next to
-`current-user`. Every setting of a user is kept there, so it follows the user into every
+`app/info`. Every setting of a user is kept there, so it follows the user into every
 browser. Your user interface never keeps a setting in `localStorage`, `sessionStorage` or a cookie
 of its own.
 
@@ -627,8 +628,9 @@ of its own.
 same path stores it. The value is any JSON.
 
 Your user interface talks to these endpoints through one global settings service, see
-[behaviour.md](behaviour.md#user-settings). No other code calls them. The dev shell simulator has
-no current user and no settings, so in a dev shell the service keeps the settings in memory only.
+[behaviour.md](behaviour.md#user-settings). No other code calls them. The dev shell simulator answers
+the current user but has no settings, so in a dev shell the service keeps the settings in memory
+only.
 
 ## What the cockpit serves
 
