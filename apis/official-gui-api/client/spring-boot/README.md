@@ -8,9 +8,9 @@ The module holds the interfaces the generator `spring` writes with the library
 `OfficialWorkflowlistApi`, `OfficialWorkflowModulesApi`, `OfficialNotificationConfigApi` and
 `OfficialCurrentUserApi`, in the
 package `io.vanillabp.cockpit.gui.api.v1.client`, and their models in `...client.model`. Spring
-Framework turns each interface into a client. The module keeps the generator's template of an
-interface in `src/main/openapi-templates` with one line added, `@HttpExchange` with the server path
-of the OpenAPI file on the type.
+Framework turns each interface into a client. Beside them the generator writes
+`OfficialGuiApiPath`, the server path of the OpenAPI file, from the small template in
+[`../generator`](../generator).
 
 `OfficialGuiApiClientAutoConfiguration` builds the clients. It imports the five interfaces into
 the HTTP service group `official-gui-api`, and the HTTP service helper of the
@@ -42,9 +42,9 @@ spring:
 ```
 
 `base-url` is the address of the cockpit, with its context path if it has one, for example
-`https://example.com/cockpit`. It never holds the path of the API: each interface carries the
-server path of the OpenAPI file, `/gui/api/v1`, in `@HttpExchange` on its type and adds it to each
-call. So a client of a new version of the API brings its new path along, and switching to it means
+`https://example.com/cockpit`. It never holds the path of the API: the auto-configuration
+declares the server path of the OpenAPI file, `/gui/api/v1`, as an `HttpServiceApiPath`, and the
+support module adds it to the address of every group with an interface of this API. So a client of a new version of the API brings its new path along, and switching to it means
 switching the dependency only. An address which ends with `/gui/api/v1` stops the start with a
 message which shows the address to set.
 
@@ -117,7 +117,8 @@ class LoanApprovalCockpitClient {
 loan-approval.cockpit.base-url=https://cockpit.example.com
 ```
 
-The sub-interface gives the module a bean type of its own, and it inherits the path of the API.
+The sub-interface gives the module a bean type of its own, and its group gets the path of the API
+as well.
 As soon as the application imports one of the five interfaces into a group of its own, the group
 of the auto-configuration steps back. A module which calls the cockpit only if the application
 wants it adds `@ConditionalOnHttpServiceGroupAddress(prefix = "loan-approval.cockpit")` of the

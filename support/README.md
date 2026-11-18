@@ -73,10 +73,12 @@ auto-configuration comes with `support`, so nothing has to be switched on. It ad
   module or the application chooses. See [Where the keys of a group live](#where-the-keys-of-a-group-live).
 - **A check of `base-url` at the start.** Spring Boot would build the client without an address
   and fail at the first request.
-- **No path twice.** An interface may carry the path of its API on its type, as
-  `@HttpExchange("/gui/api/v1")`. The clients of the cockpit's APIs do, with the server path of
-  their OpenAPI file, so their `base-url` is the address of the cockpit only. A `base-url` which
-  ends with that path stops the start, because each call would hold it twice.
+- **The path of an API.** A client module may declare the path of its API, for example
+  `/gui/api/v1`, as an `HttpServiceApiPath` bean with the API's interfaces. Every group with one of
+  them gets the path added to its `base-url`, so `base-url` is the address of the server only, and
+  a client of a new version of the API brings its new path along. The clients of the cockpit's
+  official GUI API do so, with the server path of the OpenAPI file. A `base-url` which ends with the
+  path stops the start, because each call would hold it twice.
 - **A proxy**, with or without login.
 - **`verify-ssl: false`**, which trusts every server, for test systems with a self-signed
   certificate.
@@ -235,8 +237,8 @@ names the key to set or to change:
 
 - a group without `base-url`, an address which is no complete `http` or `https` address, an
   address with a placeholder nothing resolves, like `${INVENTORY_URL}`, and an address which ends
-  with the path an interface of the group carries in `@HttpExchange` on its type. A group which only some
-  applications use is not there without its address, see
+  with the path of the API of the group, see `HttpServiceApiPath` above, and interfaces of two
+  APIs with different paths in one group. A group which only some applications use is not there without its address, see
   [A group which only some applications use](#a-group-which-only-some-applications-use);
 - a key below the prefix which no setting reads. Environment variables are not checked, because
   their names cannot be told apart from those of other programs;
@@ -336,9 +338,10 @@ What differs from Spring Boot, because the platforms differ:
   `ProcessingException` whose message names the key to check, and it is never retried.
 - `RestClients.build(api, prefix, builder -> ...)` hands the builder to the caller after the keys
   are applied, for example to register a filter of its own.
-- The path an interface carries on its type is its `@Path`, for example `@Path("/gui/api/v1")` in
-  the Quarkus client of the cockpit's official GUI API. A `base-url` which ends with it stops the
-  start, as on Spring Boot.
+- The path of an API is a `RestClientApiPath` bean, which a client module produces with
+  `@Unremovable`, because only `RestClients` looks it up. The Quarkus client of the cockpit's
+  official GUI API does so. A `base-url` which ends with the path stops the start, as on Spring
+  Boot.
 - A class which is no bean, a test for example, creates the builder with `new RestClients()`. It
   reads the keys of the running application all the same.
 

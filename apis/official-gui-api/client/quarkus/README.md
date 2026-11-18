@@ -7,9 +7,9 @@ Quarkus blueprints generate their clients: `OfficialTasklistApi`, `OfficialWorkf
 `OfficialWorkflowModulesApi`, `OfficialNotificationConfigApi` and `OfficialCurrentUserApi` in the
 package `io.vanillabp.cockpit.gui.api.v1.client`, and their models in `...client.model`. Each
 method returns the body. An answer with an error status comes as the REST client's
-`WebApplicationException`, no answer at all as `ProcessingException`. The module keeps the
-generator's templates in `src/main/openapi-templates`, with one change: `@Path` on the interface
-is the server path of the OpenAPI file, and each method holds the whole path of its operation.
+`WebApplicationException`, no answer at all as `ProcessingException`. Beside them the generator
+writes `OfficialGuiApiPath`, the server path of the OpenAPI file, from the small template in
+[`../generator`](../generator).
 
 Two operations of the OpenAPI file are left out: `getUserTaskKwicResults` and `getKwicResults`,
 the suggestions of words for the search in the task list and in the workflow list. They use the
@@ -71,9 +71,9 @@ loan-approval.cockpit.read-timeout=2s
 ```
 
 `base-url` is the address of the cockpit, with its context path if it has one, for example
-`https://example.com/cockpit`. It never holds the path of the API: each interface carries the
-server path of the OpenAPI file, `/gui/api/v1`, in `@Path` on its type, and each method the whole
-path of its operation. So a client of a new version of the API brings its new path along, and
+`https://example.com/cockpit`. It never holds the path of the API: `TheOfficialGuiApiPath`
+declares the server path of the OpenAPI file, `/gui/api/v1`, as a `RestClientApiPath`, and
+`RestClients` adds it to the address of every client of an interface of this API. So a client of a new version of the API brings its new path along, and
 switching to it means switching the dependency only. An address which ends with `/gui/api/v1`
 stops the start with a message which shows the address to set.
 
