@@ -7,7 +7,9 @@ Quarkus blueprints generate their clients: `OfficialTasklistApi`, `OfficialWorkf
 `OfficialWorkflowModulesApi`, `OfficialNotificationConfigApi` and `OfficialCurrentUserApi` in the
 package `io.vanillabp.cockpit.gui.api.v1.client`, and their models in `...client.model`. Each
 method returns the body. An answer with an error status comes as the REST client's
-`WebApplicationException`, no answer at all as `ProcessingException`.
+`WebApplicationException`, no answer at all as `ProcessingException`. The module keeps the
+generator's templates in `src/main/openapi-templates`, with one change: `@Path` on the interface
+is the server path of the OpenAPI file, and each method holds the whole path of its operation.
 
 Two operations of the OpenAPI file are left out: `getUserTaskKwicResults` and `getKwicResults`,
 the suggestions of words for the search in the task list and in the workflow list. They use the
@@ -64,13 +66,19 @@ public class LoanApprovalCockpit {
 ```
 
 ```properties
-loan-approval.cockpit.base-url=https://cockpit.example.com/gui/api/v1
+loan-approval.cockpit.base-url=https://cockpit.example.com
 loan-approval.cockpit.read-timeout=2s
 ```
 
-`base-url` is the address of the cockpit followed by `/gui/api/v1`, the server path of the
-OpenAPI file. All other keys of the support module work there as well: timeouts, TLS, proxy,
-logging, retries, OAuth. The start stops with a message if `base-url` is missing.
+`base-url` is the address of the cockpit, with its context path if it has one, for example
+`https://example.com/cockpit`. It never holds the path of the API: each interface carries the
+server path of the OpenAPI file, `/gui/api/v1`, in `@Path` on its type, and each method the whole
+path of its operation. So a client of a new version of the API brings its new path along, and
+switching to it means switching the dependency only. An address which ends with `/gui/api/v1`
+stops the start with a message which shows the address to set.
+
+All other keys of the support module work there as well: timeouts, TLS, proxy, logging, retries,
+OAuth. The start stops with a message if `base-url` is missing.
 
 The qualifier, `@LoanApproval` here, is the module's own. A second workflow module of the same
 application builds the same interfaces at its own prefix, for example `onboarding.cockpit`, with
@@ -111,7 +119,8 @@ key and no user directory for that, because the cockpit checks the login.
 
 `TheClientsCallTheCockpitTest` is a `@QuarkusTest` against a stub server: the cookie of a request
 goes to the cockpit and not to another service, a call outside of a request sends none, two
-workflow modules call the cockpit with their own keys, and an unknown task comes as
+workflow modules call the cockpit with their own keys, one of them at a cockpit with a context
+path, an address with the path of the API stops the start, and an unknown task comes as
 `WebApplicationException`. `TheCockpitOfTheTests` sets the keys before the application starts.
 `NoMethodSendsABodyWithOptionsTest` checks that no interface has a method with `OPTIONS`.
 Its coverage counts in the report `test-coverage-report/support/quarkus`, without the generated
