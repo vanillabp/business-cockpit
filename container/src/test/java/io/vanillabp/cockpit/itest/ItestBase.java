@@ -26,7 +26,6 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.lifecycle.Startables;
 import org.testcontainers.mongodb.MongoDBContainer;
 
@@ -81,7 +80,7 @@ public abstract class ItestBase {
   protected static final String GROUP_OF_PETRA = "sales";
 
   private static final MongoDBContainer MONGODB = new MongoDBContainer(ContainerImages.MONGODB).withReplicaSet();
-  private static final KafkaContainer KAFKA = new KafkaContainer("apache/kafka:3.9.1");
+  private static final KafkaBroker KAFKA = new KafkaBroker();
   private static final HttpServer USERS_STUB;
 
   protected static final HttpClient HTTP = HttpClient
