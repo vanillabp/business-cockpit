@@ -118,7 +118,7 @@ class ProxyAfterRestartTest {
         .run(
             "--server.port=0",
             "--spring.main.banner-mode=off",
-            "--spring.profiles.active=local",
+            "--spring.profiles.active=local,basic-auth",
             "--workerId="
                 + workerId,
             "--spring.mongodb.uri="

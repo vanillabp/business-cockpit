@@ -72,6 +72,11 @@
       <artifactId>spring-security-oauth2-jose</artifactId>
     </dependency>
     <dependency>
+      <!-- the simulator plays the OpenID Connect provider the module 'container' logs in at -->
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security-oauth2-authorization-server</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.mapstruct</groupId>
       <artifactId>mapstruct</artifactId>
     </dependency>

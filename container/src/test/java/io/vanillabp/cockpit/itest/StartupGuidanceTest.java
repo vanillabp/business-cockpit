@@ -167,7 +167,7 @@ class StartupGuidanceTest {
     final var arguments = new ArrayList<>(List.of(
         "--server.port=0",
         "--spring.main.banner-mode=off",
-        "--spring.profiles.active=local",
+        "--spring.profiles.active=local,basic-auth",
         "--workerId=startup-guidance-itest",
         "--dev-shell-simulator.users-uri=http://localhost:"
             + usersStub.getAddress().getPort()

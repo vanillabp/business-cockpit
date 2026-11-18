@@ -46,9 +46,13 @@ itself:
   [Who sees which workflow](https://github.com/vanillabp/business-cockpit/wiki/Security#who-sees-which-workflow).
 * The local user directory below `users/local`, which answers who a user is without an identity
   provider.
-* The two security chains below `security`. `guiHttpSecurity` logs a person in by HTTP basic, with
-  the password `test` for every user of the directory, and hands out the JWT cookie.
-  `bpmsApiHttpSecurity` lets the BPMS adapters in with `bpms-api.username` and `bpms-api.password`.
+* The security chains below `security`. `guiHttpSecurity` logs a person in and hands out the JWT
+  cookie. By default it sends the browser to an OpenID Connect provider, in the profile `local` the
+  simulator of [development/simulator](../development/simulator/README.md). With the profile
+  `basic-auth` it asks for HTTP basic instead, with the password `test` for every user of the
+  directory. The profile decides which of the two chains exists, and both have the bean name
+  `guiHttpSecurity`. `bpmsApiHttpSecurity` lets the BPMS adapters in with `bpms-api.username` and
+  `bpms-api.password`.
   The same package has the bean `userDetailsProvider`, which reads the user from the cookie. The
   library brings none of the three, so that no example login is active in an application built on
   it. [Security](https://github.com/vanillabp/business-cockpit/wiki/Security) in the wiki says what
@@ -87,9 +91,17 @@ front of the suite above it.
 java -Dspring.profiles.active=local -jar target/container-*-runnable.jar
 ```
 
-It wants the MongoDB of the compose file in [development](../development), and
-[development/README.md](../development/README.md) is what starts that. The APIs answer at
-[http://localhost:8080/](http://localhost:8080/), with `test` and `test` as the login. The jar
+It wants the MongoDB of the compose file in [development](../development) and the simulator, and
+[development/README.md](../development/README.md) is what starts them. The APIs answer at
+[http://localhost:8080/](http://localhost:8080/). A page sends the browser to the login form of the
+simulator, and `test` and `test` is the login there. Add the profile `basic-auth` to log in with HTTP
+basic and the same user name and password, for example with `curl`:
+
+```sh
+java -Dspring.profiles.active=local,basic-auth -jar target/container-*-runnable.jar
+```
+
+The jar
 carries no user interface, see decision 63 in the repository's [DECISIONS.md](../DECISIONS.md), so
 a path no API knows gets 404.
 

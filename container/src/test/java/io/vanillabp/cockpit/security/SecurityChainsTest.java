@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.config.Customizer.withDefaults;
 
 import java.util.Base64;
@@ -11,15 +12,28 @@ import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.support.StaticListableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.config.ObjectPostProcessor;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.OAuth2LoginAuthenticationFilter;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -37,8 +51,10 @@ import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * The two servlet security chains of this application. This asserts which requests they take, in which
- * order they are consulted and where the JWT filter sits inside the GUI chain.
+ * The servlet security chains of this application: the chain of the BPMS API, and the two GUI chains
+ * of which the profile {@code basic-auth} picks one. This asserts which requests they take, in which
+ * order they are consulted, where the JWT filter sits inside a GUI chain and what a request without a
+ * login gets.
  *
  * <p>None of this fails loudly when it breaks. A JWT filter placed after the authorization filter leaves
  * every request unauthenticated, which looks like a plain 401. A GUI chain consulted before the BPMS-API
@@ -82,6 +98,15 @@ class SecurityChainsTest {
       @Override
       public <O> O postProcess(
           final O object) {
+        // what the post processor of Spring Boot does as well. A filter which is not initialized
+        // fails on its first request.
+        if (object instanceof InitializingBean bean) {
+          try {
+            bean.afterPropertiesSet();
+          } catch (Exception e) {
+            throw new IllegalStateException(e);
+          }
+        }
         return object;
       }
     };
@@ -107,24 +132,79 @@ class SecurityChainsTest {
 
   }
 
-  private GuiSecurityConfiguration guiConfiguration() {
+  /**
+   * The provider of the profile {@code local}, with addresses nobody answers. Building the chain
+   * asks none of them.
+   */
+  private static ClientRegistrationRepository oneProvider() {
 
-    final var configuration = new GuiSecurityConfiguration();
-    ReflectionTestUtils.setField(configuration, "properties", applicationProperties());
-    return configuration;
+    return new InMemoryClientRegistrationRepository(ClientRegistration
+        .withRegistrationId("simulator")
+        .clientId("business-cockpit")
+        .clientSecret("secret")
+        .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+        .redirectUri("{baseUrl}/login/oauth2/code/{registrationId}")
+        .scope("openid")
+        .authorizationUri("http://localhost:1/oauth2/authorize")
+        .tokenUri("http://localhost:1/oauth2/token")
+        .jwkSetUri("http://localhost:1/oauth2/jwks")
+        .userNameAttributeName("sub")
+        .build());
 
   }
 
-  private SecurityFilterChain guiChain() throws Exception {
+  private static ObjectProvider<ClientRegistrationRepository> providers(
+      final ClientRegistrationRepository... repositories) {
 
-    final var configuration = guiConfiguration();
-    final var jwtProperties = applicationProperties().getJwt();
-    final var users = new SingleUserDirectoryService();
-    final JwtMapper<? extends JwtAuthenticationToken> jwtMapper = new JwtAuthenticationTokenMapper(jwtProperties, users, Function
+    final var beanFactory = new StaticListableBeanFactory();
+    for (var index = 0; index < repositories.length; ++index) {
+      beanFactory.addBean("clientRegistrations"
+          + index, repositories[index]);
+    }
+    return beanFactory.getBeanProvider(ClientRegistrationRepository.class);
+
+  }
+
+  private JwtMapper<? extends JwtAuthenticationToken> jwtMapper() {
+
+    return new JwtAuthenticationTokenMapper(applicationProperties().getJwt(), new SingleUserDirectoryService(), Function
         .identity());
-    final var jwtRepository = new JwtSecurityContextRepository(jwtProperties, jwtMapper);
+
+  }
+
+  private SecurityFilterChain openIdConnectChain(
+      final ObjectProvider<ClientRegistrationRepository> providers) throws Exception {
+
+    final var configuration = new GuiSecurityConfiguration.LoginByOpenIdConnect();
+    ReflectionTestUtils.setField(configuration, "properties", applicationProperties());
+    final var jwtMapper = jwtMapper();
+    final var jwtRepository = new JwtSecurityContextRepository(applicationProperties().getJwt(), jwtMapper);
+    final var http = httpSecurity();
+    http.setSharedObject(ClientRegistrationRepository.class, providers.getIfAvailable());
+    return configuration.guiHttpSecurity(http, jwtRepository, jwtMapper, providers);
+
+  }
+
+  private SecurityFilterChain openIdConnectChain() throws Exception {
+
+    return openIdConnectChain(providers(oneProvider()));
+
+  }
+
+  private SecurityFilterChain httpBasicChain() throws Exception {
+
+    final var configuration = new GuiSecurityConfiguration.LoginByHttpBasic();
+    ReflectionTestUtils.setField(configuration, "properties", applicationProperties());
+    final var jwtMapper = jwtMapper();
+    final var jwtRepository = new JwtSecurityContextRepository(applicationProperties().getJwt(), jwtMapper);
     return configuration.guiHttpSecurity(
-        httpSecurity(), jwtRepository, jwtMapper, users);
+        httpSecurity(), jwtRepository, jwtMapper, new SingleUserDirectoryService());
+
+  }
+
+  private List<SecurityFilterChain> bothGuiChains() throws Exception {
+
+    return List.of(openIdConnectChain(), httpBasicChain());
 
   }
 
@@ -153,22 +233,27 @@ class SecurityChainsTest {
   }
 
   /**
-   * {@code addFilterAfter(.., BasicAuthenticationFilter.class)} has to land the JWT filter behind the
-   * authentication filter, because it reads the security context from the JWT cookie, and ahead of the
-   * authorization filter, which decides on 401. The filter set is Spring's, so a Spring upgrade can
-   * move the position without any compile error.
+   * The JWT filter has to land behind the filter which logs in, because it reads the security
+   * context from the JWT cookie, and ahead of the authorization filter, which decides on 401. The
+   * filter set is Spring's, so a Spring upgrade can move the position without any compile error.
    */
   @Test
-  void theJwtFilterSitsBetweenAuthenticationAndAuthorization() throws Exception {
+  void theJwtFilterSitsBetweenTheLoginAndAuthorization() throws Exception {
 
-    final var filters = filterClassNames(guiChain());
+    assertJwtFilterBetween(filterClassNames(openIdConnectChain()), "OAuth2LoginAuthenticationFilter");
+    assertJwtFilterBetween(filterClassNames(httpBasicChain()), "BasicAuthenticationFilter");
 
-    assertThat(filters).contains(
-        "PassiveJwtSecurityFilter", "BasicAuthenticationFilter", "AuthorizationFilter");
+  }
+
+  private void assertJwtFilterBetween(
+      final List<String> filters,
+      final String loginFilter) {
+
+    assertThat(filters).contains("PassiveJwtSecurityFilter", loginFilter, "AuthorizationFilter");
     assertThat(filters.indexOf("PassiveJwtSecurityFilter"))
-        .as("the JWT filter must run after authentication, otherwise the security context it "
+        .as("the JWT filter must run after the login, otherwise the security context it "
             + "restores is overwritten - filters: %s", filters)
-        .isGreaterThan(filters.indexOf("BasicAuthenticationFilter"));
+        .isGreaterThan(filters.indexOf(loginFilter));
     assertThat(filters.indexOf("PassiveJwtSecurityFilter"))
         .as("the JWT filter must run before authorization, otherwise every request is anonymous "
             + "and answered with 401 - filters: %s", filters)
@@ -183,26 +268,29 @@ class SecurityChainsTest {
   @Test
   void theRenewalFilterSitsBehindTheJwtFilter() throws Exception {
 
-    final var filters = filterClassNames(guiChain());
-
-    assertThat(filters).contains("JwtRenewalFilter");
-    assertThat(filters.indexOf("JwtRenewalFilter"))
-        .as("filters: %s", filters)
-        .isGreaterThan(filters.indexOf("PassiveJwtSecurityFilter"))
-        .isLessThan(filters.indexOf("AuthorizationFilter"));
+    for (final var chain : bothGuiChains()) {
+      final var filters = filterClassNames(chain);
+      assertThat(filters).contains("JwtRenewalFilter");
+      assertThat(filters.indexOf("JwtRenewalFilter"))
+          .as("filters: %s", filters)
+          .isGreaterThan(filters.indexOf("PassiveJwtSecurityFilter"))
+          .isLessThan(filters.indexOf("AuthorizationFilter"));
+    }
 
   }
 
   /**
-   * Anonymous access is switched off in the GUI chain, so the chain must carry no anonymous filter.
+   * Anonymous access is switched off in the GUI chains, so a chain must carry no anonymous filter.
    * Otherwise an unauthenticated request would get an anonymous principal instead of a 401, and
    * nothing would say so.
    */
   @Test
-  void theGuiChainHasNoAnonymousAuthentication() throws Exception {
+  void theGuiChainsHaveNoAnonymousAuthentication() throws Exception {
 
-    assertThat(filterClassNames(guiChain()))
-        .noneMatch(name -> name.contains("Anonymous"));
+    for (final var chain : bothGuiChains()) {
+      assertThat(filterClassNames(chain))
+          .noneMatch(name -> name.contains("Anonymous"));
+    }
 
   }
 
@@ -220,17 +308,17 @@ class SecurityChainsTest {
   }
 
   /**
-   * The GUI chain has no {@code securityMatcher}, so it takes everything, the BPMS-API paths included.
-   * That is why the order of the two beans decides who answers an adapter request, and why the assertion
-   * below is about {@code @Order} and not about matchers.
+   * A GUI chain has no {@code securityMatcher}, so it takes everything, the BPMS-API paths
+   * included. That is why the order of the beans decides who answers an adapter request, and why
+   * the assertion below is about {@code @Order} and not about matchers.
    */
   @Test
-  void theGuiChainTakesEverythingIncludingTheBpmsApiPaths() throws Exception {
+  void theGuiChainsTakeEverythingIncludingTheBpmsApiPaths() throws Exception {
 
-    final var chain = guiChain();
-
-    assertThat(matches(chain, "/gui/api/v1/app/info")).isTrue();
-    assertThat(matches(chain, "/bpms/api/v1/anything")).isTrue();
+    for (final var chain : bothGuiChains()) {
+      assertThat(matches(chain, "/gui/api/v1/app/info")).isTrue();
+      assertThat(matches(chain, "/bpms/api/v1/anything")).isTrue();
+    }
 
   }
 
@@ -239,27 +327,36 @@ class SecurityChainsTest {
    * ever came first, the adapter would receive a login redirect in HTML where it expects JSON.
    */
   @Test
-  void theBpmsApiChainIsConsultedBeforeTheGuiChain() throws Exception {
+  void theBpmsApiChainIsConsultedBeforeTheGuiChains() throws Exception {
 
     final var bpmsApiOrder = orderOf(
         BpmsApiSecurityConfiguration.class, "bpmsApiHttpSecurity", HttpSecurity.class);
-    final var guiOrder = orderOf(
-        GuiSecurityConfiguration.class, "guiHttpSecurity", HttpSecurity.class,
+    final var openIdConnectOrder = orderOf(
+        GuiSecurityConfiguration.LoginByOpenIdConnect.class, "guiHttpSecurity", HttpSecurity.class,
+        JwtSecurityContextRepository.class, JwtMapper.class, ObjectProvider.class);
+    final var httpBasicOrder = orderOf(
+        GuiSecurityConfiguration.LoginByHttpBasic.class, "guiHttpSecurity", HttpSecurity.class,
         JwtSecurityContextRepository.class, JwtMapper.class, UserDirectoryService.class);
 
-    assertThat(bpmsApiOrder).isLessThan(guiOrder);
+    assertThat(bpmsApiOrder).isLessThan(openIdConnectOrder);
+    assertThat(bpmsApiOrder).isLessThan(httpBasicOrder);
 
   }
 
   /**
-   * The library's startup check looks for the two chains by their bean names, and the wiki shows
-   * the same names. The bean name is the method name, so renaming a method here would make the
-   * check warn about a chain which is there.
+   * The library's startup check looks for the chains by their bean names, and the wiki shows the
+   * same names. The bean name is the method name, so renaming a method here would make the check
+   * warn about a chain which is there.
    */
   @Test
   void theChainsCarryTheNamesTheStartupCheckLooksFor() throws Exception {
 
-    assertThat(GuiSecurityConfiguration.class
+    assertThat(GuiSecurityConfiguration.LoginByOpenIdConnect.class
+        .getDeclaredMethod("guiHttpSecurity", HttpSecurity.class,
+            JwtSecurityContextRepository.class, JwtMapper.class, ObjectProvider.class)
+        .getAnnotation(Bean.class))
+        .isNotNull();
+    assertThat(GuiSecurityConfiguration.LoginByHttpBasic.class
         .getDeclaredMethod("guiHttpSecurity", HttpSecurity.class,
             JwtSecurityContextRepository.class, JwtMapper.class, UserDirectoryService.class)
         .getAnnotation(Bean.class))
@@ -268,6 +365,112 @@ class SecurityChainsTest {
         .getDeclaredMethod("bpmsApiHttpSecurity", HttpSecurity.class)
         .getAnnotation(Bean.class))
         .isNotNull();
+
+  }
+
+  /**
+   * Exactly one of the two GUI chains is there, whatever the profiles are. Two would be two beans
+   * of the same name, and none would leave the GUI API to Spring Boot's default chain.
+   */
+  @Test
+  void theProfileBasicAuthSwitchesFromOneChainToTheOther() {
+
+    assertThat(AnnotationUtils.findAnnotation(GuiSecurityConfiguration.LoginByOpenIdConnect.class,
+        Profile.class).value())
+        .containsExactly("!"
+            + GuiSecurityConfiguration.BASIC_AUTH_PROFILE);
+    assertThat(AnnotationUtils.findAnnotation(GuiSecurityConfiguration.LoginByHttpBasic.class,
+        Profile.class).value())
+        .containsExactly(GuiSecurityConfiguration.BASIC_AUTH_PROFILE);
+
+  }
+
+  /**
+   * Without a provider, Spring Security would stop the start with a message about a missing bean
+   * of its own. The message of the chain says what to configure instead.
+   */
+  @Test
+  void theLoginByOpenIdConnectWithoutAProviderSaysWhatToDo() {
+
+    assertThatThrownBy(() -> openIdConnectChain(providers()))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("spring.security.oauth2.client.registration.<id>")
+        .hasMessageContaining("'local'")
+        .hasMessageContaining("'basic-auth'");
+
+  }
+
+  /**
+   * A person who opens a page is sent to the provider. A program which asks the GUI API or the
+   * BPMS API gets 401, because a redirect to a login page would not help it.
+   */
+  @Test
+  void aPageGoesToTheProviderAndAnApiAnswers401() throws Exception {
+
+    final var chain = openIdConnectChain();
+
+    final var page = send(chain, "/tasks", "text/html");
+    assertThat(page.getStatus()).isEqualTo(HttpStatus.FOUND.value());
+    assertThat(page.getRedirectedUrl()).endsWith("/oauth2/authorization/simulator");
+
+    assertThat(send(chain, "/gui/api/v1/usertask", "application/json").getStatus())
+        .isEqualTo(HttpStatus.UNAUTHORIZED.value());
+    assertThat(send(chain, "/gui/api/v1/usertask", "text/html").getStatus())
+        .isEqualTo(HttpStatus.UNAUTHORIZED.value());
+    assertThat(send(chain, "/bpms/api/v1_1/workflow-module/x", "application/json").getStatus())
+        .isEqualTo(HttpStatus.UNAUTHORIZED.value());
+
+  }
+
+  /**
+   * The first step of the login: the chain sends the browser on to the authorization endpoint of
+   * the provider, with the address the provider sends the browser back to, and with PKCE.
+   */
+  @Test
+  void theLoginStartsAtTheAuthorizationEndpointOfTheProvider() throws Exception {
+
+    final var response = send(openIdConnectChain(), "/oauth2/authorization/simulator", "text/html");
+
+    assertThat(response.getStatus()).isEqualTo(HttpStatus.FOUND.value());
+    assertThat(response.getRedirectedUrl())
+        .startsWith("http://localhost:1/oauth2/authorize?")
+        .contains("client_id=business-cockpit")
+        .contains("redirect_uri=http://localhost/login/oauth2/code/simulator")
+        .contains("code_challenge_method=S256");
+
+  }
+
+  /**
+   * The filter which finishes the login at the provider writes the login into the JWT cookie.
+   * Spring Security would put the repository of the whole chain there, which keeps the login in
+   * the HTTP session. The browser would not notice, but a workflow module behind the proxy would
+   * get no cookie and so no user.
+   */
+  @Test
+  void theLoginAtTheProviderIsWrittenIntoTheJwtCookie() throws Exception {
+
+    final var loginFilter = openIdConnectChain()
+        .getFilters()
+        .stream()
+        .filter(filter -> filter instanceof OAuth2LoginAuthenticationFilter)
+        .findFirst()
+        .orElseThrow();
+
+    assertThat(ReflectionTestUtils.getField(loginFilter, "securityContextRepository"))
+        .isInstanceOf(JwtSecurityContextRepository.class);
+
+  }
+
+  private MockHttpServletResponse send(
+      final SecurityFilterChain chain,
+      final String path,
+      final String accept) throws Exception {
+
+    final var request = new MockHttpServletRequest("GET", path);
+    request.addHeader("Accept", accept);
+    final var response = new MockHttpServletResponse();
+    new FilterChainProxy(chain).doFilter(request, response, new MockFilterChain());
+    return response;
 
   }
 
