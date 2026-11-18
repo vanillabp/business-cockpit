@@ -3,7 +3,7 @@ package io.vanillabp.cockpit.tasklist;
 /**
  * Thrown if a user tries to claim, give back, propose or take a candidate off a user task whose
  * process instance is suspended. Nobody may work on such a task until it is activated again. The
- * message is written for the user and names no user, because it is the body of the answer.
+ * message is written for the user and names no user, because it is the body of the answer. See decision 116.
  */
 public class UserTaskSuspendedException extends RuntimeException {
 
