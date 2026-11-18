@@ -895,7 +895,7 @@ interface from this text has no second source to check it against.
 
 #### Where this decision is referred to
 
-- `skills/business-cockpit-user-interface/SKILL.md`, the paragraph saying why the text lives in
+- `skills/business-cockpit-creator/SKILL.md`, the paragraph saying why the text lives in
   this repository.
 - the skill `business-cockpit` in `vanillabp/skills`, which points here instead of repeating.
 - the wiki page `Customizing the user interface`.
@@ -911,6 +911,18 @@ Note (2026-10-12): Since decision 63 the React application is no longer in this 
 is no longer the worked example next to the description. The description in
 `skills/business-cockpit-user-interface` stays, and the Git history keeps the sources it was read
 from.
+
+Note (2026-11-05): The maintainer renamed the directory to `skills/business-cockpit`, and the
+skill's `name` with it. The skill no longer describes only a user interface. It now generates both
+repositories of a cockpit: the npm repository of the user interface and the Maven repository of
+the backend application. A name that says "user interface" would send an agent away from the
+backend half.
+
+Note (2026-11-05, later the same day): The name `business-cockpit` collided with the skill of the
+same name in `vanillabp/skills`, which is the problem the second reason above warns about. The
+maintainer renamed this skill to `business-cockpit-creator`, in `skills/business-cockpit-creator`.
+The skill in `vanillabp/skills` keeps its name. It only tells an agent that the cockpit exists and
+where to read more, and for building a cockpit it points to this skill.
 
 ### 28. An initiator is always set, and the application is the only one who knows it
 
@@ -1213,8 +1225,8 @@ Each of these says it in its own words, so none of them has to cite a number:
   the comment above the `ui-uri-type` check
 - `ui/bc-ui/src/utils/module-federation.ts`, `UiUriType` and `addressOfFederatedBundle`
 - `UPGRADE.md`, the section about the address
-- `skills/business-cockpit-user-interface/references/gui-api.md` and
-  `references/module-federation.md`
+- `skills/business-cockpit-creator/references/gui-api.md` and
+  `references/module-loading.md`
 - the wiki pages `User-task-forms-and-status-sites` and `Customizing-the-user-interface`
 
 Note (2026-10-12): Since decision 63 the shipped user interface is gone, and with it
@@ -4433,7 +4445,7 @@ it as one of its own modules.
   `UserTaskVisibility.TaskFacts`, `WorkflowVisibility.WorkflowFacts`
 - `tasklist/model/changesets/V000005` and `workflowlist/model/changesets/V000005`
 - `UPGRADE.md`: "A list can be limited to workflow modules"
-- `skills/business-cockpit-user-interface/references/gui-api.md` and `behaviour.md`
+- `skills/business-cockpit-creator/references/gui-api.md` and `behaviour.md`
 - Tests: `AListLimitedToWorkflowModulesTest`, `TheUpdateStreamAsItsOpenApiFileSaysTest`,
   `SseUpdatesTest`, `AChangeReachesTheStreamsItConcernsTest`, `TheIndexOfTheWorkflowModuleTest`,
   `AnUpgradeRepeatsNoChangesetTest`
@@ -4498,8 +4510,8 @@ does not answer the path.
 - `container/src/test/java/io/vanillabp/cockpit/itest/TheGroupHierarchyOfTheUserTest.java`
 - `UPGRADE.md`, "Where the rights of a user come from"
 - `development/dev-shell-simulator/README.md`, what the simulator does not answer
-- `skills/business-cockpit-user-interface/references/gui-api.md`, "Woher die Rechte des Benutzers
-  kommen"
+- `skills/business-cockpit-creator/references/behaviour.md`, "The rights of the user", and
+  `references/gui-api.md`
 
 ### 100. A key the cockpit does not read ends the start on Spring Boot as well
 
@@ -4719,7 +4731,7 @@ latest real change, read in the filtering tick.
 - `UserTaskService.setNote`, `UserTaskService.unclaimTask`, `WorkflowlistService.setNote` and the
   saves of reports in `WorkflowlistService`, `Workflow.initiatorOfLatestChange`
 - `UPGRADE.md`: "An event of the update stream names who made the change"
-- `skills/business-cockpit-user-interface/references/gui-api.md`
+- `skills/business-cockpit-creator/references/gui-api.md`
 - Tests: `AnUpdateEventNamesItsInitiatorTest`, `EveryUpdateOfATaskOrACaseSaysWhoMadeItTest`,
   `ChangeStreamNotificationsTest`,
   `AChangeInTheGuiAndAReportAtTheSameTimeTest`, `TheUpdateStreamAsItsOpenApiFileSaysTest` in
@@ -5361,7 +5373,7 @@ OpenAPI file and reaches every test which uses the generated client.
   tests `TheSimulatorKeepsWhatOrganizesAUserTaskTest`, `TheDevShellSwitchesUsersAsTheFileDescribesTest`,
   `TheSimulatorAnswersTheUserSignedInLikeTheCockpitTest`, `TheSimulatorAnswersTheNotificationSettingsTest`
 - `apis/README.md`, `bom/pom.xml`, the root `pom.xml`, `UPGRADE.md`
-- `skills/business-cockpit-user-interface/references/dev-shell.md`
+- `skills/business-cockpit-creator/references/dev-shell.md`
 
 The README of `apis/dev-shell-simulator-api` cites decision 94.
 
@@ -5482,6 +5494,6 @@ front. A dev shell and the proxy of its dev server name `/official-api/gui/api/v
 - `development/simulator`: `OfficialTasklistApiController`, `OfficialWorkflowlistApiController`,
   `README.md`
 - `apis/dev-shell-simulator-api`: the description of the OpenAPI file and `README.md`
-- `skills/business-cockpit-user-interface/references/dev-shell.md`
+- `skills/business-cockpit-creator/references/dev-shell.md`
 - `UPGRADE.md`
 

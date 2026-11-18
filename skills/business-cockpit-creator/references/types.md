@@ -1,0 +1,542 @@
+# The types library and the module kit
+
+*Part of the description in [`../SKILL.md`](../SKILL.md).*
+
+VanillaBP gives no types for the user interface, and no user interface either. The generated user
+interface publishes the contract with its workflow modules itself, in two npm packages of its own
+(`Q-NPM-SCOPE`), see [project.md](project.md#which-package-holds-what):
+
+- The types library `<scope>/bc-types` holds the data, the types and the names: the data of the
+  GUI API, the interfaces a part of a module gets from the cockpit, such as `BcUserTask` and
+  `BcWorkflow` with the functions the cockpit offers, and every constant. It has no dependencies and
+  no runtime code beyond constants.
+- The module kit `<scope>/bc-module-kit` holds the runtime code a module needs, and it exports
+  everything of the types library again. Its one dependency is the types library.
+
+A workflow module installs the module kit, and only the kit. It says what a part may expect as
+input and which functions it may call. Everything that crosses the line between the cockpit and a
+module is in these two packages. Nothing else is. Apart from them, the cockpit and a module only
+meet through DOM events.
+
+For the Java side of a workflow module there is the types jar with the constants of `ui-uri-type`.
+It is generated from the list in the types library, by the Java build of `Q-BUILD-TOOL`, Maven or
+Gradle, see
+[project.md](project.md#the-types-jar).
+
+1. [The VanillaBP kit is the minimum](#the-vanillabp-kit-is-the-minimum)
+2. [Data from the GUI API](#data-from-the-gui-api)
+3. [Translatable and Person](#translatable-and-person)
+4. [The picture of a person](#the-picture-of-a-person)
+5. [Column](#column)
+6. [BcUserTask and BcWorkflow](#bcusertask-and-bcworkflow)
+7. [What a part gets](#what-a-part-gets)
+8. [The module kit](#the-module-kit)
+9. [The event protocol](#the-event-protocol)
+10. [The extension points](#the-extension-points)
+11. [The manifest and its check](#the-manifest-and-its-check)
+
+## The VanillaBP kit is the minimum
+
+There is one contract per cockpit, and the module kit you generate is it, together with the types
+library below it. Next to it there is the VanillaBP kit, `@vanillabp/bc-module-kit`, from the
+repository `vanillabp/business-cockpit-module-kit`. The VanillaBP kit exists so that the Business
+Cockpit blueprints can show a workflow module without a generated cockpit. A module of the
+organisation builds against the cockpit's own module kit, not against the VanillaBP kit.
+
+The generated packages do not take the VanillaBP kit in, neither as a dependency nor copied into
+their build. You write them from this description, like the rest of the user interface. But the
+generated module kit covers everything the VanillaBP kit has, with the same names and the same
+behaviour, so a blueprint built against the VanillaBP kit loads in your cockpit too. The minimum is
+exactly what the VanillaBP kit has:
+
+- the four data entries `UserTaskList`, `WorkflowList`, `UserTaskForm` and `WorkflowPage`, and the
+  name of the function each one exports, see [The extension points](#the-extension-points),
+- the area `all`, the one web component which shows the whole page of a user task or a case,
+- the manifest `bc-manifest.json` and its check `bc-check-entries`, see
+  [The manifest and its check](#the-manifest-and-its-check),
+- the event protocol and `defineBcElement`, see [The event protocol](#the-event-protocol).
+
+Everything else differs from one organisation to the next and comes from the interview: the entry
+`Header`, the areas of a page like `body`, `information` and `actions`, the entry `Pages`, and any
+other extension point (`Q-EXTENSION-POINTS`, `Q-TASK-PAGE-AREAS`, `Q-WORKFLOW-PAGE-AREAS`). The
+generated packages add these on top. They never drop or rename a part of the minimum.
+
+The VanillaBP repository has a second package, `@vanillabp/bc-module-host`. It is a small host for
+the tests of a module. The generated user interface has its own copy of it as well,
+`<scope>/bc-module-host`, see [project.md](project.md#the-module-host). Phase 3 of the skill checks
+your cockpit with the example modules of the VanillaBP kit, see
+[`../SKILL.md`](../SKILL.md#a-module-built-against-the-kit-loads-in-your-cockpit).
+
+The two VanillaBP packages are not on npmjs.com yet. Until they are, the blueprints install them
+from a local Verdaccio registry which passes every other package through from npmjs.com.
+
+## Data from the GUI API
+
+`UserTask`, `Workflow`, `Person` and `Group` are the data of the GUI API, as the OpenAPI
+description `official-gui-api` defines them. The types library carries them as TypeScript types.
+It generates them from that file with `@hey-api/openapi-ts`, the tool and the exact version the
+user interface generates its client with, but with the plugin `@hey-api/typescript` only: the
+library needs the types and no client. See [gui-api.md](gui-api.md#generating-the-client). Generate
+them; do not copy them by hand. They include `endReason`, see
+[gui-api.md](gui-api.md#how-a-row-ended).
+
+`uiUriType` is a string there and not a type of its own. Which values exist is agreed between this
+user interface and its modules, and VanillaBP knows no names for them. The types library exports
+the values from `Q-UI-URI-TYPE` as constants, by default `ES_MODULES` and `EXTERNAL`. The type decides
+how a row opens, see [module-loading.md](module-loading.md#which-data-finds-the-part).
+
+```typescript
+export const UI_URI_TYPE_ES_MODULES = 'ES_MODULES';   // parts loaded with import(), named in bc-manifest.json
+export const UI_URI_TYPE_EXTERNAL = 'EXTERNAL';       // a page of its own, opened in a tab of its own
+```
+
+The package also carries the same list as a plain file, `ui-uri-types.json`, with the name and a
+one-line description of each value. The types jar is generated from this file, so the Java
+constants and the TypeScript constants never drift apart, see
+[project.md](project.md#the-types-jar).
+
+```json
+[
+  { "name": "ES_MODULES", "description": "The module's parts are ES modules named in bc-manifest.json; the cockpit loads them with import()." },
+  { "name": "EXTERNAL", "description": "The module has pages of its own; the cockpit opens them in a tab of its own." }
+]
+```
+
+## Translatable and Person
+
+```typescript
+/** A text per language. The keys are language codes like 'en' or 'de'. */
+export interface Translatable {
+  [languageKey: string]: string;
+}
+
+export interface Person {
+  id: string;
+  display?: string;
+  displayShort?: string;
+  email?: string;
+  details?: { [key: string]: unknown };
+}
+```
+
+`Person` has the same fields as the person of the GUI API. A column of type `person` expects this
+shape at its path.
+
+## The picture of a person
+
+`Person` has no picture, because the person of the GUI API has none. With pictures of persons
+(`Q-AVATARS`) the backend of the application serves them from an endpoint of its own and names its
+address in `additionalProperties` of `GET /app/info`, see
+[behaviour.md](behaviour.md#pictures-of-persons). The types library holds the two names of that
+agreement as constants, because the cockpit user interface reads the address with them and the
+simulator of the UI repository answers it with them. So both use the same names:
+
+```typescript
+/** The key in additionalProperties of GET /app/info whose value is the address of a picture. */
+export const PERSON_PICTURE_URI_PROPERTY = 'person-picture-uri';
+/** The placeholder in that address which the user id of a person replaces. */
+export const PERSON_PICTURE_USER_ID = '{userId}';
+```
+
+The function that builds the address is runtime code, so it is not in the types library. It lives
+in the user interface:
+
+```typescript
+export function personPictureUrl(template: string | undefined, userId: string): string | undefined {
+  return template?.replace(PERSON_PICTURE_USER_ID, encodeURIComponent(userId));
+}
+```
+
+Without the key the function returns nothing, and the badge shows the initials only. The user id is
+encoded as one part of a path, so an id with `/`, `?` or `#` still names one person.
+
+The parts of a workflow module cannot show pictures of persons in 1.0. A part does not get
+`GET /app/info`, see [What a part gets](#what-a-part-gets), so it has no address of a picture, and
+the kit offers no function for one. The two constants reach a module through the kit like every
+constant, but they are of no use to it without the address. A later version may give the parts a
+function that returns the address of the picture of a person, instead of the setting itself.
+
+## Column
+
+A workflow module defines the columns of a list with two functions, one for user tasks and one for
+cases:
+
+```typescript
+export type ColumnsOfUserTaskFunction = (userTask: UserTask) => Column[] | undefined;
+
+export type ColumnsOfWorkflowFunction = (workflow: Workflow) => Column[] | undefined;
+
+export interface Column {
+  title: Translatable;
+  path: string;      // path of the value within the UserTask or Workflow object
+  type?: 'value' | 'i18n' | 'person' | 'date' | 'date-time' | 'time';
+  priority: number;
+  width: string;
+  show: boolean;
+  sortable: boolean;
+  filterable: boolean;
+  resizeable: boolean;
+}
+```
+
+The host calls the function once for every row it loads, without waiting. So it must be fast and
+must not fetch anything. It returns `undefined` when the module has no columns for this row. The
+columns of a list are the union over the rows loaded at the moment, see
+[behaviour.md](behaviour.md#how-the-columns-of-a-list-come-about).
+
+`path` is the key. It is at the same time
+
+* the path where the value is in the row, resolved with dots as separators,
+* the path your user interface sends to the server as `sort`,
+* the path it sends as `path` of a `SearchQuery`,
+* and the key under which the columns of different rows and workflow modules are merged.
+
+So it must match the document the server stores. `details.customer.name` hits the business data
+the workflow module reported. See [gui-api.md](gui-api.md#sorting) for what this means on the server.
+
+`title` is a text per language. `type` decides how the cell is drawn, see
+[behaviour.md](behaviour.md#the-columns-a-workflow-module-brings). `priority` orders the columns,
+the smallest number first. `width` is a CSS size, and the empty string means "take the rest".
+`show` may hide a column. `sortable`, `filterable` and `resizeable` say what the user may do with
+the column. The server does not read `filterable`; the user interface does.
+
+## BcUserTask and BcWorkflow
+
+These are the objects a part of a module works with. They are the data from the server plus
+functions the cockpit provides. The UI of a workflow module needs these types to know which data it
+gets and which functions of the cockpit it may call. So they are in the types library, together with
+the types of the other functions below, and the module kit exports them again. The code that adds
+the functions to the data, `toBcUserTask` and `toBcWorkflow`, is in the module kit, see
+[The event protocol](#the-event-protocol). Every function returns a promise, because below it runs
+the [event protocol](#the-event-protocol):
+
+```typescript
+export interface BcUserTask extends UserTask, BcPageMessaging {
+  open: () => Promise<void>;
+  navigateToWorkflow: () => Promise<void>;
+  assign: (userId: string) => Promise<void>;
+  unassign: (userId: string) => Promise<void>;
+  claim: () => Promise<void>;
+  unclaim: () => Promise<void>;
+}
+
+export interface BcWorkflow extends Workflow, BcPageMessaging {
+  navigateToWorkflow: () => Promise<void>;
+  getUserTasks: BcUserTasksProvider;
+}
+
+/** Messages between the areas of one page, for example from 'body' to 'actions'. */
+export interface BcPageMessaging {
+  sendTo: (target: string, message: unknown) => Promise<void>;
+  receiveMessage: (handler: (message: unknown, from: string) => void) => BcSubscription;
+}
+
+export interface BcSubscription {
+  /** Resolves once the cockpit delivers messages to this area. */
+  ready: Promise<void>;
+  /** Stops the delivery. */
+  unsubscribe: () => Promise<void>;
+}
+
+export type BcUserTasksProvider = (
+  activeOnly: boolean,
+  limitListAccordingToCurrentUsersPermissions: boolean,
+) => Promise<Array<BcUserTask>>;
+
+export interface BcNotification {
+  level: 'info' | 'success' | 'warning' | 'error';
+  text: string;            // in the language the part got as 'language'
+  sticky?: boolean;        // true: stays until the user clicks it away
+}
+
+/** Shows a toast in the cockpit. */
+export type ShowNotificationFunction = (notification: BcNotification) => Promise<void>;
+
+/**
+ * Loads the visual entry 'dialog.entry', shows its web component 'dialog.element' in a modal dialog
+ * and resolves with what the dialog closed with.
+ */
+export type OpenDialogFunction = (dialog: BcElementRef, data?: unknown) => Promise<unknown>;
+```
+
+Each of these functions is a promise of the cockpit. A form may call `claim` and expect that the
+task belongs to the user afterwards and that the list knows it. For an ended task the promise is
+rejected, because the server answers 409. `getUserTasks` calls
+`POST /workflow/{workflowId}/usertasks` and returns the tasks as `BcUserTask` again, with the same
+functions.
+
+`sendTo` carries a message to the web component of another area of the same page, for example
+`sendTo('actions', { valid: true })` from the form in `body`. `receiveMessage` registers a handler
+with the cockpit and returns a subscription. `unsubscribe()` on it stops the delivery. A message
+that was sent before the area subscribed is delivered once it does, see
+[module-loading.md](module-loading.md#messages-between-areas). A message is any value that
+survives `structuredClone`.
+
+`showNotification` shows a toast in the cockpit, for example
+`showNotification({ level: 'success', text: 'Saved' })`. A `sticky` toast stays until the user
+clicks it away. The part passes the text in the language it got as `language`. That is the default
+language, or the language the user chose if the user may switch, see the interview questions
+`Q-LANGUAGE-DEFAULT`, `Q-LANGUAGE-SWITCH` and `Q-LANGUAGES` in
+[interview.md](interview.md#language). The cockpit shows the text as it comes and does not
+translate it.
+
+Build them all. A function that does nothing cannot be told apart from a bug by the author of a
+form.
+
+## What a part gets
+
+The host sets plain data as properties of the custom element. The wrapper in the module turns it
+into the objects above:
+
+|        Web component        |                             Properties the host sets                              |         What the module's component gets          |
+|-----------------------------|-----------------------------------------------------------------------------------|---------------------------------------------------|
+| an area of a user task page | `userTask`, `area`, `language`, `currentUser`                                     | `BcUserTask`, the area, the language, the user    |
+| an area of a case page      | `workflow`, `area`, `language`, `currentUser`                                     | `BcWorkflow`, the area, the language, the user    |
+| a dialog                    | `workflowModule`, `language`, `currentUser`, `data`                               | the same; `data` is what `openDialog` handed over |
+| other visual parts          | `workflowModule`, `language`, `currentUser`, and what the extension point defines | the same                                          |
+
+Every web component also gets the functions `showNotification`, `openDialog`, `closeDialog`,
+`sendTo`, `receiveMessage` and `request`. `request(action, args, timeoutMs)` is the way to any
+other action, for example one of an extension point of this cockpit. These are the properties of
+the VanillaBP kit's `BcElementProps`, and the generated packages use the same names. The types
+library has the type of these properties, with the types of each function.
+
+The web component of the area `all` gets `area` as `all`.
+
+Whether a form is read-only is the module's decision, from `assignee` and `endedAt` of `userTask`
+together with `currentUser`. The cockpit only sets these properties and does not decide it, see
+[behaviour.md](behaviour.md#the-barrier).
+
+`workflowModule` has the fields `GET /workflow-module` returns: `id`, `version`, `uri`.
+
+`language` is the language the user interface shows, for example `en`. A part follows it when it
+changes. `currentUser` is the user from `GET /app/current-user`, with the groups.
+
+## The module kit
+
+The module kit `<scope>/bc-module-kit` is the package a workflow module installs. It depends on the
+types library with the exact version of the workspace, and on nothing else. It holds:
+
+- every type and constant of the types library, exported again, so that a module imports from the
+  kit only,
+- the module's side of the event protocol, see [The event protocol](#the-event-protocol),
+- `defineBcElement`, which builds the web component of a part,
+- `elementPrefix(workflowModuleId)`, which turns a module id into the prefix of its web
+  components, and `createElementNames(workflowModuleId, buildId)`, which returns the functions
+  `workflow`, `userTask` and `custom` that build the whole names, see
+  [module-loading.md](module-loading.md#the-names-of-the-web-components). The VanillaBP kit does
+  not have them. The cockpit's own kit adds them, and the module host uses `elementPrefix` for its
+  check,
+- the functions of the manifest and the script `bc-check-entries`, see
+  [The manifest and its check](#the-manifest-and-its-check).
+
+The types reach a module as `.d.ts` files. The rest is runtime code, plain JavaScript without
+dependencies, which runs in the browser or, for `bc-check-entries`, in Node.js.
+
+## The event protocol
+
+The protocol of [module-loading.md](module-loading.md#the-event-protocol) is split between the two
+packages. The types library holds its names and types:
+
+- the event names `REQUEST_EVENT`, `RESPONSE_EVENT` and `MESSAGE_EVENT` (`bc-request`,
+  `bc-response` and `bc-message`),
+- the types of the request and the answer, the action names as `ACTIONS` and the error codes as
+  `ERROR_CODES`,
+- `DEFAULT_TIMEOUT_MS`, 30 seconds, and `ACTIONS_WITHOUT_TIMEOUT`, which holds
+  `cockpit.openDialog`.
+
+The module kit holds the code:
+
+- `requestFromCockpit(element, action, args, timeoutMs?)`, which dispatches the request, waits for
+  the answer with the same `requestId` and resolves or rejects. Without `timeoutMs` it waits
+  `DEFAULT_TIMEOUT_MS`, or for ever for an action in `ACTIONS_WITHOUT_TIMEOUT`. A `timeoutMs` of
+  `0` means no timeout,
+- `rejectOpenRequests(element)`, which rejects every open request of the element with
+  `DISCONNECTED`. A web component calls it in `disconnectedCallback`,
+- `sendTo`, `receiveMessage`, `showNotification`, `openDialog` and `closeDialog`, each with the
+  element as its first argument,
+- `toBcUserTask(element, data)` and `toBcWorkflow(element, data)`, which add the functions to the
+  plain data,
+- `defineBcElement(name, { mount, update, unmount }, { properties })`, see below.
+
+`defineBcElement` builds a custom element and registers it under `name`. It throws when the name is
+taken already. When the cockpit puts the element into the page, it attaches an open shadow root and
+calls `mount(root, props)`. A property the cockpit set before the element was defined is not lost.
+When the cockpit sets properties again, it calls `update(root, props)` once for all the changes of
+one task. When the element leaves the page, it calls `rejectOpenRequests`, ends every subscription
+of the part and calls `unmount(root)`. `props` holds the properties and functions of
+[What a part gets](#what-a-part-gets), plus `element`, the web component itself. The option
+`properties` names further properties an extension point of this cockpit sets.
+
+The request id comes from `crypto.randomUUID()`. That function exists only in a secure context, so
+a page served over plain http on a host other than `localhost` gets a counter with a random part
+instead. The id only has to be unique on one element.
+
+`receiveMessage` keeps the messages which come before the answer to `page.subscribe`. It hands them
+to the handler, in order, once it knows its `subscriptionId`, see
+[module-loading.md](module-loading.md#messages-between-areas).
+
+The host side of the protocol is not in the module kit. A module never needs it. It is in the
+generated host `<scope>/bc-module-host`, which the user interface loads its modules with and which
+the tests of a module use, see [project.md](project.md#the-module-host). The module kit ships no
+host, the same as the VanillaBP kit.
+
+## The extension points
+
+The types library names every extension point of this cockpit: the four minimum ones and those
+from `Q-EXTENSION-POINTS`. For each one it exports the entry name, the type of the function the
+module exports, and the properties the host sets. The module kit exports them again. The four
+minimum ones, the names of their functions in `EXPORT_NAMES`, `AREA_ALL` and the types of their
+functions are the same as in the VanillaBP kit. `EXPORT_NAMES` adds the extension points of the
+interview. Here is an example for an organisation
+which chose `Header` and `Pages`:
+
+```typescript
+// The minimum, the same as in the VanillaBP kit @vanillabp/bc-module-kit
+export const USER_TASK_LIST = 'UserTaskList';
+export const WORKFLOW_LIST = 'WorkflowList';
+export const USER_TASK_FORM = 'UserTaskForm';
+export const WORKFLOW_PAGE = 'WorkflowPage';
+export const AREA_ALL = 'all';
+
+// Extension points of this organisation, from the interview
+export const HEADER = 'Header';
+export const PAGES = 'Pages';
+
+/**
+ * Entry -> the function the entry's file exports. Every entry of this cockpit that exports a
+ * function is here: the four minimum ones and those from the interview.
+ */
+export const EXPORT_NAMES = {
+  UserTaskList: 'userTaskListColumns',
+  WorkflowList: 'workflowListColumns',
+  UserTaskForm: 'userTaskForm',
+  WorkflowPage: 'workflowPage',
+  Header: 'header',
+  Pages: 'pages',
+} as const;
+
+/** The entries that carry no framework; bc-check-entries checks their size and content. */
+export const DATA_ENTRIES = Object.freeze(Object.keys(EXPORT_NAMES)) as readonly (keyof typeof EXPORT_NAMES)[];
+
+/** A web component that a data entry names, and the visual entry that defines it. */
+export interface BcElementRef {
+  element: string;
+  entry: string;
+}
+
+/**
+ * The web components of the page of a user task or a case, and the visual entry that defines them.
+ * A string as 'element' is the one web component of the area 'all'; an object maps areas to
+ * web components and may hold 'all' as well.
+ */
+export interface BcPageParts {
+  element: string | PageAreas;
+  entry: string;
+}
+
+/**
+ * Area -> name of a web component. 'all' is the one every cockpit knows. This cockpit shows the
+ * areas it knows and ignores the others; when none of them is offered, it shows 'all'.
+ */
+export type PageAreas = { [area: string]: string };
+
+// Areas of this cockpit, from Q-TASK-PAGE-AREAS and Q-WORKFLOW-PAGE-AREAS; none when the
+// organisation chose none for both pages
+export const AREA_BODY = 'body';
+export const AREA_INFORMATION = 'information';
+export const AREA_ACTIONS = 'actions';
+
+/** undefined: this user task is not the module's. */
+export type UserTaskFormFunction = (userTask: UserTask) => BcPageParts | undefined;
+
+/** undefined: this case is not the module's. */
+export type WorkflowPageFunction = (workflow: Workflow) => BcPageParts | undefined;
+
+export type HeaderFunction = (currentUser: CurrentUser) => BcElementRef[] | undefined;
+
+export interface BcPage extends BcElementRef {
+  id: string;
+  title: Translatable;
+  menu: boolean;
+}
+
+export type PagesFunction = (currentUser: CurrentUser) => BcPage[] | undefined;
+```
+
+`CurrentUser` is the user the host hands every part as `currentUser`, see
+[What a part gets](#what-a-part-gets). All six are data entries. Their functions name web
+components, and `entry` says which visual entry of the same manifest defines them.
+
+`EXPORT_NAMES` is the one list of the data entries. It says which function the file of an entry
+exports, for example `header` for `Header`. That is a fixed contract between the cockpit and its
+modules, and it never changes with a build. The manifest says something else: which file holds an
+entry. `BcManifest.entries` changes with every build of a module, see
+[The manifest and its check](#the-manifest-and-its-check). Every entry that exports a function is
+a data entry, so `DATA_ENTRIES` is not written by hand. It is the keys of `EXPORT_NAMES`. A visual
+entry exports no function. It only defines web components, so it is in neither list.
+
+The module host reads the name of the function it calls from `EXPORT_NAMES` of this types library,
+and `bc-check-entries` of this module kit takes its data entries from the same `EXPORT_NAMES`. So
+adding an extension point to `EXPORT_NAMES` is enough for both. The VanillaBP kit works the same
+way, but its `EXPORT_NAMES` has only the four minimum entries. A blueprint module built against it
+that offers a `Header` names that entry to `bc-check-entries` with `--data-entry Header`. A module
+of your organisation, built against your kit, does not need `--data-entry` for `Header`, only for a
+data entry of its own that no extension point of the cockpit asks. Your cockpit asks `Header`
+only if it has that extension point. A cockpit ignores every entry and every area it does not
+know, without an error, so such a module still works there, only without that part, see
+[module-loading.md](module-loading.md#extension-points). `BcPageParts`
+has the same shape as `BcElementRef`, except that `element` may also name one web component per
+area. The cockpit then loads the visual entry and draws the web components in three steps, see
+[module-loading.md](module-loading.md#ask-load-draw). The routing by process and task definition
+lives in `UserTaskFormFunction`, so every form is a visual entry of its own, see
+[module-loading.md](module-loading.md#data-entries-carry-no-framework).
+
+The types library also exports the names of the CSS custom properties of the theme
+(`Q-THEME-TOKENS`), so a module can use them inside its shadow DOM. The values behind these names are not part of it. They live in
+the theme library `<scope>/bc-theme`, see [project.md](project.md#the-theme-library).
+
+## The manifest and its check
+
+The types library carries the type of `bc-manifest.json`, see
+[module-loading.md](module-loading.md#the-manifest):
+
+```typescript
+export interface BcManifest {
+  manifestVersion: 1;
+  buildVersion?: string;
+  buildTimestamp?: string;
+  /** Entry name -> file, relative to the manifest. */
+  entries: { [entry: string]: string };
+}
+```
+
+The module kit has the functions of the VanillaBP kit for the manifest: `checkManifest(manifest)`
+lists every rule a manifest breaks, `readManifest(source)` reads and checks one and throws a
+`BcManifestError`,
+`createManifest({ entries, buildVersion, buildTimestamp })` builds the one a module's build
+writes, and `entryUrl(manifest, entry, manifestUrl)` gives the address of an entry's file. The
+constants are `MANIFEST_FILE_NAME` and `MANIFEST_VERSION`. The rules for the files of the manifest
+are in [module-loading.md](module-loading.md#the-manifest).
+
+The module kit also ships `bc-check-entries` as a `bin` script, plain Node.js without
+dependencies. A module runs it after its build:
+
+```bash
+npx bc-check-entries dist/bc-manifest.json --limit 32kb --metafile dist/meta.json
+```
+
+It reads the manifest, follows the relative imports of every data entry, that is every entry of
+`EXPORT_NAMES` the manifest names, and of every entry named with `--data-entry`, and fails the
+build when
+
+- the manifest breaks a rule, or an entry it names has no file,
+- a data entry, together with every file it imports, is larger than the limit,
+- a data entry imports a bare name like `react`, or a file outside the folder of the manifest,
+- a data entry contains code of a framework.
+
+It follows static imports and dynamic imports with a fixed string. The details are in
+[module-loading.md](module-loading.md#data-entries-carry-no-framework). The limit is
+`Q-DATA-ENTRY-LIMIT`, by default 32 KB before compression, and a kilobyte is 1024 bytes. `--limit`
+takes `32kb`, `0.5mb` or a number of bytes. The limit holds for the data entries only, not for the
+visual entries with the forms. Visual entries are only checked for their file.
