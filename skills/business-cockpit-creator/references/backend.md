@@ -605,7 +605,6 @@ writes that file for local development:
 - a confidential client, by default `business-cockpit`, with the redirect address
   `http://localhost:8080/login/oauth2/code/<id>` and the secret that `application-local.yaml`
   names,
-- a mapper that writes the groups of a user into the claim `groups`,
 - with `Q-USER-DIRECTORY` `keycloak`: a second confidential client, by default
   `business-cockpit-directory`, with service accounts on, only the role `view-users` of
   `realm-management`, the client scope `kc-admin-api` among its `defaultClientScopes`, and its
@@ -613,6 +612,9 @@ writes that file for local development:
   token of the client at its admin REST API,
 - exactly one group and one user with a password, and the user is a member of the group. They are
   a template, not a set of test users.
+
+There is no mapper for a claim `groups`. The cockpit takes the groups of a user from the user
+directory, not from the token, see [The user directory](#the-user-directory).
 
 The groups decide which user tasks and cases a user sees. So the template is not enough to try the
 visibilities out. The `README.md` tells the developer to add test users with different groups to
