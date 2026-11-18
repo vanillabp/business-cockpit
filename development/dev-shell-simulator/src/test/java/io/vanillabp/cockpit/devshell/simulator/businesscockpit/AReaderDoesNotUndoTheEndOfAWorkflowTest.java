@@ -109,7 +109,7 @@ class AReaderDoesNotUndoTheEndOfAWorkflowTest {
   private Map<String, Object> read(
       final int round) throws Exception {
 
-    final var answer = post("/official-api/v1/workflow", """
+    final var answer = post("/official-api/gui/api/v1/workflow", """
         { "mode": "All", "businessIds": [ "business-%d" ], "pageNumber": 0, "pageSize": 10 }
         """.formatted(round));
     assertThat(answer.statusCode()).isEqualTo(200);

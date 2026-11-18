@@ -20,7 +20,7 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * A workflow module asks the cockpit who is signed in, with the user's cookie and the generated
  * client of the official GUI API, for example to tell whether another user claimed a task. The
- * simulator answers {@code GET /official-api/v1/app/current-user} the way the cockpit answers it:
+ * simulator answers {@code GET /official-api/gui/api/v1/app/current-user} the way the cockpit answers it:
  * the user with all groups, completed by the group hierarchies of the workflow modules, and 200
  * without a body if nobody is signed in.
  */
@@ -30,7 +30,7 @@ import tools.jackson.databind.json.JsonMapper;
 })
 class TheSimulatorAnswersTheUserSignedInLikeTheCockpitTest {
 
-  private static final String CURRENT_USER = "/official-api/v1/app/current-user";
+  private static final String CURRENT_USER = "/official-api/gui/api/v1/app/current-user";
 
   @Value("${local.server.port}")
   private int port;

@@ -27,7 +27,7 @@ import io.vanillabp.cockpit.gui.api.v1.WorkflowsRequest;
  * Allows retrieving workflows and their user tasks.
  */
 @RestController
-@RequestMapping("/official-api/v1")
+@RequestMapping("/official-api/gui/api/v1")
 public class OfficialApiWorkflowController implements OfficialWorkflowlistApi {
 
   private final Logger log = LoggerFactory.getLogger(OfficialApiWorkflowController.class);

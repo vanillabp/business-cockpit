@@ -13,7 +13,10 @@ groups of paths:
 Every path in the file is written in full, so a client takes the address of the simulator as its
 base address, for example `http://localhost:8079`. The file also says which parts of the two other
 APIs the simulator answers: the BPMS API at `/bpms/api/v1_1` and the official GUI API at
-`/official-api/v1`.
+`/official-api/gui/api/v1`. That is the path of the cockpit, `/gui/api/v1`, below the prefix
+`/official-api`, because each system the simulator plays gets a prefix of its own, see decision 114.
+A generated client of the official GUI API therefore takes `http://localhost:8079/official-api` as
+its address and adds `/gui/api/v1` itself.
 
 `server` holds the Spring interfaces the simulator implements. `client` holds Spring HTTP
 interfaces for a caller, published as `io.vanillabp.businesscockpit:dev-shell-simulator-api-client`.

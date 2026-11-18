@@ -5270,3 +5270,218 @@ and the start says so.
   brings its AutoConfiguration" and "What stops the start"
 - the root `pom.xml`: `skip.sources.jar` and the execution `attach-sources`
 
+### 111. The BPMS API takes the path of its sender from the server URL of its specification
+
+This entry follows decision 110, which made the same rule for the official GUI API.
+
+#### What was found
+
+The REST transport of the extension added a path written by hand, `/bpms/api/v1_1`, to
+`vanillabp.cockpit.rest.base-url`. The server URL of the specification was `/api/v1_1`, and the
+`/bpms` in front of it was known only to the cockpit and to that constant. A new version of the API
+meant a new dependency and a changed constant, and nothing tied the two together.
+
+#### The decision
+
+- The server URL of both specifications of the BPMS API is the full path below the address of
+  the cockpit: `/bpms/api/v1` and `/bpms/api/v1_1`. The generated server interfaces do not carry
+  the server URL, so they stay exactly as they were. Only the default `basePath` of the generated
+  `ApiClient` changes, which every sender replaces anyway.
+- `bpms-api-client` generates `BpmsApiPath.PATH` from the server URL with a template of its own,
+  `apis/bpms-api/client/generator/ApiPath.mustache`, registered in `generator/config.yaml`. No
+  template of the generator is copied.
+- The REST transport adds `BpmsApiPath.PATH` to `base-url`. The constant written by hand is gone.
+- A `base-url` which ends with the path stops the start with a message that names the address
+  without it. Without the check every report would go to `/bpms/api/v1_1/bpms/api/v1_1/...` and
+  the mistake would show only as a 404 at the first report.
+- The simulator of `development/simulator` follows the same rule for its own address. Decision 113
+  moved its keys to `business-cockpit.*`, where `HttpServiceApiPath` of `support` adds the path.
+
+#### What stays compatible
+
+`vanillabp.cockpit.rest.base-url` keeps its meaning of version 1: the address of the cockpit, to
+which the transport adds the path. Version 1 added `/bpms/api/v1_1` the same way, so a value of
+version 1 works unchanged. The new check refuses only a value which never worked, because it holds
+the path twice once the path is added.
+
+#### Where it applies
+
+- `apis/bpms-api/README.md`, the paragraph about the server URL
+- `apis/bpms-api/client/pom.xml`, the comment on `configurationFile`
+- `extensions-commons/core/.../config/BusinessCockpitConfiguration.java`,
+  `refuseABaseUrlWithThePathOfTheApi`
+- `extensions-commons/core/.../transport/RestTransport.java`, the constructor
+- `development/simulator/README.md`
+- the tests `BusinessCockpitConfigurationTest#anAddressWithThePathOfTheApiIsRefused`,
+  `#anAddressWithAPathOfItsOwnIsRead` and `RestTransportTest#thePathOfTheApiFollowsThePathOfTheAddress`
+
+### 112. The dev shell simulator describes what only it answers in an OpenAPI file of its own, and answers the user signed in like the cockpit - the path of the official GUI API changed by decision 114
+
+#### What was found
+
+The simulator answered `/simulator-api/usertask/{userTaskId}/report` and `/dev-shell/user/**`, but
+no OpenAPI file described them. So a test of a workflow module read the report with a call written
+by hand, and a dev shell did the same for the users. It also did not answer
+`GET /official-api/v1/app/current-user` and the notification settings of the official GUI API. A
+workflow module which asks the cockpit who is signed in, for example to answer 409 for a task
+another user claimed, got 404 from the simulator.
+
+#### The decision
+
+1. `apis/dev-shell-simulator-api/openapi/dev-shell-simulator-api.yaml` describes every path only the
+   simulator answers, each written in full, so a client takes the address of the simulator as its
+   base address. The file also names the parts of the BPMS API and the official GUI API the
+   simulator answers.
+2. `dev-shell-simulator-api-server` holds the generated Spring interfaces, and the controllers of the
+   simulator implement them. `dev-shell-simulator-api-client` holds generated Spring HTTP interfaces
+   without an auto-configuration. Both jars carry the OpenAPI file at their root, so a Quarkus test
+   or a TypeScript dev shell generates a client of its own from the published artifact.
+3. The simulator answers `GET /official-api/v1/app/current-user` as the cockpit answers
+   `/gui/api/v1/app/current-user`: the user with all groups, completed by the group hierarchies of
+   all registered workflow modules, and 200 without a body if nobody is signed in. A group is shown
+   by its id, as in the module `container`.
+4. The simulator answers `/official-api/v1/notifications/**`. It offers no medium, because it sends
+   nothing. A recipient setting for any medium gets 404. It keeps the notification configuration of
+   each user in memory, and every path needs a user signed in, otherwise 401.
+5. `POST /dev-shell/user/{userId}` for an unknown user answers 404 instead of failing with 500.
+
+Decision 94 still holds. The path `/simulator-api` stays the simulator's alone.
+
+#### What it costs
+
+The simulator's own paths are a published contract now. A change to them is a change to the
+OpenAPI file and reaches every test which uses the generated client.
+
+#### Where it applies
+
+- `apis/dev-shell-simulator-api`: the OpenAPI file, `server/pom.xml`, `client/pom.xml`, `README.md`
+- `development/dev-shell-simulator`: `SimulatorApiController`, `UserController`, `SignedInUser`,
+  `OfficialApiCurrentUserController`, `OfficialApiNotificationController`,
+  `WorkflowModuleService#getGroupHierarchies`, `SecurityConfig`, `pom.xml`, `README.md`, and the
+  tests `TheSimulatorKeepsWhatOrganizesAUserTaskTest`, `TheDevShellSwitchesUsersAsTheFileDescribesTest`,
+  `TheSimulatorAnswersTheUserSignedInLikeTheCockpitTest`, `TheSimulatorAnswersTheNotificationSettingsTest`
+- `apis/README.md`, `bom/pom.xml`, the root `pom.xml`, `UPGRADE.md`
+- `skills/business-cockpit-user-interface/references/dev-shell.md`
+
+The README of `apis/dev-shell-simulator-api` cites decision 94.
+
+### 113. The cockpit and its clients need no OpenFeign and no OkHttp
+
+This entry completes decision 107, which kept `ClientsConfigurationBase` until the clients built
+with it had moved. It changes decision 1: the client of the BPMS API is generated with the library
+`native`, no longer with `feign`. It changes decision 86: the BOM imports no OpenFeign and no
+OkHttp. It changes the reason decision 14 gives for the gone key `rest.log`: the logger is now
+`io.vanillabp.cockpit.extension.transport.RestTransport`, not `...bpms.api.v1_1.BpmsApi`. Decision
+109 describes `ClientsConfigurationBase`, which is gone. The move to clients generated from the
+specifications is done before 1.0 with all its consequences, so no derived cockpit has to make it
+a second time.
+
+#### What was found
+
+The cockpit application itself used neither OpenFeign nor OkHttp. They were there for three things:
+the generated client of the BPMS API and the REST transport of the extensions built on it, the
+older REST client of `support` (`ClientsConfigurationBase` and its package), and the simulator,
+which used that older client. Because of them the root POM and `business-cockpit-bom` imported the
+BOMs of OpenFeign and OkHttp before the Spring BOMs, and every derived cockpit had to take the same
+order.
+
+#### The decision
+
+- `bpms-api-client` is generated by the generator `java` with the library `native`. It sends with
+  the JDK's own `java.net.http.HttpClient` and brings no HTTP library. The messages keep their
+  package and names.
+- The REST transport of `extensions-commons/core` builds that client. `RestClientSetup` builds the
+  JDK's client: HTTP/1.1 like version 1, the timeouts of version 1 where nothing is set, the proxy,
+  the truststore, and for `verify-ssl: false` a trust manager which trusts everything, the host
+  name included. It is an `X509ExtendedTrustManager`, because the JDK checks the host name behind a
+  plain `X509TrustManager` and its `HttpClient` has no other switch. The login for the proxy and
+  the basic authentication or the bearer token go into the headers of each request. `OAuthTokens`
+  fetches its token with the same client. The keys, the messages and what an answer means for the
+  outbox entry stay as they were. An answer which never came is repeated with a message which says
+  so.
+- The package `io.vanillabp.cockpit.support.rest.adapter` is removed, in `support/core`
+  (`TlsTruststoreUtil`, `ApiVersionAware`) as well as in `support/spring-boot`. REST clients of
+  modules are HTTP service clients (decision 107).
+- The simulator generates an HTTP service client of the BPMS API: the interface only, with the
+  messages of `bpms-api-server`, because `bpms-api-client` carries classes of the same names and
+  the simulator already has the server classes through the dev-shell simulator. Its keys are an
+  HTTP service group below `business-cockpit`, and `HttpServiceApiPath` adds the path of the API
+  from the server URL of the OpenAPI file. `application.business-cockpit.*` is gone.
+- The root POM and `bom/pom.xml` import neither `feign-bom` nor `okhttp-bom`. Only tests use
+  OkHttp, as `mockwebserver3` and `okhttp-tls`. The root POM names their version, which wins over
+  the OkHttp 4 another imported BOM still names. `business-cockpit-bom` does not name them.
+
+#### What it costs
+
+A workflow module which wants OpenFeign or OkHttp for clients of its own names them in its own POM.
+The adapter repositories `business-cockpit-*` name neither and import no BOM of the cockpit, so
+they need no change. They got OpenFeign and OkHttp only through `extensions-commons` and
+`bpms-api-client`, and lose them with this change.
+
+#### Where it applies
+
+- `UPGRADE.md`, the sections "`ClientsConfigurationBase` is gone: REST clients are HTTP service
+  clients" and "The client of the BPMS API sends with the JDK's `HttpClient`"
+- `support/README.md` (section REST clients), `support/core/README.md`,
+  `support/spring-boot/README.md`, `bom/README.md`, `apis/bpms-api/README.md`,
+  `development/simulator/README.md`
+- `pom.xml`, the comment on `mockwebserver3`; `apis/bpms-api/client/pom.xml`, the comment on the
+  dependencies
+- `extensions-commons/core/.../transport/RestClientSetup.java`, `RestTransport.java`,
+  `OAuthTokens.java`; `.../config/ConfigurationKeyCheck.java`, the gone key `rest.log`
+- `development/simulator/.../config/ClientsConfiguration.java`
+- the wiki pages `Building-a-custom-Business-Cockpit` (the BOMs) and `Connecting-a-workflow-module`
+  (the older package)
+- the tests `RestClientSetupTest`, `RestTransportTest#anUnreachableServerHasTheReportRepeated`,
+  `ConfigurationKeyCheckTest#aKeyOfVersionOneSaysWhatBecameOfIt` and
+  `TheClientReportsToTheCockpitTest` in the simulator
+
+### 114. Each system a simulator plays gets a prefix of its own, and the path of the original goes below it
+
+This entry changes decision 112, which put the official GUI API of the dev shell simulator at
+`/official-api/v1`.
+
+#### What was found
+
+The cockpit answers the official GUI API at `/gui/api/v1`, the server URL of its OpenAPI file. The
+dev shell simulator and the simulator of `development/simulator` answered it at `/official-api/v1`.
+Since decision 110 the generated client adds `/gui/api/v1` to its `base-url` itself. A workflow
+module whose client points at a simulator asked for `/official-api/v1/gui/api/v1/...` and got 404.
+Its tests built the client by hand instead of setting one key, and so got a different result than
+against the real cockpit.
+
+Answering at `/gui/api/v1`, exactly as the cockpit does, would have fixed the path but not the
+next case: a simulator may play other systems too, and the paths of two originals can collide.
+
+#### The decision
+
+- Each system a simulator plays gets a path prefix of its own, and below it the path the original
+  answers. The prefix of the cockpit's official GUI API is `/official-api`. So both simulators
+  answer it at `/official-api/gui/api/v1`.
+- A workflow module points its client at a simulator by its address only:
+  `spring.http.serviceclient.official-gui-api.base-url=http://localhost:8079/official-api`, or the
+  same value in a group or prefix of its own. The client adds `/gui/api/v1`, as it does for the
+  cockpit.
+- `/official-api/v1` is gone, without an alias. One path, as in the cockpit.
+- The BPMS API keeps `/bpms/api/v1_1` without a prefix. A workflow module reports to a simulator
+  as it reports to the cockpit, so `vanillabp.cockpit.rest.base-url` stays the bare address of the
+  simulator. The simulator's own paths, `/simulator-api` and `/dev-shell`, are no system it plays
+  and keep their paths.
+
+#### What it costs
+
+The paths of a simulator are not exactly those of the original, because each has the prefix in
+front. A dev shell and the proxy of its dev server name `/official-api/gui/api/v1` instead of
+`/official-api/v1`, and a test or a page which wrote the old path by hand changes it.
+
+#### Where it applies
+
+- `development/dev-shell-simulator`: `OfficialApiTaskController`, `OfficialApiWorkflowController`,
+  `OfficialApiCurrentUserController`, `OfficialApiNotificationController`, `SecurityConfig`,
+  `README.md`, `pom.xml`, and the test `AGeneratedClientReachesTheSimulatorByItsAddressTest`
+- `development/simulator`: `OfficialTasklistApiController`, `OfficialWorkflowlistApiController`,
+  `README.md`
+- `apis/dev-shell-simulator-api`: the description of the OpenAPI file and `README.md`
+- `skills/business-cockpit-user-interface/references/dev-shell.md`
+- `UPGRADE.md`
+

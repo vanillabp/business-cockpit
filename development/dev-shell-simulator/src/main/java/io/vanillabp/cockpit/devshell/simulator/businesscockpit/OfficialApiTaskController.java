@@ -24,7 +24,7 @@ import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
  * Allows retrieving UserTasks.
  */
 @RestController
-@RequestMapping("/official-api/v1")
+@RequestMapping("/official-api/gui/api/v1")
 public class OfficialApiTaskController implements OfficialTasklistApi {
 
   private final Logger log = LoggerFactory.getLogger(OfficialApiTaskController.class);
