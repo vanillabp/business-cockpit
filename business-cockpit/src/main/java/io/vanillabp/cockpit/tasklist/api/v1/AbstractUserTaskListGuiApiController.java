@@ -36,6 +36,7 @@ import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 import io.vanillabp.cockpit.tasklist.UserTaskAlreadyCompletedException;
 import io.vanillabp.cockpit.tasklist.UserTaskClaimedByAnotherUserException;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
+import io.vanillabp.cockpit.tasklist.UserTaskSuspendedException;
 import io.vanillabp.cockpit.tasklist.UserTaskVisibility;
 import io.vanillabp.cockpit.tasklist.api.UserTaskStreamAudience;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
@@ -61,9 +62,18 @@ import io.vanillabp.cockpit.util.SearchQuery;
  * Marking as read still works, because it only changes how the list shows the row. A task the
  * user may not reach is answered with 404 first, whether it ended or not.
  *
+ * <p>Nobody may work on a task whose process instance is suspended. Claiming, giving back,
+ * assigning and unassigning answer HTTP 409 for it as well, and so does a list of ids which holds
+ * one, after the check for an ended task. Nothing is written then. Setting the follow-up date,
+ * writing the note and marking as read still work.
+ *
  * <p>Only the assignee can give a task back. Giving back a task which another user claimed answers
  * HTTP 400, for one task and for a list of ids which holds one, and nothing is written. A task
- * which has ended answers 409 before that, and one the user may not reach 404 before both.
+ * which has ended or is suspended answers 409 before that, and one the user may not reach 404
+ * before all of them.
+ *
+ * <p>Every refusal of claiming, giving back, assigning and unassigning carries a plain text body
+ * which says why, so a user interface can show it.
  *
  * <p>{@link UserTaskVisibility} names the ready-made views the cockpit ships with. An application
  * which needs another one builds a {@code UserTaskVisibility} of its own rather than overriding the
@@ -493,8 +503,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
           ? userTaskService.unclaimTask(visibility, currentUserId, userTaskId, currentUserId)
           : userTaskService.claimTask(
               visibility, userTaskId, personAndGroupModelMapper.toModelPerson(currentUser));
-    } catch (UserTaskAlreadyCompletedException | UserTaskClaimedByAnotherUserException e) {
-      throw refusedClaimOrUnclaim(e);
+    } catch (UserTaskAlreadyCompletedException | UserTaskSuspendedException | UserTaskClaimedByAnotherUserException e) {
+      throw refused(e);
     }
 
     return result == null
@@ -522,8 +532,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
             userTaskIds.getUserTaskIds(),
             personAndGroupModelMapper.toModelPerson(currentUser));
       }
-    } catch (UserTaskAlreadyCompletedException | UserTaskClaimedByAnotherUserException e) {
-      throw refusedClaimOrUnclaim(e);
+    } catch (UserTaskAlreadyCompletedException | UserTaskSuspendedException | UserTaskClaimedByAnotherUserException e) {
+      throw refused(e);
     }
 
     return ResponseEntity.ok().build();
@@ -531,16 +541,16 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
   }
 
   /**
-   * Turns a refused claim or unclaim into its answer. Both answers carry the message of the
-   * exception as plain text, so the user interface can tell the user why: {@code 409 Conflict}
-   * for a task which has ended, and {@code 400 Bad Request} for giving back a task which another
-   * user claimed. {@link io.vanillabp.cockpit.exceptions.RestfulExceptionHandler} writes the
-   * answer.
+   * Turns a refused claim, unclaim, assign or unassign into its answer. Every answer carries the
+   * message of the exception as plain text, so the user interface can tell the user why:
+   * {@code 409 Conflict} for a task which has ended or is suspended, and {@code 400 Bad Request}
+   * for giving back a task which another user claimed.
+   * {@link io.vanillabp.cockpit.exceptions.RestfulExceptionHandler} writes the answer.
    *
-   * @param refusal Why the claim or unclaim was refused
+   * @param refusal Why the change was refused
    * @return The exception to throw
    */
-  private static ResponseStatusException refusedClaimOrUnclaim(
+  private static ResponseStatusException refused(
       final RuntimeException refusal) {
 
     final var status = refusal instanceof UserTaskClaimedByAnotherUserException
@@ -564,8 +574,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
           ? userTaskService.unassignTask(visibility, userTaskId, userId)
           : userTaskService.assignTask(
               visibility, userTaskId, personAndGroupModelMapper.toModelPerson(userId));
-    } catch (UserTaskAlreadyCompletedException e) {
-      return ResponseEntity.status(HttpStatus.CONFLICT).build();
+    } catch (UserTaskAlreadyCompletedException | UserTaskSuspendedException e) {
+      throw refused(e);
     }
 
     return result == null
@@ -589,8 +599,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
         userTaskService.assignTask(
             visibility, body.getUserTaskIds(), personAndGroupModelMapper.toModelPerson(userId));
       }
-    } catch (UserTaskAlreadyCompletedException e) {
-      return ResponseEntity.status(HttpStatus.CONFLICT).build();
+    } catch (UserTaskAlreadyCompletedException | UserTaskSuspendedException e) {
+      throw refused(e);
     }
 
     return ResponseEntity.ok().build();

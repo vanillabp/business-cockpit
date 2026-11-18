@@ -85,8 +85,14 @@ paths:
             because an answer about them would tell that they exist.
         409:
           description: >-
-            One of the tasks the user may see has ended. None of the tasks is changed. An ended
-            task is documentation, and only marking it as read still works.
+            One of the tasks the user may see has ended or is suspended. None of the tasks is
+            changed. An ended task is documentation, and only marking it as read still works.
+            Nobody may work on a suspended task until it is activated again, but its follow-up
+            date, its note and the read marker still change. The body says why.
+          content:
+            text/plain:
+              schema:
+                type: string
   /usertask/{userTaskId}/assign:
     patch:
       tags:
@@ -116,8 +122,14 @@ paths:
           description: User task is unknown
         409:
           description: >-
-            The task has ended and is not changed. An ended task is documentation, and only
-            marking it as read still works.
+            The task has ended or is suspended, and it is not changed. An ended task is
+            documentation, and only marking it as read still works. Nobody may work on a suspended
+            task until it is activated again, but its follow-up date, its note and the read marker
+            still change. The body says why.
+          content:
+            text/plain:
+              schema:
+                type: string
   /usertask/claim:
     patch:
       tags:
@@ -144,16 +156,18 @@ paths:
         400:
           description: >-
             Only with `unclaim=true`: another user claimed one of the tasks the user may see, and
-            none of them has ended. Only the assignee can give a task back. None of the tasks is
-            changed. The body says why.
+            none of them has ended or is suspended. Only the assignee can give a task back. None of
+            the tasks is changed. The body says why.
           content:
             text/plain:
               schema:
                 type: string
         409:
           description: >-
-            One of the tasks the user may see has ended. None of the tasks is changed. An ended
-            task is documentation, and only marking it as read still works. The body says why.
+            One of the tasks the user may see has ended or is suspended. None of the tasks is
+            changed. An ended task is documentation, and only marking it as read still works.
+            Nobody may work on a suspended task until it is activated again, but its follow-up
+            date, its note and the read marker still change. The body says why.
           content:
             text/plain:
               schema:
@@ -180,8 +194,9 @@ paths:
           description: Usertask changed successfully
         400:
           description: >-
-            Only with `unclaim=true`: another user claimed the task, and it has not ended. Only the
-            assignee can give a task back. The task is not changed. The body says why.
+            Only with `unclaim=true`: another user claimed the task, and it has neither ended nor is
+            it suspended. Only the assignee can give a task back. The task is not changed. The body
+            says why.
           content:
             text/plain:
               schema:
@@ -190,8 +205,10 @@ paths:
           description: User task is unknown
         409:
           description: >-
-            The task has ended and is not changed. An ended task is documentation, and only
-            marking it as read still works. The body says why.
+            The task has ended or is suspended, and it is not changed. An ended task is
+            documentation, and only marking it as read still works. Nobody may work on a suspended
+            task until it is activated again, but its follow-up date, its note and the read marker
+            still change. The body says why.
           content:
             text/plain:
               schema:

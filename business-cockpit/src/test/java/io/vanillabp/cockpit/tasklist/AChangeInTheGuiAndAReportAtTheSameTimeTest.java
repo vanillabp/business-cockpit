@@ -1,9 +1,12 @@
 package io.vanillabp.cockpit.tasklist;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
@@ -31,6 +34,8 @@ import org.springframework.data.mongodb.core.convert.DefaultDbRefResolver;
 import org.springframework.data.mongodb.core.convert.MappingMongoConverter;
 import org.springframework.data.mongodb.core.convert.MongoCustomConversions;
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.UpdateDefinition;
 import org.springframework.data.mongodb.repository.support.MongoRepositoryFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.testcontainers.mongodb.MongoDBContainer;
@@ -72,6 +77,8 @@ class AChangeInTheGuiAndAReportAtTheSameTimeTest {
 
   private UserTaskService service;
 
+  private MongoTemplate mongoTemplate;
+
   /** Runs once, right before the next save of a task, and is cleared then. */
   private final AtomicReference<Runnable> beforeTheNextSave = new AtomicReference<>();
 
@@ -107,7 +114,7 @@ class AChangeInTheGuiAndAReportAtTheSameTimeTest {
     final var converter = new MappingMongoConverter(new DefaultDbRefResolver(factory), mappingContext);
     converter.setCustomConversions(conversions);
     converter.afterPropertiesSet();
-    final var mongoTemplate = new MongoTemplate(factory, converter);
+    mongoTemplate = new MongoTemplate(factory, converter);
 
     final var stored = new MongoRepositoryFactory(mongoTemplate).getRepository(UserTaskRepository.class);
     final var userTasks = mock(UserTaskRepository.class, AdditionalAnswers.delegatesTo(stored));
@@ -312,6 +319,69 @@ class AChangeInTheGuiAndAReportAtTheSameTimeTest {
 
   }
 
+  static Stream<Arguments> theChangesASuspensionRefuses() {
+
+    return theChangesWhichSaveTheTask()
+        .filter(arguments -> !((Named<?>) arguments.get()[0]).getName().contains("follow-up"));
+
+  }
+
+  private void aSuspensionIsReported() {
+
+    assertThat(service.reportSuspendedUserTask(TASK, CREATED_AT.plusMinutes(1), "olivia").isUpToDate())
+        .isTrue();
+
+  }
+
+  /**
+   * The change read the task while it was not suspended yet, and the suspension was stored before
+   * the change is saved. The change is read again, sees the suspension and is refused, so nothing
+   * of it is written and the suspension stays.
+   */
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("theChangesASuspensionRefuses")
+  void aChangeWhichReadTheTaskBeforeASuspensionIsRefused(
+      final ChangeInTheGui change) {
+
+    change.prepare().accept(service);
+    final var before = service.getUserTask(TASK);
+    beforeTheNextSave.set(this::aSuspensionIsReported);
+
+    assertThatThrownBy(() -> change.make().accept(service)).isInstanceOf(UserTaskSuspendedException.class);
+
+    assertThat(beforeTheNextSave.get()).as("the suspension came in between").isNull();
+    final var stored = service.getUserTask(TASK);
+    assertThat(stored.getSuspendedAt()).isNotNull();
+    assertThat(stored.getAssignee().getId()).isEqualTo(MARTIN);
+    assertThat(candidatesOf(stored)).isEqualTo(candidatesOf(before));
+
+  }
+
+  /**
+   * Giving back is one update which only writes a task that is not suspended. If the suspension is
+   * stored between the read and that update, the update matches nothing. The task is read again
+   * then, and the user is told why nothing changed.
+   */
+  @Test
+  void aTaskGivenBackWhileItIsSuspendedIsRefusedAndKeepsItsAssignee() {
+
+    final var updatesOnlyAfterTheSuspension = spy(mongoTemplate);
+    doAnswer(invocation -> {
+      aSuspensionIsReported();
+      return invocation.callRealMethod();
+    }).when(updatesOnlyAfterTheSuspension).updateFirst(any(Query.class), any(UpdateDefinition.class),
+        eq(UserTask.class));
+    ReflectionTestUtils.setField(service, "mongoTemplate", updatesOnlyAfterTheSuspension);
+
+    assertThatThrownBy(() -> service.unclaimTask(UserTaskVisibility.everyUserTask(), MARTIN, TASK, MARTIN))
+        .isInstanceOf(UserTaskSuspendedException.class);
+
+    final var stored = service.getUserTask(TASK);
+    assertThat(stored.getSuspendedAt()).isNotNull();
+    assertThat(stored.getAssignee().getId()).isEqualTo(MARTIN);
+
+  }
+
   /** The positive twin of the two above: a change with nothing in between. */
   @Test
   void aTaskGivenBackWithNothingInBetweenHasNoAssignee() {
@@ -323,6 +393,15 @@ class AChangeInTheGuiAndAReportAtTheSameTimeTest {
     final var stored = service.getUserTask(TASK);
     assertThat(stored.getAssignee()).isNull();
     assertThat(stored.getVersion()).isEqualTo(before + 1);
+
+  }
+
+  private static List<String> candidatesOf(
+      final UserTask userTask) {
+
+    return userTask.getCandidateUsers() == null
+        ? List.of()
+        : userTask.getCandidateUsers().stream().map(Person::getId).toList();
 
   }
 

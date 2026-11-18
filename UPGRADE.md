@@ -972,3 +972,27 @@ The forms of a workflow module answer a task another user claimed with 409, see 
 not open any more answers 404" above. The two APIs answer different questions. A form refuses an
 answer for a task that is not the user's, and that is a conflict of two users. Giving back a task
 that is not yours is a request which cannot work, whatever the state of the task.
+
+### Nobody can work on a suspended task through the GUI API
+
+Claim, unclaim, assign and unassign of the GUI API answered 200 for a task whose process instance
+is suspended, and changed it. Only the BPMS refused to complete the task. Now these four requests
+answer `409 Conflict` for a suspended task and write nothing:
+
+- `PATCH /usertask/{id}/claim`, with and without `unclaim=true`, and `PATCH /usertask/claim`
+- `PATCH /usertask/{id}/assign`, with and without `unassign=true`, and `PATCH /usertask/assign`
+
+A task is suspended while its `suspendedAt` is set. The list forms are all or nothing, as they are
+for an ended task: if one of the tasks the user may see is suspended, none of them is changed.
+Setting the follow-up date, writing the note and marking as read or unread still work. Once the
+BPMS activates the task again, the requests work again.
+
+The answers come in this order: 404 for a task the user may not see, 409 for a task which has
+ended, 409 for a task which is suspended, and 400 for giving back a task another user claimed. Each
+409 carries a plain text body which says why and names no user. The 409 of assign and unassign for
+an ended task had no body before, now it has one as well.
+
+A user interface which leaves the four actions out for a suspended task sees no difference. One
+which offers them reads the task again after a 409, redraws the row and shows the text of the
+answer. A bulk action leaves the suspended tasks out of its request, or the whole request is
+refused.

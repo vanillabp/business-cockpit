@@ -498,6 +498,8 @@ public class UserTaskService {
    * @param person The person to add
    * @return The task as it is stored now, or {@code null} if the caller may not reach it
    * @throws UserTaskAlreadyCompletedException if the task has ended. Nothing is written then.
+   * @throws UserTaskSuspendedException if the task is suspended and has not ended. Nothing is
+   *         written then.
    */
   public UserTask assignTask(
       final UserTaskVisibility visibility,
@@ -510,6 +512,7 @@ public class UserTaskService {
         return null;
       }
       refuseIfEnded(userTask);
+      refuseIfSuspended(userTask);
       userTask.addCandidatePerson(person);
       return saveInitiatedByCockpit(userTask);
     });
@@ -526,6 +529,8 @@ public class UserTaskService {
    * @return The tasks as they are stored now
    * @throws UserTaskAlreadyCompletedException if one of the tasks the caller may reach has ended.
    *         None of the tasks is changed then.
+   * @throws UserTaskSuspendedException if one of the tasks the caller may reach is suspended and
+   *         none of them has ended. None of the tasks is changed then.
    */
   public List<UserTask> assignTask(
       final UserTaskVisibility visibility,
@@ -535,6 +540,7 @@ public class UserTaskService {
     return againIfAReportCameInBetween(() -> {
       final var found = getUserTasks(visibility, userTaskIds);
       found.forEach(this::refuseIfEnded);
+      found.forEach(this::refuseIfSuspended);
       found.forEach(userTask -> userTask.addCandidatePerson(person));
       return saveAllInitiatedByCockpit(found);
     });
@@ -549,6 +555,8 @@ public class UserTaskService {
    * @param personId The id of the person to remove
    * @return The task as it is stored now, or {@code null} if the caller may not reach it
    * @throws UserTaskAlreadyCompletedException if the task has ended. Nothing is written then.
+   * @throws UserTaskSuspendedException if the task is suspended and has not ended. Nothing is
+   *         written then.
    */
   public UserTask unassignTask(
       final UserTaskVisibility visibility,
@@ -561,6 +569,7 @@ public class UserTaskService {
         return null;
       }
       refuseIfEnded(userTask);
+      refuseIfSuspended(userTask);
       userTask.removeCandidatePerson(personId);
       return saveInitiatedByCockpit(userTask);
     });
@@ -577,6 +586,8 @@ public class UserTaskService {
    * @return The tasks as they are stored now
    * @throws UserTaskAlreadyCompletedException if one of the tasks the caller may reach has ended.
    *         None of the tasks is changed then.
+   * @throws UserTaskSuspendedException if one of the tasks the caller may reach is suspended and
+   *         none of them has ended. None of the tasks is changed then.
    */
   public List<UserTask> unassignTask(
       final UserTaskVisibility visibility,
@@ -586,6 +597,7 @@ public class UserTaskService {
     return againIfAReportCameInBetween(() -> {
       final var found = getUserTasks(visibility, userTaskIds);
       found.forEach(this::refuseIfEnded);
+      found.forEach(this::refuseIfSuspended);
       found.forEach(userTask -> userTask.removeCandidatePerson(personId));
       return saveAllInitiatedByCockpit(found);
     });
@@ -631,6 +643,8 @@ public class UserTaskService {
    * @param person The person who takes the task
    * @return The task as it is stored now, or {@code null} if the caller may not reach it
    * @throws UserTaskAlreadyCompletedException if the task has ended. Nothing is written then.
+   * @throws UserTaskSuspendedException if the task is suspended and has not ended. Nothing is
+   *         written then.
    */
   public UserTask claimTask(
       final UserTaskVisibility visibility,
@@ -643,6 +657,7 @@ public class UserTaskService {
         return null;
       }
       refuseIfEnded(userTask);
+      refuseIfSuspended(userTask);
       if ((userTask.getAssignee() == null) || !userTask.getAssignee().getId().equals(person.getId())) {
         userTask.setAssignee(person);
         return saveInitiatedByCockpit(userTask);
@@ -661,6 +676,8 @@ public class UserTaskService {
    * @return The tasks as they are stored now
    * @throws UserTaskAlreadyCompletedException if one of the tasks the caller may reach has ended.
    *         None of the tasks is changed then.
+   * @throws UserTaskSuspendedException if one of the tasks the caller may reach is suspended and
+   *         none of them has ended. None of the tasks is changed then.
    */
   public List<UserTask> claimTask(
       final UserTaskVisibility visibility,
@@ -670,6 +687,7 @@ public class UserTaskService {
     return againIfAReportCameInBetween(() -> {
       final var found = getUserTasks(visibility, userTaskIds);
       found.forEach(this::refuseIfEnded);
+      found.forEach(this::refuseIfSuspended);
       found.forEach(userTask -> userTask.setAssignee(person));
       return saveAllInitiatedByCockpit(found);
     });
@@ -690,8 +708,10 @@ public class UserTaskService {
    *        A task without an assignee stays as it is, and that is no mistake.
    * @return The task as it is stored now, or {@code null} if the caller may not reach it
    * @throws UserTaskAlreadyCompletedException if the task has ended. Nothing is written then.
-   * @throws UserTaskClaimedByAnotherUserException if another person is the assignee of the task.
-   *         Nothing is written then.
+   * @throws UserTaskSuspendedException if the task is suspended and has not ended. Nothing is
+   *         written then.
+   * @throws UserTaskClaimedByAnotherUserException if another person is the assignee of the task,
+   *         and the task has neither ended nor is suspended. Nothing is written then.
    */
   public UserTask unclaimTask(
       final UserTaskVisibility visibility,
@@ -704,21 +724,25 @@ public class UserTaskService {
       return null;
     }
     refuseIfEnded(userTask);
+    refuseIfSuspended(userTask);
     refuseIfClaimedByAnotherUser(userTask, personId);
 
     final var query = new Query();
     query.addCriteria(Criteria.where("id").is(userTaskId));
     query.addCriteria(Criteria.where("assignee.id").is(personId));
-    // a task which ends between the read above and this write stays as it ended
+    // a task which ends or is suspended between the read above and this write stays as it is
     query.addCriteria(Criteria.where("endedAt").exists(false));
+    query.addCriteria(Criteria.where("suspendedAt").is(null));
 
     final var written = mongoTemplate.updateFirst(
         query, LatestChange.recordIn(unsetAssignee(currentUser), initiatorFor(currentUser)), UserTask.class);
 
     final var stored = getUserTask(userTaskId);
-    // the task ended, or somebody else claimed it, between the read above and this write
+    // the task ended, was suspended or somebody else claimed it, between the read above and
+    // this write
     if ((written.getMatchedCount() == 0) && (stored != null)) {
       refuseIfEnded(stored);
+      refuseIfSuspended(stored);
       refuseIfClaimedByAnotherUser(stored, personId);
     }
     return stored;
@@ -737,9 +761,11 @@ public class UserTaskService {
    * @return The tasks the caller may reach, as they are stored now
    * @throws UserTaskAlreadyCompletedException if one of the tasks the caller may reach has ended.
    *         None of the tasks is changed then.
+   * @throws UserTaskSuspendedException if one of the tasks the caller may reach is suspended and
+   *         none of them has ended. None of the tasks is changed then.
    * @throws UserTaskClaimedByAnotherUserException if another person is the assignee of one of the
-   *         tasks the caller may reach and none of them has ended. None of the tasks is changed
-   *         then.
+   *         tasks the caller may reach and none of them has ended or is suspended. None of the
+   *         tasks is changed then.
    */
   public List<UserTask> unclaimTask(
       final UserTaskVisibility visibility,
@@ -749,6 +775,7 @@ public class UserTaskService {
 
     final var found = getUserTasks(visibility, userTaskIds);
     found.forEach(this::refuseIfEnded);
+    found.forEach(this::refuseIfSuspended);
     found.forEach(userTask -> refuseIfClaimedByAnotherUser(userTask, personId));
     final var unclaimable = found
         .stream()
@@ -762,6 +789,7 @@ public class UserTaskService {
     query.addCriteria(Criteria.where("id").in(unclaimable));
     query.addCriteria(Criteria.where("assignee.id").is(personId));
     query.addCriteria(Criteria.where("endedAt").exists(false));
+    query.addCriteria(Criteria.where("suspendedAt").is(null));
 
     mongoTemplate.updateMulti(
         query, LatestChange.recordIn(unsetAssignee(currentUser), initiatorFor(currentUser)), UserTask.class);
@@ -857,6 +885,24 @@ public class UserTaskService {
 
     if (userTask.getEndedAt() != null) {
       throw new UserTaskAlreadyCompletedException(userTask.getId());
+    }
+
+  }
+
+  /**
+   * Nobody may work on a task whose process instance is suspended: taking it, giving it back,
+   * proposing it to somebody and taking a candidate off it wait until it is activated again. The
+   * follow-up date, the note and the read marker still change, because they help the users to
+   * organize their work and do not move the task on.
+   *
+   * @param userTask The task as it is stored
+   * @throws UserTaskSuspendedException if the task is suspended
+   */
+  private void refuseIfSuspended(
+      final UserTask userTask) {
+
+    if (userTask.getSuspendedAt() != null) {
+      throw new UserTaskSuspendedException(userTask.getId());
     }
 
   }

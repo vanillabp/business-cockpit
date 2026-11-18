@@ -5540,3 +5540,60 @@ task the user does not hold is a request which cannot work.
   `references/reference-1.0.0.md` (the ACT item on unclaim), applied on the branch of that skill
 
 The javadoc of `UserTaskClaimedByAnotherUserException` cites this decision.
+
+### 116. Nobody can claim, give back, assign or unassign a suspended task, and the GUI API answers 409 with a reason
+
+#### What was missing
+
+A user task is suspended while its process instance is suspended: `suspendedAt` is set and
+`endedAt` is not. The GUI API refused changes only for an ended task. Claim, unclaim, assign and
+unassign went through for a suspended task, and only the BPMS refused to complete it later. A user
+interface had to lock the actions itself, and a script or another user interface could still change
+who works on the task.
+
+#### The decision
+
+Claim, unclaim, assign (which proposes a person as candidate) and unassign (which takes a candidate
+off) answer `409 Conflict` for a suspended task, and nothing is written. The list forms are all or
+nothing, like for an ended task: if one of the tasks the user may see is suspended, none of them is
+changed. The cockpit uses the same mechanism as for an ended task: `UserTaskService` checks the task
+it read, and `UserTaskSuspendedException` becomes the answer in `AbstractUserTaskListGuiApiController`.
+
+The answers come in this order:
+
+- `404 Not Found`: the user may not see the task, or it does not exist. A list leaves such ids out.
+- `409 Conflict`: the task has ended.
+- `409 Conflict`: the task is suspended.
+- `400 Bad Request`: another user claimed the task, for unclaim only.
+
+Every `409` of claim, unclaim, assign and unassign carries a plain text body which says why, like
+the refusals of claim and unclaim already do. The body names no user. The `409` of assign and
+unassign for an ended task had no body before and gets one as well, so all four actions answer the
+same way.
+
+Setting the follow-up date, writing the note and marking as read or unread stay allowed for a
+suspended task. They help the users to organize their work and do not move the task on.
+
+A change which reads the task and saves it whole is made again if a report came in between, so it
+sees a suspension stored in the meantime and is refused. Giving back is one update which writes only
+a task that is not suspended and has not ended. If it matches nothing, the task is read again and
+checked again, so the user learns why nothing changed.
+
+#### Where it applies
+
+- `UserTaskSuspendedException`, `refuseIfSuspended` and the claim, unclaim, assign and unassign
+  methods of `UserTaskService` in `business-cockpit`
+- `claimTask`, `claimTasks`, `assignTask`, `assignTasks`, `refused` and the class javadoc of
+  `AbstractUserTaskListGuiApiController`
+- the responses of `/usertask/claim`, `/usertask/{userTaskId}/claim`, `/usertask/assign` and
+  `/usertask/{userTaskId}/assign` in `apis/official-gui-api/openapi/v1.yaml`
+- the tests `ASuspendedTaskRefusesWorkOnItTest` in `container` and
+  `AChangeInTheGuiAndAReportAtTheSameTimeTest` in `business-cockpit`
+- `UPGRADE.md`: "Nobody can work on a suspended task through the GUI API"
+- the wiki page `Security.md` (the section about claiming, giving back and the order of the
+  answers), see the wiki branch
+- the skill `business-cockpit-creator`: the sentence "the server would accept them" in
+  `references/gui-api.md` and `references/behaviour.md`, and `references/rough-edges.md`, changed
+  on the branch of that skill
+
+The javadoc of `UserTaskSuspendedException` cites this decision.
