@@ -723,9 +723,10 @@ a host element with a shadow root, as the cockpit does, see [dev-shell.md](dev-s
 ## The theme library
 
 `<scope>/bc-theme` holds the look of the cockpit from `Q-THEME`: the colours, the fonts, the logo
-and the spacing, also the colours of a new, changed, removed and inactive row. It ships them as a
-CSS file that sets the custom properties on the root, under the names the types library exports
-(`Q-THEME-TOKENS`), and as plain values for code that needs them. The same CSS file holds the base
+and the spacing, also the colours of a new, changed and removed row, the grey of an ended row and
+the lighter text of a suspended row. It ships them as a CSS file that sets the custom properties on
+the root, under the names the types library exports (`Q-THEME-TOKENS`), and as plain values for
+code that needs them. The same CSS file holds the base
 styles of the page: the font, the colour and the margins of `<html>` and `<body>`, and the
 `@font-face` rules of the fonts. It has no dependencies and no framework.
 

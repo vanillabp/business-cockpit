@@ -77,8 +77,9 @@ description `official-gui-api` defines them. The types library carries them as T
 It generates them from that file with `@hey-api/openapi-ts`, the tool and the exact version the
 user interface generates its client with, but with the plugin `@hey-api/typescript` only: the
 library needs the types and no client. See [gui-api.md](gui-api.md#generating-the-client). Generate
-them; do not copy them by hand. They include `endReason`, see
-[gui-api.md](gui-api.md#how-a-row-ended).
+them; do not copy them by hand. They include `endReason` and `suspendedAt`, see
+[gui-api.md](gui-api.md#how-a-row-ended) and
+[gui-api.md](gui-api.md#suspended-tasks-and-cases).
 
 `uiUriType` is a string there and not a type of its own. Which values exist is agreed between this
 user interface and its modules, and VanillaBP knows no names for them. The types library exports
@@ -303,9 +304,9 @@ library has the type of these properties, with the types of each function.
 
 The web component of the area `all` gets `area` as `all`.
 
-Whether a form is read-only is the module's decision, from `assignee` and `endedAt` of `userTask`
-together with `currentUser`. The cockpit only sets these properties and does not decide it, see
-[behaviour.md](behaviour.md#the-barrier).
+Whether a form is read-only is the module's decision, from `assignee`, `endedAt` and `suspendedAt`
+of `userTask` together with `currentUser`. The cockpit only sets these properties and does not
+decide it, see [behaviour.md](behaviour.md#the-barrier).
 
 `workflowModule` has the fields `GET /workflow-module` returns: `id`, `version`, `uri`.
 

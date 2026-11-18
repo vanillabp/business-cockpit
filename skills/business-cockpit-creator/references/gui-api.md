@@ -34,8 +34,9 @@ What is written here is the behaviour behind them, which neither file says.
 14. [The second form of the same query](#the-second-form-of-the-same-query)
 15. [The update stream](#the-update-stream)
 16. [How a row ended](#how-a-row-ended)
-17. [User settings](#user-settings)
-18. [What the cockpit serves](#what-the-cockpit-serves)
+17. [Suspended tasks and cases](#suspended-tasks-and-cases)
+18. [User settings](#user-settings)
+19. [What the cockpit serves](#what-the-cockpit-serves)
 
 ## Generating the client
 
@@ -677,6 +678,28 @@ A user task and a case have `endedAt`, the moment they ended, and `endReason`, t
 values are `COMPLETED` and `CANCELLED`. An open row has neither field. Data stored by an older
 cockpit, without `endReason`, is converted by the backend, so your user interface reads `endReason`
 only and guesses nothing from other fields.
+
+## Suspended tasks and cases
+
+The BPMS can suspend a process instance and activate it again later. A user task of a suspended
+process instance carries `suspendedAt`, the moment of the suspension, and `suspendedBy`, who
+suspended it, where the BPMS names somebody. A case whose own process instance is suspended
+carries the same two fields. A suspended called process does not make its case suspended. When the
+process instance is activated again, both fields are gone. The change comes as an ordinary update
+event on the update stream, so a list and an open page read the row again.
+
+A suspended task stays in every list, and a suspended case is in `InProgress`. Both lists can be
+sorted and filtered by `suspendedAt` like by any other field.
+
+`endedAt` decides first. A task or a case that was cancelled while it was suspended keeps
+`suspendedAt` after its end. So it is suspended only while `suspendedAt` is set and `endedAt` is
+not.
+
+The cockpit's server refuses nothing because a task is suspended. Claim, unclaim, assign, unassign,
+the follow-up date and the note answer as for any open task, and mark as read and unread work as
+always. Only the BPMS refuses to complete a suspended task, and the module's form gets that answer
+from its own backend, not from the cockpit. So your user interface switches off the actions itself,
+see [behaviour.md](behaviour.md#suspended-tasks).
 
 ## User settings
 
