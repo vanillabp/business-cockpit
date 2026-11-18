@@ -49,8 +49,10 @@ it gets about the record. That happens when the end overtakes the creation. With
 the timestamp of the end, so every record the user interface shows has a start. A creation which
 arrives later still fills in what the end left out, and its own start replaces that of the end.
 
-The client names its own dependencies rather than reaching them through another artifact of the
-cockpit, so that it drags no web framework into a consumer which has to stay free of one. Decision 1
-of the [decision log](../../DECISIONS.md) says why.
+The client is generated with the library `native` of the generator `java`. It sends with the JDK's
+own `java.net.http.HttpClient` and reads and writes JSON with Jackson, so it brings no HTTP library.
+It names its own dependencies rather than reaching them through another artifact of the cockpit, so
+that it drags no web framework into a consumer which has to stay free of one. Decision 1 of the
+[decision log](../../DECISIONS.md) says why.
 
 Built as part of the reactor build described in the [root README](../../README.md#building-it).

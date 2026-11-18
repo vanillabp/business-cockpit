@@ -246,43 +246,29 @@ Lombok's `@Slf4j` now. A class of the application which has `@Autowired Logger l
 the start with a missing bean of type `org.slf4j.Logger`. Write
 `private static final Logger logger = LoggerFactory.getLogger(MyClass.class);` or use `@Slf4j`.
 
-### The REST client runs on OpenFeign 13.18 and OkHttp 5
+### `ClientsConfigurationBase` is gone: REST clients are HTTP service clients
 
-The REST client in `support` moved from OpenFeign 13.14 to 13.18. That version of `feign-okhttp`
-is built against OkHttp 5, whose classes come in the artifact `com.squareup.okhttp3:okhttp-jvm`.
-The package is still `okhttp3`. An application which names OkHttp 4 itself, `okhttp` or
-`logging-interceptor` in a version `4.x`, ends up with both versions on its class path. Remove the
-version, or import `com.squareup.okhttp3:okhttp-bom` in version `5.5.1`.
+The REST client of `support` built on OpenFeign and OkHttp is gone, with the whole package
+`io.vanillabp.cockpit.support.rest.adapter`: `ClientsConfigurationBase`, `Client`,
+`Authentication`, `OauthAuthentication`, `Proxy`, `Retry`, `BearerTokenBasedAuthInterceptor`,
+`OauthBearerTokenHandler`, `OffsetDateTimeAwareExpander`, `TlsTruststoreUtil` and
+`ApiVersionAware`. `support` brings neither OpenFeign nor OkHttp any more, and neither does the
+BOM `business-cockpit-bom`. An application which uses OpenFeign or OkHttp for clients of its own
+names them, with their versions, in its own POM.
 
-`feign-form` is part of OpenFeign now. Its coordinate changed from `io.github.openfeign.form:feign-form`
-to `io.github.openfeign:feign-form`, and the package `feign.form` stayed.
+A REST client is built the new way, in the package `io.vanillabp.cockpit.support.rest.httpservice`.
+A client is an interface which the generator `spring` writes with the library
+`spring-http-interface`, and Spring Framework turns it into a client. The requests go through the
+JDK's own `java.net.http.HttpClient`. The section [REST clients](support/README.md#rest-clients) of
+the support README shows the way step by step.
 
-The REST client fetches its OAuth token without Apache Oltu, and `support` no longer brings
-`org.apache.oltu.oauth2:org.apache.oltu.oauth2.client`. An application which uses Oltu itself names
-it in its own POM. The classes `OAuthClient` and `OAuthOkHttpClient` in the package
-`io.vanillabp.cockpit.support.rest.adapter.oauth` are gone, because their methods took Oltu types.
-`OauthBearerTokenHandler` stays. With `authentication.oauth.basic: true`, the token request sends
-`grant_type` in the form body now, and no longer in the query string, as RFC 6749 asks. A missing
-`authentication.oauth.client-id` or `client-secret` is reported when the REST client is built,
-which is usually at the start of the application, and no longer at the first request.
-
-### A new way to build a REST client: HTTP service clients
-
-`support` has a second way to build a REST client, in the package
-`io.vanillabp.cockpit.support.rest.httpservice`. A client is an interface which the generator
-`spring` writes with the library `spring-http-interface`, and Spring Framework turns it into a
-client. `ClientsConfigurationBase` and the package `io.vanillabp.cockpit.support.rest.adapter` stay
-and work as before. Nothing has to change now. New clients use the new way, and existing ones move
-when it suits. The section [REST clients](support/README.md#rest-clients) of the support README
-shows the new way step by step.
-
-`support` brings `spring-boot-starter-restclient` now, and the auto-configuration
+`support` brings `spring-boot-starter-restclient`, and the auto-configuration
 `HttpServiceClientConventionsAutoConfiguration`. It configures every HTTP service group of the
 application, so an application which already has groups of its own gets them checked at the start:
 a group without `base-url`, or a key nobody reads, stops the start with a message which names the
 key.
 
-To move a client of `ClientsConfigurationBase`:
+To move a client which extended `ClientsConfigurationBase`:
 
 1. Generate the interface with the generator `spring` and the library `spring-http-interface`
    instead of `java` with `feign`.
@@ -317,6 +303,18 @@ A caller of a moved client gets Spring's exceptions. An answer with an error sta
 example `HttpClientErrorException.NotFound` instead of `FeignException.NotFound`. No answer at all
 comes as `ResourceAccessException` instead of `feign.RetryableException`. A refused token request
 comes as Spring Security's `OAuth2AuthorizationException`.
+
+### The client of the BPMS API sends with the JDK's `HttpClient`
+
+`bpms-api-client` is generated with the library `native` of the generator `java` instead of
+`feign`. It brings no OpenFeign and no OkHttp. The messages keep their package and their names.
+`BpmsApi` is a class now, created with `new BpmsApi(apiClient)`, and its methods throw the checked
+`ApiException`, which carries the status, the headers and the body of the answer. The client
+brings the path of the API along as `BpmsApiPath.PATH`. The REST transport of the adapters uses
+the client this way, so a workflow module which only configures `vanillabp.cockpit.rest.*` changes
+nothing: the keys, the messages and the token of the OAuth client credentials grant stay as they
+were. The transport logs each report it sent at level `DEBUG`, with the logger
+`io.vanillabp.cockpit.extension.transport.RestTransport`.
 
 ### The MongoDB migration is a library of its own
 
