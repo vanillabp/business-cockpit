@@ -51,12 +51,10 @@ public class OfficialApiCurrentUserController implements OfficialCurrentUserApi 
    * answers 200 without a body if nobody is signed in. A user who is no longer in the
    * configuration counts as nobody.
    *
-   * @param xRefreshToken Not read, as in the cockpit
    * @return The user signed in, or no body
    */
   @Override
-  public ResponseEntity<User> currentUser(
-      final String xRefreshToken) {
+  public ResponseEntity<User> currentUser() {
 
     final var userFound = signedInUser
         .id()

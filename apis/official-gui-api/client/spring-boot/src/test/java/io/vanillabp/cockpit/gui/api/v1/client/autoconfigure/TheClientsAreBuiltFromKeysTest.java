@@ -89,7 +89,7 @@ public class TheClientsAreBuiltFromKeysTest {
     RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(usersRequest));
     cockpit.enqueue(Cockpit.currentUser("jane", "CLERK"));
 
-    final var user = currentUser.currentUser(null).getBody();
+    final var user = currentUser.currentUser().getBody();
 
     assertThat(user.getId()).isEqualTo("jane");
     assertThat(user.getGroups()).extracting(group -> group.getId()).containsExactly("CLERK");

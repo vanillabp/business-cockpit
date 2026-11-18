@@ -167,7 +167,7 @@ An answer with an error status comes as Spring's `HttpClientErrorException` or
 `HttpServerErrorException`, no answer at all as `ResourceAccessException`.
 
 The user signed in, `GET /gui/api/v1/app/current-user`, is part of this API:
-`OfficialCurrentUserApi.currentUser(null)` answers the user of the forwarded cookie with all
+`OfficialCurrentUserApi.currentUser()` answers the user of the forwarded cookie with all
 groups, or no body if the request carries no login.
 
 Its tests start the client against a stub server. Its coverage is the report

@@ -161,7 +161,7 @@ public class TheClientsCallTheCockpitTest {
 
     cockpit.enqueue(user("jane"));
 
-    final var user = currentUser.currentUser(null);
+    final var user = currentUser.currentUser();
 
     assertThat(user.getId()).isEqualTo("jane");
     assertThat(user.getGroups()).extracting(group -> group.getId()).containsExactly("CLERK");

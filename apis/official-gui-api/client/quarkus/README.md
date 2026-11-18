@@ -104,7 +104,7 @@ boolean isClaimedByAnotherUser(
     final String taskId) {
 
   final var assignee = tasklist.getUserTask(taskId, null).getAssignee();
-  return (assignee != null) && !assignee.getId().equals(currentUser.currentUser(null).getId());
+  return (assignee != null) && !assignee.getId().equals(currentUser.currentUser().getId());
 
 }
 ```
