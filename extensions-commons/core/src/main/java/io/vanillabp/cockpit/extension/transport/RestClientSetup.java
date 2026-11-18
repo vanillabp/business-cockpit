@@ -2,36 +2,35 @@ package io.vanillabp.cockpit.extension.transport;
 
 import java.io.InputStream;
 import java.net.InetSocketAddress;
-import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.Socket;
+import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.Base64;
 
-import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.X509ExtendedTrustManager;
 
-import feign.Client;
-import feign.DefaultClient;
-import feign.Request;
 import io.vanillabp.cockpit.extension.config.RestConnection;
 import io.vanillabp.cockpit.extension.config.RestTransportConfiguration;
 
 /**
  * What the client talking to the cockpit server is built with, beyond the address it talks to.
  * <p>
- * A deployment which reaches the server directly, over a certificate the JVM trusts, needs
- * none of this and gets the client the generated code brings. What a deployment cannot arrange
- * any other way is arranged here: the proxy in front of it, the certificate its own authority
- * signed, and how long it is willing to wait. Every one of these was configurable in version 1
- * of the Business Cockpit, and an application which passed a proxy could not upgrade without
- * them.
+ * The requests go through the JDK's own {@link HttpClient}, so the transport brings no HTTP
+ * library. A deployment which reaches the server directly, over a certificate the JVM trusts,
+ * needs nothing of this beyond the timeouts. What a deployment cannot arrange any other way is
+ * arranged here: the proxy in front of it, the certificate its own authority signed, and how long
+ * it is willing to wait. Every one of these was configurable in version 1 of the Business
+ * Cockpit, and an application which passed a proxy could not upgrade without them.
  */
 public final class RestClientSetup {
 
@@ -39,54 +38,65 @@ public final class RestClientSetup {
   }
 
   /**
-   * How long the client waits. A configuration read from an application always carries both
-   * spans, version 1's where nothing was written. A configuration built in a test may leave one
-   * out, and the same default fills it in.
+   * How long the client waits for a connection. A configuration read from an application always
+   * carries it, version 1's where nothing was written. A configuration built in a test may leave
+   * it out, and the same default fills it in.
    *
    * @param configuration What the application configured about this connection
-   * @return The timeouts
+   * @return The timeout
    */
-  public static Request.Options timeoutsOf(
+  public static Duration connectTimeoutOf(
       final RestConnection configuration) {
 
-    return new Request.Options(
-        configuration.connectTimeout() == null
-            ? RestConnection.DEFAULT_CONNECT_TIMEOUT
-            : configuration.connectTimeout(), configuration.readTimeout() == null
-                ? RestConnection.DEFAULT_READ_TIMEOUT
-                : configuration.readTimeout(), true);
+    return configuration.connectTimeout() == null
+        ? RestConnection.DEFAULT_CONNECT_TIMEOUT
+        : configuration.connectTimeout();
+
+  }
+
+  /**
+   * How long the client waits for the answer, filled in like {@link #connectTimeoutOf}.
+   *
+   * @param configuration What the application configured about this connection
+   * @return The timeout
+   */
+  public static Duration readTimeoutOf(
+      final RestConnection configuration) {
+
+    return configuration.readTimeout() == null
+        ? RestConnection.DEFAULT_READ_TIMEOUT
+        : configuration.readTimeout();
 
   }
 
   /**
    * The HTTP stack the requests go through.
    * <p>
-   * It is built only where the configuration asks for something the generated client's own
-   * stack cannot be told: a proxy, a truststore of the deployment, or a certificate check
-   * switched off. Everywhere else the generated client keeps the stack it was generated with,
-   * so an application which configures nothing here also changes nothing about how it talks.
+   * It speaks HTTP/1.1, like the client of version 1. The JDK's client would otherwise ask a
+   * server reached over plain HTTP with every request to switch to HTTP/2. A proxy, a
+   * truststore of the deployment and a certificate check switched off are set only where the
+   * configuration asks for them. The login for the proxy is not part of the stack. A request
+   * carries it, see {@link #proxyAuthorizationOf}.
    *
    * @param configuration What the application configured
-   * @return The client, or <code>null</code> where the generated one is kept
+   * @return The builder of the client, for the caller to build
    */
-  public static Client clientOf(
+  public static HttpClient.Builder httpClientOf(
       final RestConnection configuration) {
 
-    if (!configuration.needsAClientOfItsOwn()) {
-      return null;
-    }
-    final var socketFactory = socketFactoryOf(configuration);
-    final var hostnameVerifier = hostnameVerifierOf(configuration);
+    final var builder = HttpClient
+        .newBuilder()
+        .version(HttpClient.Version.HTTP_1_1)
+        .connectTimeout(connectTimeoutOf(configuration));
     final var proxy = configuration.proxy();
-    if (proxy == null) {
-      return new DefaultClient(socketFactory, hostnameVerifier);
+    if (proxy != null) {
+      builder.proxy(ProxySelector.of(new InetSocketAddress(proxy.host(), proxy.port())));
     }
-    final var address = new Proxy(
-        Proxy.Type.HTTP, new InetSocketAddress(proxy.host(), proxy.port()));
-    return proxy.authenticates()
-        ? new Client.Proxied(
-            socketFactory, hostnameVerifier, address, proxy.username(), proxy.password())
-        : new Client.Proxied(socketFactory, hostnameVerifier, address);
+    final var sslContext = sslContextOf(configuration);
+    if (sslContext != null) {
+      builder.sslContext(sslContext);
+    }
+    return builder;
 
   }
 
@@ -116,25 +126,6 @@ public final class RestClientSetup {
               'ssl-truststore-password' has to be its password."""
               .formatted(configuration.sslTruststoreFilename()), e);
     }
-
-  }
-
-  /**
-   * The check of the server's host name. It is switched off where the application turned off
-   * the TLS check.
-   *
-   * @param configuration What the application configured
-   * @return What every request against the cockpit server checks the server's name with, or
-   *         <code>null</code> where the JVM's own check is left on
-   */
-  public static HostnameVerifier hostnameVerifierOf(
-      final RestConnection configuration) {
-
-    return configuration.verifySsl()
-        ? null
-        : (
-            hostname,
-            session) -> true;
 
   }
 
@@ -176,14 +167,6 @@ public final class RestClientSetup {
 
   }
 
-  private static SSLSocketFactory socketFactoryOf(
-      final RestConnection configuration) {
-
-    final var context = sslContextOf(configuration);
-    return context == null ? null : context.getSocketFactory();
-
-  }
-
   private static TrustManager[] trustManagersOf(
       final RestConnection configuration) throws Exception {
 
@@ -211,13 +194,17 @@ public final class RestClientSetup {
 
   /**
    * What a deployment gets which switched the certificate check off, for example a test setup,
-   * or a cockpit server inside a network which is trusted as a whole. It trusts everything,
-   * which is why 'verify-ssl' is the one key of the REST section whose message says what it
-   * costs.
+   * or a cockpit server inside a network which is trusted as a whole. It trusts everything, the
+   * name of the host included, which is why 'verify-ssl' is the one key of the REST section whose
+   * message says what it costs.
+   * <p>
+   * It is an {@link X509ExtendedTrustManager} on purpose. The JDK wraps a plain
+   * {@code X509TrustManager} into one which checks the host name all the same, and the JDK's
+   * {@link HttpClient} has no other way to switch that check off.
    */
-  private static X509TrustManager trustingEverything() {
+  private static X509ExtendedTrustManager trustingEverything() {
 
-    return new X509TrustManager() {
+    return new X509ExtendedTrustManager() {
 
       @Override
       public void checkClientTrusted(
@@ -230,6 +217,38 @@ public final class RestClientSetup {
       public void checkServerTrusted(
           final X509Certificate[] chain,
           final String authType) {
+
+      }
+
+      @Override
+      public void checkClientTrusted(
+          final X509Certificate[] chain,
+          final String authType,
+          final Socket socket) {
+
+      }
+
+      @Override
+      public void checkServerTrusted(
+          final X509Certificate[] chain,
+          final String authType,
+          final Socket socket) {
+
+      }
+
+      @Override
+      public void checkClientTrusted(
+          final X509Certificate[] chain,
+          final String authType,
+          final SSLEngine engine) {
+
+      }
+
+      @Override
+      public void checkServerTrusted(
+          final X509Certificate[] chain,
+          final String authType,
+          final SSLEngine engine) {
 
       }
 

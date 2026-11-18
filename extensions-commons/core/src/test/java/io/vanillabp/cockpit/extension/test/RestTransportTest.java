@@ -472,6 +472,25 @@ public class RestTransportTest {
   }
 
   @Test
+  @DisplayName("A cockpit server which cannot be reached has the entry repeated and is named")
+  public void anUnreachableServerHasTheReportRepeated() {
+
+    final var port = server.getAddress().getPort();
+    server.stop(0);
+
+    final var failure = assertThrows(
+        RuntimeException.class,
+        () -> transport.publishUserTaskEvent(EventFixture.userTask(UserTaskEventKind.CREATED)));
+
+    assertFalse(
+        PhaseTwoPermanentFailure.isPermanent(failure),
+        "a server which could not be reached ended the report");
+    assertTrue(failure.getMessage().contains("got no answer"), failure.getMessage());
+    assertTrue(failure.getMessage().contains("localhost:%d".formatted(port)), failure.getMessage());
+
+  }
+
+  @Test
   @DisplayName("The transport says where it sends, for a message about a failure")
   public void theTransportSaysWhereItSends() {
 

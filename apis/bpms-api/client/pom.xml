@@ -35,40 +35,13 @@
   </properties>
 
   <dependencies>
-    <dependency>
-      <!--
-        The generated ApiClient and ApiResponseDecoder use feign.jackson.* - openapi-generator emits
-        Jackson 2 codecs. Our own code moved to feign-jackson3 in T16, so this module declares the
-        Jackson 2 variant explicitly instead of picking it up transitively. Both can coexist: different
-        packages, and ClientsConfigurationBase replaces the codecs on the Feign builder anyway.
-      -->
-      <groupId>io.github.openfeign</groupId>
-      <artifactId>feign-jackson</artifactId>
-    </dependency>
     <!--
-      Everything the generated sources import, named one by one. The module used to reach all of it
-      through the cockpit's 'commons' artifact, which carries Spring Boot, Spring Data MongoDB and
-      Spring Security along with it. Nothing generated here touches any of that - the feign generator
-      with interfaceOnly emits feign, Jackson and jakarta.annotation and nothing else - and a client
-      which drags a web framework into every consumer cannot be used from a platform-neutral module.
-      See decision 1 in the repository's DECISIONS.md.
+      Everything the generated sources import, named one by one. The generator 'java' with the
+      library 'native' sends with the JDK's own java.net.http.HttpClient and reads and writes JSON with
+      Jackson, so no HTTP library comes along. A client which drags a web framework or an HTTP library
+      into every consumer cannot be used from a platform-neutral module. See decision 1 in the
+      repository's DECISIONS.md.
     -->
-    <dependency>
-      <groupId>io.github.openfeign</groupId>
-      <artifactId>feign-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.github.openfeign</groupId>
-      <artifactId>feign-okhttp</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.github.openfeign</groupId>
-      <artifactId>feign-slf4j</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.github.openfeign</groupId>
-      <artifactId>feign-form</artifactId>
-    </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
@@ -112,10 +85,10 @@
             <useTags>true</useTags>
             <interfaceOnly>true</interfaceOnly>
             <ensureUniqueParams>false</ensureUniqueParams>
-            <useGzipFeature>true</useGzipFeature>
             <useJakartaEe>true</useJakartaEe>
           </configOptions>
-          <library>feign</library>
+          <!-- the JDK's own HttpClient, so the client brings no HTTP library -->
+          <library>native</library>
           <addCompileSourceRoot>true</addCompileSourceRoot>
           <generateApiTests>false</generateApiTests>
           <generateModelTests>false</generateModelTests>
@@ -124,8 +97,9 @@
                are. -->
           <configurationFile>${project.basedir}/generator/config.yaml</configurationFile>
           <templateDirectory>${project.basedir}/generator</templateDirectory>
-          <!-- RFC3339JavaTimeModule was added by openapi-generator 7.x; ApiClient references it -->
-          <supportingFilesToGenerate>RFC3339DateFormat.java,RFC3339JavaTimeModule.java,RFC3339InstantDeserializer.java,StringUtil.java,ApiResponse.java,ApiClient.java,EncodingUtils.java,HttpBasicAuth.java,ApiResponseDecoder.java,ApiKeyAuth.java,HttpBearerAuth.java,BpmsApiPath.java</supportingFilesToGenerate>
+          <!-- the Java sources the client needs, and none of the build files or documents the
+               generator writes for a project of its own -->
+          <supportingFilesToGenerate>ApiClient.java,ApiException.java,ApiResponse.java,Configuration.java,Pair.java,RFC3339DateFormat.java,RFC3339InstantDeserializer.java,RFC3339JavaTimeModule.java,BpmsApiPath.java</supportingFilesToGenerate>
         </configuration>
         <executions>
           <execution>
