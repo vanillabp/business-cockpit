@@ -13,7 +13,14 @@ where the keys live, two workflow modules with different keys, and the user's co
   `io.vanillabp.businesscockpit:official-gui-api-quarkus-client`.
 
 On every platform the keys live below a prefix the application or workflow module chooses, never
-below `vanillabp`, and a call made while the module answers a request of the cockpit's user
-interface sends that request's login cookie along, so the cockpit answers as that user.
+below `vanillabp`. `base-url` is the address of the cockpit only, never with `/gui/api/v1`: the
+clients carry the server path of the OpenAPI file themselves, so moving to a new version of the
+API means switching the dependency only. And a call made while the module answers a request of
+the cockpit's user interface sends that request's login cookie along, so the cockpit answers as
+that user.
+
+The dependency alone asks for no key. On Spring Boot the clients are there only if the address of
+the cockpit is set, and on Quarkus a workflow module builds the clients it needs itself. Both jars
+come with a sources jar, which holds the generated interfaces and models.
 
 Built as part of the reactor build described in the [root README](../../../README.md#building-it).

@@ -9,6 +9,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.registry.ImportHttpServices;
 
 import io.vanillabp.cockpit.support.rest.httpservice.inventory.InventoryApi;
@@ -35,6 +37,43 @@ public class StartupChecksTest {
     @Bean
     HttpServiceGroupPrefix ordersInventoryKeys() {
       return HttpServiceGroupPrefix.of("orders-inventory", "orders.inventory");
+    }
+
+  }
+
+  /** An interface of an API whose client module declares the path of the API. */
+  interface InventoryWithItsPath {
+
+    @GetExchange("/items/{id}")
+    String item(
+        @PathVariable String id);
+
+  }
+
+  @Configuration
+  @ImportHttpServices(group = "shop-inventory", types = InventoryWithItsPath.class)
+  static class ShopModule {
+
+    @Bean
+    HttpServiceGroupPrefix shopInventoryKeys() {
+      return HttpServiceGroupPrefix.of("shop-inventory", "shop.inventory");
+    }
+
+    @Bean
+    HttpServiceApiPath inventoryApiPath() {
+      return new HttpServiceApiPath("/inventory/v2/", List.of(InventoryWithItsPath.class));
+    }
+
+  }
+
+  /** Puts interfaces of two APIs with different paths into one group. */
+  @Configuration
+  @ImportHttpServices(group = "shop-inventory", types = OrdersInventory.class)
+  static class SecondApiInTheShopGroup {
+
+    @Bean
+    HttpServiceApiPath ordersApiPath() {
+      return new HttpServiceApiPath("/orders/v1", List.of(InventoryApi.class));
     }
 
   }
@@ -109,6 +148,39 @@ public class StartupChecksTest {
 
     assertThat(problems).singleElement().asString()
         .contains("'inventory.example.com/api' in 'orders.inventory.base-url' is no complete http or https address");
+
+  }
+
+  @Test
+  public void an_address_which_ends_with_the_path_of_the_interface_is_refused() {
+
+    final var problems = Starts.problemsOf(new Class<?>[]{
+        TestApplication.class, ShopModule.class
+    }, "shop.inventory.base-url=http://localhost:1/shop/inventory/v2/");
+
+    assertThat(problems).containsExactly(
+        "The address 'http://localhost:1/shop/inventory/v2/' in 'shop.inventory.base-url' ends with '/inventory/v2', the path of the API which the HTTP service group 'shop-inventory' adds to the address itself. Set 'shop.inventory.base-url' to the address without it: 'http://localhost:1/shop'.");
+
+  }
+
+  @Test
+  public void interfaces_of_two_apis_with_different_paths_in_one_group_are_refused() {
+
+    final var problems = Starts.problemsOf(new Class<?>[]{
+        TestApplication.class, ShopModule.class, SecondApiInTheShopGroup.class
+    }, "shop.inventory.base-url=http://localhost:1/shop");
+
+    assertThat(problems).containsExactly(
+        "The HTTP service group 'shop-inventory' holds interfaces of APIs with the paths [/inventory/v2, /orders/v1], but a group has one address. Import the interfaces of each API into a group of its own.");
+
+  }
+
+  @Test
+  public void the_path_of_an_api_starts_with_a_slash() {
+
+    assertThatThrownBy(() -> new HttpServiceApiPath("inventory/v2", List.of(InventoryWithItsPath.class)))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("starts with '/'");
 
   }
 

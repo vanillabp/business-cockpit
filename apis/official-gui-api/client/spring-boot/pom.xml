@@ -30,8 +30,10 @@
   </developers>
 
   <properties>
-    <!-- a workflow module builds against this module, so its snapshot carries a javadoc jar -->
+    <!-- a workflow module builds against this module, so its snapshot carries a javadoc jar and
+         a sources jar -->
     <skip.javadoc.jar>false</skip.javadoc.jar>
+    <skip.sources.jar>false</skip.sources.jar>
   </properties>
 
   <dependencyManagement>
@@ -107,6 +109,7 @@
           <excludes combine.self="override">
             <exclude>io/vanillabp/cockpit/gui/api/v1/client/Official*Api</exclude>
             <exclude>io/vanillabp/cockpit/gui/api/v1/client/model/*</exclude>
+            <exclude>io/vanillabp/cockpit/gui/api/v1/client/OfficialGuiApiPath</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -141,6 +144,13 @@
               <generatorName>spring</generatorName>
               <!-- writes @HttpExchange interfaces for Spring Framework's HTTP interface clients -->
               <library>spring-http-interface</library>
+              <!-- one file of our own beside the generated ones: OfficialGuiApiPath, the server path
+                   of the OpenAPI file, see ../generator/config.yaml. The generator's own templates stay
+                   as they are. -->
+              <configurationFile>${project.basedir}/../generator/config.yaml</configurationFile>
+              <templateDirectory>${project.basedir}/../generator</templateDirectory>
+              <!-- of the supporting files only our own -->
+              <supportingFilesToGenerate>OfficialGuiApiPath.java</supportingFilesToGenerate>
               <apiPackage>io.vanillabp.cockpit.gui.api.v1.client</apiPackage>
               <modelPackage>io.vanillabp.cockpit.gui.api.v1.client.model</modelPackage>
               <configOptions>

@@ -11,10 +11,12 @@ import io.vanillabp.cockpit.support.rest.httpservice.inventory.InventoryApi;
 /**
  * What the client module of the inventory service brings, as the support README shows it. An
  * application adds the dependency, sets the keys below {@code inventory.client} and injects
- * {@link InventoryClient}. It steps back if the application imports the API into groups of its
- * own. The tests import it where they need it.
+ * {@link InventoryClient}. Without {@code inventory.client.base-url} it imports nothing, so the
+ * dependency alone asks for no key. It steps back if the application imports the API into groups
+ * of its own. The tests import it where they need it.
  */
 @AutoConfiguration(before = HttpServiceClientAutoConfiguration.class)
+@ConditionalOnHttpServiceGroupAddress(prefix = "inventory.client")
 @ConditionalOnMissingBean(InventoryApi.class)
 @ImportHttpServices(group = InventoryClientAutoConfiguration.GROUP, types = InventoryClient.class)
 public class InventoryClientAutoConfiguration {

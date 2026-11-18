@@ -41,6 +41,10 @@ import org.springframework.web.service.registry.HttpServiceGroup;
  * <ul>
  * <li>A missing or broken {@code base-url} stops the start and names the key. Spring Boot would
  * build the client and fail only at the first request.</li>
+ * <li>The path of an API, declared by a client module as an {@link HttpServiceApiPath} bean, is
+ * added to the {@code base-url} of every group with an interface of that API. So {@code base-url}
+ * is the address of the server only. A {@code base-url} which ends with the path stops the start,
+ * because each call would hold it twice.</li>
  * <li>A proxy, with or without login: {@code proxy.*}.</li>
  * <li>{@code verify-ssl: false}, which trusts every server.</li>
  * <li>Retries ({@code retry.*}) and logging with bodies ({@code log}).</li>
@@ -83,6 +87,8 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
 
   private final Map<String, String> prefixes;
 
+  private final List<HttpServiceApiPath> apiPaths;
+
   /**
    * Creates the conventions. Two prefixes for one group stop the start here already.
    *
@@ -93,13 +99,16 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
    *                              beans apply. {@code null} builds with the JDK's HttpClient.
    * @param prefixes              where the keys of the groups live which do not use Spring Boot's
    *                              place
+   * @param apiPaths              the paths of APIs which the groups with their interfaces add to
+   *                              their address
    */
   public HttpServiceClientConventions(
       final Environment environment,
       final @Nullable SslBundles sslBundles,
       final @Nullable HttpClientSettings defaultSettings,
       final @Nullable ClientHttpRequestFactoryBuilder<?> requestFactoryBuilder,
-      final List<HttpServiceGroupPrefix> prefixes) {
+      final List<HttpServiceGroupPrefix> prefixes,
+      final List<HttpServiceApiPath> apiPaths) {
 
     this.environment = environment;
     this.sslBundles = sslBundles;
@@ -108,6 +117,7 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
     this.requestFactoryBuilder = requestFactoryBuilder == null
         ? ClientHttpRequestFactoryBuilder.jdk()
         : requestFactoryBuilder;
+    this.apiPaths = List.copyOf(apiPaths);
     this.prefixes = new HashMap<>();
     final var declaredTwice = new TreeSet<String>();
     prefixes.forEach(prefix -> {
@@ -198,7 +208,10 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
       return problems;
     }
 
-    checkBaseUrl(name, prefix, keys, problems);
+    final var apiPath = apiPathOf(group, problems);
+    if (checkBaseUrl(name, prefix, keys, problems) && (apiPath != null)) {
+      checkBaseUrlLeavesOutTheApiPath(name, prefix, keys, apiPath, problems);
+    }
     checkProxy(name, prefix, keys, problems);
     checkRetry(name, prefix, keys, problems);
     final var useOAuth = keys.getOauth().getTokenUri() != null;
@@ -211,7 +224,9 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
     }
 
     builder.requestFactory(requestFactory);
-    builder.baseUrl(keys.getBaseUrl());
+    builder.baseUrl(apiPath == null
+        ? keys.getBaseUrl()
+        : withoutTrailingSlash(keys.getBaseUrl()) + apiPath);
     if (!keys.getDefaultHeader().isEmpty()) {
       builder.defaultHeaders(headers -> headers.putAll(keys.getDefaultHeader()));
     }
@@ -247,7 +262,8 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
 
   }
 
-  private static void checkBaseUrl(
+  /** Answers whether the address is a complete http or https address. */
+  private static boolean checkBaseUrl(
       final String name,
       final String prefix,
       final HttpServiceGroupProperties keys,
@@ -259,7 +275,7 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
           The HTTP service group '%s' has no address. Set '%s.base-url' to where the service \
           answers, for example 'https://inventory.example.com/api'."""
           .formatted(name, prefix));
-      return;
+      return false;
     }
     final var placeholder = baseUrl.indexOf("${");
     if (placeholder >= 0) {
@@ -269,7 +285,7 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
           The address '%s' of the HTTP service group '%s' holds a placeholder nothing resolves. Set \
           the key or environment variable '%s', or write the address into '%s.base-url'."""
           .formatted(baseUrl, name, unresolved.split(":", 2)[0], prefix));
-      return;
+      return false;
     }
     try {
       final var uri = URI.create(baseUrl);
@@ -282,7 +298,72 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
           The address '%s' in '%s.base-url' is no complete http or https address. Write it with \
           scheme and host, for example 'https://inventory.example.com/api'."""
           .formatted(baseUrl, prefix));
+      return false;
     }
+    return true;
+
+  }
+
+  /**
+   * The path of the API the interfaces of the group belong to, or {@code null} if none of them
+   * belongs to an API with an {@link HttpServiceApiPath}. Interfaces of two APIs with different
+   * paths cannot share one address, so they are a problem.
+   */
+  private @Nullable String apiPathOf(
+      final HttpServiceGroup group,
+      final List<String> problems) {
+
+    final var paths = new TreeSet<String>();
+    group.httpServiceTypes().forEach(type -> apiPaths
+        .stream()
+        .filter(apiPath -> apiPath.covers(type))
+        .forEach(apiPath -> paths.add(apiPath.path())));
+    if (paths.size() > 1) {
+      problems.add("""
+          The HTTP service group '%s' holds interfaces of APIs with the paths %s, but a group has one \
+          address. Import the interfaces of each API into a group of its own."""
+          .formatted(group.name(), paths));
+      return null;
+    }
+    return paths.isEmpty() ? null : paths.first();
+
+  }
+
+  /**
+   * The group adds the path of its API to the address itself. A {@code base-url} which ends with it
+   * as well sends every call to {@code /gui/api/v1/gui/api/v1/...}, and the mistake shows only as a
+   * 404 at the first call.
+   */
+  private static void checkBaseUrlLeavesOutTheApiPath(
+      final String name,
+      final String prefix,
+      final HttpServiceGroupProperties keys,
+      final String apiPath,
+      final List<String> problems) {
+
+    final var baseUrl = withoutTrailingSlash(keys.getBaseUrl());
+    if (!withoutTrailingSlash(URI.create(baseUrl).getPath()).endsWith(apiPath)) {
+      return;
+    }
+    problems.add("""
+        The address '%s' in '%s.base-url' ends with '%s', the path of the API which the HTTP service \
+        group '%s' adds to the address itself. Set '%s.base-url' to the address without it: '%s'."""
+        .formatted(keys.getBaseUrl(), prefix, apiPath, name, prefix, baseUrl.substring(0, baseUrl.length() - apiPath
+            .length())));
+
+  }
+
+  private static String withoutTrailingSlash(
+      final @Nullable String text) {
+
+    if (text == null) {
+      return "";
+    }
+    var result = text;
+    while (result.endsWith("/")) {
+      result = result.substring(0, result.length() - 1);
+    }
+    return result;
 
   }
 

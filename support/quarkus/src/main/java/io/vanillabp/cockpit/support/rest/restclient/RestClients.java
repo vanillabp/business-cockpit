@@ -54,6 +54,11 @@ import jakarta.inject.Singleton;
  * with different keys: each builds its client at a prefix of its own, and tells the two beans apart
  * by a qualifier. What the two share, they write twice or bring in a library of their own.
  * <p>
+ * A client module may declare the path of its API as a {@link RestClientApiPath} bean, for example
+ * {@code /gui/api/v1}. It is added to {@code base-url} for every client of an interface of that API,
+ * so {@code base-url} is the address of the server only. A {@code base-url} which ends with the path
+ * stops the start, because each call would hold it twice.
+ * <p>
  * All interfaces built at one prefix share its settings and its OAuth token. Every problem of a
  * prefix, a key nobody reads included, ends in one {@link RestClientsMisconfigured} which lists
  * them all.
@@ -124,6 +129,10 @@ public class RestClients {
 
     final var conventions = prefixes.computeIfAbsent(checked(prefix), this::conventionsOf);
     final var builder = conventions.clientBuilder();
+    final var apiPath = apiPathOf(api);
+    if (apiPath != null) {
+      builder.baseUri(URI.create(baseUrlWith(apiPath, conventions.keys, api)));
+    }
     customizer.accept(builder);
     final var client = builder.build(api);
     final var retry = conventions.keys.retry;
@@ -152,6 +161,59 @@ public class RestClients {
           .formatted(prefix, first));
     }
     return prefix;
+
+  }
+
+  /**
+   * The path of the API the interface belongs to, from the {@link RestClientApiPath} beans, or
+   * {@code null} if there is none. Without a running container, in a plain unit test for example,
+   * there are no such beans.
+   */
+  private static String apiPathOf(
+      final Class<?> api) {
+
+    final var container = Arc.container();
+    if (container == null) {
+      return null;
+    }
+    for (final var apiPath : container.select(RestClientApiPath.class)) {
+      if (apiPath.covers(api)) {
+        return apiPath.path();
+      }
+    }
+    return null;
+
+  }
+
+  /**
+   * The address with the path of the API. A {@code base-url} which ends with the path already would
+   * send every call to {@code /gui/api/v1/gui/api/v1/...} and fail only when it is made.
+   */
+  private static String baseUrlWith(
+      final String apiPath,
+      final RestClientKeys keys,
+      final Class<?> api) {
+
+    final var baseUrl = withoutTrailingSlash(keys.baseUrl.orElseThrow());
+    if (withoutTrailingSlash(URI.create(baseUrl).getPath()).endsWith(apiPath)) {
+      throw new RestClientsMisconfigured(keys.prefix, List.of("""
+          The address '%s' in '%s' ends with '%s', the path of the API which the client %s adds to \
+          the address itself. Set '%s' to the address without it: '%s'."""
+          .formatted(keys.baseUrl.get(), keys.key("base-url"), apiPath, api.getSimpleName(), keys.key(
+              "base-url"), baseUrl.substring(0, baseUrl.length() - apiPath.length()))));
+    }
+    return baseUrl + apiPath;
+
+  }
+
+  private static String withoutTrailingSlash(
+      final String text) {
+
+    var result = text;
+    while (result.endsWith("/")) {
+      result = result.substring(0, result.length() - 1);
+    }
+    return result;
 
   }
 

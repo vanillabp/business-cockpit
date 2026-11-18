@@ -30,8 +30,10 @@
   </developers>
 
   <properties>
-    <!-- a workflow module builds against this module, so its snapshot carries a javadoc jar -->
+    <!-- a workflow module builds against this module, so its snapshot carries a javadoc jar and
+         a sources jar -->
     <skip.javadoc.jar>false</skip.javadoc.jar>
+    <skip.sources.jar>false</skip.sources.jar>
   </properties>
 
   <dependencyManagement>
@@ -134,6 +136,7 @@
           <excludes combine.self="override">
             <exclude>io/vanillabp/cockpit/gui/api/v1/client/Official*Api</exclude>
             <exclude>io/vanillabp/cockpit/gui/api/v1/client/model/*</exclude>
+            <exclude>io/vanillabp/cockpit/gui/api/v1/client/OfficialGuiApiPath</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -190,9 +193,23 @@
                    root POM looks up the types the code written by hand uses -->
               <output>${project.build.directory}/generated-sources</output>
               <generatorName>jaxrs-spec</generatorName>
+              <!-- one file of our own beside the generated ones: OfficialGuiApiPath, the server path
+                   of the OpenAPI file, see ../generator/config.yaml. The generator's own templates stay
+                   as they are. -->
+              <configurationFile>${project.basedir}/../generator/config.yaml</configurationFile>
+              <templateDirectory>${project.basedir}/../generator</templateDirectory>
               <apiPackage>io.vanillabp.cockpit.gui.api.v1.client</apiPackage>
               <modelPackage>io.vanillabp.cockpit.gui.api.v1.client.model</modelPackage>
-              <generateSupportingFiles>false</generateSupportingFiles>
+              <!-- of the supporting files only our own, see ../generator/config.yaml -->
+              <supportingFilesToGenerate>OfficialGuiApiPath.java</supportingFilesToGenerate>
+              <!-- leaves out the two operations with the method OPTIONS, the suggestions of words
+                   for the search in the task list and in the workflow list. They send a body,
+                   which Quarkus' REST client warns about while the application is built. They
+                   serve the lists of the cockpit's user interface and no workflow module. The
+                   OpenAPI file and the Spring Boot client keep them. -->
+              <openapiNormalizer>
+                <rule>FILTER=method:get|post|put|patch|delete</rule>
+              </openapiNormalizer>
               <configOptions>
                 <sourceFolder>openapi</sourceFolder>
                 <interfaceOnly>true</interfaceOnly>

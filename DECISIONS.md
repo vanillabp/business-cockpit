@@ -5177,3 +5177,96 @@ Apache HttpClient 5 on their class path, so they name the JDK's client in their
   older way: `ClientsConfigurationBase`", and the key table of `UPGRADE.md`
 - No Javadoc or code cites this entry yet.
 
+### 110. An HTTP service group of a client module is there only if its address is set, and the address leaves out the path of the API
+
+This entry adds to decisions 107 and 108.
+
+#### What was found
+
+The auto-configuration of `official-gui-api-spring-boot-client` imported its HTTP service group as
+soon as the jar was on the class path, in test scope too. The conventions of `support` then
+stopped the start without `spring.http.serviceclient.official-gui-api.base-url`. A workflow module
+which calls the cockpit only if the application wants it could only exclude the
+auto-configuration, and its tests had to set a key for a client they did not use.
+
+A group can be left out only while Spring reads the configuration classes, before any bean exists.
+At that point the prefix of an `HttpServiceGroupPrefix` bean is not known, so a condition cannot
+look for the address below it. Spring Boot's `@ConditionalOnProperty` reads the value of the key
+and stops the start at a placeholder nothing resolves, before the conventions can name the key.
+
+The Quarkus client got a warning from Quarkus' REST client while the application was built: two
+operations of the OpenAPI file, the suggestions of words for the task list and the workflow list,
+use `OPTIONS` with a body. Neither client had a sources jar in its snapshot.
+
+`base-url` of both clients was the address of the cockpit followed by `/gui/api/v1`, the server
+path of the OpenAPI file. A new version of the API means a new dependency and a new path, and
+whoever switches the dependency easily forgets the address in every application.
+
+#### The decision
+
+- The group `official-gui-api` is there only if
+  `spring.http.serviceclient.official-gui-api.base-url` is set. Without it the application starts
+  and has no client of the API. With it, everything works as before.
+- The group reads its keys in Spring Boot's place only. An application or a workflow module which
+  wants a prefix of its own imports the interfaces into a group of its own, as two modules with
+  different keys already do. An `HttpServiceGroupPrefix` for `official-gui-api` stops the start
+  with a message which says so.
+- A bean which needs a client while the address is missing stops the start, and a failure analyzer
+  names the key and the `ObjectProvider` as the way to make the call optional.
+- `support` offers `@ConditionalOnHttpServiceGroupAddress(prefix = ...)`. It asks only whether
+  `<prefix>.base-url` is set and does not read the value, so the conventions still name a
+  placeholder nothing resolves. Client modules and workflow modules put it on the class which
+  imports a group they use only if the application wants it. A group which is there still needs a
+  valid address, as decision 107 says.
+- The Quarkus client leaves out the operations with `OPTIONS`, through the generator's normalizer
+  rule `FILTER`. The OpenAPI file and the Spring Boot client keep them.
+- Both clients of the official GUI API carry a sources jar in their snapshots, switched on by the
+  key `skip.sources.jar` of the root POM, as `skip.javadoc.jar` does for the javadoc jar.
+- `base-url` of the official GUI API is the address of the cockpit, with its context path if it
+  has one, for example `https://cockpit.example.com`, in the group `official-gui-api` and in every
+  group or prefix of a workflow module alike. The client adds the path of the API itself.
+- The path comes from the server URL of the OpenAPI file. The generator writes it into the class
+  `OfficialGuiApiPath` from a template of our own, `apis/official-gui-api/client/generator`, which
+  holds nothing but that constant and is added through the generator's `files` setting. The
+  generator's own templates stay untouched, so an upgrade of the generator needs no care here.
+  Nobody writes the path a second time by hand. A client of a new version of the API brings its new
+  path along.
+- `support` adds the path to the address. A client module declares it as a bean:
+  `HttpServiceApiPath` on Spring Boot, which `HttpServiceClientConventions` appends to `base-url`
+  of every group with an interface of the API, and `RestClientApiPath` on Quarkus, which
+  `RestClients` appends for every client of such an interface. Both stop the start if `base-url`
+  ends with the path, because each call would hold it twice, and the message shows the address to
+  set. Interfaces of two APIs with different paths in one Spring Boot group stop the start too.
+- The generator has no setting which writes the server path onto the interfaces of these two
+  libraries: `spring-http-interface` has no `@HttpExchange` on the type, and `jaxrs-spec` puts
+  only the path all operations share there. Only the library `microprofile` of the generator `java`
+  knows `useAnnotatedBasePath`, and moving to it would change the published interfaces and models.
+
+#### What it costs
+
+An application which gave the group `official-gui-api` a prefix of its own writes an
+`@ImportHttpServices` with the interfaces it needs. A class which needs a client of the API gets
+no client in an application without the address and has to take an `ObjectProvider` if the call
+is optional. A Quarkus workflow module which wants the suggestions of words calls them without the
+generated client.
+
+Every application and workflow module which set `base-url` with `/gui/api/v1` removes the path,
+and the start says so.
+
+#### Where it applies
+
+- `apis/official-gui-api/client/spring-boot`: `OfficialGuiApiClientAutoConfiguration`,
+  `TheOfficialGuiApiHasNoAddress`, `META-INF/spring.factories`, the
+  tests `WithoutAnAddressThereIsNoClientTest`, `TheApplicationChoosesThePrefixTest` and
+  `TheAddressLeavesOutThePathOfTheApiTest`, the `pom.xml` and `README.md`
+- `apis/official-gui-api/client/generator`: `ApiPath.mustache` and `config.yaml`
+- `apis/official-gui-api/client/quarkus`: `TheOfficialGuiApiPath`, the `pom.xml`, `README.md`, `TheClientsCallTheCockpitTest` and `NoMethodSendsABodyWithOptionsTest`
+- `support/spring-boot`: `ConditionalOnHttpServiceGroupAddress`,
+  `OnHttpServiceGroupAddressCondition`, `HttpServiceApiPath`, `HttpServiceClientConventions`, the
+  tests
+  `AnOptionalGroupTest`, `StartupChecksTest` and `InventoryClientAutoConfiguration`
+- `support/quarkus`: `RestClientApiPath`, `RestClients` and the test `StartupChecksTest`
+- `support/README.md`, the sections "A group which only some applications use", "A client module
+  brings its AutoConfiguration" and "What stops the start"
+- the root `pom.xml`: `skip.sources.jar` and the execution `attach-sources`
+

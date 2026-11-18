@@ -73,6 +73,12 @@ auto-configuration comes with `support`, so nothing has to be switched on. It ad
   module or the application chooses. See [Where the keys of a group live](#where-the-keys-of-a-group-live).
 - **A check of `base-url` at the start.** Spring Boot would build the client without an address
   and fail at the first request.
+- **The path of an API.** A client module may declare the path of its API, for example
+  `/gui/api/v1`, as an `HttpServiceApiPath` bean with the API's interfaces. Every group with one of
+  them gets the path added to its `base-url`, so `base-url` is the address of the server only, and
+  a client of a new version of the API brings its new path along. The clients of the cockpit's
+  official GUI API do so, with the server path of the OpenAPI file. A `base-url` which ends with the
+  path stops the start, because each call would hold it twice.
 - **A proxy**, with or without login.
 - **`verify-ssl: false`**, which trusts every server, for test systems with a self-signed
   certificate.
@@ -119,6 +125,38 @@ where its client's keys are.
 
 Timeouts for all clients at once are Spring Boot's keys `spring.http.clients.connect-timeout` and
 `spring.http.clients.read-timeout`. The key of a group wins over them.
+
+#### A group which only some applications use
+
+Every group which is there needs its `base-url`. A module which calls a service only if the
+application wants it imports its group only if the application sets the address. It puts
+`@ConditionalOnHttpServiceGroupAddress` on the class which imports the group, with the prefix of
+the group:
+
+```java
+@Configuration
+@ConditionalOnHttpServiceGroupAddress(prefix = "orders.inventory")
+@ImportHttpServices(group = "orders-inventory", types = OrdersInventory.class)
+class OrdersInventoryClient {
+
+  @Bean
+  HttpServiceGroupPrefix ordersInventoryKeys() {
+    return HttpServiceGroupPrefix.of("orders-inventory", "orders.inventory");
+  }
+
+}
+```
+
+Without the address there is no group and no client, and the application starts. The class which
+calls the service takes an `ObjectProvider<OrdersInventory>` and skips the call if
+`getIfAvailable()` answers `null`. With the address the group is checked like every other group,
+so a broken address or a key nobody reads still stops the start. The condition only asks whether
+`<prefix>.base-url` is set. Spring Boot's `@ConditionalOnProperty` would read the value and stop
+the start at a placeholder nothing resolves, like `${INVENTORY_URL}`, with a message which does not
+name the group. The condition names the prefix itself, because it is decided before any bean
+exists, and so before the `HttpServiceGroupPrefix` bean. A client module does the same for its own
+group, see [A client module brings its AutoConfiguration](#a-client-module-brings-its-autoconfiguration).
+`AnOptionalGroupTest` shows both.
 
 #### The keys of a group
 
@@ -197,8 +235,11 @@ The start stops with one list of every problem of every group, so one restart sh
 `HttpServiceClientsMisconfiguredFailureAnalyzer` prints the list without a stack trace. Each entry
 names the key to set or to change:
 
-- a group without `base-url`, an address which is no complete `http` or `https` address, and an
-  address with a placeholder nothing resolves, like `${INVENTORY_URL}`;
+- a group without `base-url`, an address which is no complete `http` or `https` address, an
+  address with a placeholder nothing resolves, like `${INVENTORY_URL}`, and an address which ends
+  with the path of the API of the group, see `HttpServiceApiPath` above, and interfaces of two
+  APIs with different paths in one group. A group which only some applications use is not there without its address, see
+  [A group which only some applications use](#a-group-which-only-some-applications-use);
 - a key below the prefix which no setting reads. Environment variables are not checked, because
   their names cannot be told apart from those of other programs;
 - keys below `spring.http.serviceclient.<group>` for a group whose `HttpServiceGroupPrefix` names
@@ -297,6 +338,10 @@ What differs from Spring Boot, because the platforms differ:
   `ProcessingException` whose message names the key to check, and it is never retried.
 - `RestClients.build(api, prefix, builder -> ...)` hands the builder to the caller after the keys
   are applied, for example to register a filter of its own.
+- The path of an API is a `RestClientApiPath` bean, which a client module produces with
+  `@Unremovable`, because only `RestClients` looks it up. The Quarkus client of the cockpit's
+  official GUI API does so. A `base-url` which ends with the path stops the start, as on Spring
+  Boot.
 - A class which is no bean, a test for example, creates the builder with `new RestClients()`. It
   reads the keys of the running application all the same.
 
@@ -374,6 +419,7 @@ of its type.
 
 ```java
 @AutoConfiguration(before = HttpServiceClientAutoConfiguration.class)
+@ConditionalOnHttpServiceGroupAddress(prefix = "inventory.client")
 @ConditionalOnMissingBean(InventoryApi.class)
 @ImportHttpServices(group = InventoryClientAutoConfiguration.GROUP, types = InventoryClient.class)
 public class InventoryClientAutoConfiguration {
@@ -389,9 +435,12 @@ public class InventoryClientAutoConfiguration {
 ```
 
 `before = HttpServiceClientAutoConfiguration.class` lets Spring Boot see the group: its HTTP
-service client configuration only starts when a group exists. `@ConditionalOnMissingBean` lets the
-module step back when the application imports the API into groups of its own, see step 6. The
-`base-url` is checked at the start, so the module writes no check of its own.
+service client configuration only starts when a group exists.
+`@ConditionalOnHttpServiceGroupAddress` imports the group only if the application sets its
+address, so the dependency alone asks for no key, in a test for example.
+`@ConditionalOnMissingBean` lets the module step back when the application imports the API into
+groups of its own, see step 6. An address which is set is checked at the start, so the module
+writes no check of its own.
 
 **4. Register it.** The file
 `src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`

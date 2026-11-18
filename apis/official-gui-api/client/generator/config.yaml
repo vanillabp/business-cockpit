@@ -1,0 +1,5 @@
+files:
+  ApiPath.mustache:
+    templateType: SupportingFiles
+    folder: openapi/io/vanillabp/cockpit/gui/api/v1/client
+    destinationFilename: OfficialGuiApiPath.java
