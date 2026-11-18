@@ -167,14 +167,20 @@ The rule holds wherever the user interface shows a person with a badge:
 - the badge of the user at the top of the menu,
 - the details of a person on mouse-over, for the assignee, a candidate user, and a column of type
   `person`: a larger badge above the long form of the name,
-- the hits of the search when the user proposes a task to a person.
+- the hits of the search when the user proposes a task to a person,
+- the head of the overview of the rights, see [The rights of the user](#the-rights-of-the-user).
 
-The cells of a list stay text, with the short form of the person, as described in
-[Fixed columns](#fixed-columns). A list with thousands of rows asks for no picture, and the row
-height does not change. Only the details on mouse-over load the picture of that one person.
+The cells of a list, for example the assignee, stay text, with the short form of the person, as
+described in [Fixed columns](#fixed-columns). This is decided: a list with thousands of rows asks
+for no picture, and the row height does not change. Only the details on mouse-over load the picture
+of that one person.
 
-The overview of the rights shows no person and no picture. It opens below the name, aligned to the
-right edge of the name, whether the badge shows initials or a picture.
+The parts of workflow modules show no pictures in 1.0. They do not get the address of the
+pictures, see [types.md](types.md#the-picture-of-a-person).
+
+The overview of the rights shows the badge of the user at its head, as the top of the menu does.
+It opens below the name, aligned to the right edge of the name, whether the badge shows initials or
+a picture.
 
 ### The rights of the user
 
@@ -221,10 +227,12 @@ page is loaded again. While it loads, the overview shows "Loading …".
 
 From top to bottom:
 
-1. The title "Roles and rights".
-2. One sentence: "The organisation gives you roles. Rights decide what you may do in an
+1. The badge of the user, as at the top of the menu: the initials, or with `Q-AVATARS` the picture
+   with the initials as its placeholder, see [Pictures of persons](#pictures-of-persons).
+2. The title "Roles and rights".
+3. One sentence: "The organisation gives you roles. Rights decide what you may do in an
    application. Each application defines its own rights and derives them from your roles."
-3. For each workflow module with a group hierarchy: the name of the module as a heading, and a
+4. For each workflow module with a group hierarchy: the name of the module as a heading, and a
    table with the columns "Name", "Kind" and "Given by".
 
 The rows of the table of one module:

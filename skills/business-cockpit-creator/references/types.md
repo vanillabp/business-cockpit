@@ -128,8 +128,8 @@ shape at its path.
 (`Q-AVATARS`) the backend of the application serves them from an endpoint of its own and names its
 address in `additionalProperties` of `GET /app/info`, see
 [behaviour.md](behaviour.md#pictures-of-persons). The types library holds the two names of that
-agreement as constants, so the user interface and the simulator of the UI repository use the same
-ones:
+agreement as constants, because the cockpit user interface reads the address with them and the
+simulator of the UI repository answers it with them. So both use the same names:
 
 ```typescript
 /** The key in additionalProperties of GET /app/info whose value is the address of a picture. */
@@ -149,6 +149,12 @@ export function personPictureUrl(template: string | undefined, userId: string): 
 
 Without the key the function returns nothing, and the badge shows the initials only. The user id is
 encoded as one part of a path, so an id with `/`, `?` or `#` still names one person.
+
+The parts of a workflow module cannot show pictures of persons in 1.0. A part does not get
+`GET /app/info`, see [What a part gets](#what-a-part-gets), so it has no address of a picture, and
+the kit offers no function for one. The two constants reach a module through the kit like every
+constant, but they are of no use to it without the address. A later version may give the parts a
+function that returns the address of the picture of a person, instead of the setting itself.
 
 ## Column
 
