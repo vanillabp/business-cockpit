@@ -5177,7 +5177,7 @@ Apache HttpClient 5 on their class path, so they name the JDK's client in their
   older way: `ClientsConfigurationBase`", and the key table of `UPGRADE.md`
 - No Javadoc or code cites this entry yet.
 
-### 110. An HTTP service group of a client module is there only if its address is set
+### 110. An HTTP service group of a client module is there only if its address is set, and the address leaves out the path of the API
 
 This entry adds to decisions 107 and 108.
 
@@ -5197,6 +5197,10 @@ and stops the start at a placeholder nothing resolves, before the conventions ca
 The Quarkus client got a warning from Quarkus' REST client while the application was built: two
 operations of the OpenAPI file, the suggestions of words for the task list and the workflow list,
 use `OPTIONS` with a body. Neither client had a sources jar in its snapshot.
+
+`base-url` of both clients was the address of the cockpit followed by `/gui/api/v1`, the server
+path of the OpenAPI file. A new version of the API means a new dependency and a new path, and
+whoever switches the dependency easily forgets the address in every application.
 
 #### The decision
 
@@ -5218,6 +5222,18 @@ use `OPTIONS` with a body. Neither client had a sources jar in its snapshot.
   rule `FILTER`. The OpenAPI file and the Spring Boot client keep them.
 - Both clients of the official GUI API carry a sources jar in their snapshots, switched on by the
   key `skip.sources.jar` of the root POM, as `skip.javadoc.jar` does for the javadoc jar.
+- `base-url` of the official GUI API is the address of the cockpit, with its context path if it
+  has one, for example `https://cockpit.example.com`, in the group `official-gui-api` and in every
+  group or prefix of a workflow module alike. Each generated interface carries the server path of
+  the OpenAPI file on its type: `@HttpExchange("/gui/api/v1")` in the Spring Boot client,
+  `@Path("/gui/api/v1")` in the Quarkus client, where each method then holds the whole path of its
+  operation. The path comes from the OpenAPI file through the generator's templates, which each
+  client module keeps in `src/main/openapi-templates` with that one change. Nobody writes it a
+  second time by hand. A client of a new version of the API brings its new path along.
+- The conventions of `support`, on Spring Boot and on Quarkus, stop the start if `base-url` ends
+  with the path an interface carries on its type, because each call would hold the path twice. The
+  message shows the address to set. This holds for every client with a path on its type, not only
+  for the cockpit's.
 
 #### What it costs
 
@@ -5227,17 +5243,22 @@ no client in an application without the address and has to take an `ObjectProvid
 is optional. A Quarkus workflow module which wants the suggestions of words calls them without the
 generated client.
 
+Every application and workflow module which set `base-url` with `/gui/api/v1` removes the path,
+and the start says so. The two client modules keep a copy of the generator's templates, which an
+upgrade of the generator has to compare with its own templates.
+
 #### Where it applies
 
 - `apis/official-gui-api/client/spring-boot`: `OfficialGuiApiClientAutoConfiguration`,
-  `TheOfficialGuiApiHasNoAddress`, `META-INF/spring.factories`, the tests
-  `WithoutAnAddressThereIsNoClientTest` and `TheApplicationChoosesThePrefixTest`, the `pom.xml`
-  and `README.md`
-- `apis/official-gui-api/client/quarkus`: the `pom.xml`, `README.md` and
-  `NoMethodSendsABodyWithOptionsTest`
+  `TheOfficialGuiApiHasNoAddress`, `META-INF/spring.factories`, `src/main/openapi-templates`, the
+  tests `WithoutAnAddressThereIsNoClientTest`, `TheApplicationChoosesThePrefixTest` and
+  `TheAddressLeavesOutThePathOfTheApiTest`, the `pom.xml` and `README.md`
+- `apis/official-gui-api/client/quarkus`: `src/main/openapi-templates`, the `pom.xml`,
+  `README.md`, `TheClientsCallTheCockpitTest` and `NoMethodSendsABodyWithOptionsTest`
 - `support/spring-boot`: `ConditionalOnHttpServiceGroupAddress`,
-  `OnHttpServiceGroupAddressCondition`, the tests `AnOptionalGroupTest` and
-  `InventoryClientAutoConfiguration`
+  `OnHttpServiceGroupAddressCondition`, `HttpServiceClientConventions`, the tests
+  `AnOptionalGroupTest`, `StartupChecksTest` and `InventoryClientAutoConfiguration`
+- `support/quarkus`: `RestClients` and the test `StartupChecksTest`
 - `support/README.md`, the sections "A group which only some applications use", "A client module
   brings its AutoConfiguration" and "What stops the start"
 - the root `pom.xml`: `skip.sources.jar` and the execution `attach-sources`
