@@ -28,7 +28,7 @@ import org.eclipse.microprofile.config.Config;
  */
 final class RestClientKeys {
 
-  /** The timeouts of the Spring Boot module, which took them from {@code ClientsConfigurationBase}. */
+  /** The timeouts of the Spring Boot module, which took them from the REST client of version 1. */
   static final Duration DEFAULT_CONNECT_TIMEOUT = Duration.ofMillis(1500);
 
   static final Duration DEFAULT_READ_TIMEOUT = Duration.ofSeconds(10);

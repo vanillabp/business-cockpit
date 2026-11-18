@@ -15,7 +15,7 @@ import org.springframework.http.client.ClientHttpResponse;
 
 /**
  * Sends a request again when it got no answer: a refused connection, a read timeout. This is what
- * {@code ClientsConfigurationBase} retries, and what Feign's {@code Retryer} retries. An answer
+ * the REST client of version 1 retries, which took it from Feign's {@code Retryer}. An answer
  * with an error status is not retried, because the server did see the request.
  * <p>
  * The one exception is a {@code 401} of a client with OAuth: the OAuth interceptor further down the

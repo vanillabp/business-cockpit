@@ -25,7 +25,7 @@ import mockwebserver3.MockWebServer;
 
 /**
  * The timeouts: a group's own key wins over the one for all clients in
- * {@code spring.http.clients.*}, and without either the timeouts of {@code ClientsConfigurationBase}
+ * {@code spring.http.clients.*}, and without either the timeouts of the REST client of version 1
  * apply. Redirects are followed.
  */
 @ExtendWith(SuppressOutputExtension.class)

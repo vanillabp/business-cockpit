@@ -12,7 +12,7 @@ runs on. Everything else is the same on both. So there are three modules:
   `TokenUserDetails`, which check the cockpit's login token and find its user and groups,
   `UserDetails`, `UserDetailsImpl`, `UserDirectoryService` and `GroupHierarchyResolver` for the user
   and the groups, `BcUnauthorizedException`, `BcUnknownTaskException`, `BcTaskNotOpenException`
-  and `BcTaskClaimedByAnotherUserException`, and `TlsTruststoreUtil` and `ApiVersionAware` for REST clients. Its only dependencies are Nimbus,
+  and `BcTaskClaimedByAnotherUserException`. Its only dependencies are Nimbus,
   for the signature of the token, and the SLF4J API. Nobody names it directly, because both
   platform modules bring it.
 - [spring-boot](./spring-boot), published as
@@ -45,18 +45,16 @@ platform so far, the section says so.
 ## REST clients
 
 `support` builds REST clients out of a few keys, so an application does not write the same client
-configuration again for every API it calls. On Quarkus there is one way,
-[`RestClients`](#rest-clients-on-quarkus), with the same keys as the HTTP service clients. On
-Spring Boot there are two:
+configuration again for every API it calls. On Spring Boot these are the
+[HTTP service clients](#http-service-clients) of the package
+`io.vanillabp.cockpit.support.rest.httpservice`. A client is an interface generated from the
+OpenAPI file of the API, and Spring Framework turns it into a client. Spring Boot configures it from
+keys, and `support` adds what Spring Boot has no key for. The client of the cockpit's
+[official GUI API](../apis/official-gui-api/client) is built this way. On Quarkus it is
+[`RestClients`](#rest-clients-on-quarkus), with the same keys.
 
-- **HTTP service clients**, in the package `io.vanillabp.cockpit.support.rest.httpservice`. This is
-  the way forward. A client is an interface generated from the OpenAPI file of the API, and Spring
-  Framework turns it into a client. Spring Boot configures it from keys, and `support` adds what
-  Spring Boot has no key for. The client of the cockpit's
-  [official GUI API](../apis/official-gui-api/client) is built this way.
-- **`ClientsConfigurationBase`**, in the package `io.vanillabp.cockpit.support.rest.adapter`. The
-  older way, with OpenFeign and OkHttp. It stays until the clients built with it have moved, see
-  [The older way](#the-older-way-clientsconfigurationbase).
+Neither brings an HTTP library of its own. OpenFeign and OkHttp, which the REST client of version 1
+was built on, are gone. A workflow module which still wants them names them in its own POM.
 
 ### HTTP service clients
 
@@ -120,8 +118,8 @@ where Spring Boot looks for them, `spring.http.serviceclient.<group>`. The keys 
 work in both places.
 
 The prefix is not fixed by `support`, and it starts with no `vanillabp`. It plays the part of the
-properties class a client of `ClientsConfigurationBase` binds: the module or the application says
-where its client's keys are.
+properties class a client of version 1 bound: the module or the application says where its
+client's keys are.
 
 Timeouts for all clients at once are Spring Boot's keys `spring.http.clients.connect-timeout` and
 `spring.http.clients.read-timeout`. The key of a group wins over them.
@@ -195,7 +193,7 @@ the ones `support` adds.
 
 The SSL bundle is Spring Boot's: `spring.ssl.bundle.jks.<name>.truststore.*` for the certificates
 to trust, `...keystore.*` for the client's own certificate. One PKCS12 file can be both, like the
-truststore file of `ClientsConfigurationBase`.
+truststore file of version 1.
 
 An error status of an answer is not retried, because the server saw the request. The one exception
 is a `401` of a group with OAuth: the token is dropped, and the next attempt fetches a new one.
@@ -258,7 +256,7 @@ names the key to set or to change:
 An answer with an error status comes as Spring's `HttpClientErrorException` or
 `HttpServerErrorException`, with a subclass per status, for example
 `HttpClientErrorException.NotFound` for `404`. No answer at all comes as `ResourceAccessException`.
-These are the types of every `RestClient`. A caller which moves from `ClientsConfigurationBase`
+These are the types of every `RestClient`. A caller which moves from a client of version 1
 catches them instead of Feign's `FeignException` and `RetryableException`.
 
 #### Changing more
@@ -540,125 +538,3 @@ the client module steps back, because the application has beans of `InventoryApi
 keeps its keys below its own prefix. Values the two share are the application's business: it can
 write them twice, or bring them in a library of its own. `TwoModulesTest` in `support` shows this
 with two timeouts.
-
-### The older way: `ClientsConfigurationBase`
-
-The classes of the package `io.vanillabp.cockpit.support.rest.adapter` build OpenFeign clients.
-They stay until the clients built with them have moved to HTTP service clients. New clients use the
-way above.
-
-`TlsTruststoreUtil` and `ApiVersionAware` know no platform and are in `core`. The rest needs Spring:
-`ClientsConfigurationBase` uses Spring's bean factory, and `BearerTokenBasedAuthInterceptor` and
-`OauthBearerTokenHandler` build on it, the first as its subclass and the second through
-`configureOkHttpClient`. The properties classes `Client`, `Authentication`, `OauthAuthentication`,
-`Proxy` and `Retry` and the Feign helper `OffsetDateTimeAwareExpander` know no Spring. They stay in
-the Spring Boot module anyway, because they describe what `ClientsConfigurationBase` reads.
-
-To move a client, see the section about HTTP service clients in the repository's
-[UPGRADE.md](../UPGRADE.md). The keys keep their meaning, and most keep their names.
-
-#### What `ClientsConfigurationBase` does
-
-`ClientsConfigurationBase` is the base class of a Spring configuration which builds
-[OpenFeign](https://github.com/OpenFeign/feign) clients. OpenFeign turns a Java interface into a
-REST client. The requests are sent by [OkHttp](https://square.github.io/okhttp/). One call,
-`configureFeignBuilder(clientClass, builder, properties)`, applies all settings of one `Client` to a
-`Feign.Builder`:
-
-- **Timeouts.** `connect-timeout` and `read-timeout` in milliseconds. Redirects are followed.
-- **Connection pool.** `connection-pool-size` idle connections are kept open for the next requests,
-  five by default, as OkHttp keeps them. Requests are not limited by it.
-- **TLS.** The server's certificate and host name are checked by default. A truststore file adds
-  the certificates the client trusts and holds the client's own certificate, if the server asks for
-  one. `verify-ssl: false` turns the checks off, for tests against a server with a self-signed
-  certificate.
-- **Proxy.** An HTTP proxy, with or without user name and password.
-- **Logging.** `log: true` logs every request and every response, body included. The lines are
-  written at level `INFO`, by the logger named after the class given as `clientClass`.
-- **Retry.** Off by default, so a request is sent once. Switched on, a failed request is sent again
-  a few times, with a growing pause in between. OpenFeign sends a request again only after an error
-  it marks as retryable, for example when no answer arrives. A `401` is retryable too if OAuth is
-  configured, see below.
-- **JSON and text.** If the application has a Jackson 3 `JsonMapper` bean, request and response
-  bodies are written and read with it. Spring Boot creates one when Jackson is on the classpath. An
-  answer read into a `String` is taken as text unless it is JSON, so an API which answers
-  `text/plain` needs no decoder of its own. A form body is written as a form. Without the bean,
-  OpenFeign keeps its own encoder and decoder, which read text and know no JSON. This is also what a
-  configuration gets which is created with `new`, without Spring, for example in a test.
-- **Authentication.** HTTP basic authentication with user name and password, or an OAuth bearer
-  token. The token is fetched with the client credentials grant. If both are configured, basic
-  authentication wins.
-
-`configureFeignBuilder` has a second form with a fourth parameter, a `Consumer<OkHttpClient.Builder>`.
-It changes the OkHttp client after the TLS and connection pool settings and before the proxy and
-logging settings. Use it for what the properties do not cover, for example an interceptor of your
-own.
-
-Each part has a `protected` method of its own: `configureTls`, `configureProxyAndLogger`,
-`configureRetry`, `configureJsonEncoding`, `configureBasicAuthentication` and
-`configureOauthAuthentication`. A subclass overrides one of them to change that part only.
-
-`getProperties(injectionPoint, propertiesInterface, properties)` is for an application with several
-workflow modules, where each module has its own properties bean of the same type. It returns the
-bean whose package is closest to the package of the class which asks for the client.
-
-The package holds a few more helpers:
-
-- `bearer.BearerTokenBasedAuthInterceptor` sends a bearer token with each request. A subclass says
-  how a token is fetched. The OAuth support is such a subclass. Write your own for another kind of
-  token issuer.
-- `feign.OffsetDateTimeAwareExpander` writes an `OffsetDateTime` parameter in UTC with milliseconds,
-  for example `2024-01-31T12:00:00.000Z`. Name it as `expander` of a Feign `@Param`.
-- `versioning.ApiVersionAware` is implemented by something which knows the version of the API it
-  talks to.
-- `tls.TlsTruststoreUtil` builds the trust managers and key managers out of a PKCS12 file.
-
-#### The properties of a client
-
-`Client` holds the settings of one client. A properties class of the application extends it, or
-holds a field of its type, and Spring Boot binds the keys below to it. The keys are relative to the
-prefix of that class, for example `inventory.base-url` for the prefix `inventory`.
-
-|             Key             |     Default     |                                                                     Meaning                                                                     |
-|-----------------------------|-----------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
-| `base-url`                  | `to-be-defined` | The URL all requests start with. The default is a placeholder, and a client with it counts as not configured: `isInitialized()` is `false`.     |
-| `connect-timeout`           | `1500`          | How long the client waits for a connection, in milliseconds.                                                                                    |
-| `read-timeout`              | `10000`         | How long the client waits for the answer once it is connected, in milliseconds.                                                                 |
-| `connection-pool-size`      | `5`             | How many idle connections the client keeps open for the next requests. When all of them are busy, the client opens another one.                 |
-| `log`                       | `false`         | Logs each request and response, body included, at level `INFO`.                                                                                 |
-| `verify-ssl`                | `true`          | Checks the server's TLS certificate and host name.                                                                                              |
-| `ssl-truststore-filename`   | none            | A PKCS12 file with the certificates the client trusts and the client's own certificate. Without it, the JVM's defaults apply.                   |
-| `ssl-truststore-password`   | none            | The password of that file. It opens the certificates and the key of the client certificate.                                                     |
-| `proxy.host`                | none            | The host of the HTTP proxy. Without it, no proxy is used.                                                                                       |
-| `proxy.port`                | `0`             | The port of the proxy. Set it together with `proxy.host`.                                                                                       |
-| `proxy.username`            | none            | The user name for the proxy. Without it, the client does not log in at the proxy.                                                               |
-| `proxy.password`            | none            | The password for the proxy.                                                                                                                     |
-| `authentication.basic`      | `false`         | Uses HTTP basic authentication. User name and password alone do not switch it on.                                                               |
-| `authentication.username`   | none            | The user name for HTTP basic authentication.                                                                                                    |
-| `authentication.password`   | none            | The password for HTTP basic authentication.                                                                                                     |
-| `authentication.oauth.*`    | none            | Fetches an OAuth token and sends it as bearer token. See the next table.                                                                        |
-| `retry.enabled`             | `false`         | Sends a failed request again. Without the `retry` keys, or with `false`, a request is sent once.                                                |
-| `retry.max-attempts`        | `5`             | How often a request is sent at most, the first attempt included.                                                                                |
-| `retry.period`              | `100ms`         | The pause before the first retry. A duration, for example `100ms` or `2s`.                                                                      |
-| `retry.max-period`          | `1s`            | The longest pause between two attempts.                                                                                                         |
-| `additional-get-parameters` | none            | Extra query parameters by name. `ClientsConfigurationBase` does not read them. They are there for an application which builds its own requests. |
-
-`authentication.oauth` is a `Client` of its own, `OauthAuthentication`. Its `base-url` is the token
-endpoint of the OAuth server. Its TLS, proxy, logging and `connection-pool-size` keys apply to the
-requests for a token.
-Its timeouts and retry keys are not used: a request for a token has OkHttp's own timeouts. It adds
-three keys:
-
-|                 Key                  | Default |                                                   Meaning                                                   |
-|--------------------------------------|---------|-------------------------------------------------------------------------------------------------------------|
-| `authentication.oauth.base-url`      | none    | The token endpoint. OAuth is used only if it is set.                                                        |
-| `authentication.oauth.client-id`     | none    | The id of the OAuth client. Building the client fails with a message if it is missing.                      |
-| `authentication.oauth.client-secret` | none    | The secret of the OAuth client. Building the client fails with a message if it is missing.                  |
-| `authentication.oauth.basic`         | `false` | Sends client id and secret in an HTTP basic authentication header instead of the form. Servers differ here. |
-
-A token is fetched once and shared by all requests. It is replaced shortly before it expires: a
-tenth of its lifetime before, but at most 30 seconds before. A token whose answer has no
-`expires_in` is used until the server answers `401`. After a `401` the next request fetches a new
-token. The request which got the `401` is sent again only if `retry.enabled` is `true`. Otherwise
-the caller gets a `feign.RetryableException`. If the token endpoint refuses, the message names the
-key which is most likely wrong.

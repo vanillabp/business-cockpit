@@ -16,8 +16,8 @@ import org.springframework.boot.ssl.SslManagerBundle;
  * certificates.
  * <p>
  * The trust manager is an {@link X509ExtendedTrustManager} on purpose. The JDK wraps a plain
- * {@code X509TrustManager} and then still checks the host name. The OkHttp client of
- * {@code ClientsConfigurationBase} did not check it either.
+ * {@code X509TrustManager} and then still checks the host name. The REST client of version 1
+ * did not check it either.
  */
 final class TrustEveryServer {
 

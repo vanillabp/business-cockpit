@@ -13,7 +13,7 @@ import jakarta.ws.rs.core.Response;
 
 /**
  * Calls a method of a client again when its request got no answer: a refused connection, a read
- * timeout. This is what the Spring Boot module and {@code ClientsConfigurationBase} retry. An
+ * timeout. This is what the Spring Boot module and the REST client of version 1 retry. An
  * answer with an error status is not retried, because the server did see the request.
  * <p>
  * The one exception is a {@code 401} of a client with OAuth: {@link ClientCredentials} has dropped

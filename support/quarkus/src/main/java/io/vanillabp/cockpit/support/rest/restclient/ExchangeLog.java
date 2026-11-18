@@ -14,7 +14,7 @@ import io.vertx.core.http.HttpClientResponse;
 
 /**
  * Logs each request and its answer with headers and bodies at level INFO, with {@code log: true},
- * as the Spring Boot module and {@code ClientsConfigurationBase} do. Quarkus' own logger of the REST
+ * as the Spring Boot module and the REST client of version 1 do. Quarkus' own logger of the REST
  * client cuts bodies after 100 characters and logs nothing unless its category is switched to
  * DEBUG.
  * <p>

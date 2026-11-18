@@ -66,7 +66,7 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
   public static final int ORDER = Ordered.HIGHEST_PRECEDENCE + 20;
 
   /**
-   * The timeouts of {@code ClientsConfigurationBase}, for a group which sets none, neither itself
+   * The timeouts of the REST client of version 1, for a group which sets none, neither itself
    * nor for all clients in {@code spring.http.clients.*}. Without them the JDK's HttpClient waits
    * without end.
    */
