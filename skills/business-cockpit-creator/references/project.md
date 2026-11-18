@@ -77,9 +77,11 @@ docker/
   nginx.conf.template
 e2e/                          the end-to-end tests, one per checklist item, and the
                               measurement of the lists, see behaviour.md
-  simulator/                  the TypeScript simulator of the cockpit user interface
-  dev-shell-simulator/        the TypeScript simulator of the dev shells
+  simulator/                  the TypeScript simulator of the cockpit user interface and
+                              of the dev shells
   modules/                    the three test modules; see Testing without Java
+  compare/                    a workspace: the tests that compare a part in the cockpit
+                              and in a dev shell, see dev-shell.md
 ```
 
 The packages are separate npm packages, each a workspace of the same repository. A dev shell needs
@@ -163,7 +165,8 @@ neither pnpm nor Lerna. The root `package.json` lists the workspaces:
     "packages/bc-module-host",
     "packages/bc-theme",
     "packages/ui",
-    "packages/bc-dev-shell-*"
+    "packages/bc-dev-shell-*",
+    "e2e/compare"
   ]
 }
 ```
@@ -217,7 +220,10 @@ order, and the root script `build` calls it:
 4. `packages/bc-theme`, because the user interface and the dev shells take its styles.
 5. `packages/ui`, the single-page application.
 6. `packages/bc-dev-shell-*`, one per framework.
-7. After the workspaces, `npm run build:jars` builds the UI jar from `packages/ui/dist`.
+7. `e2e/compare`, last, because its tests need the user interface, the dev shells and the
+   simulator built, see [dev-shell.md](dev-shell.md#a-browser-test-for-it). It is private and
+   builds nothing that is published.
+8. After the workspaces, `npm run build:jars` builds the UI jar from `packages/ui/dist`.
 
 ### One version, each package published on its own
 
@@ -229,7 +235,8 @@ version.
 Each package is published on its own, `npm publish --workspace packages/bc-types` and so on, or all
 at once with `npm publish --workspaces`. Publish in the order of the build: the types library, the
 module kit, the module host, the theme, then the dev shells. Each one needs the packages before it
-in the registry. `packages/ui` and the root have `"private": true`, so npm never publishes them.
+in the registry. `packages/ui`, `e2e/compare` and the root have `"private": true`, so npm never
+publishes them.
 The user interface leaves the repository as the UI jar and the nginx image, not as an npm package.
 
 The packages go to the npm registry of the interview (`Q-NPM-SCOPE`), under the organisation's
@@ -584,26 +591,27 @@ needs Node.js and a browser, nothing else.
 Several simulators turn up around a cockpit. This table is the one list of them; the other pages
 point here.
 
-| # |                     Simulator                     |  Language  |                     Where it lives                      |                                                                                                         What it is for                                                                                                         |
-|---|---------------------------------------------------|------------|---------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 1 | the simulator of the cockpit user interface       | TypeScript | `e2e/simulator/` of the UI repository                   | the end-to-end tests that prove the cockpit user interface does what it should                                                                                                                                                 |
-| 2 | the simulator of the cockpit backend              | Java       | the tests of the backend repository                     | the integration tests that prove the backend does what it should, for example the login, see [backend.md](backend.md#the-integration-tests-of-the-backend)                                                                     |
-| 3 | the simulator of the dev shells                   | TypeScript | `e2e/dev-shell-simulator/` of the UI repository         | the end-to-end tests that prove the dev shells do what they should; it answers what a dev shell needs, `/dev-shell/user/**` and the official GUI API below `/official-api/gui/api/v1` included                                 |
-| 4 | the dev shell simulator of VanillaBP              | Java       | `development/dev-shell-simulator` of `business-cockpit` | ready to use as the backend of a dev shell, see [dev-shell.md](dev-shell.md#the-dev-shell-simulator)                                                                                                                           |
-| 5 | the simulator in the backend of a workflow module | Java       | the backend of the workflow module                      | the integration tests of the module's backend, and the backend of the dev shell while somebody writes a form; it is built on the dev shell simulator (4), see [dev-shell.md](dev-shell.md#the-simulators-of-a-workflow-module) |
-| 6 | the simulator in the UI repository of a module    | TypeScript | the UI repository of the workflow module                | the end-to-end tests of the module's user interface                                                                                                                                                                            |
-| 7 | the simulator of the Business Cockpit             | Java       | the `business-cockpit` repository                       | the integration tests of the VanillaBP Business Cockpit itself; it is not part of a generated project                                                                                                                          |
+| # |                     Simulator                     |  Language  |                     Where it lives                      |                                                                                                            What it is for                                                                                                             |
+|---|---------------------------------------------------|------------|---------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1 | the simulator of the UI repository                | TypeScript | `e2e/simulator/` of the UI repository                   | the end-to-end tests that prove the cockpit user interface does what it should; it answers `/gui/api/v1` for them                                                                                                                     |
+| 2 | the simulator of the cockpit backend              | Java       | the tests of the backend repository                     | the integration tests that prove the backend does what it should, for example the login, see [backend.md](backend.md#the-integration-tests-of-the-backend)                                                                            |
+| 3 | the same simulator as 1                           | TypeScript | `e2e/simulator/` of the UI repository                   | the end-to-end tests that prove the dev shells do what they should, which live in the same npm repository; for them it answers what a dev shell needs, the official GUI API below `/official-api/gui/api/v1` and `/dev-shell/user/**` |
+| 4 | the dev shell simulator of VanillaBP              | Java       | `development/dev-shell-simulator` of `business-cockpit` | ready to use as the backend of a dev shell, see [dev-shell.md](dev-shell.md#the-dev-shell-simulator)                                                                                                                                  |
+| 5 | the simulator in the backend of a workflow module | Java       | the backend of the workflow module                      | the integration tests of the module's backend, and the backend of the dev shell while somebody writes a form; it is built on the dev shell simulator (4), see [dev-shell.md](dev-shell.md#the-simulators-of-a-workflow-module)        |
+| 6 | the simulator in the UI repository of a module    | TypeScript | the UI repository of the workflow module                | the end-to-end tests of the module's user interface                                                                                                                                                                                   |
+| 7 | the simulator of the Business Cockpit             | Java       | the `business-cockpit` repository                       | the integration tests of the VanillaBP Business Cockpit itself; it is not part of a generated project                                                                                                                                 |
 
-The skill generates 1, 2 and 3. So no user interface needs Java to run its end-to-end tests,
-neither the cockpit's nor a module's. The dev shell simulator (4) cannot serve the tests of the
+The skill generates 1 and 2; 3 is the same simulator as 1, because the cockpit user interface and
+the dev shells live in the same npm repository. So no user interface needs Java to run its
+end-to-end tests, neither the cockpit's nor a module's. The dev shell simulator (4) cannot serve the tests of the
 cockpit user interface, because it comes from the backend, and the backend depends on the user
 interface.
 
-### The simulator of the cockpit user interface
+### The simulator of the UI repository
 
-The simulator (1) stands in for the cockpit backend. It does not copy the whole behaviour of the
-cockpit. It answers what the tests need, and it keeps its data in memory only, like the dev shell
-simulator:
+The simulator (1 and 3) stands in for the cockpit backend. It does not copy the whole behaviour of
+the cockpit. It answers what the tests need, and it keeps its data in memory only, like the dev
+shell simulator:
 
 - The GUI API under `/gui/api/v1`, with the update stream. It sends the events of the stream when
   a test changes its data. The user interface reads the base path of the GUI API from its
@@ -612,9 +620,19 @@ simulator:
 - The BPMS API under `/bpms/api/v1_1`, so a test can set up its data the way a workflow module
   does: register a module, report a case or a user task, then read the list. Nothing else is
   checked there.
-- The built parts of three test modules, below `/wm/react-module/`, `/wm/vue-module/` and
-  `/wm/angular-module/`, the way the cockpit forwards to a module. The simulator serves no other
-  module.
+- For the dev shells, the official GUI API below `/official-api/gui/api/v1` and the choice of a
+  user below `/dev-shell/user/**`, the same calls the dev shell simulator of VanillaBP answers, see
+  [dev-shell.md](dev-shell.md#the-dev-shell-simulator). Each simulated system has a prefix of its
+  own, and below it is the path of the original.
+- The built parts of the three test modules, below `/wm/react-module/`, `/wm/vue-module/` and
+  `/wm/angular-module/`, the way the cockpit forwards to a module.
+- The built modules of the conformance test of the VanillaBP kit, see
+  [A module built against the kit loads in your cockpit](../SKILL.md#a-module-built-against-the-kit-loads-in-your-cockpit).
+  The kit made them for that test, so they check exactly the contract of the kit. They have the
+  same module ids as the three test modules, so the conformance test starts the simulator with
+  them in place of the test modules.
+
+It serves no other module.
 
 It takes the types of its answers from the same OpenAPI files the user interface generates its
 client from, so both sides speak the same API.
@@ -622,9 +640,8 @@ client from, so both sides speak the same API.
 ### The three test modules
 
 The three test modules belong to the UI repository, in `e2e/modules/`. One is written in React,
-one in Vue and one in Angular, against the module kit of the repository. They start from the
-example modules of the VanillaBP kit, so the conformance test of the kit passes against them, see
-[A module built against the kit loads in your cockpit](../SKILL.md#a-module-built-against-the-kit-loads-in-your-cockpit).
+one in Vue and one in Angular, against the module kit of the repository. The conformance test of
+the kit does not use them; it uses the kit's own modules.
 
 They differ in what they bring, for example in their columns, so a list shows mixed rows. Together
 they cover every extension point the interview chose: `Header`, `Pages`, the areas of

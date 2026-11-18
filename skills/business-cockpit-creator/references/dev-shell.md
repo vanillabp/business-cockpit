@@ -109,12 +109,18 @@ notices when somebody forgets.
 
 ### A browser test for it
 
-The end-to-end tests of the generated project prove the rule too (`DS-018`, `DS-019`). They run
-against the TypeScript simulator of the UI repository, see
-[project.md](project.md#testing-without-java). The simulator answers the GUI API for the cockpit
-and the official GUI API below `/official-api/gui/api/v1` for the dev shell, so both show the same
-user task. The test opens a user task of the same workflow module and task definition once in the
-cockpit and once in the dev shell, finds the host element by its name, and compares:
+The end-to-end tests of the generated project prove the rule too (`DS-018`, `DS-019`). They live
+in a workspace of their own in the UI repository. This description suggests the name
+`e2e/compare`. It is the last workspace in the list, because its tests run after the cockpit user
+interface, the dev shells and the TypeScript simulator are built, see
+[project.md](project.md#the-order-of-the-build).
+
+The tests run against the one TypeScript simulator of the UI repository, see
+[project.md](project.md#the-simulator-of-the-ui-repository). It answers `/gui/api/v1` for the
+cockpit and the official GUI API below `/official-api/gui/api/v1` for the dev shell, from the same
+data, so both show the same user task. The test opens a user task of the same workflow module and
+task definition once in the cockpit and once in the dev shell, finds the host element by its name,
+and compares:
 
 - the chain of ancestors, from the host element up to `<html>`: the element names, `display`,
   `position` and `overflow`, and the width of the box of the area, with the same size of

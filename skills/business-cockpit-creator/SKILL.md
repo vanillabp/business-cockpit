@@ -162,23 +162,24 @@ down the result. Then do what [How you know it is done](#how-you-know-it-is-done
 
 The VanillaBP kit `@vanillabp/bc-module-kit` is the minimum every cockpit keeps, see
 [references/types.md](references/types.md#the-vanillabp-kit-is-the-minimum). Its repository
-`vanillabp/business-cockpit-module-kit` has three example modules, one in React, one in Vue and
-one in Angular, and a browser test for them. The modules differ in what they bring, for example in
-their columns, so a list shows mixed rows. Run that test as an end-to-end test of the UI
-repository, against the TypeScript simulator of the cockpit user interface, see
+`vanillabp/business-cockpit-module-kit` has three conformance modules, one in React, one in Vue and
+one in Angular, and a browser test for them. The kit made these modules for this test, so they
+check exactly the criteria of its contract. Run that test as an end-to-end test of the UI
+repository, against the TypeScript simulator, see
 [references/project.md](references/project.md#the-simulators) (`EXT-040`). It passes for a cockpit
-with areas and for one without, because the example modules offer both.
+with areas and for one without, because the conformance modules offer both.
 
 1. Take the kit's repository at the version your module kit covers. Run `npm ci`,
    `npm run build:examples` and `npm run build:conformance`. This writes the folder
    `dist/conformance`, which works on its own: the built modules below `wm/react-module/`,
    `wm/vue-module/` and `wm/angular-module/`, a small web server `serve.mjs`, the test
    `cockpit.test.js` and a `package.json` with its one dependency, `playwright`.
-2. The TypeScript simulator serves the three test modules of the UI repository itself, below
+2. Start the TypeScript simulator with these modules. It serves them itself, below
    `/wm/react-module/`, `/wm/vue-module/` and `/wm/angular-module/`, the way the cockpit forwards
-   to a module. They start from the kit's example modules and add the extension points of the
-   interview, see [references/project.md](references/project.md#the-three-test-modules). These are
-   the only modules it serves. `serve.mjs` is not needed then.
+   to a module. The three test modules of the UI repository have the same ids, so for this test the
+   simulator serves the conformance modules in their place, see
+   [references/project.md](references/project.md#the-simulator-of-the-ui-repository). `serve.mjs`
+   is not needed then.
 3. Register the three modules at the simulator, the way a workflow module registers itself at the
    cockpit: one `POST /bpms/api/v1_1/workflow-module/{id}` per module, with the id `react-module`,
    `vue-module` or `angular-module` and the address of the module below the simulator as `uri`.
@@ -465,6 +466,6 @@ Then:
     `Q-LOGIN-KIND` chose, and every list of `Q-LIST-CONTROLLERS` answers, see
     [references/backend.md](references/backend.md#the-integration-tests-of-the-backend).
 13. A module built against the kit loads in your cockpit: the conformance test with the kit's
-    example modules in React, Vue and Angular passes, as an end-to-end test against the simulator
-    and once more against the running cockpit, see
+    conformance modules in React, Vue and Angular passes, as an end-to-end test against the
+    simulator and once more against the running cockpit, see
     [A module built against the kit loads in your cockpit](#a-module-built-against-the-kit-loads-in-your-cockpit).
