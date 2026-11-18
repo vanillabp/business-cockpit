@@ -150,7 +150,7 @@ class AGeneratedClientReachesTheSimulatorByItsAddressTest {
     workflowModule().run(context -> {
       final var answer = context
           .getBean(OfficialCurrentUserApi.class)
-          .currentUser(null);
+          .currentUser();
 
       assertThat(answer.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(answer.getBody().getId()).isEqualTo("john");

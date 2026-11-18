@@ -667,6 +667,11 @@ stream sends changed after 0.4.x, see
 [The update stream tells each tab only what it may see](#the-update-stream-tells-each-tab-only-what-it-may-see).
 
 Two classes moved to another jar, in the same package `io.vanillabp.cockpit.gui.api.v1`.
+
+The operation no longer declares the header `X-Refresh-Token`. The cockpit never read it. So the
+generated Java clients of the official GUI API call `currentUser()` without an argument, and a
+controller which implements `OfficialCurrentUserApi` overrides `currentUser()`. The operation is in
+the official API only since this version, so only code written against a snapshot has to change.
 `UserTaskEvent` and `WorkflowEvent` are no longer in `official-gui-api-server`. They are in
 `business-cockpit` now, and their `type` is an enum instead of a string. A client generated from the
 official file alone no longer has them. Generate it from both files. `Person` and `Group` used to

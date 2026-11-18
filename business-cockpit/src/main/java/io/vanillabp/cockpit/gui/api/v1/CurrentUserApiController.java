@@ -31,8 +31,7 @@ public class CurrentUserApiController implements OfficialCurrentUserApi {
   private PersonAndGroupApiMapper personAndGroupMapper;
 
   @Override
-  public ResponseEntity<User> currentUser(
-      final String xRefreshToken) {
+  public ResponseEntity<User> currentUser() {
 
     final var user = userContext.getUserLoggedInDetails();
     // the request which signs in by basic authentication is authenticated, but the response

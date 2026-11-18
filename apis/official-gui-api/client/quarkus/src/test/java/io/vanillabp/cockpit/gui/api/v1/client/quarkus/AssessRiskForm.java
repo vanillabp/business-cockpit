@@ -37,7 +37,7 @@ public class AssessRiskForm {
       @PathParam("taskId") final String taskId) {
 
     final var assignee = tasklist.getUserTask(taskId, null).getAssignee().getId();
-    final var user = currentUser.currentUser(null).getId();
+    final var user = currentUser.currentUser().getId();
     return assignee.equals(user)
         ? "the form for "
             + user

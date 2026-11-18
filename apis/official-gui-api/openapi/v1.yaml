@@ -411,12 +411,6 @@ paths:
         The path is open to everybody, so the user interface can ask before anybody signed in. A
         request without a login gets 200 without a body.
       operationId: currentUser
-      parameters:
-        - in: header
-          name: "X-Refresh-Token"
-          description: Sent by the cockpit's user interface. The cockpit does not read it.
-          schema:
-            type: string
       responses:
         200:
           description: The user signed in, or no body if nobody is signed in
