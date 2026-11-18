@@ -403,6 +403,29 @@ public class BusinessCockpitBootTest {
   }
 
   @Test
+  @DisplayName("A key of a user task below 'tasks' ends the start and names its place, as on Quarkus")
+  public void aKeyOfAUserTaskBelowTasksEndsTheStart() {
+
+    final var message = failureOfBooting(
+        "cockpit-user-task-below-tasks",
+        new String[]{
+            "vanillabp.workflow-modules.test-module.workflows.TestWorkflow.tasks.approve.cockpit.template-path=approve"
+        },
+        BrokenApplication.class);
+
+    assertTrue(
+        message.contains(
+            "vanillabp.workflow-modules.test-module.workflows.TestWorkflow.tasks.approve.cockpit.template-path"),
+        message);
+    assertTrue(
+        message
+            .contains(
+                "'vanillabp.workflow-modules.test-module.workflows.TestWorkflow.user-tasks.approve.cockpit.template-path'"),
+        message);
+
+  }
+
+  @Test
   @DisplayName("A key of a BPMS half below the level it is read at ends the start in the words of the core")
   public void aKeyOfABpmsHalfAtTheWrongLevelEndsTheStart() {
 

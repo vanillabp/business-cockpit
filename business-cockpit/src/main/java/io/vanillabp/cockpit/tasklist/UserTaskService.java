@@ -687,8 +687,11 @@ public class UserTaskService {
    *        changed it
    * @param userTaskId The id of the task
    * @param personId The id of the assignee. The task is only given back if this is its assignee.
+   *        A task without an assignee stays as it is, and that is no mistake.
    * @return The task as it is stored now, or {@code null} if the caller may not reach it
    * @throws UserTaskAlreadyCompletedException if the task has ended. Nothing is written then.
+   * @throws UserTaskClaimedByAnotherUserException if another person is the assignee of the task.
+   *         Nothing is written then.
    */
   public UserTask unclaimTask(
       final UserTaskVisibility visibility,
@@ -701,6 +704,7 @@ public class UserTaskService {
       return null;
     }
     refuseIfEnded(userTask);
+    refuseIfClaimedByAnotherUser(userTask, personId);
 
     final var query = new Query();
     query.addCriteria(Criteria.where("id").is(userTaskId));
@@ -708,10 +712,16 @@ public class UserTaskService {
     // a task which ends between the read above and this write stays as it ended
     query.addCriteria(Criteria.where("endedAt").exists(false));
 
-    mongoTemplate.updateFirst(
+    final var written = mongoTemplate.updateFirst(
         query, LatestChange.recordIn(unsetAssignee(currentUser), initiatorFor(currentUser)), UserTask.class);
 
-    return getUserTask(userTaskId);
+    final var stored = getUserTask(userTaskId);
+    // the task ended, or somebody else claimed it, between the read above and this write
+    if ((written.getMatchedCount() == 0) && (stored != null)) {
+      refuseIfEnded(stored);
+      refuseIfClaimedByAnotherUser(stored, personId);
+    }
+    return stored;
 
   }
 
@@ -727,6 +737,9 @@ public class UserTaskService {
    * @return The tasks the caller may reach, as they are stored now
    * @throws UserTaskAlreadyCompletedException if one of the tasks the caller may reach has ended.
    *         None of the tasks is changed then.
+   * @throws UserTaskClaimedByAnotherUserException if another person is the assignee of one of the
+   *         tasks the caller may reach and none of them has ended. None of the tasks is changed
+   *         then.
    */
   public List<UserTask> unclaimTask(
       final UserTaskVisibility visibility,
@@ -736,6 +749,7 @@ public class UserTaskService {
 
     final var found = getUserTasks(visibility, userTaskIds);
     found.forEach(this::refuseIfEnded);
+    found.forEach(userTask -> refuseIfClaimedByAnotherUser(userTask, personId));
     final var unclaimable = found
         .stream()
         .map(UserTask::getId)
@@ -843,6 +857,24 @@ public class UserTaskService {
 
     if (userTask.getEndedAt() != null) {
       throw new UserTaskAlreadyCompletedException(userTask.getId());
+    }
+
+  }
+
+  /**
+   * Only the assignee can give a task back. A task without an assignee passes: giving it back
+   * changes nothing, and the caller gets what they asked for.
+   *
+   * @param userTask The task as it is stored
+   * @param personId The id of the person who gives the task back
+   * @throws UserTaskClaimedByAnotherUserException if another person is the assignee
+   */
+  private void refuseIfClaimedByAnotherUser(
+      final UserTask userTask,
+      final String personId) {
+
+    if ((userTask.getAssignee() != null) && !userTask.getAssignee().getId().equals(personId)) {
+      throw new UserTaskClaimedByAnotherUserException(userTask.getId());
     }
 
   }

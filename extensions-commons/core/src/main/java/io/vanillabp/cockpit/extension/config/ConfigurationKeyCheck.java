@@ -90,6 +90,14 @@ public final class ConfigurationKeyCheck {
               .formatted(SEGMENT));
 
   /**
+   * What stands above the <code>cockpit</code> section of a user task written below
+   * <code>tasks</code>. That is the platform's word for the place per adapter, and the cockpit
+   * does not read its own settings there.
+   */
+  private static final Pattern A_TASK_BELOW_TASKS = Pattern
+      .compile("vanillabp\\.workflow-modules\\.%1$s\\.workflows\\.%1$s\\.tasks\\.%1$s".formatted(SEGMENT));
+
+  /**
    * Keys which a snapshot of version 2 read at one place and which moved to another one before
    * the release. They are not keys of version 1, so no upgrade guide names them. A developer who
    * used the snapshot learns the new place from the message.
@@ -571,6 +579,17 @@ public final class ConfigurationKeyCheck {
     }
     final var key = name.substring(section + COCKPIT_SECTION.length());
     final var above = name.substring(0, section);
+    final var belowTasks = A_TASK_BELOW_TASKS.matcher(above);
+    if (belowTasks.matches()) {
+      // Quarkus refuses this key, because it binds the settings of a user task below
+      // 'user-tasks' only. Without this branch Spring Boot would take it for a key of the workflow
+      return ("  - '%s' is not read there: the Business Cockpit reads the settings of a user task below '%s', "
+          + "not below 'tasks'. Write it as '%s'.")
+          .formatted(name, ConfigurationKeys.USER_TASKS_SECTION, "vanillabp.workflow-modules.%s.%s.%s.%s.%s.%s.%s"
+              .formatted(
+                  belowTasks.group(1), ConfigurationKeys.WORKFLOWS_SECTION, belowTasks.group(2),
+                  ConfigurationKeys.USER_TASKS_SECTION, belowTasks.group(3), ConfigurationKeys.COCKPIT_SECTION, key));
+    }
     if (above.contains(WORKFLOWS)) {
       return above.contains(USER_TASKS)
           ? defectOf(name, key, ConfigurationKeys.KEYS_OF_A_USER_TASK, "a single user task")

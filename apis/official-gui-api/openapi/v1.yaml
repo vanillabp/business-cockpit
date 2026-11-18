@@ -141,10 +141,23 @@ paths:
           description: >-
             The tasks are changed. Ids of tasks the user may not see are left out without a word,
             because an answer about them would tell that they exist.
+        400:
+          description: >-
+            Only with `unclaim=true`: another user claimed one of the tasks the user may see, and
+            none of them has ended. Only the assignee can give a task back. None of the tasks is
+            changed. The body says why.
+          content:
+            text/plain:
+              schema:
+                type: string
         409:
           description: >-
             One of the tasks the user may see has ended. None of the tasks is changed. An ended
-            task is documentation, and only marking it as read still works.
+            task is documentation, and only marking it as read still works. The body says why.
+          content:
+            text/plain:
+              schema:
+                type: string
   /usertask/{userTaskId}/claim:
     patch:
       tags:
@@ -165,12 +178,24 @@ paths:
       responses:
         200:
           description: Usertask changed successfully
+        400:
+          description: >-
+            Only with `unclaim=true`: another user claimed the task, and it has not ended. Only the
+            assignee can give a task back. The task is not changed. The body says why.
+          content:
+            text/plain:
+              schema:
+                type: string
         404:
           description: User task is unknown
         409:
           description: >-
             The task has ended and is not changed. An ended task is documentation, and only
-            marking it as read still works.
+            marking it as read still works. The body says why.
+          content:
+            text/plain:
+              schema:
+                type: string
   /usertask/{userTaskId}/follow-up-date:
     patch:
       tags:

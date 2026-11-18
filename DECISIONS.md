@@ -5497,3 +5497,46 @@ front. A dev shell and the proxy of its dev server name `/official-api/gui/api/v
 - `skills/business-cockpit-creator/references/dev-shell.md`
 - `UPGRADE.md`
 
+### 115. Giving back a task which another user claimed answers 400, and the refusals of claim and unclaim say why
+
+#### What was missing
+
+`PATCH /usertask/{id}/claim?unclaim=true` and its list form give a task back only if the user who
+asks is its assignee. For a task another user had claimed, nothing changed, and the answer was still
+`200 OK`. A user interface could not tell whether its action worked.
+
+#### The decision
+
+Giving back a task which another user claimed is refused with `400 Bad Request`, and nothing is
+written. The list form is all or nothing, like for an ended task: if another user claimed one of the
+tasks the user may see, none of them is given back. A task without an assignee still answers `200`,
+because the caller gets what they asked for.
+
+The answers come in this order:
+
+- `404 Not Found`: the user may not see the task, or it does not exist. A list leaves such ids out.
+- `409 Conflict`: the task has ended.
+- `400 Bad Request`: another user claimed the task.
+
+The `400` and the `409` of claim and unclaim carry a plain text body which says why. By convention
+the status alone would be enough, but the user interface can show the text. The text names no other
+user.
+
+The forms of a workflow module answer a task another user claimed with `409`, see decision 105. That
+stays. The two APIs answer different questions, and the documentation names the difference: a form
+refuses an answer for a task the user does not hold, which is a conflict of two users; giving back a
+task the user does not hold is a request which cannot work.
+
+#### Where it applies
+
+- `UserTaskClaimedByAnotherUserException` and both `unclaimTask` methods of `UserTaskService` in
+  `business-cockpit`
+- `claimTask`, `claimTasks` and the class javadoc of `AbstractUserTaskListGuiApiController`
+- the responses of both claim paths in `apis/official-gui-api/openapi/v1.yaml`
+- the test `GivingBackSomebodyElsesTaskIsRefusedTest` in `container`
+- `UPGRADE.md`: "Giving back somebody else's task answers 400"
+- the wiki page `GUI-API.md` (or the page which describes claim and unclaim), see the wiki branch
+- the skill `business-cockpit-creator`: `references/rough-edges.md`, `references/gui-api.md` and
+  `references/reference-1.0.0.md` (the ACT item on unclaim), applied on the branch of that skill
+
+The javadoc of `UserTaskClaimedByAnotherUserException` cites this decision.

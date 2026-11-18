@@ -13,10 +13,9 @@ The last release is 0.4.3. If your application is on it or on an older one, star
 ## From 0.4.x and earlier
 
 The last release of the cockpit is 0.4.3. 0.8.0 was planned as the first release on Spring MVC and
-never came out. So the section [0.8.x to 1.0.0](#08x-to-100) is not a step after a release you
-know. It is the second half of your way. If your application is on 0.4.x or earlier, work through
-this section first and then through every entry of the next one. The one entry there which does not
-concern you is the one about the snapshot artifact `support`.
+never came out. So the section [Up to 1.0.0](#up-to-100) is not a step after a release you know.
+It is the second half of your way. If your application is on 0.4.x or earlier, work through this
+section first and then through every entry of the next one.
 
 This section names each big change once and links to where it is described in full. The changes
 which make your application quietly do less than before are written out here.
@@ -155,14 +154,17 @@ first value is the name of the event in the stream, for example `UserTask`. The 
 gets an event of the kinds `UserTask` and `Workflow` by the id, with the visibility of the lists.
 An event of another kind, and an event without an id, reaches every stream.
 
-## 0.8.x to 1.0.0
+## Up to 1.0.0
 
 ### `commons` is gone: `support` and the library module take its classes
 
 The artifact `io.vanillabp.businesscockpit:commons` no longer exists. There is no artifact under the
 old name which points at the new ones. What a workflow module can use as well went into the new
-artifact `io.vanillabp.businesscockpit:business-cockpit-spring-boot-support`, called `support` below. What only the cockpit uses went into the library
-module `io.vanillabp.businesscockpit:business-cockpit`.
+artifact `io.vanillabp.businesscockpit:business-cockpit-spring-boot-support`, called `support`
+below. A workflow module on Quarkus takes
+`io.vanillabp.businesscockpit:business-cockpit-quarkus-support` instead. Its packages start with
+`io.vanillabp.cockpit.support` as well. What only the cockpit uses went into the library module
+`io.vanillabp.businesscockpit:business-cockpit`.
 
 A cockpit application depends on `business-cockpit`, which brings `support` along. It changes its
 imports and nothing in its POM. A workflow module or another service which depended on `commons`
@@ -181,7 +183,7 @@ One line per package. Replace the beginning of each import:
 | `io.vanillabp.cockpit.commons.security.jwt`                                      | `io.vanillabp.cockpit.support.security.jwt`                              | `support`          |
 | `io.vanillabp.cockpit.commons.security.usercontext.WorkflowModuleGroupHierarchy` | `io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleGroupHierarchy`  | `spi-for-java`     |
 | `io.vanillabp.cockpit.commons.security.usercontext`                              | `io.vanillabp.cockpit.support.security.usercontext`                      | `support`          |
-| `io.vanillabp.cockpit.commons.rest`                                              | `io.vanillabp.cockpit.support.rest`                                      | `support`          |
+| `io.vanillabp.cockpit.commons.rest`                                              | gone, see the REST clients below                                         |                    |
 | `io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException`                | `io.vanillabp.cockpit.support.security.BcUnauthorizedException`          | `support`          |
 | `io.vanillabp.cockpit.users.UserDetailsProvider`                                 | `io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService` | `support`          |
 | `io.vanillabp.cockpit.users.UserDetailsImpl`                                     | `io.vanillabp.cockpit.support.security.usercontext.UserDetailsImpl`      | `support`          |
@@ -221,22 +223,17 @@ names one of them in `spring.autoconfigure.exclude` replaces the name, for the s
 They now come with `business-cockpit` only. A workflow module which had `commons` on its class path
 got both of them, and with them the MongoDB settings of the cockpit. With `support` it gets neither.
 
-### The snapshot artifact `support` is now `business-cockpit-spring-boot-support`
+### `support` answers for a user task a workflow module cannot serve
 
-This concerns only a build which used an earlier snapshot of `main`. The module `support` got a level below it,
-because a Quarkus version of it will follow. Its classes moved into the sub-module
-`support/spring-boot`, which is published as
-`io.vanillabp.businesscockpit:business-cockpit-spring-boot-support`. The artifact
-`io.vanillabp.businesscockpit:support` is gone, and no artifact under the old name points at the new
-one. `business-cockpit-bom` manages the new artifact. Replace the `artifactId` in the POM. The
-packages stay `io.vanillabp.cockpit.support...`, so no import changes.
-
-The module now also has `BcUnknownTaskException`, `BcTaskNotOpenException` and
-`BcTaskClaimedByAnotherUserException` in `io.vanillabp.cockpit.support.usertask`, and
-`BcUserTaskExceptionHandler`, which answers the first two with `404 Not Found` and the third with
-`409 Conflict`. A workflow module which wrote its own exceptions for a task id it does not know, for
-a task which is no longer open, or for a task which another user claimed, can use these. Nothing registers the
-handler on its own: import it with `@Import(BcUserTaskExceptionHandler.class)`.
+`support` has three exceptions in `io.vanillabp.cockpit.support.usertask` for a form which asks for
+a user task: `BcUnknownTaskException` for a task id the module does not know,
+`BcTaskNotOpenException` for a task which is no longer open, and
+`BcTaskClaimedByAnotherUserException` for a task which another user claimed. The last one carries
+the ids and, if the module knows it, the user who claimed the task. `BcUserTaskExceptionHandler` on
+Spring Boot and `BcUserTaskExceptionMapper` on Quarkus answer the first two with `404 Not Found`,
+because for a form there is no open task of that id either way, and the third with `409 Conflict`.
+A workflow module which wrote its own exceptions for these cases can use these. On Spring Boot
+nothing registers the handler on its own: import it with `@Import(BcUserTaskExceptionHandler.class)`.
 
 ### The cockpit no longer injects a `Logger`
 
@@ -248,13 +245,13 @@ the start with a missing bean of type `org.slf4j.Logger`. Write
 
 ### `ClientsConfigurationBase` is gone: REST clients are HTTP service clients
 
-The REST client of `support` built on OpenFeign and OkHttp is gone, with the whole package
-`io.vanillabp.cockpit.support.rest.adapter`: `ClientsConfigurationBase`, `Client`,
-`Authentication`, `OauthAuthentication`, `Proxy`, `Retry`, `BearerTokenBasedAuthInterceptor`,
-`OauthBearerTokenHandler`, `OffsetDateTimeAwareExpander`, `TlsTruststoreUtil` and
-`ApiVersionAware`. `support` brings neither OpenFeign nor OkHttp any more, and neither does the
-BOM `business-cockpit-bom`. An application which uses OpenFeign or OkHttp for clients of its own
-names them, with their versions, in its own POM.
+The REST client of `commons` built on OpenFeign and OkHttp is gone, with the whole package
+`io.vanillabp.cockpit.commons.rest.adapter`: `ClientsConfigurationBase`, `Client`,
+`Authentication`, `KeycloakAuthentication`, `OauthAuthentication`, `Proxy`, `Retry`,
+`BearerTokenBasedAuthInterceptor`, `OAuthClient`, `OAuthOkHttpClient`, `OauthBearerTokenHandler`,
+`OffsetDateTimeAwareExpander`, `TlsTruststoreUtil` and `ApiVersionAware`. `support` brings neither
+OpenFeign nor OkHttp, and neither does the BOM `business-cockpit-bom`. An application which uses
+OpenFeign or OkHttp for clients of its own names them, with their versions, in its own POM.
 
 A REST client is built the new way, in the package `io.vanillabp.cockpit.support.rest.httpservice`.
 A client is an interface which the generator `spring` writes with the library
@@ -320,8 +317,8 @@ were. The transport logs each report it sent at level `DEBUG`, with the logger
 
 The cockpit no longer carries the MongoDB changeset mechanism. It uses
 `com.phactum.mongodb:mongodb-changesets`, which does the same thing and is published on its own.
-The `commons` module brings the dependency along, so an application which depends on the cockpit
-gets it without naming it.
+The library `business-cockpit` brings the dependency along, so an application which depends on the
+cockpit gets it without naming it.
 
 Nothing on disk changes. The collection is still called `ChangesetInformation`, a step is still
 identified by the class name of its changeset bean plus the name of its method, and the cockpit's
@@ -495,7 +492,7 @@ cockpit user interface instead.
 The names are a convention between a workflow module and the user interface which loads it.
 VanillaBP passes the value on and never reads it, so it has no list of names and no class with
 constants for them. `WEBPACK_MF_REACT` was the value of the React user interface which came with
-the cockpit up to 0.8. It is still accepted, like any other string. Which names a user interface
+the cockpit up to 0.4. It is still accepted, like any other string. Which names a user interface
 understands is written down with that user interface. If your user interface comes with a small
 jar of constants, your workflow modules can use that.
 
@@ -534,7 +531,7 @@ address, at the moment it answered, so nothing in the database has to be taken a
 Entries whose path starts with `http://` or `https://` must be left alone. Their path is the whole
 address already, the cockpit never prefixed it, and prefixing it now would send the browser to a
 route of the cockpit which does not exist. So an update in one block has to leave them out. Up to
-0.8 the type `EXTERNAL` said the same thing. If an entry of that type has a path without `http://`
+0.4 the type `EXTERNAL` said the same thing. If an entry of that type has a path without `http://`
 or `https://`, give it the whole address in the same block.
 
 ### A report no longer changes who sees a user task
@@ -740,7 +737,7 @@ like an identity provider or LDAP, let it cache the users for a few minutes. If 
 request fails with an error in the log. A user the directory does not know keeps the login, but has
 no groups.
 
-A token written by 0.8.x still names the groups in the claim `authorities`. It stays valid, so
+A token written by 0.4.x still names the groups in the claim `authorities`. It stays valid, so
 nobody is logged out by the update. The claim is not read, and a renewal drops it.
 
 The subject of a new token is `getName()` of the authentication of the login. For a login by user
@@ -861,11 +858,6 @@ new parameter. So does a subclass of `AbstractWorkflowListGuiApiController` whic
 same names in `UserTaskService` and `WorkflowlistService` passes the ids, or `null` for every
 workflow module. In all of these methods the new parameter comes right before `searchQueries`.
 
-An implementation of `UpdateStreamAudience` returns `WhatTheStreamsMaySee` from
-`whatEachStreamMaySee` now. It carries the visible ids per stream as before, and the workflow
-module of each changed entity. The records `UserTaskVisibility.TaskFacts` and
-`WorkflowVisibility.WorkflowFacts` have the new last component `workflowModuleId`.
-
 Two new changesets index `workflowModuleId` together with `endedAt` in the collections `usertask`
 and `workflow`.
 
@@ -884,6 +876,10 @@ the adapter does not read: below `vanillabp.cockpit`, or in the `cockpit` sectio
 module, a workflow or a user task. Version 1 ignored such a key without a word. The message names
 the key and the one it is nearest to, or, for a key of version 1, what became of it. Remove the key
 or write the one the message names. Quarkus refused these keys before.
+
+This includes the `cockpit` section of a user task written below `tasks.<task>` instead of
+`user-tasks.<task>`. On Spring Boot the check let such a key through, and nobody read it. The
+message names the key below `user-tasks`.
 
 ### An event of the update stream names who made the change
 
@@ -911,21 +907,6 @@ Every update of a user task or a case which the cockpit sends now also sets the 
 person in the change event of that update. No changeset fills the field, and nothing but the
 change stream reads it. Code of your own which updates the two collections directly should set it
 the same way, with `LatestChange.recordIn`, or its events name who made the latest change instead.
-
-An implementation of `UpdateStreamAudience` has the new method `namingItsInitiator`, and
-`WhatTheStreamsMaySee` has the new last component `initiatorOfEachEntity`. The records
-`UserTaskVisibility.TaskFacts` and `WorkflowVisibility.WorkflowFacts` have the new last components
-`initiator` and `initiatorOfLatestChange`.
-
-### A task which is not open any more answers 404
-
-This concerns only a build which used an earlier snapshot of `main`. `BcUserTaskExceptionHandler`
-on Spring Boot and `BcUserTaskExceptionMapper` on Quarkus answered `BcTaskNotOpenException` with
-`409 Conflict`. They answer it with `404 Not Found` now, like `BcUnknownTaskException`: for a form
-there is no open task of that id either way. `409 Conflict` now means that another user claimed the
-task. A workflow module says so with the new `BcTaskClaimedByAnotherUserException`, which carries
-the ids and, if the module knows it, the user who claimed the task. A user interface which read 409
-as "the task is done" has to read 404 for that now.
 
 ### The user signed in is part of the official GUI API
 
@@ -970,3 +951,24 @@ the prefix `/official-api`.
 
 The BPMS API stays at `/bpms/api/v1_1`, so `vanillabp.cockpit.rest.base-url` stays the bare address
 of the simulator.
+
+### Giving back somebody else's task answers 400
+
+`PATCH /usertask/{id}/claim?unclaim=true` and its list form answered 200 for a task another user had
+claimed, and changed nothing. Only the assignee can give a task back, so they answer
+`400 Bad Request` now and write nothing. The list form is all or nothing, as it is for an ended
+task: if another user claimed one of the tasks the user may see, none of them is given back. A task
+without an assignee still answers 200.
+
+The answers come in this order: 404 for a task the user may not see, 409 for a task which has
+ended, and 400 for a task another user claimed. The 400 and the 409 of claim and unclaim carry a
+plain text body which says why.
+
+A user interface which shows "give back" only for the user's own tasks sees no difference. One
+which offers it for every task reads the task again after a 400, redraws the row and tells the user
+that somebody else holds the task.
+
+The forms of a workflow module answer a task another user claimed with 409, see "A task which is
+not open any more answers 404" above. The two APIs answer different questions. A form refuses an
+answer for a task that is not the user's, and that is a conflict of two users. Giving back a task
+that is not yours is a request which cannot work, whatever the state of the task.
