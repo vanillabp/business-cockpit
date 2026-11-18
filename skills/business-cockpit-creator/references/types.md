@@ -260,7 +260,8 @@ export type OpenDialogFunction = (dialog: BcElementRef, data?: unknown) => Promi
 ```
 
 Each of these functions is a promise of the cockpit. A form may call `claim` and expect that the
-task belongs to the user afterwards and that the list knows it. `getUserTasks` calls
+task belongs to the user afterwards and that the list knows it. For an ended task the promise is
+rejected, because the server answers 409. `getUserTasks` calls
 `POST /workflow/{workflowId}/usertasks` and returns the tasks as `BcUserTask` again, with the same
 functions.
 

@@ -597,8 +597,9 @@ has accepted it, for example the read marker or the new assignee. The stream con
 later. A user interface without live updates (`Q-LIVE-MODE` is `refresh-button`) reads the row again
 after every action.
 
-Closed tasks: disable these actions when `endedAt` is set, see
-[rough-edges.md](rough-edges.md#closed-tasks-can-still-be-claimed).
+Closed tasks: disable claim, unclaim, propose, remove candidate, follow-up and note when `endedAt`
+is set. The server refuses them with 409, see [gui-api.md](gui-api.md#ended-tasks). Mark as read and
+unread stay enabled.
 
 ## Opening and working on a user task
 

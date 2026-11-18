@@ -222,9 +222,10 @@ These items apply when the skill creates the backend (`Q-BACKEND`). Without it t
 | `ACT-006` | Mark as read and mark as unread change the bold state of the row.                                                                                     | always              |
 | `ACT-007` | Setting and deleting a follow-up date works for one task and for the selected tasks.                                                                  | `Q-FOLLOW-UP` = yes |
 | `ACT-008` | The effect of the user's own action shows as soon as the server has accepted it.                                                                      | always              |
-| `ACT-009` | The actions are disabled for a task whose `endedAt` is set.                                                                                           | always              |
+| `ACT-009` | Claim, unclaim, propose, remove candidate, follow-up and note are disabled for a task whose `endedAt` is set; mark as read and unread stay enabled.   | always              |
 | `ACT-010` | A failed single action tells the user, without revealing whether the task exists.                                                                     | always              |
 | `ACT-012` | Claiming a task that has another assignee always asks the user first, every time; the question has no "don't ask again", and no setting turns it off. | always              |
+| `ACT-013` | A 409 of an action reads the task again and redraws the row, and the user is told that the task has ended.                                            | always              |
 
 ## TF: the page of a user task
 

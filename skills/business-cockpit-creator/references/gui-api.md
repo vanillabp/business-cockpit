@@ -22,18 +22,19 @@ What is written here is the behaviour behind them, which neither file says.
 2. [Protection and login](#protection-and-login)
 3. [Staying logged in](#staying-logged-in)
 4. [The endpoints](#the-endpoints)
-5. [Reading page by page](#reading-page-by-page)
-6. [Sorting](#sorting)
-7. [Counting](#counting)
-8. [Filtering over reported business data](#filtering-over-reported-business-data)
-9. [Suggestions for a search field](#suggestions-for-a-search-field)
-10. [The primary filter: which rows come at all](#the-primary-filter-which-rows-come-at-all)
-11. [The timestamp that keeps a list stable](#the-timestamp-that-keeps-a-list-stable)
-12. [The second form of the same query](#the-second-form-of-the-same-query)
-13. [The update stream](#the-update-stream)
-14. [How a row ended](#how-a-row-ended)
-15. [User settings](#user-settings)
-16. [What the cockpit serves](#what-the-cockpit-serves)
+5. [Ended tasks](#ended-tasks)
+6. [Reading page by page](#reading-page-by-page)
+7. [Sorting](#sorting)
+8. [Counting](#counting)
+9. [Filtering over reported business data](#filtering-over-reported-business-data)
+10. [Suggestions for a search field](#suggestions-for-a-search-field)
+11. [The primary filter: which rows come at all](#the-primary-filter-which-rows-come-at-all)
+12. [The timestamp that keeps a list stable](#the-timestamp-that-keeps-a-list-stable)
+13. [The second form of the same query](#the-second-form-of-the-same-query)
+14. [The update stream](#the-update-stream)
+15. [How a row ended](#how-a-row-ended)
+16. [User settings](#user-settings)
+17. [What the cockpit serves](#what-the-cockpit-serves)
 
 ## Generating the client
 
@@ -178,8 +179,10 @@ What follows for the start of the user interface:
 1. `GET /gui/api/v1/app/info` fetches the title, the version and the build time of the
    application. It needs no user, so the frame can stand before anybody is logged in.
 2. `GET /gui/api/v1/app/current-user` returns the user who is logged in, with their groups. If
-   nobody is logged in, the answer has no body. Do not treat that as an error. Send the browser to
-   the login of the backend (`Q-LOGIN`).
+   nobody is logged in, the answer is 200 with no body. That is the contract of the OpenAPI file,
+   not an error: check for an empty body, not for a status. Then send the browser to the login of
+   the backend (`Q-LOGIN`). The generated client has this call in the class
+   `OfficialCurrentUserApi`, from the tag `officialCurrentUser`.
 3. Only then is the first list worth loading.
 
 The groups come from this answer and not from the JWT. A token may carry few groups or none, see
@@ -229,8 +232,8 @@ The endpoints, all relative to the base path:
 | `PUT /usertask`                                                          | the same query as an update, see below                                                                     |
 | `OPTIONS /usertask`                                                      | suggestions for a search field over user tasks                                                             |
 | `GET /usertask/{id}`                                                     | one user task, with `markAsRead` also marked as read                                                       |
-| `PATCH /usertask/{id}/claim`, `PATCH /usertask/claim`                    | set the assignee, with `unclaim=true` give it back                                                         |
-| `PATCH /usertask/{id}/assign`, `PATCH /usertask/assign`                  | add a person as candidate user, with `unassign=true` remove them                                           |
+| `PATCH /usertask/{id}/claim`, `PATCH /usertask/claim`                    | set the assignee, with `unclaim=true` give it back; 409 for an ended task                                  |
+| `PATCH /usertask/{id}/assign`, `PATCH /usertask/assign`                  | add a person as candidate user, with `unassign=true` remove them; 409 for an ended task                    |
 | `PATCH /usertask/{id}/mark-as-read`, `PATCH /usertask/mark-as-read`      | mark as read, with `unread=true` take it back                                                              |
 | `PATCH /usertask/{id}/follow-up-date`                                    | set or delete the follow-up date                                                                           |
 | `PATCH /usertask/{id}/note`, `PATCH /usertask/note`                      | set, change or clear the note of a user task or of several                                                 |
@@ -253,7 +256,8 @@ The last four rows are in the cockpit's own file, all the others in the `officia
 exist only under `/gui/api/v1`, not under the other two base paths.
 
 The two forms of each action, one for one task and one for a list of ids, do the same. The list
-form is there so that several selected rows do not cause twenty requests.
+form is there so that several selected rows do not cause twenty requests. For an ended task both
+forms answer 409, see [Ended tasks](#ended-tasks).
 
 Take the details of the note and count endpoints from the OpenAPI file of the pinned cockpit
 version, not from this text. The path of the user settings is fixed, see
@@ -275,6 +279,23 @@ business-cockpit:
   additional-properties:
     languages: en,de
 ```
+
+## Ended tasks
+
+A user task that has ended is a record: it shows with which input it was completed. The server
+refuses every change to it with 409 and writes nothing: claim, unclaim (`claim?unclaim=true`),
+assign, unassign, the follow-up date and the note. The same holds for the note of a case that has
+ended. The list form is all or nothing. If one of the tasks this user may see has ended, the request
+changes none of them and answers 409. Ids this user may not see are still left out without a word.
+
+The answers come in this order: a task this user may not see, or one that does not exist, gets 404.
+Only a task the user may see and which has ended gets 409.
+
+Mark as read and mark as unread still work for an ended task, for one task and for a list, and so
+does `GET /usertask/{id}?markAsRead=true`. "Read" only switches off the bold row in the list.
+
+So switch these actions off in your user interface when `endedAt` is set, and treat a 409 as "the
+task ended in the meantime": read the task again, redraw the row and tell the user.
 
 ## Reading page by page
 
