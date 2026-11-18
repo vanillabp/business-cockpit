@@ -13,9 +13,11 @@ info:
       /gui/api/v1. Each system the simulator plays gets a prefix of its own, here /official-api,
       and the path of the original goes below it. So a generated client of the official GUI API
       takes http://localhost:8079/official-api as its address. The simulator answers the lists,
-      a single user task or case, the user signed in and the notification settings of that user.
+      a single user task or case, the workflow modules the user signed in sees, the user signed
+      in and the notification settings of that user.
     - The paths below, which belong to the simulator alone. A dev shell switches between made-up
-      users with them, and a test of a workflow module reads what the module reported.
+      users with them, and a test of a workflow module reads what the module reported and which
+      workflow modules a user sees.
 
     Every path is written in full, so a client takes the address of the simulator as its base
     address, for example http://localhost:8079. None of the paths needs a login.
@@ -53,6 +55,36 @@ paths:
                 additionalProperties: true
         404:
           description: The simulator holds no user task of this id
+  /simulator-api/workflow-module:
+    get:
+      tags:
+        - simulator
+      summary: the workflow modules a user sees
+      description: |
+        The registered workflow modules which the cockpit lists for this user at
+        /gui/api/v1/workflow-module. A module which registered groups is listed for the members
+        of one of these groups. A module which registered no groups is listed for everybody. The
+        groups of the user are completed by the group hierarchies of all registered workflow
+        modules, as the cockpit does it. The simulator answers the same list for the user signed
+        in at /official-api/gui/api/v1/workflow-module. This path names the user instead, so a
+        test needs no login cookie.
+      operationId: getWorkflowModulesOfUser
+      parameters:
+        - in: query
+          name: user
+          required: true
+          description: The id of the user, as the configuration of the simulator lists it
+          schema:
+            type: string
+      responses:
+        200:
+          description: The workflow modules the user sees, sorted by their id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisibleWorkflowModules'
+        404:
+          description: The simulator does not know the user
   /dev-shell/user/all/id:
     get:
       tags:
@@ -165,6 +197,39 @@ paths:
 
 components:
   schemas:
+    VisibleWorkflowModules:
+      type: object
+      description: |
+        The workflow modules a user sees, in the form the cockpit answers at
+        /gui/api/v1/workflow-module.
+      required:
+        - modules
+      properties:
+        modules:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisibleWorkflowModule'
+    VisibleWorkflowModule:
+      type: object
+      description: One workflow module, with the same fields the cockpit answers.
+      required:
+        - id
+        - version
+        - uri
+      properties:
+        id:
+          type: string
+          description: The id of the workflow module
+        version:
+          type: integer
+          format: int64
+          description: |
+            Counts the registrations of the module. The first one is 0, and each later one adds 1.
+        uri:
+          type: string
+          description: |
+            The path below which a user interface reaches the module, /wm/ followed by its id, as
+            in the cockpit. Null if the module registered no URI.
     DevShellUser:
       type: object
       description: A made-up user, as the configuration of the simulator lists it.

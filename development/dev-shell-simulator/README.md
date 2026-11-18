@@ -30,17 +30,20 @@ address with the prefix, for example
 client adds `/gui/api/v1` as it does for the cockpit. See decision 114 in the repository's
 [DECISIONS.md](../../DECISIONS.md).
 
-Of the official GUI API it answers the lists, a single user task or case, the user signed in at
-`/app/current-user` and the notification settings of that user. The user signed in comes with his
-groups completed by the group hierarchies of the registered workflow modules, as the cockpit does
-it. The simulator sends no notifications, so it offers no medium, and it keeps the notification
+Of the official GUI API it answers the lists, a single user task or case, the workflow modules the
+user signed in sees at `/workflow-module`, the user signed in at `/app/current-user` and the
+notification settings of that user. The user signed in comes with his groups completed by the group
+hierarchies of the registered workflow modules, as the cockpit does it. The same groups decide which
+workflow modules he sees: a module which registered groups is listed for their members, a module
+without groups for everybody. The simulator sends no notifications, so it offers no medium, and it keeps the notification
 settings in memory only.
 
 It does not answer what only the cockpit's own frame needs, such as
 `/gui/api/v1/app/current-user/group-hierarchy`, which tells the menu of the cockpit where the rights
 of the user come from. No component of a workflow module asks for it.
 
-What only the simulator answers, the reports at `/simulator-api` and the switch of users at
+What only the simulator answers, the reports and the workflow modules of a named user at
+`/simulator-api` and the switch of users at
 `/dev-shell/user`, is described in an OpenAPI file of its own, in
 [`apis/dev-shell-simulator-api`](../../apis/dev-shell-simulator-api), see decision 112. The controllers implement the
 interfaces generated from it, and the tests call these paths through the generated client.

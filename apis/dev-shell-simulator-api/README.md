@@ -8,6 +8,9 @@ groups of paths:
 - `/simulator-api/usertask/{userTaskId}/report`, the last report of a workflow module about a user
   task, exactly as the module sent it. A test of a workflow module reads from there what the
   official API leaves out, see decision 94 in the repository's [DECISIONS.md](../../DECISIONS.md).
+- `/simulator-api/workflow-module?user=<id>`, the workflow modules a user sees. It is the list the
+  official GUI API answers at `/official-api/gui/api/v1/workflow-module` for the user signed in,
+  but it names the user, so a test needs no login cookie.
 - `/dev-shell/user/**`, with which a dev shell lists the made-up users and switches between them.
 
 Every path in the file is written in full, so a client takes the address of the simulator as its
