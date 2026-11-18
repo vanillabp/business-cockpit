@@ -224,7 +224,7 @@ own that picks the form at runtime. A `WorkflowPage` does the same per process.
 
 ```js
 // UserTaskForm: plain JavaScript, it imports no form
-import { elementName } from '../element-names.js';
+import { names } from '../element-names.js';
 
 export const userTaskForm = (userTask) => {
   if (userTask.bpmnProcessId !== 'TaxiRide') return undefined;
@@ -233,13 +233,13 @@ export const userTaskForm = (userTask) => {
       return {
         entry: 'AssessRiskForm',
         element: {
-          body: elementName('assess-risk-form'),
-          information: elementName('assess-risk-information'),
-          actions: elementName('assess-risk-actions'),
+          body: names.userTask('TaxiRide', 'assessRisk', 'form'),
+          information: names.userTask('TaxiRide', 'assessRisk', 'information'),
+          actions: names.userTask('TaxiRide', 'assessRisk', 'actions'),
         },
       };
     case 'confirmRide':
-      return { entry: 'ConfirmRideForm', element: elementName('confirm-ride-page') };
+      return { entry: 'ConfirmRideForm', element: names.userTask('TaxiRide', 'confirmRide', 'page') };
     default:
       return undefined;
   }
@@ -247,8 +247,8 @@ export const userTaskForm = (userTask) => {
 ```
 
 The function names web components by their names, as strings. It never imports a form. An import
-would pull the form and its framework into the data entry. `elementName` builds the whole name from
-the module id, the build and the short name, see
+would pull the form and its framework into the data entry. `names.userTask` builds the whole name
+from the module id, the build, the BPMN process id, the task definition and the part, see
 [The names of the web components](#the-names-of-the-web-components). It is plain JavaScript and
 keeps the data entry small.
 
@@ -594,15 +594,15 @@ modules must never use the same name, and a new build of a module must not use t
 old one. So every name has three parts:
 
 ```text
-taxi-ride-mvaro4w0-assess-risk-form
-└ prefix ┘└ build ┘└ short name ──┘
+taxi-ride-mvaro4w0-taxi-ride--assess-risk--form
+└ prefix ┘└ build ┘└ short name ────────────┘
 ```
 
 - The prefix comes from the module id. It keeps the modules apart.
 - The build id is new for every build. It keeps the builds of one module apart, see
   [A new build of a module](#a-new-build-of-a-module).
-- The short name is the module's choice, for example `assess-risk-form`. It is lower case and
-  uses only letters, digits and hyphens.
+- The short name holds the BPMN ids of the workflow or the user task and the name of the part. So
+  it is unique within the module, see [The short name](#the-short-name).
 
 The examples in this description leave out the build id, so they stay short.
 
@@ -629,24 +629,62 @@ module kit, and the module host uses the same function:
 
 The whole name is the prefix, a hyphen and the rest, so it always contains a hyphen.
 
+### The short name
+
+The short name is made of segments. A segment has lower case letters and digits, with one hyphen
+between two words. It never contains `--` and never starts or ends with a hyphen. Two hyphens, `--`,
+go between two segments. There are three kinds of short names:
+
+|    Kind     |         Short name          |            Example             |
+|-------------|-----------------------------|--------------------------------|
+| a workflow  | `<process>--<part>`         | `taxi-ride--page`              |
+| a user task | `<process>--<task>--<part>` | `taxi-ride--assess-risk--form` |
+| custom      | `<short name>`, no `--`     | `price-chart`                  |
+
+- `<process>` is the BPMN process id, `<task>` the task definition of the user task. They become
+  segments by the rules of the prefix above, with two changes. In step 3 a run of hyphens becomes
+  one hyphen as well. And step 4 does not apply, because the segment never starts the name: an id
+  that has no letter and no digit is an error. `TaxiRide` gives `taxi-ride`, `assessRisk` gives
+  `assess-risk`.
+- `<part>` says which web component of the workflow or the user task it is, for example `form`,
+  `page`, `information`, `actions` or `list-item`. It must be a segment already. It is not changed.
+- A custom short name is for anything that is not the part of one workflow or one user task, for
+  example a button of the header or a page of the module. It must be a segment already as well.
+
+So a short name of a workflow has one `--`, one of a user task two, and a custom one none. Split at
+`--`, the short name gives back the process, the task and the part. That is why two different
+processes, tasks or parts never get the same name. A single hyphen would not be enough:
+`assessRisk` with the part `form` and `assess` with the part `risk-form` would both give
+`assess-risk-form`. `--` is allowed in the name of a custom element.
+
+Two BPMN ids that differ only in case or in characters that become a hyphen give the same segment.
+`assess_risk` and `assessRisk` both give `assess-risk`. If a module has both in one process, the
+second `defineBcElement` throws, because its name is defined already. One of the two then needs
+another id.
+
 ### What the module's build does
 
 The module kit has a helper for the names, `createElementNames(workflowModuleId, buildId)`. It
-returns a function that turns a short name into the whole name. The module puts it into one small
-file of plain JavaScript, which its data entries and its visual entries import:
+returns an object with three functions, `workflow`, `userTask` and `custom`, which build the whole
+names. It throws a `TypeError` for an id that gives an empty segment, and for a part or a custom
+short name that is not a segment. The module puts it into one small file of plain JavaScript, which
+its data entries and its visual entries import:
 
 ```js
 // src/element-names.js
 import { createElementNames } from '<scope>/bc-module-kit';
 import { WORKFLOW_MODULE_ID, BUILD_ID } from './bc-build.js';
 
-export const elementName = createElementNames(WORKFLOW_MODULE_ID, BUILD_ID);
-// elementName('assess-risk-form') === 'taxi-ride-mvaro4w0-assess-risk-form'
+export const names = createElementNames(WORKFLOW_MODULE_ID, BUILD_ID);
+// names.userTask('TaxiRide', 'assessRisk', 'form') === 'taxi-ride-mvaro4w0-taxi-ride--assess-risk--form'
+// names.workflow('TaxiRide', 'page')               === 'taxi-ride-mvaro4w0-taxi-ride--page'
+// names.custom('price-chart')                       === 'taxi-ride-mvaro4w0-price-chart'
 ```
 
-The visual entry registers its web components with the same function, for example
-`defineBcElement(elementName('assess-risk-form'), { mount, update, unmount })`. The dev shell gets
-its components by the same names, see [dev-shell.md](dev-shell.md#the-entry-point).
+The visual entry registers its web components with the same functions, for example
+`defineBcElement(names.userTask('TaxiRide', 'assessRisk', 'form'), { mount, update, unmount })`.
+The dev shell gets its components by the same names, see
+[dev-shell.md](dev-shell.md#the-entry-point).
 
 The build script writes `bc-build.js` before it starts the bundler:
 
@@ -677,8 +715,8 @@ A refused name is not loaded and not drawn. The cockpit shows a note that names 
 name and the prefix the name has to start with, and writes the same to the console. It is a bug of
 the module, so the note is for the author of the module as much as for the user.
 
-The check does not ask for the build id. A name without it, like `taxi-ride-assess-risk-form`, is
-accepted, and the module then needs a reload of the page after a new build, see
+The check does not ask for the build id, and it does not look at the short name. A name without
+the build id, like `taxi-ride-taxi-ride--assess-risk--form`, is accepted, and the module then needs a reload of the page after a new build, see
 [A module whose names carry no build](#a-module-whose-names-carry-no-build). The example modules of
 the VanillaBP kit use names of this kind.
 
@@ -714,13 +752,13 @@ The result has three forms:
   laid-out form. It may name a web component for `all` as well.
 
 ```ts
-{ entry: 'ConfirmRideForm', element: 'taxi-ride-confirm-ride-page' }
+{ entry: 'ConfirmRideForm', element: 'taxi-ride-taxi-ride--confirm-ride--page' }
 
 { entry: 'AssessRiskForm',
-  element: { all: 'taxi-ride-assess-risk-page',
-             body: 'taxi-ride-assess-risk-form',
-             information: 'taxi-ride-assess-risk-information',
-             actions: 'taxi-ride-assess-risk-actions' } }
+  element: { all: 'taxi-ride-taxi-ride--assess-risk--page',
+             body: 'taxi-ride-taxi-ride--assess-risk--form',
+             information: 'taxi-ride-taxi-ride--assess-risk--information',
+             actions: 'taxi-ride-taxi-ride--assess-risk--actions' } }
 ```
 
 The area `all` is part of the minimum, and every cockpit knows it. Everything else about areas is

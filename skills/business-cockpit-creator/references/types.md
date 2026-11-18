@@ -275,8 +275,8 @@ types library with the exact version of the workspace, and on nothing else. It h
 - the module's side of the event protocol, see [The event protocol](#the-event-protocol),
 - `defineBcElement`, which builds the web component of a part,
 - `elementPrefix(workflowModuleId)`, which turns a module id into the prefix of its web
-  components, and `createElementNames(workflowModuleId, buildId)`, which returns a function from a
-  short name to the whole name, see
+  components, and `createElementNames(workflowModuleId, buildId)`, which returns the functions
+  `workflow`, `userTask` and `custom` that build the whole names, see
   [module-loading.md](module-loading.md#the-names-of-the-web-components). The VanillaBP kit does
   not have them. The cockpit's own kit adds them, and the module host uses `elementPrefix` for its
   check,

@@ -63,7 +63,7 @@ The cockpit draws a part through its module host. From the page down to the part
    of a module, the modal layer for a dialog. The size, `display` and `overflow` of these boxes
    decide how much room a part has and where it scrolls.
 3. The host element. It is the custom element with the name the data entry returned, for example
-   `taxi-ride-assess-risk-form`, built by `defineBcElement`, see
+   `taxi-ride-taxi-ride--assess-risk--form`, built by `defineBcElement`, see
    [types.md](types.md#the-event-protocol). It is in the cockpit's own DOM, so the cockpit's styles
    reach it from outside, and a rule of the cockpit on it wins over the module's `:host` rule. A
    custom element is `display: inline` unless a style says otherwise.
@@ -173,7 +173,7 @@ What is handed over is the real contract:
 |---------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
 | the address of the GUI API            | it builds its client from it, with the simulator `/official-api/gui/api/v1`                                                                  |
 | the functions of the data entries     | `userTaskForm`, `workflowPage`, and for the other extension points for example `header` and `pages`; the shell asks them as the cockpit does |
-| the components, by web component name | what the shell draws for each name the functions return; the module builds the names with the same `elementName` as its data entries         |
+| the components, by web component name | what the shell draws for each name the functions return; the module builds the names with the same `names` as its data entries               |
 | the style of the components           | the stylesheet text the module's web components write into their shadow roots, so the shell writes the same, see [The rule](#the-rule)       |
 | the workflow module id                | for the frame, and for the requests of a form through `/wm/`                                                                                 |
 
