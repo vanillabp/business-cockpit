@@ -11,8 +11,12 @@ the cockpit only, like `http://localhost:8080`. The client adds the path of the 
 an address which ends with that path stops the start. `business-cockpit.default-header.Authorization`
 carries the basic authentication.
 
-It also answers a part of the cockpit's official API. A user task or a case asked for by id is
-made up and kept, so the next request gets the same one. `POST /usertask/count` and
+It also answers a part of the cockpit's official GUI API, at `/official-api/gui/api/v1`. Each
+system a simulator plays gets a prefix of its own, and the path of the original goes below it, see
+decision 114 in the repository's [DECISIONS.md](../../DECISIONS.md). So a client of the official GUI
+API takes `http://localhost:8079/official-api` as its address and adds `/gui/api/v1` itself, as it
+does for the cockpit. A user task or a case asked for by id is made up and kept, so the next
+request gets the same one. `POST /usertask/count` and
 `POST /workflow/count` count what it keeps, by the modes of the cockpit. It has no lists.
 
 How to run it and what its test data form does is in

@@ -941,7 +941,27 @@ A test of a workflow module reads the report of a user task with the generated c
 The paths and the answers stay as they were, with one exception: `POST /dev-shell/user/{userId}`
 for a user the simulator does not know answers 404. Before, it answered 500.
 
-The simulator now also answers `GET /official-api/v1/app/current-user` and the notification
-settings below `/official-api/v1/notifications`, as the cockpit answers them below `/gui/api/v1`. A
-workflow module which asks for the user signed in works with the simulator as it does with the
-cockpit.
+The simulator now also answers `GET /official-api/gui/api/v1/app/current-user` and the
+notification settings below `/official-api/gui/api/v1/notifications`, as the cockpit answers them
+below `/gui/api/v1`. A workflow module which asks for the user signed in works with the simulator
+as it does with the cockpit.
+
+### The simulators answer the official GUI API at `/official-api/gui/api/v1`
+
+The dev-shell simulator and the simulator of `development/simulator` answer the official GUI API
+at `/official-api/gui/api/v1`, no longer at `/official-api/v1`. Each system a simulator plays gets a
+prefix of its own, and the path of the original goes below it. The cockpit's official GUI API has
+the prefix `/official-api`.
+
+- A workflow module whose client of the official GUI API points at a simulator sets the address of
+  the simulator with the prefix, and nothing more:
+  `spring.http.serviceclient.official-gui-api.base-url=http://localhost:8079/official-api`, or the
+  same value in a group or prefix of its own. The client adds `/gui/api/v1` itself, as it does for
+  the cockpit. A client built by hand for the simulator is not needed any more.
+- A dev shell which builds its clients from the address `/official-api/v1` takes
+  `/official-api/gui/api/v1`. The proxy of its dev server keeps forwarding `/official-api/**`.
+- A test or a page which calls `/official-api/v1/...` by hand calls
+  `/official-api/gui/api/v1/...`. The old path answers 404.
+
+The BPMS API stays at `/bpms/api/v1_1`, so `vanillabp.cockpit.rest.base-url` stays the bare address
+of the simulator.

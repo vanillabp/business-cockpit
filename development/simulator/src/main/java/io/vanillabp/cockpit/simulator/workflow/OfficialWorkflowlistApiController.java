@@ -35,7 +35,7 @@ import io.vanillabp.cockpit.simulator.workflow.testdata.WorkflowTestDataGenerato
  * keeps. It has no list of its own.
  */
 @RestController
-@RequestMapping(path = "/official-api/v1")
+@RequestMapping(path = "/official-api/gui/api/v1")
 public class OfficialWorkflowlistApiController implements OfficialWorkflowlistApi {
 
   /**

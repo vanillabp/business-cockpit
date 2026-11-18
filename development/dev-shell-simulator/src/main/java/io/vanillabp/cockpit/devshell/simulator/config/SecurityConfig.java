@@ -80,7 +80,7 @@ public class SecurityConfig {
 
     return http.securityMatchers(
         c -> c.requestMatchers(
-            "/official-api/**", // Tasklist-API
+            "/official-api/**", // the official GUI API, below the prefix of the simulated cockpit
             "/bpms/api/**", // BPMS-API
             "/simulator-api/**" // what only the simulator answers
         ))

@@ -5315,7 +5315,7 @@ the path twice once the path is added.
 - the tests `BusinessCockpitConfigurationTest#anAddressWithThePathOfTheApiIsRefused`,
   `#anAddressWithAPathOfItsOwnIsRead` and `RestTransportTest#thePathOfTheApiFollowsThePathOfTheAddress`
 
-### 112. The dev shell simulator describes what only it answers in an OpenAPI file of its own, and answers the user signed in like the cockpit
+### 112. The dev shell simulator describes what only it answers in an OpenAPI file of its own, and answers the user signed in like the cockpit - the path of the official GUI API changed by decision 114
 
 #### What was found
 
@@ -5435,4 +5435,53 @@ they need no change. They got OpenFeign and OkHttp only through `extensions-comm
 - the tests `RestClientSetupTest`, `RestTransportTest#anUnreachableServerHasTheReportRepeated`,
   `ConfigurationKeyCheckTest#aKeyOfVersionOneSaysWhatBecameOfIt` and
   `TheClientReportsToTheCockpitTest` in the simulator
+
+### 114. Each system a simulator plays gets a prefix of its own, and the path of the original goes below it
+
+This entry changes decision 112, which put the official GUI API of the dev shell simulator at
+`/official-api/v1`.
+
+#### What was found
+
+The cockpit answers the official GUI API at `/gui/api/v1`, the server URL of its OpenAPI file. The
+dev shell simulator and the simulator of `development/simulator` answered it at `/official-api/v1`.
+Since decision 110 the generated client adds `/gui/api/v1` to its `base-url` itself. A workflow
+module whose client points at a simulator asked for `/official-api/v1/gui/api/v1/...` and got 404.
+Its tests built the client by hand instead of setting one key, and so got a different result than
+against the real cockpit.
+
+Answering at `/gui/api/v1`, exactly as the cockpit does, would have fixed the path but not the
+next case: a simulator may play other systems too, and the paths of two originals can collide.
+
+#### The decision
+
+- Each system a simulator plays gets a path prefix of its own, and below it the path the original
+  answers. The prefix of the cockpit's official GUI API is `/official-api`. So both simulators
+  answer it at `/official-api/gui/api/v1`.
+- A workflow module points its client at a simulator by its address only:
+  `spring.http.serviceclient.official-gui-api.base-url=http://localhost:8079/official-api`, or the
+  same value in a group or prefix of its own. The client adds `/gui/api/v1`, as it does for the
+  cockpit.
+- `/official-api/v1` is gone, without an alias. One path, as in the cockpit.
+- The BPMS API keeps `/bpms/api/v1_1` without a prefix. A workflow module reports to a simulator
+  as it reports to the cockpit, so `vanillabp.cockpit.rest.base-url` stays the bare address of the
+  simulator. The simulator's own paths, `/simulator-api` and `/dev-shell`, are no system it plays
+  and keep their paths.
+
+#### What it costs
+
+The paths of a simulator are not exactly those of the original, because each has the prefix in
+front. A dev shell and the proxy of its dev server name `/official-api/gui/api/v1` instead of
+`/official-api/v1`, and a test or a page which wrote the old path by hand changes it.
+
+#### Where it applies
+
+- `development/dev-shell-simulator`: `OfficialApiTaskController`, `OfficialApiWorkflowController`,
+  `OfficialApiCurrentUserController`, `OfficialApiNotificationController`, `SecurityConfig`,
+  `README.md`, `pom.xml`, and the test `AGeneratedClientReachesTheSimulatorByItsAddressTest`
+- `development/simulator`: `OfficialTasklistApiController`, `OfficialWorkflowlistApiController`,
+  `README.md`
+- `apis/dev-shell-simulator-api`: the description of the OpenAPI file and `README.md`
+- `skills/business-cockpit-user-interface/references/dev-shell.md`
+- `UPGRADE.md`
 

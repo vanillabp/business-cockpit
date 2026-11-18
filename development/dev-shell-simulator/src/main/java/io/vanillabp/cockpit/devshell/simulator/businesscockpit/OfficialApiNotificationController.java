@@ -22,7 +22,7 @@ import io.vanillabp.cockpit.gui.api.v1.OfficialNotificationConfigApi;
 import io.vanillabp.cockpit.gui.api.v1.RecipientMediumConfiguration;
 
 /**
- * Answers the page which configures the notifications, {@code /official-api/v1/notifications/**},
+ * Answers the page which configures the notifications, {@code /official-api/gui/api/v1/notifications/**},
  * so a user interface which shows that page works on the simulator too.
  *
  * <p>
@@ -34,7 +34,7 @@ import io.vanillabp.cockpit.gui.api.v1.RecipientMediumConfiguration;
  * </p>
  */
 @RestController
-@RequestMapping("/official-api/v1")
+@RequestMapping("/official-api/gui/api/v1")
 public class OfficialApiNotificationController implements OfficialNotificationConfigApi {
 
   private final SignedInUser signedInUser;

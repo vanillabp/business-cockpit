@@ -52,7 +52,7 @@ Der Entwickler übergibt seine Teile und eine Adresse, und die Shell baut daraus
 
 |                 Was                  |                                     Warum die Shell es braucht                                      |
 |--------------------------------------|-----------------------------------------------------------------------------------------------------|
-| die Adresse der GUI-API              | daraus baut sie ihre Clients, im Beispiel `/official-api/v1`                                        |
+| die Adresse der GUI-API              | daraus baut sie ihre Clients, im Beispiel `/official-api/gui/api/v1`                                |
 | `UserTaskForm`                       | die Seite einer Aufgabe                                                                             |
 | `WorkflowPage`                       | die Seite eines Falls                                                                               |
 | weitere Teile unter ihrem Namen      | für die eigenen Teile eines Moduls, siehe [module-federation.md](module-federation.md#eigene-teile) |
@@ -132,9 +132,16 @@ MongoDB noch BPMS noch Cockpit sind nötig.
 
 Sie hat zwei Seiten:
 
-Nach vorne, zur Dev Shell, spricht sie die offizielle GUI-API unter `/official-api/v1`. Sie
-beantwortet davon eine Aufgabe, die Aufgabenliste, einen Fall, die Fallliste und die Aufgaben eines
-Falls. Seitenweise lesen und Sortieren macht sie im Speicher, die Seitengröße ist standardmäßig 20,
+Nach vorne, zur Dev Shell, spricht sie die offizielle GUI-API unter `/official-api/gui/api/v1`.
+Jedes System, das ein Simulator nachstellt, bekommt einen eigenen Präfix, darunter steht der Pfad
+des Originals. Die GUI-API des Cockpits hat den Präfix `/official-api`, darunter `/gui/api/v1` wie
+im Cockpit. So können die Pfade zweier nachgestellter Systeme nicht kollidieren. Ein Workflow-Modul,
+dessen erzeugter Client der GUI-API auf den Simulator zeigen soll, setzt nur die Adresse samt
+Präfix, `spring.http.serviceclient.official-gui-api.base-url=http://localhost:8079/official-api`,
+und der Client hängt `/gui/api/v1` selbst an, wie beim Cockpit.
+
+Der Simulator beantwortet davon eine Aufgabe, die Aufgabenliste, einen Fall, die Fallliste und die
+Aufgaben eines Falls. Seitenweise lesen und Sortieren macht sie im Speicher, die Seitengröße ist standardmäßig 20,
 und die Standardsortierung ist `createdAt` absteigend. Dazu kommen der angemeldete Benutzer,
 `GET /app/current-user`, wie im Cockpit mit allen Gruppen samt den Gruppenhierarchien der
 angemeldeten Workflow-Module, und die Einstellungen der Benachrichtigungen unter `/notifications`.
@@ -179,7 +186,7 @@ als kommagetrennte Liste und `attributes` als freie Abbildung. Mitgeliefert sind
 Diese Benutzer sind drei Dinge auf einmal: die Einträge der Auswahlliste in der Shell, die
 Benutzerverwaltung des Simulators, und die Gruppen werden zu den Berechtigungen im Token. Der
 Simulator löst Gruppen im Token absichtlich nicht auf. Eine Gruppenhierarchie ist Sache der
-Geschäftsanwendung. Nur `GET /official-api/v1/app/current-user` antwortet wie das Cockpit mit den
+Geschäftsanwendung. Nur `GET /official-api/gui/api/v1/app/current-user` antwortet wie das Cockpit mit den
 aufgelösten Gruppen.
 
 Angemeldet wird nicht. Der Simulator schreibt denselben JWT in dasselbe Cookie, das auch das Cockpit
@@ -230,6 +237,10 @@ Es gibt keine Anmeldung. Der Benutzer wird gewählt, nicht angemeldet, und die D
 nichts.
 
 Die Sichtbarkeitsregeln des Cockpits werden nicht nachgestellt. Was die Shell zeigt, zeigt sie allen.
+
+Die Pfade haben einen Präfix. Die GUI-API liegt unter `/official-api/gui/api/v1` statt unter
+`/gui/api/v1`, weil jedes nachgestellte System einen eigenen Präfix bekommt. Darunter ist der Pfad
+derselbe wie im Original, also ändert sich nur die Adresse, die ein Client bekommt.
 
 Die Übersetzung in der Zelle ist die Identität. Die React-Shell gibt der Zelle eine
 Übersetzungsfunktion, die den Schlüssel zurückgibt, und nagelt die Sprache auf `de` fest. Ein

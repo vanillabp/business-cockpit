@@ -114,6 +114,14 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <!-- a test points the generated client of the official GUI API at the simulator by its
+           address only, as a workflow module does, see decision 114 in DECISIONS.md -->
+      <groupId>${project.groupId}</groupId>
+      <artifactId>official-gui-api-spring-boot-client</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <!-- the output suppression every test class of this module registers -->
       <groupId>io.vanillabp</groupId>
       <artifactId>test-utils</artifactId>

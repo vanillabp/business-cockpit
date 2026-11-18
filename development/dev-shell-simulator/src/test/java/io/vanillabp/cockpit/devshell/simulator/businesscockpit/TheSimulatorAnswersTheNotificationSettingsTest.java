@@ -22,7 +22,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * A user interface which shows the page of the notification settings reads and writes
- * {@code /official-api/v1/notifications/**}. The simulator sends no notifications, so it offers
+ * {@code /official-api/gui/api/v1/notifications/**}. The simulator sends no notifications, so it offers
  * no medium, but it keeps what a user configures and lists the workflows the user could be
  * notified about. Like the cockpit, it answers only a user who is signed in.
  */
@@ -32,7 +32,7 @@ import tools.jackson.databind.json.JsonMapper;
 })
 class TheSimulatorAnswersTheNotificationSettingsTest {
 
-  private static final String NOTIFICATIONS = "/official-api/v1/notifications";
+  private static final String NOTIFICATIONS = "/official-api/gui/api/v1/notifications";
 
   @Value("${local.server.port}")
   private int port;

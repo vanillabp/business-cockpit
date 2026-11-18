@@ -8,10 +8,12 @@ info:
 
     - The BPMS API at /bpms/api/v1_1, described in apis/bpms-api. A workflow module reports its
       user tasks and cases there, as it does to the cockpit.
-    - The official GUI API at /official-api/v1, described in apis/official-gui-api. A user
-      interface and a workflow module read from it, as they read from the cockpit at
-      /gui/api/v1. The simulator answers the lists, a single user task or case, the user signed
-      in and the notification settings of that user.
+    - The official GUI API at /official-api/gui/api/v1, described in apis/official-gui-api. A
+      user interface and a workflow module read from it, as they read from the cockpit at
+      /gui/api/v1. Each system the simulator plays gets a prefix of its own, here /official-api,
+      and the path of the original goes below it. So a generated client of the official GUI API
+      takes http://localhost:8079/official-api as its address. The simulator answers the lists,
+      a single user task or case, the user signed in and the notification settings of that user.
     - The paths below, which belong to the simulator alone. A dev shell switches between made-up
       users with them, and a test of a workflow module reads what the module reported.
 
@@ -105,7 +107,7 @@ paths:
       summary: the user the dev shell switched to
       description: |
         The user comes from the login cookie of the request. The official GUI API answers the
-        same user at /official-api/v1/app/current-user, there in the form the cockpit answers.
+        same user at /official-api/gui/api/v1/app/current-user, there in the form the cockpit answers.
       operationId: getUserDetails
       responses:
         200:

@@ -12,13 +12,13 @@ import io.vanillabp.cockpit.support.security.usercontext.GroupHierarchyResolver;
 import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 
 /**
- * Answers who is signed in, {@code GET /official-api/v1/app/current-user}, the way the cockpit
+ * Answers who is signed in, {@code GET /official-api/gui/api/v1/app/current-user}, the way the cockpit
  * answers it at {@code /gui/api/v1/app/current-user}. A workflow module asks it with the generated
  * client of the official GUI API and the user's cookie, for example to tell whether another user
  * claimed a task. So it gets the same answer from the simulator as from the cockpit.
  */
 @RestController
-@RequestMapping("/official-api/v1")
+@RequestMapping("/official-api/gui/api/v1")
 public class OfficialApiCurrentUserController implements OfficialCurrentUserApi {
 
   private final SignedInUser signedInUser;

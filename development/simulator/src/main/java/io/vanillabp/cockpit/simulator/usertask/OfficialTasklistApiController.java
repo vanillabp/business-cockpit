@@ -27,7 +27,7 @@ import io.vanillabp.cockpit.simulator.usertask.testdata.UserTaskTestDataGenerato
  * tasks it keeps. It has no list of its own.
  */
 @RestController
-@RequestMapping(path = "/official-api/v1")
+@RequestMapping(path = "/official-api/gui/api/v1")
 public class OfficialTasklistApiController implements OfficialTasklistApi {
 
   /**

@@ -21,11 +21,20 @@ Of the BPMS API it answers version 1.1 only, at `/bpms/api/v1_1`. A report to `/
 404, although the cockpit still takes it. Version 1.1 has existed for more than a year, and a
 workflow module which still reports through version 1 needs a current adapter for the dev shell.
 
-Of the official GUI API it answers, at `/official-api/v1`, the lists, a single user task or case,
-the user signed in at `/app/current-user` and the notification settings of that user. The user
-signed in comes with his groups completed by the group hierarchies of the registered workflow
-modules, as the cockpit does it. The simulator sends no notifications, so it offers no medium, and
-it keeps the notification settings in memory only.
+Each system the simulator plays gets a prefix of its own, and the path of the original goes below
+it. The cockpit's official GUI API has the prefix `/official-api`, so the simulator answers it at
+`/official-api/gui/api/v1`, where the cockpit answers `/gui/api/v1`. The paths of two systems
+cannot collide that way. A workflow module points its generated client at the simulator by the
+address with the prefix, for example
+`spring.http.serviceclient.official-gui-api.base-url=http://localhost:8079/official-api`, and the
+client adds `/gui/api/v1` as it does for the cockpit. See decision 114 in the repository's
+[DECISIONS.md](../../DECISIONS.md).
+
+Of the official GUI API it answers the lists, a single user task or case, the user signed in at
+`/app/current-user` and the notification settings of that user. The user signed in comes with his
+groups completed by the group hierarchies of the registered workflow modules, as the cockpit does
+it. The simulator sends no notifications, so it offers no medium, and it keeps the notification
+settings in memory only.
 
 It does not answer what only the cockpit's own frame needs, such as
 `/gui/api/v1/app/current-user/group-hierarchy`, which tells the menu of the cockpit where the rights
@@ -33,7 +42,7 @@ of the user come from. No component of a workflow module asks for it.
 
 What only the simulator answers, the reports at `/simulator-api` and the switch of users at
 `/dev-shell/user`, is described in an OpenAPI file of its own, in
-[`apis/dev-shell-simulator-api`](../../apis/dev-shell-simulator-api). The controllers implement the
+[`apis/dev-shell-simulator-api`](../../apis/dev-shell-simulator-api), see decision 112. The controllers implement the
 interfaces generated from it, and the tests call these paths through the generated client.
 
 Built as part of the reactor build described in the [root README](../../README.md#building-it), and
