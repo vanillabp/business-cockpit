@@ -44,7 +44,7 @@ public class TheApplicationChoosesThePrefixTest {
   @DynamicPropertySource
   static void urls(
       final DynamicPropertyRegistry registry) {
-    registry.add("loan-approval.cockpit.base-url", () -> Cockpit.guiApiUrl(cockpit));
+    registry.add("loan-approval.cockpit.base-url", () -> Cockpit.address(cockpit));
   }
 
   @AfterAll

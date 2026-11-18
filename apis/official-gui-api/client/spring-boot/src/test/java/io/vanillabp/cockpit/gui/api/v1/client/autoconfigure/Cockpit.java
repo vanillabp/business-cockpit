@@ -14,9 +14,21 @@ final class Cockpit {
   private Cockpit() {
   }
 
-  /** The address of the official GUI API, the value of 'base-url'. Starts the stub once. */
-  static String guiApiUrl(
+  /**
+   * The address of the cockpit, the value of 'base-url', with a slash at its end as people write
+   * it. The clients add the path of the API themselves. Starts the stub once.
+   */
+  static String address(
       final MockWebServer server) {
+
+    return address(server, "/");
+
+  }
+
+  /** The address of a cockpit with a context path, for example '/cockpit'. Starts the stub once. */
+  static String address(
+      final MockWebServer server,
+      final String contextPath) {
 
     if (!server.getStarted()) {
       try {
@@ -25,7 +37,7 @@ final class Cockpit {
         throw new UncheckedIOException(e);
       }
     }
-    return server.url("/gui/api/v1").toString();
+    return server.url(contextPath).toString();
 
   }
 

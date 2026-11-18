@@ -34,7 +34,7 @@ public class TheClientsAreBuiltFromKeysTest {
   @DynamicPropertySource
   static void urls(
       final DynamicPropertyRegistry registry) {
-    registry.add("spring.http.serviceclient.official-gui-api.base-url", () -> Cockpit.guiApiUrl(cockpit));
+    registry.add("spring.http.serviceclient.official-gui-api.base-url", () -> Cockpit.address(cockpit));
   }
 
   @AfterAll

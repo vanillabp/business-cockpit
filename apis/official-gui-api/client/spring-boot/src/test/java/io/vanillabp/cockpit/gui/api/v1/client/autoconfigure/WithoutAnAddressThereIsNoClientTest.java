@@ -106,7 +106,7 @@ public class WithoutAnAddressThereIsNoClientTest {
     try (var context = start(new Class<?>[]{
         TestApplication.class, OptionalCockpit.class
     }, ADDRESS_KEY
-        + "=http://localhost:1/gui/api/v1")) {
+        + "=http://localhost:1")) {
 
       assertThat(context.getBeansOfType(OfficialTasklistApi.class)).hasSize(1);
       assertThat(context.getBeansOfType(OfficialCurrentUserApi.class)).hasSize(1);
@@ -122,7 +122,7 @@ public class WithoutAnAddressThereIsNoClientTest {
     final var problems = problemsOf(catchStartFailure(new Class<?>[]{
         TestApplication.class
     }, ADDRESS_KEY
-        + "=${COCKPIT_URL}/gui/api/v1"));
+        + "=${COCKPIT_URL}"));
 
     assertThat(problems).singleElement().asString()
         .contains("'COCKPIT_URL'")
@@ -137,7 +137,7 @@ public class WithoutAnAddressThereIsNoClientTest {
 
     final var problems = problemsOf(catchStartFailure(new Class<?>[]{
         TestApplication.class, PrefixOfTheGroupOfTheAutoConfiguration.class
-    }, "loan-approval.cockpit.base-url=http://localhost:1/gui/api/v1"));
+    }, "loan-approval.cockpit.base-url=http://localhost:1"));
 
     assertThat(problems).singleElement().asString()
         .contains("'"
@@ -167,7 +167,9 @@ public class WithoutAnAddressThereIsNoClientTest {
         .contains("'"
             + ADDRESS_KEY
             + "'")
-        .contains("ObjectProvider");
+        .contains("ObjectProvider")
+        .contains("'https://cockpit.example.com'")
+        .contains("'/gui/api/v1'");
 
   }
 
@@ -184,7 +186,7 @@ public class WithoutAnAddressThereIsNoClientTest {
   public void a_missing_client_while_the_address_is_set_is_left_to_spring_boot() {
 
     final var analyzer = new TheOfficialGuiApiHasNoAddress(new MockEnvironment()
-        .withProperty(ADDRESS_KEY, "http://localhost:1/gui/api/v1"));
+        .withProperty(ADDRESS_KEY, "http://localhost:1"));
 
     assertThat(analyzer.analyze(new NoSuchBeanDefinitionException(OfficialTasklistApi.class))).isNull();
 

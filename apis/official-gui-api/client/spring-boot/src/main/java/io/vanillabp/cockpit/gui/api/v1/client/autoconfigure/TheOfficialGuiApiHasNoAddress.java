@@ -5,7 +5,9 @@ import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.boot.diagnostics.AbstractFailureAnalyzer;
 import org.springframework.boot.diagnostics.FailureAnalysis;
 import org.springframework.core.Ordered;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.env.Environment;
+import org.springframework.web.service.annotation.HttpExchange;
 
 /**
  * Says which key is missing if a bean needs a client of the official GUI API and there is none.
@@ -54,12 +56,23 @@ public class TheOfficialGuiApiHasNoAddress extends AbstractFailureAnalyzer<NoSuc
         A bean needs the client %s of the cockpit's official GUI API, but there is none, because \
         '%s' is not set."""
         .formatted(missingType.getSimpleName(), OfficialGuiApiClientAutoConfiguration.ADDRESS), """
-            Set '%s' to the address of the cockpit followed by '/gui/api/v1', for example \
-            'https://cockpit.example.com/gui/api/v1'. If the bean calls the cockpit only when the \
-            application sets the address, inject an ObjectProvider of %s instead. To read the keys \
-            below a prefix of your own, import the interfaces into an HTTP service group of your \
-            own, see the README of official-gui-api-spring-boot-client."""
-            .formatted(OfficialGuiApiClientAutoConfiguration.ADDRESS, missingType.getSimpleName()), cause);
+            Set '%s' to the address of the cockpit, with its context path if it has one, for \
+            example 'https://cockpit.example.com'. The client adds the path of the API, '%s', \
+            itself. If the bean calls the cockpit only when the application sets the address, inject \
+            an ObjectProvider of %s instead. To read the keys below a prefix of your own, import the \
+            interfaces into an HTTP service group of your own, see the README of \
+            official-gui-api-spring-boot-client."""
+            .formatted(OfficialGuiApiClientAutoConfiguration.ADDRESS, pathOf(missingType), missingType
+                .getSimpleName()), cause);
+
+  }
+
+  /** The path of the API, which the generator writes into {@code @HttpExchange} on the type. */
+  private static String pathOf(
+      final Class<?> api) {
+
+    final var exchange = AnnotatedElementUtils.findMergedAnnotation(api, HttpExchange.class);
+    return exchange == null ? "" : exchange.url();
 
   }
 

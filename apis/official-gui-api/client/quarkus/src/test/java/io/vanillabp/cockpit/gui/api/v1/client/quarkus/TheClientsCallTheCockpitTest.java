@@ -3,6 +3,7 @@ package io.vanillabp.cockpit.gui.api.v1.client.quarkus;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.hamcrest.Matchers.equalTo;
 
 import java.io.IOException;
@@ -19,6 +20,8 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.vanillabp.cockpit.gui.api.v1.client.OfficialCurrentUserApi;
 import io.vanillabp.cockpit.gui.api.v1.client.OfficialTasklistApi;
+import io.vanillabp.cockpit.support.rest.restclient.RestClients;
+import io.vanillabp.cockpit.support.rest.restclient.RestClientsMisconfigured;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.ProcessingException;
@@ -29,7 +32,8 @@ import mockwebserver3.RecordedRequest;
 
 /**
  * Workflow modules call the cockpit with the generated clients, built from the keys at their own
- * prefixes. While the application answers a request, the user's cookie goes along to the cockpit,
+ * prefixes. 'base-url' is the address of the cockpit, with a context path or without, and the
+ * clients add the path of the API themselves. While the application answers a request, the user's cookie goes along to the cockpit,
  * and only to the cockpit.
  */
 @QuarkusTest
@@ -200,6 +204,22 @@ public class TheClientsCallTheCockpitTest {
             {"id": "task-1", "workflowModuleId": "loan-approval"}""")
         .build());
     assertThat(tasklist.getUserTask("task-1", null).getId()).isEqualTo("task-1");
+
+  }
+
+  @Test
+  public void an_address_with_the_path_of_the_api_stops_the_start() {
+
+    final var failure = catchThrowableOfType(RestClientsMisconfigured.class, () -> new RestClients().build(
+        OfficialTasklistApi.class, "with-the-path.cockpit"));
+
+    assertThat(failure).isNotNull();
+    assertThat(failure.getProblems()).singleElement().asString()
+        .contains("in 'with-the-path.cockpit.base-url' ends with '/gui/api/v1'")
+        .contains("the interface OfficialTasklistApi adds to each call itself")
+        .endsWith("to the address without it: 'http://127.0.0.1:"
+            + Integer.getInteger(TheCockpitOfTheTests.PORT)
+            + "'.");
 
   }
 

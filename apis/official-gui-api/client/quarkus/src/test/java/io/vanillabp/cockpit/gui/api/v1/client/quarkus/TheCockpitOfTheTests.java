@@ -31,10 +31,15 @@ public class TheCockpitOfTheTests implements QuarkusTestResourceLifecycleManager
     final var cockpit = "http://127.0.0.1:"
         + port;
     return Map.of(
+        // the address of the cockpit only, the clients add the path of the API themselves
         "loan-approval.cockpit.base-url", cockpit
-            + "/gui/api/v1",
+            + "/",
+        // a cockpit with a context path
         "onboarding.cockpit.base-url", cockpit
-            + "/onboarding/gui/api/v1",
+            + "/onboarding",
+        // the mistake the start refuses: the path of the API in the address
+        "with-the-path.cockpit.base-url", cockpit
+            + "/gui/api/v1",
         "onboarding.cockpit.read-timeout", "300ms",
         "another-service.base-url", cockpit
             + "/another-service");

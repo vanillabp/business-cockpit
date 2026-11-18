@@ -52,7 +52,12 @@ public class OfficialGuiApiClientAutoConfiguration {
       + "."
       + GROUP;
 
-  /** The key of the address of the cockpit. Without it, the group is not there. */
+  /**
+   * The key of the address of the cockpit, with its context path if it has one. The path of the
+   * API is not part of it: each interface carries the server path of the OpenAPI file in
+   * {@code @HttpExchange} on the type, and an address which ends with that path stops the start.
+   * Without the key, the group is not there.
+   */
   public static final String ADDRESS = KEYS
       + ".base-url";
 

@@ -28,7 +28,8 @@ import mockwebserver3.MockWebServer;
 /**
  * Two workflow modules of one application call the cockpit, each with keys of its own. Each
  * imports the interface into a group of its own. The group of the auto-configuration steps back,
- * and both groups forward the user's cookie.
+ * and both groups forward the user's cookie. The cockpit of one module has a context path, and the
+ * path of the API follows it.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SpringBootTest(
@@ -48,8 +49,8 @@ public class TwoModulesCallTheCockpitTest {
   static void urls(
       final DynamicPropertyRegistry registry) {
 
-    registry.add("loan-approval.cockpit.base-url", () -> Cockpit.guiApiUrl(cockpit));
-    registry.add("onboarding.cockpit.base-url", () -> Cockpit.guiApiUrl(cockpit));
+    registry.add("loan-approval.cockpit.base-url", () -> Cockpit.address(cockpit));
+    registry.add("onboarding.cockpit.base-url", () -> Cockpit.address(cockpit, "/onboarding-cockpit"));
 
   }
 
@@ -116,6 +117,8 @@ public class TwoModulesCallTheCockpitTest {
     final var second = Cockpit.next(cockpit);
     assertThat(first.getHeaders().get("X-Workflow-Module")).isEqualTo("loan-approval");
     assertThat(second.getHeaders().get("X-Workflow-Module")).isEqualTo("onboarding");
+    assertThat(first.getTarget()).isEqualTo("/gui/api/v1/usertask/task-1");
+    assertThat(second.getTarget()).isEqualTo("/onboarding-cockpit/gui/api/v1/usertask/task-2");
     assertThat(first.getHeaders().get("Cookie")).isEqualTo("bc-token=signed-login");
     assertThat(second.getHeaders().get("Cookie")).isEqualTo("bc-token=signed-login");
 
