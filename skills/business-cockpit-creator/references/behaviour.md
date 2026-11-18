@@ -395,12 +395,16 @@ A user task or a case is active, completed, cancelled or suspended. Each state h
 holds for the rows of the task lists and of the case list, and for the application header while a
 task or a case is open:
 
-|   State   | Background |      Text      |
-|-----------|------------|----------------|
-| active    | normal     | normal         |
-| completed | grey       | normal         |
-| cancelled | grey       | struck through |
-| suspended | normal     | lighter        |
+|   State   | Background |             Text             |
+|-----------|------------|------------------------------|
+| active    | normal     | normal                       |
+| completed | grey       | normal                       |
+| cancelled | grey       | normal, title struck through |
+| suspended | normal     | lighter                      |
+
+Only the title of a cancelled row is struck through, not the other cells. The header of an open task
+or case shows no title, so there nothing is struck through: a cancelled task or case has the grey
+background only.
 
 The fields of the GUI API decide the state, see [gui-api.md](gui-api.md#how-a-row-ended) and
 [gui-api.md](gui-api.md#suspended-tasks-and-cases). `endedAt` decides first: a row with `endedAt`
@@ -411,8 +415,8 @@ Only a row without `endedAt` and with `suspendedAt` is suspended. All other rows
 The organisation may want other or more markers (`Q-STATE-MARKERS`). The default is the table above,
 with no symbols. One choice is a symbol right before the title: none for an active row, a green
 check mark for a completed one, a pause symbol for a suspended one and a prohibition sign for a
-cancelled one. The backgrounds and the lighter text stay. With symbols, the title of a cancelled row
-and its symbol are not struck through, so the symbol stays easy to see. The header of an open task
+cancelled one. The backgrounds and the lighter text stay. With symbols, nothing is struck through,
+so the symbol stays easy to see. The header of an open task
 or case has no title, so there the symbol stands at the start of the header.
 
 What the page of a task or a case shows is the module's business, whatever the state. The cockpit
@@ -629,16 +633,24 @@ A suspended task cannot be worked on until it is activated again. It is suspende
 `suspendedAt` is set and `endedAt` is not, see
 [How the state of a row looks](#how-the-state-of-a-row-looks).
 
-The cockpit's server refuses nothing because a task is suspended. Claim, unclaim, assign, unassign,
-the follow-up date and the note all go through, see
-[gui-api.md](gui-api.md#suspended-tasks-and-cases). Only the BPMS refuses to complete the task, and
-that is the answer the module's form gets when it sends the form.
+The server refuses claim, unclaim, assign (propose) and remove candidate for a suspended task with
+409, see [gui-api.md](gui-api.md#suspended-tasks-and-cases). The BPMS refuses to complete the task,
+and that is the answer the module's form gets when it sends the form.
 
-The user interface does not wait for that answer. While a task is suspended, it disables claim,
-unclaim, propose and remove candidate, in the row, in the header of the open task and as bulk
-actions while a suspended task is selected. Taking a task that nobody can work on only confuses the
-colleagues. Follow-up, note, mark as read and mark as unread stay enabled. They organise the user's
-own work and do not touch the task in the BPMS.
+The user interface does not wait for these answers. While a task is suspended, it disables claim,
+unclaim, propose and remove candidate, in the row and in the header of the open task. Taking a task
+that nobody can work on only confuses the colleagues. Follow-up, note, mark as read and mark as
+unread stay enabled. They organise the user's own work and do not touch the task in the BPMS.
+
+A bulk action is not simply disabled when the selection holds suspended tasks. For claim, unclaim,
+propose and remove candidate, the user interface first asks, worded for the action and translated,
+for example "The selection also holds suspended tasks. Assign all but the suspended ones?" On yes,
+it sends the request without the suspended tasks. On no, it sends nothing. The server answers a list
+that holds a suspended task with 409 and changes none of the tasks, so the suspended ones must
+never go out. Follow-up, note and read or unread go out for all selected tasks without a question.
+
+A 409 for a task that was not suspended when the user acted means the task was suspended or ended
+in the meantime. Read the task again, redraw the row and tell the user which of the two it was.
 
 On the page of the task, the cockpit lays its barrier over the areas, whatever `Q-CLAIM` says, see
 [The barrier](#the-barrier). The barrier says that the task is suspended. So the form cannot be
@@ -687,7 +699,7 @@ value of the information gets its own share of the width, and each value that is
 share is cut with "..." on its own. One long value never pushes the others out.
 
 The header has the look of the state of the task, the same as its row: grey for an ended task,
-struck through for a cancelled one, lighter text for a suspended one, see
+lighter text for a suspended one, see
 [How the state of a row looks](#how-the-state-of-a-row-looks).
 
 The header belongs to the cockpit, not to the workflow module.
@@ -913,7 +925,7 @@ the task list, per row and for all selected rows, see [Notes](#notes).
 
 A case row looks as its state says, the same as a task row, see
 [How the state of a row looks](#how-the-state-of-a-row-looks). So in `Done` every row is grey, and a
-cancelled case also has its text struck through. A suspended case in `InProgress` has lighter text.
+cancelled case also has its title struck through. A suspended case in `InProgress` has lighter text.
 
 Some organisations want fixed columns only, as for the task lists (`Q-MODULE-COLUMNS`).
 
@@ -1183,7 +1195,7 @@ Changes to the data shown become visible soon, without the user doing anything.
 A new task appears in the list, highlighted in one colour. A change shows right away, highlighted
 in another colour. A task that ended while the user watched takes the look of its end, see
 [How the state of a row looks](#how-the-state-of-a-row-looks): grey, and a cancelled one also has
-its text struck through. A task that is suspended while the user watches gets lighter text, and one
+its title struck through. A task that is suspended while the user watches gets lighter text, and one
 activated again gets its normal text back. These markers stay, so a user who comes back to the
 screen sees what happened. A button acknowledges the changes. Then the markers go away, and so do the
 ended rows a list of open rows still showed.

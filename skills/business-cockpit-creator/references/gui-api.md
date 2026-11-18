@@ -304,7 +304,8 @@ does `GET /usertask/{id}?markAsRead=true`. "Read" only switches off the bold row
 The 409 of claim and unclaim carries a plain text body which says that the task has ended.
 
 So switch these actions off in your user interface when `endedAt` is set, and treat a 409 as "the
-task ended in the meantime": read the task again, redraw the row and tell the user.
+task ended or was suspended in the meantime": read the task again, redraw the row and tell the user,
+see [Suspended tasks and cases](#suspended-tasks-and-cases).
 
 ## Giving back
 
@@ -695,11 +696,13 @@ sorted and filtered by `suspendedAt` like by any other field.
 `suspendedAt` after its end. So it is suspended only while `suspendedAt` is set and `endedAt` is
 not.
 
-The cockpit's server refuses nothing because a task is suspended. Claim, unclaim, assign, unassign,
-the follow-up date and the note answer as for any open task, and mark as read and unread work as
-always. Only the BPMS refuses to complete a suspended task, and the module's form gets that answer
-from its own backend, not from the cockpit. So your user interface switches off the actions itself,
-see [behaviour.md](behaviour.md#suspended-tasks).
+The server refuses claim, unclaim, assign and unassign (propose and remove candidate) for a
+suspended task with 409 and writes nothing, as for an ended task. The list form is all or nothing:
+one suspended task among those the user may see, and none is changed. This holds from the cockpit
+version with that check on. The follow-up date, the note and mark as read and unread still work. The
+BPMS refuses to complete a suspended task, and the module's form gets that answer from its own
+backend, not from the cockpit. See [behaviour.md](behaviour.md#suspended-tasks) for what the user
+interface does.
 
 ## User settings
 
