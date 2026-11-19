@@ -164,7 +164,7 @@ both.
 A `<style>` block of a single-file component does not reach the shadow root. The usual Vue build
 puts it into the `<head>` of the page, so the component shows without its styles. Write no `<style>` block. Keep the module's style in a file of
 its own, and let the web component write it into its own shadow root, in a `<style>` element in
-front of the component, as for Angular below. The blueprint's build fails on a `<style>` block, so
+front of the component. The blueprint's build fails on a `<style>` block, so
 nobody adds one by mistake. With Vite, importing a stylesheet with `?inline` gives the same text.
 
 `vue-tsc` with `strictTemplates` rejects every `data-testid`. That option turns on
@@ -175,13 +175,27 @@ fails on the test ids the browser tests need. Leave `strictTemplates` off and tu
 
 ## Angular in a shadow root
 
-Angular needs three things that React does not. Vue shares the first one, see
-[Vue in a shadow root](#vue-in-a-shadow-root). The Angular example module of the kit
+Angular needs a few things that React does not. The Angular example module of the kit
 (`examples/angular-module`) shows all of them.
 
-Angular puts the styles of a component into the `<head>` of the page. From there they do not reach
-into a shadow root, so the component shows without its styles. The web component writes the
-module's style into its own shadow root, in a `<style>` element in front of the component.
+Angular writes the styles of a component, `styles` or `styleUrl`, into the shadow root which holds
+the host element of the component. So components may keep their styles as in any Angular project,
+and the styles reach neither the cockpit nor another module. With the default encapsulation this
+only works when the host element is in the shadow root before `createComponent` runs. A host element
+which is not in the page yet sends the styles into the `<head>` of the page: the component shows
+without them, and they reach the cockpit. Measured with Angular 22.2, with the default encapsulation
+and with `ViewEncapsulation.ShadowDom`, also with several web components at once, after one was
+removed and after one was moved.
+
+One component created outside the page is enough to break this for the whole module. Angular
+remembers every place it has written styles to, and writes each style it uses into all of them. A
+component created through a `ViewContainerRef`, for example with `NgComponentOutlet`, gets a new
+host element which is not in the page yet, so from then on every style of the module goes into the
+`<head>` as well. The children of a template are not affected. A module which creates components
+that way gives its components no styles. It writes its style into each shadow root itself, in a
+`<style>` element in front of the component, as the Angular blueprint
+`cockpit-user-task-frontend-angular` does. A browser test which counts the `<style>` elements of the
+page finds such a leak.
 
 `@angular/elements` does not fit the event protocol. It defines a web component class of its own,
 so the module would have to build the protocol a second time: the functions in the properties, the
