@@ -73,7 +73,9 @@ The cockpit draws a part through its module host. From the page down to the part
    as `font-family`, `font-size`, `line-height`, `color` and `direction`, and all custom
    properties. A `rem` size inside the shadow root still follows the font size of `<html>`.
 5. A `<style>` element with the module's style, in front of the framework's root, see
-   [rough-edges.md](rough-edges.md#vue-in-a-shadow-root).
+   [rough-edges.md](rough-edges.md#vue-in-a-shadow-root). An Angular module whose components
+   carry their styles has no such element of its own: Angular writes those styles into the shadow
+   root, see [rough-edges.md](rough-edges.md#angular-in-a-shadow-root).
 6. The component of the module.
 
 The dev shell builds steps 1 to 5 the same way and puts the developer's component in at step 6. It
