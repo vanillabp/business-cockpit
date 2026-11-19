@@ -194,10 +194,13 @@ completely at once and shows no empty text. After that, signals and the events o
 Angular when to draw again.
 
 The build needs Angular's own compiler. esbuild alone cannot compile Angular components. The
-Angular compiler (`@angular/compiler-cli`) compiles them ahead of time into plain JavaScript, so the
-browser gets no template compiler. Angular also publishes its own packages half compiled, and the
-Angular linker finishes them while the bundler runs. The Angular CLI does both by itself. The data
-entries are plain JavaScript and skip both steps.
+Angular compiler compiles them ahead of time into plain JavaScript, so the browser gets no template
+compiler. Angular also publishes its own packages half compiled, and the Angular linker finishes
+them while the bundler runs. The Angular CLI does both by itself, so build Angular entries with
+it, see [module-loading.md](module-loading.md#angular-entries-with-the-angular-cli). Do not put the
+compiler and the linker into an esbuild build of your own. It works, but it is a way nobody else
+goes, and its bundle was three times as large in a measurement. The data entries are plain
+JavaScript and need neither.
 
 ## Removing a web component before its answer
 
