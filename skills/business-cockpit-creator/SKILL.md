@@ -57,8 +57,10 @@ in the folder of the UI repository. They tell you whether to start the interview
 write the plan or go on with a story.
 
 A cockpit does not fit into one session. So the plan lives in the UI repository, in `plan/INDEX.md`
-and one file per story, and never only in the chat. Each story is small, names the checklist ids it
-proves and has a check command that shows when it is done. Any agent, also a weaker model with a
+and one file per story, and never only in the chat. Each story is a small business slice: one thing
+a cockpit user can do, built through backend, user interface and tests at once. The first story
+does the simplest thing on the simplest path, and each next story adds one more. Each story names
+the checklist ids it proves and has a check command that shows when it is done. Any agent, also a weaker model with a
 small context, can stop after any step and the next one goes on from the files.
 [references/working-in-stories.md](references/working-in-stories.md) has the procedure and the
 templates. Follow it for every job of this skill that needs more than one prompt: a new cockpit, an
@@ -174,8 +176,7 @@ its id stays taken.
 
 Then write the plan, as
 [Planning](references/working-in-stories.md#planning-from-the-checklist-to-stories) says. It cuts
-[The order of building](#the-order-of-building) into stories and gives every checklist id that
-applies to exactly one story. Then work on one story after the other, as
+the work into business slices and gives every checklist id that applies to exactly one story. Then work on one story after the other, as
 [Working on one story](references/working-in-stories.md#working-on-one-story) says.
 
 Generate the UI repository as [references/project.md](references/project.md) describes, and the
@@ -417,8 +418,9 @@ What your user interface needs from the backend application:
 ## The order of building
 
 Each step can be shown on its own. If you change the order, you build for a long time without
-seeing anything. The plan cuts each step into one or more stories, see
-[Planning](references/working-in-stories.md#planning-from-the-checklist-to-stories).
+seeing anything. The steps say what builds on what. The stories do not follow them layer by layer.
+Each story takes from every step the part its business slice needs, see
+[Stories are business slices](references/working-in-stories.md#stories-are-business-slices).
 
 1. The project skeleton: the npm workspaces with the types library, the module kit, the module host
    and the theme, the generated GUI API client, and the UI jar with an empty shell, uploaded into
@@ -449,7 +451,8 @@ seeing anything. The plan cuts each step into one or more stories, see
 8. The dev shells, one per framework the workflow modules use.
 9. The types jar: the module `types` of the backend repository, or the types module of its own with
    its `README.md`. Then the nginx image when `Q-HOSTING` is `behind` or `in-front`.
-10. The end-to-end tests, one per checklist item. They run against the TypeScript simulator of the
+10. The end-to-end tests, one per checklist item. Each story writes the tests of its own ids, so
+    this step only checks that none is missing. They run against the TypeScript simulator of the
     UI repository, see
     [references/project.md](references/project.md#the-simulators).
 
