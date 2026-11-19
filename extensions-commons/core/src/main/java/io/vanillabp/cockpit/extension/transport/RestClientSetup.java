@@ -19,6 +19,10 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509ExtendedTrustManager;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.vanillabp.cockpit.bpms.api.v1_1.ApiClient;
 import io.vanillabp.cockpit.extension.config.RestConnection;
 import io.vanillabp.cockpit.extension.config.RestTransportConfiguration;
 
@@ -97,6 +101,25 @@ public final class RestClientSetup {
       builder.sslContext(sslContext);
     }
     return builder;
+
+  }
+
+  /**
+   * What turns a report into the JSON body of its request.
+   * <p>
+   * It is the generated client's own mapper with one change: a field without a value is sent as
+   * <code>null</code> instead of being left out. The generated client leaves such fields out,
+   * the client of version 1 sent them, and the cockpit server and the tests of every adapter
+   * read the body the way version 1 wrote it. A completed case without a creation time, for
+   * example, carries <code>"createdAt":null</code>.
+   *
+   * @return The mapper for the client to use
+   */
+  public static ObjectMapper objectMapper() {
+
+    final var mapper = ApiClient.createDefaultObjectMapper();
+    mapper.setDefaultPropertyInclusion(JsonInclude.Include.ALWAYS);
+    return mapper;
 
   }
 

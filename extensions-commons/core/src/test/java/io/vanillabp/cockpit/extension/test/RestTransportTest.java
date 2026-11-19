@@ -193,6 +193,30 @@ public class RestTransportTest {
   }
 
   @Test
+  @DisplayName("A field without a value is sent as null, the way version 1 sent it")
+  public void aFieldWithoutAValueIsSentAsNull() {
+
+    final var cancelledTask = EventFixture.userTask(UserTaskEventKind.CANCELED);
+    cancelledTask.setComment(null);
+    transport.publishUserTaskEvent(cancelledTask);
+    final var completedWorkflow = EventFixture.workflow(WorkflowEventKind.COMPLETED);
+    completedWorkflow.setCreatedAt(null);
+    transport.publishWorkflowEvent(completedWorkflow);
+    final var cancelledWorkflow = EventFixture.workflow(WorkflowEventKind.CANCELLED);
+    cancelledWorkflow.setCreatedAt(null);
+    transport.publishWorkflowEvent(cancelledWorkflow);
+
+    assertEquals(3, received.size(), "expected one request per report");
+    final var taskCancellation = received.get(0).body();
+    assertTrue(taskCancellation.contains("\"comment\":null"), taskCancellation);
+    final var workflowCompletion = received.get(1).body();
+    assertTrue(workflowCompletion.contains("\"createdAt\":null"), workflowCompletion);
+    final var workflowCancellation = received.get(2).body();
+    assertTrue(workflowCancellation.contains("\"createdAt\":null"), workflowCancellation);
+
+  }
+
+  @Test
   @DisplayName("A suspension and an activation go to their own endpoints and carry no business data")
   public void aSuspensionAndAnActivationGoToTheirOwnEndpoints() {
 
