@@ -22,6 +22,9 @@ runs on. Everything else is the same on both. So there are three modules:
   A Quarkus workflow module depends on it. It checks the login token in the cockpit's cookie,
   tells the user of a request, answers the exceptions for REST requests, and builds REST clients
   from keys. Its README says more.
+- [quarkus-test](./quarkus-test), published as
+  `io.vanillabp.businesscockpit:business-cockpit-quarkus-support-test`. `TestLogin`, which logs a
+  user in for the tests of a Quarkus workflow module, so its permission checkers apply.
 - [quarkus-it](./quarkus-it), a Quarkus application with the Quarkus module as a plain dependency.
   It is not published. Its tests show that Quarkus finds everything in the jar on its own.
 - [quarkus-it-without-security](./quarkus-it-without-security), the same without

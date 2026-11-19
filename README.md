@@ -110,8 +110,8 @@ are produced, what the gate prints on every run and what a run stopping at `pack
 in [test-coverage-report](./test-coverage-report).
 
 The Quarkus module of `support` has a fourth report, `test-coverage-report/support/quarkus`, with
-the same gate of 85. It counts that module and the platform-neutral `support/core`, and no Spring
-Boot test. The Spring Boot module of `support` and `support/core` are part of the container report,
+the same gate of 85. It counts that module, its helper for tests `support/quarkus-test` and the
+platform-neutral `support/core`, and no Spring Boot test. The Spring Boot module of `support` and `support/core` are part of the container report,
 because every cockpit carries them.
 
 The two clients of the official GUI API run in a workflow module and not in a cockpit. The Spring
@@ -133,7 +133,8 @@ In the order they build on each other:
    `business-cockpit-support-core`, and one module per platform on top of it: `spring-boot`,
    published as `business-cockpit-spring-boot-support`, and `quarkus`, published as
    `business-cockpit-quarkus-support`. With the module of its platform as its only dependency, a
-   workflow module compiles.
+   workflow module compiles. `quarkus-test`, published as `business-cockpit-quarkus-support-test`,
+   logs a user in for the tests of a Quarkus workflow module.
 3. **[apis](./apis)**:<br>The generated clients and servers of the two interfaces the cockpit has:
    `bpms-api` for what workflow modules report, `official-gui-api` for what a user interface reads.
 4. **[extensions-commons](./extensions-commons)**:<br>The platform-neutral half of the integration

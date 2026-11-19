@@ -9,9 +9,10 @@ Each directory here aggregates one of them: `application/spring-boot` for the co
 extension, `support/quarkus` for what a Quarkus workflow module gets from `support`, and
 `official-gui-api/spring-boot` for the Spring Boot client of the official GUI API. The
 container report carries the Spring Boot module of `support` and `support/core`. The Quarkus report
-of `support` carries `support/core`, the Quarkus module, `support/quarkus-it`, which tests that
-module as the dependency of an application, and `support/quarkus-it-without-security`, the same
-without `quarkus-security`, so no Spring Boot test counts there. It also counts the Quarkus client
+of `support` carries `support/core`, the Quarkus module, `support/quarkus-test` with `TestLogin`,
+`support/quarkus-it`, which tests that module as the dependency of an application, and
+`support/quarkus-it-without-security`, the same without `quarkus-security`, so no Spring Boot test
+counts there. It also counts the Quarkus client
 of the official GUI API, which builds on the Quarkus module. Both client reports leave out the
 interfaces and models the generator writes, because their numbers would measure the generator. A
 build writes each report to `report` below its directory, and the default branch publishes the

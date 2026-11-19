@@ -140,6 +140,11 @@
       </dependency>
       <dependency>
         <groupId>io.vanillabp.businesscockpit</groupId>
+        <artifactId>business-cockpit-quarkus-support-test</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.vanillabp.businesscockpit</groupId>
         <artifactId>spi-for-java</artifactId>
         <version>${project.version}</version>
       </dependency>

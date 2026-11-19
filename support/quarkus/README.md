@@ -43,6 +43,9 @@ it yet.
   `<id>.user-interface.address`. A route of Vert.x, with the keys and checks of the Spring Boot
   module, see [The user interface from an nginx](../README.md#the-user-interface-from-an-nginx).
 
+For the tests of a workflow module, [quarkus-test](../quarkus-test) brings `TestLogin`, which logs a
+user in with the permission checkers of the module.
+
 ## The Quarkus extensions it needs
 
 The module brings no Quarkus extension, see below. The workflow module adds the ones it uses:
@@ -59,9 +62,15 @@ The module brings no Quarkus extension, see below. The workflow module adds the 
 it does not have to be named. Without `quarkus-security` the application builds and starts, and the
 mappers answer. The check of the token is not there then, one line in the log says so, and the user
 context knows nobody. If such an application sets the secret anyway, the start ends and says to add
-`quarkus-security`. An application with `quarkus-security` which does not read the cockpit's token,
-for example because it has a login of its own, sets the build property
-`business-cockpit.jwt.enabled=false`.
+`quarkus-security`.
+
+A login of the application's own, for example HTTP basic authentication for other clients, works
+next to the check of the token. The check is passive, so a request without the cookie goes on to
+the other login, and `UserContext` tells the user of whichever login the request has. Such an
+application keeps the secret and the directory. Only an application with `quarkus-security` which
+does not read the cockpit's token at all, because no request comes through the cockpit, sets the
+build property `business-cockpit.jwt.enabled=false`. `ALoginOfItsOwnNextToTheCookieTest` of
+[quarkus-it](../quarkus-it) shows both logins side by side.
 
 ## The login token
 

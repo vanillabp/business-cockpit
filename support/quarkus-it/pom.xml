@@ -10,7 +10,7 @@
 
   <artifactId>business-cockpit-quarkus-support-it</artifactId>
   <name>Business Cockpit support - Quarkus, tested as an application</name>
-  <description>A Quarkus application with the Quarkus module of support as a plain dependency. Its tests show that Quarkus finds the check of the login token, the user context, the mappers and the builder of REST clients in that jar on its own, that a form endpoint answers 401, 403, 404 and 409, that a client built from keys fetches its OAuth token, and that the route passes the files of a user interface on to an nginx.</description>
+  <description>A Quarkus application with the Quarkus module of support as a plain dependency. Its tests show that Quarkus finds the check of the login token, the user context, the mappers and the builder of REST clients in that jar on its own, that a form endpoint answers 401, 403, 404 and 409, that a client built from keys fetches its OAuth token, that the route passes the files of a user interface on to an nginx, that TestLogin logs a user in with the permission checkers of the module, and that a login of the module's own works next to the cookie.</description>
 
   <licenses>
     <license>
@@ -92,6 +92,13 @@
       <artifactId>vertx-http-proxy</artifactId>
     </dependency>
     <dependency>
+      <!-- users with passwords in the configuration, for a login of the module's own next to the
+        cookie of the cockpit. Without the keys of the test profile which switches it on, it has no
+        user and changes nothing. -->
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-elytron-security-properties-file</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-junit</artifactId>
       <scope>test</scope>
@@ -102,6 +109,13 @@
       <artifactId>business-cockpit-support-core</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- TestLogin, which logs a user in for the calls of a test, as a workflow module names it -->
+      <groupId>io.vanillabp.businesscockpit</groupId>
+      <artifactId>business-cockpit-quarkus-support-test</artifactId>
+      <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>

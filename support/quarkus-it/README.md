@@ -29,6 +29,18 @@ through the test profile `TheUserInterfaceInAnNginx`. `EchoingNginx` plays the n
 comes from it, and `ModuleApi` below `/loan-approval/api/` stays in the application. The module has
 `io.vertx:vertx-http-proxy` for it, as an application with the route adds it.
 
+`ATestLogsAUserInTest` calls `RiskAssessment` as a bean, as different users one after the other,
+logged in by `TestLogin` of [quarkus-test](../quarkus-test). A permission checker of
+`RiskAssessment` decides who may assess a risk, and the augmentor `AuditorsOfTheTests` of the
+application adds a role. The test also shows that an identity set without the augmentors is
+refused, which is why `TestLogin` exists.
+
+`ALoginOfItsOwnNextToTheCookieTest` starts the application with HTTP basic authentication and a user
+in the configuration, through the test profile `ALoginOfItsOwnNextToTheCookie`, next to the check of
+the cockpit's cookie. Both logins work side by side, and nothing is switched off. The extension
+`quarkus-elytron-security-properties-file` brings the users. Without the keys of the profile it has
+none and changes nothing.
+
 The secret comes as the environment variable `BUSINESS_COCKPIT_JWT_HMACSHA256_BASE64`, which the
 Surefire configuration sets, the way a container gets it. So the tests also show that Quarkus finds
 the key `business-cockpit.jwt.hmacSHA256-base64` under that name.
