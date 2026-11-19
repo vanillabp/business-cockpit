@@ -4,12 +4,14 @@ import java.time.Duration;
 
 import org.testcontainers.kafka.KafkaContainer;
 
+import io.vanillabp.integration.test.utils.ContainerImages;
+
 /**
  * The Kafka broker of the tests, a {@link KafkaContainer} which does not fail at random when it
  * starts.
  * <p>
- * The image is overridable with {@code -Dkafka.image=apache/kafka:3.9.0}, like the images in
- * {@code ContainerImages}, and is pinned to {@value #DEFAULT_IMAGE} by default.
+ * The image is {@code ContainerImages.KAFKA} of the test utilities, overridable with
+ * {@code -Dkafka.image=...} like every image there.
  * <p>
  * Testcontainers starts the container with a shell loop which waits until a start script exists
  * and then runs it as a program. The script is copied into the container after the container
@@ -24,8 +26,6 @@ import org.testcontainers.kafka.KafkaContainer;
  */
 public class KafkaBroker extends KafkaContainer {
 
-  static final String DEFAULT_IMAGE = "apache/kafka:3.8.0";
-
   /** The script Testcontainers copies into the container after it started. */
   private static final String START_SCRIPT = "/tmp/testcontainers_start.sh";
 
@@ -37,7 +37,7 @@ public class KafkaBroker extends KafkaContainer {
 
   public KafkaBroker() {
 
-    super(System.getProperty("kafka.image", DEFAULT_IMAGE));
+    super(ContainerImages.KAFKA);
     withCommand(
         "sh",
         "-c",
