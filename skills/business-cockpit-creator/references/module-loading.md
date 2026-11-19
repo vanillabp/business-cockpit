@@ -571,9 +571,10 @@ Other ways do not fit:
 
 ### A module whose names carry no build
 
-The cockpit cannot force a module to build its names with the build id. A blueprint built against
-the VanillaBP kit does not, because that kit has no helper for it. Such a module works as long as
-it is not deployed again.
+The cockpit cannot force a module to build its names with the build id. A module may write its
+names by hand, for example. The blueprints and the example modules of the VanillaBP kit build them
+with `createElementNames`, so their names carry the build. A module without the build id in its
+names works as long as it is not deployed again.
 
 After a new build, the data entry of such a module answers with a name the loader knows from the
 earlier build. Loading the new visual entry would throw in `customElements.define`, and the old
@@ -581,6 +582,17 @@ class would still answer for the name. So the cockpit does not load it. It shows
 the module was updated, and the page has to be reloaded to show its new version, with a button
 that reloads the page. It writes the module id and the name of the web component to the console.
 A name that the earlier build never defined in this page loads as usual.
+
+### The same names as the VanillaBP host
+
+The VanillaBP host `@vanillabp/bc-module-host` does all of this, so a module can test it. Its option
+`manifestRecheckMs` sets the time after which it reads the manifest again, `MANIFEST_RECHECK_MS` by
+default, and a test sets it to a few hundred milliseconds. Its callback `onNewBuild(moduleId,
+manifest, previous)` tells its users that a module has a new build. For a name an earlier build
+defined, it throws a `BcHostError` with the code `ALREADY_DEFINED`. For a name the cockpit refuses,
+see [The cockpit checks every name](#the-cockpit-checks-every-name), it throws one with the code
+`WRONG_ELEMENT_NAME`. The generated module host keeps these names, so a module tested with the
+VanillaBP host meets the same behaviour in the cockpit.
 
 ## Nothing is shared
 
@@ -850,8 +862,8 @@ After the bundler, the same script writes `bc-manifest.json` with the same time 
 
 ### The cockpit checks every name
 
-The build of a module cannot be forced to do this. A module may write its names by hand, or be built
-against the VanillaBP kit, which has no helper for names. So the cockpit checks every name it is
+The build of a module cannot be forced to do this. A module may write its names by hand instead of
+using `createElementNames`. So the cockpit checks every name it is
 going to draw, after the ask step and before it loads anything. The same check runs for the name
 of a dialog that `cockpit.openDialog` asks for. A name is refused when
 
@@ -867,8 +879,9 @@ the module, so the note is for the author of the module as much as for the user.
 
 The check does not ask for the build id, and it does not look at the short name. A name without
 the build id, like `taxi-ride-taxi-ride--assess-risk--form`, is accepted, and the module then needs a reload of the page after a new build, see
-[A module whose names carry no build](#a-module-whose-names-carry-no-build). The example modules of
-the VanillaBP kit use names of this kind.
+[A module whose names carry no build](#a-module-whose-names-carry-no-build). The blueprints and the
+example modules of the VanillaBP kit do not use names of this kind: they build their names with
+`createElementNames`.
 
 Two different module ids can have the same prefix, for example `TaxiRide` and `taxi-ride`. Their
 names still do not clash as long as both carry a build id. The cockpit writes a warning to the

@@ -471,7 +471,7 @@ entries and their export names, the area `all`, the manifest, the event protocol
 `defineBcElement` and `bc-check-entries`. The blueprints test their modules with the second package
 of that repository, `@vanillabp/bc-module-host`, a minimal host which loads a module part the way
 [references/module-loading.md](references/module-loading.md) describes. Both packages are on
-npmjs.com as pre-release versions such as `0.1.0-snapshot.4`, until version 1.0 is published.
+npmjs.com as pre-release versions such as `0.1.0-snapshot.5`, until version 1.0 is published.
 
 Always name these two packages with their exact version, in every `package.json` you write, never with a
 range and never without a version. Take the version the blueprints name in their `package.json` (for example
