@@ -28,6 +28,15 @@ depends on the module of its platform.
   `409 Conflict`. Each of them, and `BcUnauthorizedException` with `401`, names its status as
   `HTTP_STATUS_CODE`, so a test of a form reads, for example,
   `assertThat(status).isEqualTo(BcTaskClaimedByAnotherUserException.HTTP_STATUS_CODE)`.
+- `io.vanillabp.cockpit.support.userinterface`: what the route to the user interface of a workflow
+  module needs on both platforms. `UserInterfaceRoutes` finds the workflow modules by their file
+  `META-INF/workflow-module`, reads the key `<id>.user-interface.address` of each, and refuses a
+  wrong address, an address for a module the application does not have, and an address without
+  the library which passes a request on, all at once in one `UserInterfaceRoutesMisconfigured`.
+  `UserInterfaceRoute` says which paths the route takes: every path below `/<id>/`, but not the
+  API below `/<id>/api/` and not a path which could climb out of `/<id>/`. The section
+  [The user interface from an nginx](../README.md#the-user-interface-from-an-nginx) of the support
+  README describes the route.
 
 The packages are the same as in the platform modules. The classes moved here out of the Spring Boot
 module and kept their packages, so no import changed.
@@ -38,7 +47,7 @@ signature of the token. Spring Security uses the same library under its JWT clas
 version is the one it reads. The SLF4J API is the logging API both platforms route to their own
 logging. A class which needs Spring or Quarkus belongs into the platform module. The answers to the
 exceptions are there too, because how a status code is sent depends on the platform. So are the
-reading of the cookie and the settings.
+reading of the cookie and the settings, and the route itself.
 
 The Spring Boot module checks a token with `LoginTokenVerifier`, finds the user with
 `DirectoryUserLookup` and reads the name with `TokenUserDetails`, behind its own classes, so its

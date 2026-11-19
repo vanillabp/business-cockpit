@@ -12,7 +12,7 @@
   <artifactId>support-quarkus-report</artifactId>
   <packaging>pom</packaging>
   <name>Test coverage report - Business Cockpit support (Quarkus)</name>
-  <description>Coverage of what a Quarkus workflow module gets from the Business Cockpit support: the core which knows no platform and the Quarkus module, tested on its own and as the dependency of an application. The Spring Boot module is not listed, so no Spring Boot test counts here. The core appears in this report and in the one of the container, which carries the Spring Boot module. The Quarkus client of the official GUI API is here as well, without its generated classes.</description>
+  <description>Coverage of what a Quarkus workflow module gets from the Business Cockpit support: the core which knows no platform, the Quarkus module and its helper for tests, tested on its own and as the dependency of an application. The Spring Boot module is not listed, so no Spring Boot test counts here. The core appears in this report and in the one of the container, which carries the Spring Boot module. The Quarkus client of the official GUI API is here as well, without its generated classes.</description>
 
   <dependencies>
     <dependency>
@@ -23,6 +23,13 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>business-cockpit-quarkus-support</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <!-- TestLogin, which the tests of a Quarkus workflow module use. The tests of quarkus-it reach
+           it. -->
+      <groupId>${project.groupId}</groupId>
+      <artifactId>business-cockpit-quarkus-support-test</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

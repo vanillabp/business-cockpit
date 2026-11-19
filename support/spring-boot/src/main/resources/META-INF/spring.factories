@@ -1,3 +1,4 @@
 org.springframework.boot.diagnostics.FailureAnalyzer=\
 io.vanillabp.cockpit.support.security.usercontext.UserDirectoryIsMissingFailureAnalyzer,\
-io.vanillabp.cockpit.support.rest.httpservice.HttpServiceClientsMisconfiguredFailureAnalyzer
+io.vanillabp.cockpit.support.rest.httpservice.HttpServiceClientsMisconfiguredFailureAnalyzer,\
+io.vanillabp.cockpit.support.userinterface.UserInterfaceRoutesMisconfiguredFailureAnalyzer

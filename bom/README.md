@@ -30,16 +30,16 @@ because a plugin is not managed by a BOM. It is the version of `spring-boot-depe
 - The artifacts of a derived cockpit: `business-cockpit` and `bpms-protobuf-api`, and the modules
   the library brings with it, `business-cockpit-spring-boot-support`, `business-cockpit-support-core`,
   `spi-for-java`, `bpms-api-server` and `official-gui-api-server`.
-- `business-cockpit-quarkus-support`, so the BOM names every artifact of a release. See below for
-  who uses it.
+- `business-cockpit-quarkus-support` and `business-cockpit-quarkus-support-test`, so the BOM names
+  every artifact of a release. See below for who uses them.
 
 The cockpit's adapters are not in it. A workflow module gets them for its BPMS, and each is released
 in a repository of its own.
 
 A workflow module on Quarkus does not import this BOM. The Spring BOMs in it would be wrong in a
 Quarkus application, because they would win over the versions Quarkus brings. So a Quarkus
-workflow module names the version of `business-cockpit-quarkus-support` itself, for example with a
-property:
+workflow module names the version of `business-cockpit-quarkus-support` itself, and of
+`business-cockpit-quarkus-support-test` for its tests, for example with a property:
 
 ```xml
 <dependency>

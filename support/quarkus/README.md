@@ -38,25 +38,39 @@ it yet.
 
 - `io.vanillabp.cockpit.support.rest.restclient.RestClients`, which builds clients of Quarkus' REST
   client from keys at a prefix the workflow module chooses, see below.
+- `io.vanillabp.cockpit.support.userinterface.UserInterfaceRoutesOnQuarkus`, which passes the files
+  of a workflow module's user interface on to an nginx if the application sets
+  `<id>.user-interface.address`. A route of Vert.x, with the keys and checks of the Spring Boot
+  module, see [The user interface from an nginx](../README.md#the-user-interface-from-an-nginx).
+
+For the tests of a workflow module, [quarkus-test](../quarkus-test) brings `TestLogin`, which logs a
+user in with the permission checkers of the module.
 
 ## The Quarkus extensions it needs
 
 The module brings no Quarkus extension, see below. The workflow module adds the ones it uses:
 
-|               What it uses               |             Extensions             |
-|------------------------------------------|------------------------------------|
-| the SPI and the exceptions, compile only | none                               |
-| the answers to the exceptions            | `quarkus-rest`                     |
-| the check of the cockpit's login token   | `quarkus-rest`, `quarkus-security` |
-| REST clients built from keys             | `quarkus-rest-client-jackson`      |
+|                What it uses                |                            Extensions                             |
+|--------------------------------------------|-------------------------------------------------------------------|
+| the SPI and the exceptions, compile only   | none                                                              |
+| the answers to the exceptions              | `quarkus-rest`                                                    |
+| the check of the cockpit's login token     | `quarkus-rest`, `quarkus-security`                                |
+| REST clients built from keys               | `quarkus-rest-client-jackson`                                     |
+| the route to the nginx of a user interface | `quarkus-vertx-http`, and the library `io.vertx:vertx-http-proxy` |
 
 `quarkus-rest` brings `quarkus-vertx-http`, the HTTP layer the check of the token needs as well, so
 it does not have to be named. Without `quarkus-security` the application builds and starts, and the
 mappers answer. The check of the token is not there then, one line in the log says so, and the user
 context knows nobody. If such an application sets the secret anyway, the start ends and says to add
-`quarkus-security`. An application with `quarkus-security` which does not read the cockpit's token,
-for example because it has a login of its own, sets the build property
-`business-cockpit.jwt.enabled=false`.
+`quarkus-security`.
+
+A login of the application's own, for example HTTP basic authentication for other clients, works
+next to the check of the token. The check is passive, so a request without the cookie goes on to
+the other login, and `UserContext` tells the user of whichever login the request has. Such an
+application keeps the secret and the directory. Only an application with `quarkus-security` which
+does not read the cockpit's token at all, because no request comes through the cockpit, sets the
+build property `business-cockpit.jwt.enabled=false`. `ALoginOfItsOwnNextToTheCookieTest` of
+[quarkus-it](../quarkus-it) shows both logins side by side.
 
 ## The login token
 
@@ -139,8 +153,8 @@ gets the answers without a line of its own. On Spring Boot a workflow module has
 handler. Nothing here needs a build step, so there is no deployment module.
 
 Quarkus itself is an optional dependency: `quarkus-arc`, `quarkus-rest`, `quarkus-vertx-http`,
-`quarkus-security` and `quarkus-rest-client`. The application brings Quarkus, and it decides on the version and adds the
-extensions it uses, see the table above. Nothing in the module needs a bean of an extension the
+`quarkus-security` and `quarkus-rest-client`, and so is `vertx-http-proxy`. The application brings
+Quarkus, and it decides on the version and adds the extensions it uses, see the table above. Nothing in the module needs a bean of an extension the
 application may leave out: the user context and the start check look the beans of
 `quarkus-security` up instead of injecting them. The mechanism and the identity provider are beans
 nobody asks for without `quarkus-security`, so Quarkus leaves them out of the application. An application on the older RESTEasy Classic, the extension
@@ -176,6 +190,11 @@ as a plain dependency.
 [quarkus-it-without-security](../quarkus-it-without-security) runs one without
 `quarkus-security`, and `AModuleWithoutTheCheckTest` of `quarkus-it` one with the check switched
 off.
+
+`TheUserInterfaceComesFromTheNginxTest` starts an application with the route and a stub which
+plays the nginx, the twin of the Spring Boot test of the same name, and
+`AWrongRouteKeyEndsTheStartTest` one with a wrong address. `AModuleWithItsUserInterfaceInAnNginxTest`
+of `quarkus-it` shows that Quarkus finds the route in the plain jar.
 
 The REST client tests start such an application too, with the client the generator `jaxrs-spec`
 writes from a small inventory API and a stub server: `RequestsTest`, `TwoModulesTest`,
