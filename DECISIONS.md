@@ -5680,3 +5680,128 @@ decodes the cookie twice, once there and once in `PassiveJwtSecurityFilter`.
 - `UPGRADE.md`, "The runnable jar logs a person in at the simulator"
 - the wiki pages `Security`, `Running-the-Business-Cockpit` and `Building-a-custom-Business-Cockpit`
 
+### 118. `support` brings the route to the nginx of a user interface on both platforms, found by the module's own file and switched on by the address
+
+This entry adds to decisions 92 and 103, which give `support` a core and one module per platform.
+The question of the story took its default: the route is not needed for 1.0, it came now so that
+the Quarkus blueprints can have it.
+
+#### What was found
+
+A workflow module whose user interface runs in an nginx of its own needs a route in the
+application which passes the files below `/<id>/` on to the nginx. The blueprints wrote that route
+in the workflow module, `UserInterfaceRouteAutoConfiguration` with Spring Cloud Gateway, and said
+that `support` is the place for it. Nothing in it is specific to a module but its id. Quarkus had
+no such route, so there was no nginx variant of a Quarkus application.
+
+#### The decision
+
+- `support/core` gets `UserInterfaceRoutes` and `UserInterfaceRoute` in the package
+  `io.vanillabp.cockpit.support.userinterface`. They find the workflow modules by their file
+  `META-INF/workflow-module`, the one VanillaBP reads, read the key `<id>.user-interface.address`
+  of each, and say which paths the route takes. So both platforms read the same key, take the same
+  requests and say the same words.
+- The key is the one the blueprints had. A workflow module needs no class and no key for its route:
+  the application sets the address, and only then is there a route. Only the scheme, the host and
+  the port count.
+- The route takes every GET below `/<id>/`, but not the API below `/<id>/api/` and not a path with
+  a dot segment or an encoded dot, slash or backslash, which could leave `/<id>/` on the nginx. The
+  path and the query stay as they are. It runs behind the security of the application.
+- On Spring Boot, `UserInterfaceRouteAutoConfiguration` of `support/spring-boot` registers one
+  route of Spring Cloud Gateway per module, as the bean `<id>-user-interface`. The gateway is an
+  optional dependency: the application adds `spring-cloud-starter-gateway-server-webmvc`. A bean of
+  that name which the module still brings wins, and the log says so, so a module can move at its
+  own pace.
+- On Quarkus, `UserInterfaceRoutesOnQuarkus` of `support/quarkus` adds a route of Vert.x when
+  Quarkus hands out its router, a plain bean found in the Jandex index, no extension. It passes the
+  request on with `vertx-http-proxy`, an optional dependency the application adds, whose version
+  the Quarkus BOM names. The route comes after the security of Quarkus and before Quarkus REST and
+  the files of the jars. The nginx gets the `Host` of the address, as Spring Cloud Gateway sends it.
+- The start ends, with every problem in one `UserInterfaceRoutesMisconfigured`, for an address
+  which is no address or has a user, a path, a query or a fragment, for a key which names a
+  workflow module the application does not have, and for an address without the library.
+
+#### What it costs
+
+An application adds a library for the route, on each platform its own. A key ending in
+`.user-interface.address` is taken for the address of a workflow module, so an application cannot
+use such a key for something else.
+
+Spring Cloud Gateway sets `spring.http.clients.redirects` to `dont-follow` unless the application
+sets it, so in an application with the route the HTTP service groups no longer follow a redirect
+unless a key says so. The tests of `support/spring-boot` run without the gateway for that reason,
+and the tests of the route run in a Surefire execution of their own.
+
+#### Where it applies
+
+- `support/core`: `UserInterfaceRoute`, `UserInterfaceRoutes`, `UserInterfaceRoutesMisconfigured`,
+  their tests and `README.md`
+- `support/spring-boot`: `UserInterfaceRouteAutoConfiguration`, `UserInterfaceRouteRegistrar`,
+  `GatewayRoute`, `UserInterfaceRoutesMisconfiguredFailureAnalyzer`, the files below
+  `META-INF`, the `pom.xml` with the optional gateway and the second Surefire execution,
+  `TheUserInterfaceComesFromTheNginxTest`, `TheKeysOfTheRouteAreCheckedTest`, the test resources
+  `META-INF/workflow-module` and `META-INF/resources/loan-approval/bc-manifest.json`, and
+  `README.md`
+- `support/quarkus`: `UserInterfaceRoutesOnQuarkus`, `VertxProxyRoute`, the `pom.xml` with the
+  optional `vertx-http-proxy`, `TheUserInterfaceComesFromTheNginxTest`,
+  `AWrongRouteKeyEndsTheStartTest`, `EchoingNginx` and `README.md`
+- `support/quarkus-it`: `AModuleWithItsUserInterfaceInAnNginxTest`, `TheUserInterfaceInAnNginx`,
+  `ModuleApi`, `EchoingNginx`, `META-INF/workflow-module`, the `pom.xml` and `README.md`
+- `support/README.md`, section "The user interface from an nginx", and the root `README.md`
+- the wiki page Connecting-a-workflow-module
+
+### 119. A Quarkus workflow module logs the users of its tests in with `TestLogin`, and a login of its own lives next to the cockpit's cookie
+
+This entry adds to decisions 104 and 106, which gave the Quarkus module of `support` its check of
+the cockpit's login token.
+
+#### What was found
+
+A test of a Quarkus workflow module which calls the beans of the module as different users sets the
+user with `TestIdentityAssociation` of `quarkus-test-security`. That takes the identity as it is.
+Quarkus brings the permission checkers of a module (`@PermissionChecker`) to an identity through a
+`SecurityIdentityAugmentor`, which a login runs and `TestIdentityAssociation` does not. So every
+check of a permission refused the call, and each module test with permission checkers ran the
+augmentors in a loop of its own.
+
+A blueprint with HTTP basic authentication switched the check of the cockpit's token off with
+`business-cockpit.jwt.enabled=false`, because it was not clear whether the two logins work side by
+side.
+
+#### The decision
+
+- A new module `support/quarkus-test`, published as
+  `io.vanillabp.businesscockpit:business-cockpit-quarkus-support-test`, holds
+  `io.vanillabp.cockpit.support.test.TestLogin`. It is an artifact of its own and not a test jar of
+  `support/quarkus`, so a module gets the helper and nothing of the tests of `support`. It is a plain
+  jar with a Jandex index and brings `quarkus-test-security`. A workflow module adds it in test
+  scope.
+- `TestLogin.logIn(user, roles...)` builds the identity, runs every augmentor of the application on
+  it, the one with the highest priority first, and sets it. `logOut()` takes it away. The roles are
+  the ones the test names. The `GroupResolver` of the cockpit's login is not applied, because a
+  login of the application's own does not apply it either.
+- `TestIdentityAssociation` keeps one user for the whole application, so the user of a test holds
+  for a request over HTTP without a login of its own as well. The documentation says to log out
+  after each test.
+- A login of the module's own and the check of the cockpit's token work side by side. The check is
+  passive, so a request without the cookie goes on to the other login. Such a module keeps the
+  secret and the directory. `business-cockpit.jwt.enabled=false` is only for a module which does
+  not read the cockpit's token at all.
+
+#### What it costs
+
+One more artifact is published. A test which forgets to log out leaves its user to the next test
+class.
+
+#### Where it applies
+
+- `support/quarkus-test`, new: `TestLogin`, the `pom.xml` and `README.md`
+- `support/pom.xml`, `bom/pom.xml`, `bom/README.md`, `test-coverage-report/support/quarkus/pom.xml`
+  and `test-coverage-report/README.md`
+- `support/quarkus-it`: `ATestLogsAUserInTest`, `RiskAssessment`, `AuditorsOfTheTests`,
+  `ALoginOfItsOwnNextToTheCookieTest`, `ALoginOfItsOwnNextToTheCookie`, the `pom.xml` with
+  `quarkus-elytron-security-properties-file` and the test artifact, and `README.md`
+- `support/quarkus/README.md`, section "The Quarkus extensions it needs", `support/README.md` and
+  the root `README.md`
+- the wiki page Connecting-a-workflow-module, section "On Quarkus"
+
