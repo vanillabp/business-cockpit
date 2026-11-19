@@ -757,6 +757,8 @@ with the same styles and the same elements around each part, see
 - `INTERVIEW.md`, the answers with their question ids.
 - `CHECKLIST.md`, the reference checklist plus the customer's items, see
   [`../SKILL.md`](../SKILL.md#phase-2-generate).
+- `plan/`, the plan of the work in stories, with the questions that came up and the defaults taken,
+  see [working-in-stories.md](working-in-stories.md#the-files-of-the-plan).
 - A `README.md` that says how to build, how to publish, how to run against a cockpit, how to run
   the nginx image and how to run the end-to-end tests.
 - The texts of the user interface in separate files, one per language, see

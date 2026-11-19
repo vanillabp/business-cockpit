@@ -1,6 +1,6 @@
 ---
 name: business-cockpit-creator
-description: Generate a VanillaBP Business Cockpit that fits an organisation's own tech stack, as two repositories. The frontend is one npm workspaces repository with the user interface in any web framework, the types, the cockpit's own module kit and module host, the theme, dev shells for workflow module parts and an nginx image. The backend is a Maven or Gradle project with the cockpit application on the business-cockpit library, the list controllers, the login (OIDC with Keycloak by default), a types jar and a docker-compose.yaml with MongoDB, Mailpit, Keycloak, Kafka if wanted. The agent interviews the user, generates both repositories and verifies them against a versioned checklist. Covers the GUI API, lists over large data, loading workflow module parts at runtime as ES modules and web components, and the behaviour users expect. Use whenever somebody wants their own Business Cockpit, its user interface or backend, wants to upgrade a generated one to a newer checklist, or needs a dev shell for the parts of a workflow module.
+description: Generate a VanillaBP Business Cockpit that fits an organisation's own tech stack, as two repositories. The frontend is one npm workspaces repository with the user interface in any web framework, the types, the cockpit's own module kit and module host, the theme, dev shells for workflow module parts and an nginx image. The backend is a Maven or Gradle project with the cockpit application on the business-cockpit library, the list controllers, the login (OIDC with Keycloak by default), a types jar and a docker-compose.yaml with MongoDB, Mailpit, Keycloak, Kafka if wanted. The agent interviews the user, plans the work as small stories in the repository so that any agent can stop and go on, generates both repositories story by story and verifies them against a versioned checklist. Covers the GUI API, lists over large data, loading workflow module parts at runtime as ES modules and web components, and the behaviour users expect. Use whenever somebody wants their own Business Cockpit, its user interface or backend, wants to upgrade a generated one to a newer checklist, or needs a dev shell for the parts of a workflow module.
 license: Apache-2.0
 metadata:
   author: vanillabp
@@ -20,8 +20,8 @@ that fits its tech stack, and on request the backend application that serves it.
 phases:
 
 1. [Interview](#phase-1-interview). You ask, and you assume nothing.
-2. [Generate](#phase-2-generate). You build both repositories from the answers and from the
-   references.
+2. [Generate](#phase-2-generate). You write the checklist and a plan of small stories, then you
+   build both repositories story by story, from the answers and from the references.
 3. [Verify](#phase-3-verify). You check the result against the checklist, item by item.
 
 Example user interfaces in React, Angular and Vue exist, each generated with this skill. They are
@@ -37,6 +37,7 @@ this skill is the one that builds a cockpit.
 
 **Contents:**
 
+1. [Start here: resume](#start-here-resume)
 1. [What you generate](#what-you-generate)
 1. [Phase 1: interview](#phase-1-interview)
 1. [Phase 2: generate](#phase-2-generate)
@@ -46,6 +47,26 @@ this skill is the one that builds a cockpit.
 1. [How your user interface gets into the cockpit](#how-your-user-interface-gets-into-the-cockpit)
 1. [The order of building](#the-order-of-building)
 1. [How you know it is done](#how-you-know-it-is-done)
+
+## Start here: resume
+
+Every start begins with the same step, also the first one and also when the user only says "go
+on": resume. Run the commands of
+[The first step of every start](references/working-in-stories.md#the-first-step-of-every-start-resume)
+in the folder of the UI repository. They tell you whether to start the interview, go on with it,
+write the plan or go on with a story.
+
+A cockpit does not fit into one session. So the plan lives in the UI repository, in `plan/INDEX.md`
+and one file per story, and never only in the chat. Each story is small, names the checklist ids it
+proves and has a check command that shows when it is done. Any agent, also a weaker model with a
+small context, can stop after any step and the next one goes on from the files.
+[references/working-in-stories.md](references/working-in-stories.md) has the procedure and the
+templates. Follow it for every job of this skill that needs more than one prompt: a new cockpit, an
+upgrade, a new wish of the customer.
+
+The code you generate explains itself: names read like small sentences, comments say why, and the
+English is plain. [references/code-that-reads-like-prose.md](references/code-that-reads-like-prose.md)
+has the rules and the checks you run before each commit.
 
 ## What you generate
 
@@ -134,14 +155,9 @@ backend reads it first.
 
 ## Phase 2: generate
 
-Generate the UI repository as [references/project.md](references/project.md) describes, and the
-backend repository as [references/backend.md](references/backend.md) describes. Build each screen
-as [references/behaviour.md](references/behaviour.md) describes. Talk to the server as
-[references/gui-api.md](references/gui-api.md) describes, and load the parts of the workflow
-modules as [references/module-loading.md](references/module-loading.md) describes. Read
-[references/rough-edges.md](references/rough-edges.md) before the first screen, not afterwards.
+Before the first line of code, write `CHECKLIST.md` and the plan.
 
-Then write `CHECKLIST.md` into the project:
+Write `CHECKLIST.md` into the project:
 
 1. Copy [references/reference-1.0.0.md](references/reference-1.0.0.md) into it, with the version
    of the reference at the top.
@@ -156,10 +172,24 @@ Every end-to-end test names the id of the item it proves, for example in its tit
 Ids are never reused and never renumbered. An item that no longer holds is marked as removed, and
 its id stays taken.
 
+Then write the plan, as
+[Planning](references/working-in-stories.md#planning-from-the-checklist-to-stories) says. It cuts
+[The order of building](#the-order-of-building) into stories and gives every checklist id that
+applies to exactly one story. Then work on one story after the other, as
+[Working on one story](references/working-in-stories.md#working-on-one-story) says.
+
+Generate the UI repository as [references/project.md](references/project.md) describes, and the
+backend repository as [references/backend.md](references/backend.md) describes. Build each screen
+as [references/behaviour.md](references/behaviour.md) describes. Talk to the server as
+[references/gui-api.md](references/gui-api.md) describes, and load the parts of the workflow
+modules as [references/module-loading.md](references/module-loading.md) describes. Read
+[references/rough-edges.md](references/rough-edges.md) before the first screen, not afterwards.
+Each story file names the sections of these pages it needs, so you read only those.
+
 ## Phase 3: verify
 
-Go through `CHECKLIST.md`, item by item. For each item, run its test or check it by hand, and write
-down the result. Then do what [How you know it is done](#how-you-know-it-is-done) says.
+The last two stories of the plan are this phase. Go through `CHECKLIST.md`, item by item. For each
+item, run its test or check it by hand, and write down the result. Then do what [How you know it is done](#how-you-know-it-is-done) says.
 
 ### A module built against the kit loads in your cockpit
 
@@ -229,6 +259,9 @@ who upgrades a generated user interface does this:
    `INTERVIEW.md` yet, see
    [references/interview.md](references/interview.md#a-newer-version-of-the-skill).
 
+Do this as a plan of stories, not in one go, see
+[Update jobs](references/working-in-stories.md#update-jobs).
+
 ## The parts of this description
 
 Read them in this order. Each one builds on the one before.
@@ -267,6 +300,12 @@ Read them in this order. Each one builds on the one before.
    The places where the obvious thing is the wrong thing.
 10. [references/reference-1.0.0.md](references/reference-1.0.0.md)<br>
     The checklist of version 1.0.0. The base for `CHECKLIST.md` and for the end-to-end tests.
+11. [references/working-in-stories.md](references/working-in-stories.md)<br>
+    How you work so that any agent can stop and go on: the resume step, the plan in `plan/`, the
+    stories from the checklist ids, the questions with their defaults, and the templates.
+12. [references/code-that-reads-like-prose.md](references/code-that-reads-like-prose.md)<br>
+    How the generated code explains itself: names, comments, plain English, and the checks before
+    each commit.
 
 The wiki of the repository describes the same things for a reader who does not build a user
 interface:
@@ -378,7 +417,8 @@ What your user interface needs from the backend application:
 ## The order of building
 
 Each step can be shown on its own. If you change the order, you build for a long time without
-seeing anything.
+seeing anything. The plan cuts each step into one or more stories, see
+[Planning](references/working-in-stories.md#planning-from-the-checklist-to-stories).
 
 1. The project skeleton: the npm workspaces with the types library, the module kit, the module host
    and the theme, the generated GUI API client, and the UI jar with an empty shell, uploaded into
