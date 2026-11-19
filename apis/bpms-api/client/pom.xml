@@ -79,8 +79,8 @@
                  published Java API - 'legacy' keeps them as they were. -->
             <enumPropertyNaming>legacy</enumPropertyNaming>
             <!-- openapi-generator 7.x initialises optional containers with an empty collection instead of
-                 leaving them null. That would turn absent fields into "{}"/"[]" on the wire, because the
-                 ObjectMapper only suppresses nulls - so keep the 6.x behaviour. -->
+                 leaving them null. That would turn absent fields into "{}"/"[]" on the wire instead of
+                 null, the way version 1 sent them - so keep the 6.x behaviour. -->
             <containerDefaultToNull>true</containerDefaultToNull>
             <useTags>true</useTags>
             <interfaceOnly>true</interfaceOnly>

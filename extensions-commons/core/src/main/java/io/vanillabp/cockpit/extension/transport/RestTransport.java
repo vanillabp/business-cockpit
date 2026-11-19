@@ -88,6 +88,7 @@ public class RestTransport implements BusinessCockpitTransport {
     this.baseUrl = configuration.baseUrl();
     final var client = new ApiClient();
     client.setHttpClientBuilder(RestClientSetup.httpClientOf(configuration));
+    client.setObjectMapper(RestClientSetup.objectMapper());
     // the path of the API comes with the client, from the server URL of the OpenAPI file it was
     // generated from, so base-url is the address of the cockpit only
     client
