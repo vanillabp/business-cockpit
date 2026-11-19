@@ -119,12 +119,62 @@ external, because the entries share nothing with the page.
 |------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | React            | Vite in library mode: `build.lib.entry` is an object of entry name to source file, `formats: ['es']`, `build.manifest: true`. Set `define: { 'process.env.NODE_ENV': '"production"' }`, because library mode leaves it alone, and React reads it. Or esbuild: `--bundle --format=esm --splitting --entry-names=[name]-[hash] --metafile=meta.json`.                                                                                                                                                                                                                                                                                           |
 | Vue              | esbuild as for React, with a small plugin that hands every `.vue` file to `vue/compiler-sfc`: `parse`, then `compileScript` with `inlineTemplate: true`, and the TypeScript it returns goes back to esbuild. The compiler comes with the package `vue`, so the build needs no other dependency, and `--metafile` works as for React. The Vue blueprint `cockpit-user-task-frontend-vue` builds this way. Vite in library mode with `@vitejs/plugin-vue` works as well, but it writes no metafile. Check the types with `vue-tsc`, and see [rough-edges.md](rough-edges.md#vue-in-a-shadow-root) for its `strictTemplates` and for the styles. |
-| Angular          | Zoneless, see [Nothing is shared](#nothing-is-shared). Vite in library mode with `@analogjs/vite-plugin-angular`, or the Angular CLI with its esbuild `application` builder and one build per visual entry, with `--stats-json` for the list of outputs. Plain esbuild is not enough: it needs the Angular compiler (`@angular/compiler-cli`) ahead of time and the Angular linker while it bundles, as the kit's example module does, see [rough-edges.md](rough-edges.md#angular-in-a-shadow-root).                                                                                                                                         |
+| Angular          | The Angular CLI with the `application` builder of `@angular/build`, as every Angular project builds, see [Angular entries with the Angular CLI](#angular-entries-with-the-angular-cli). One build for all entries: an entry point with one `import()` per entry, `index: false`, no polyfills, `statsJson: true` for the list of outputs. Zoneless, see [Nothing is shared](#nothing-is-shared). Do not build Angular with plain esbuild: it cannot compile Angular components, and adding the Angular compiler and linker by hand is a build of your own which nobody on the web knows.                                                      |
 | Plain JavaScript | esbuild or Rollup with `output.format: 'es'`. This is the recipe for every data entry, whatever the framework of the module's forms.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 
 The data entries need no framework compiler, see
 [Data entries carry no framework](#data-entries-carry-no-framework). So a module can build them with
-plain esbuild, apart from its forms, even when its forms are Angular.
+plain esbuild, apart from its forms. A module whose forms are Angular may also build them with the
+Angular CLI, together with the forms, as below.
+
+### Angular entries with the Angular CLI
+
+The Angular CLI builds one application from one entry point. It also writes every module the
+application loads with `import()` as a file of its own, with the hash of its content in the name, as
+it does for a lazy loaded route. The code these files share, Angular itself, goes into a shared
+chunk. So an entry point which imports each entry with `import()` gives one ES module per entry. The
+cockpit never loads the entry point itself, only the entries the manifest names:
+
+```ts
+// src/entries.ts, the "browser" entry point in angular.json
+export const entries = {
+  UserTaskForm: () => import('./data/user-task-form'),
+  AssessRiskForm: () => import('./forms/assess-risk-form'),
+};
+```
+
+The options of the `application` builder in `angular.json`:
+
+```json
+{
+  "builder": "@angular/build:application",
+  "options": {
+    "browser": "src/entries.ts",
+    "index": false,
+    "polyfills": [],
+    "outputPath": { "base": "dist/micro-frontends", "browser": "" },
+    "outputHashing": "all",
+    "namedChunks": true,
+    "statsJson": true
+  }
+}
+```
+
+`statsJson` writes `browser-stats.json`, the metafile of the esbuild inside the CLI. Its `outputs` name
+each file relative to the output folder, and `entryPoint` names the source file of an entry. The
+script after `ng build` takes the file of each entry from there and writes `bc-manifest.json`, the
+same ten lines as for esbuild. Move `browser-stats.json` out of the output folder, and pass it to
+`bc-check-entries` with `--metafile`. The CLI compiles ahead of time, checks the templates, and
+reads the `paths` of `tsconfig.json`, so the build needs nothing of its own for these. The files
+land in one folder, without the `entries/` and `chunks/` of the esbuild recipe. The Angular
+blueprint `cockpit-user-task-frontend-angular` builds this way.
+
+Measured with Angular 22.2 on a form with one field and one button: the build with the Angular CLI
+runs ahead of time and zoneless, and it loads through the manifest with `import()` as the esbuild
+builds do. Its shared chunk was a third of the size of
+the same form built with the Angular compiler, the linker and esbuild by hand, because the CLI also
+runs Angular's own optimisations. Plain esbuild without the Angular compiler fails in the browser:
+Angular then needs its compiler at runtime, and even with it, signal inputs do not work.
 
 The recipes are a starting point. Nobody has measured yet how the ways of loading compare across
 frameworks in load time and size. This will be measured before the release of Business Cockpit
@@ -285,7 +335,7 @@ entry loads later counts as well. It finds a framework in two ways:
 - By the inputs of the bundler's metafile, when the build passes it with `--metafile`. An input
   from one of the packages `react`, `react-dom`, `scheduler`, `vue`, `@vue/...`, `@angular/...`,
   `zone.js`, `preact`, `svelte`, `solid-js`, `lit`, `lit-html`, `lit-element` or `@lit/...` fails
-  the check. esbuild writes such a file with `--metafile`.
+  the check. esbuild writes such a file with `--metafile`, the Angular CLI with `statsJson`.
 
 The limit holds for the data entry only, not for a form. A form is a visual entry, and it may be as
 large as its framework makes it. A visual entry is only checked for its file.
