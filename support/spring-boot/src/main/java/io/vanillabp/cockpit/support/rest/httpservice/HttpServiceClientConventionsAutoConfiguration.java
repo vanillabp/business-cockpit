@@ -44,4 +44,12 @@ public class HttpServiceClientConventionsAutoConfiguration {
 
   }
 
+  @Bean
+  RequestFactoryAfterTheCustomizers requestFactoryAfterTheCustomizers(
+      final HttpServiceClientConventions conventions) {
+
+    return new RequestFactoryAfterTheCustomizers(conventions);
+
+  }
+
 }

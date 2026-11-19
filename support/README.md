@@ -91,10 +91,12 @@ after the security of Quarkus, so `quarkus.http.auth.permission.*` covers it, an
 REST and the files of the jars.
 
 Spring Cloud Gateway changes one default of every HTTP client of the application: unless the
-application sets `spring.http.clients.redirects` itself, the gateway sets it to `dont-follow`. An
-HTTP service group without a `redirects` key of its own then does not follow a redirect any more. An
-application whose clients need it sets `spring.http.clients.redirects=follow` or the key of the
-group.
+application sets `spring.http.clients.redirects` itself, the gateway sets it to `dont-follow`, and
+it hands a request factory built with that value to every `RestClient`. The HTTP service groups of
+`support` are not affected: they follow redirects unless their own `redirects` key says otherwise,
+and they keep the request factory their keys build, see [Changing more](#changing-more). The
+application's other clients, the ones it builds itself, get the default of the gateway. The routes
+of the gateway pass a redirect on to the browser as it is.
 
 The start ends, with one message for all of them, if
 
@@ -232,7 +234,7 @@ the ones `support` adds.
 | `base-url`                           | none                                                 | The address all requests start with, for example `https://inventory.example.com/api`. Required: without it the start stops.                                                                    |
 | `connect-timeout`                    | `spring.http.clients.connect-timeout`, else `1500ms` | How long the client waits for a connection. A duration, for example `1500ms` or `2s`.                                                                                                          |
 | `read-timeout`                       | `spring.http.clients.read-timeout`, else `10s`       | How long the client waits for the answer.                                                                                                                                                      |
-| `redirects`                          | `follow-when-possible`                               | Whether redirects are followed: `follow-when-possible`, `follow` or `dont-follow`.                                                                                                             |
+| `redirects`                          | `follow`                                             | Whether redirects are followed: `follow-when-possible`, `follow` or `dont-follow`. `spring.http.clients.redirects` does not apply.                                                             |
 | `ssl.bundle`                         | none                                                 | The name of a Spring Boot SSL bundle with the certificates the client trusts and its own certificate. Without it, the JVM's defaults apply.                                                    |
 | `default-header.<name>`              | none                                                 | A header sent with every request, for example `default-header.Authorization: Basic c2NvdHQ6dGlnZXI=` for HTTP basic authentication.                                                            |
 | `apiversion.*`                       | none                                                 | Spring Boot's keys for API versions, see its reference documentation.                                                                                                                          |
@@ -331,7 +333,10 @@ conventions:
 
 - a `RestClientHttpServiceGroupConfigurer` changes chosen groups: interceptors, headers, the
   handling of an error status, the request factory;
-- a `RestClientCustomizer` changes every `RestClient` of the application;
+- a `RestClientCustomizer` changes every `RestClient` of the application, but not the request
+  factory of a group: `RequestFactoryAfterTheCustomizers` puts the factory the keys built back
+  right after the customizers, because Spring Cloud Gateway sets a factory of its own on every
+  client. A `RestClientHttpServiceGroupConfigurer` still changes it;
 - a `ClientHttpRequestFactoryBuilderCustomizer` changes the JDK's `HttpClient.Builder` of every
   client.
 

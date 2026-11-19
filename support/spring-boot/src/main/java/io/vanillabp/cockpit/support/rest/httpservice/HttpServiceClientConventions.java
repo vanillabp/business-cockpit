@@ -9,8 +9,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -20,6 +22,7 @@ import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.HttpClientSettings;
 import org.springframework.boot.http.client.HttpComponentsClientHttpRequestFactoryBuilder;
+import org.springframework.boot.http.client.HttpRedirects;
 import org.springframework.boot.http.client.JdkClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.autoconfigure.ApiversionProperties;
 import org.springframework.boot.http.client.autoconfigure.HttpClientSettingsPropertyMapper;
@@ -50,12 +53,19 @@ import org.springframework.web.service.registry.HttpServiceGroup;
  * <li>Retries ({@code retry.*}) and logging with bodies ({@code log}).</li>
  * <li>The number of connections to the server at the same time: {@code connection-pool-size}.</li>
  * <li>A bearer token of the OAuth client credentials grant: {@code oauth.*}.</li>
+ * <li>A group follows redirects unless its own {@code redirects} key says otherwise.
+ * {@code spring.http.clients.redirects}, the key for all clients of the application, does not
+ * reach it, because Spring Cloud Gateway sets that key to {@code dont-follow} for its routes. The
+ * gateway also hands the request factory of that key to every client through a
+ * {@code RestClientCustomizer}, so {@link RequestFactoryAfterTheCustomizers} puts the factory of
+ * the group back after the customizers.</li>
  * <li>A key below the prefix which no setting reads stops the start, so a typo does not go
  * unnoticed.</li>
  * </ul>
  * It runs right after Spring Boot's own configurer, which applies
  * {@code spring.http.serviceclient.<group>.*}, and before {@code RestClientCustomizer} beans and
- * the application's own configurers, so those can still change everything.
+ * the application's own configurers, so those can still change everything but the request factory
+ * of a group, which {@link RequestFactoryAfterTheCustomizers} puts back after the customizers.
  * <p>
  * Every problem of every group is collected first. Then one {@link HttpServiceClientsMisconfigured}
  * lists them all, so a developer sees every missing key after one restart.
@@ -89,6 +99,9 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
 
   private final List<HttpServiceApiPath> apiPaths;
 
+  /** The request factory each group got, for {@link RequestFactoryAfterTheCustomizers}. */
+  private final Map<String, ClientHttpRequestFactory> requestFactories = new ConcurrentHashMap<>();
+
   /**
    * Creates the conventions. Two prefixes for one group stop the start here already.
    *
@@ -112,8 +125,14 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
 
     this.environment = environment;
     this.sslBundles = sslBundles;
-    this.settingsMapper = new HttpClientSettingsPropertyMapper(sslBundles, defaultSettings == null ? DEFAULT_SETTINGS
-        : defaultSettings.orElse(DEFAULT_SETTINGS));
+    // a group follows redirects unless its own 'redirects' key says otherwise, whatever
+    // 'spring.http.clients.redirects' says for all clients: Spring Cloud Gateway sets that key to
+    // 'dont-follow' for its routes, and that must not change how the clients of support behave
+    final var forAllClients = defaultSettings == null
+        ? DEFAULT_SETTINGS
+        : defaultSettings.orElse(DEFAULT_SETTINGS);
+    this.settingsMapper = new HttpClientSettingsPropertyMapper(sslBundles, forAllClients
+        .withRedirects(HttpRedirects.FOLLOW));
     this.requestFactoryBuilder = requestFactoryBuilder == null
         ? ClientHttpRequestFactoryBuilder.jdk()
         : requestFactoryBuilder;
@@ -139,6 +158,19 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
   @Override
   public int getOrder() {
     return ORDER;
+  }
+
+  /**
+   * The request factory the keys of a group built.
+   *
+   * @param group the name of the HTTP service group
+   * @return the factory, or empty for a group these conventions did not configure
+   */
+  Optional<ClientHttpRequestFactory> requestFactoryOf(
+      final String group) {
+
+    return Optional.ofNullable(requestFactories.get(group));
+
   }
 
   @Override
@@ -224,6 +256,7 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
     }
 
     builder.requestFactory(requestFactory);
+    requestFactories.put(name, requestFactory);
     builder.baseUrl(apiPath == null
         ? keys.getBaseUrl()
         : withoutTrailingSlash(keys.getBaseUrl()) + apiPath);

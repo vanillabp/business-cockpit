@@ -5728,9 +5728,9 @@ An application adds a library for the route, on each platform its own. A key end
 use such a key for something else.
 
 Spring Cloud Gateway sets `spring.http.clients.redirects` to `dont-follow` unless the application
-sets it, so in an application with the route the HTTP service groups no longer follow a redirect
-unless a key says so. The tests of `support/spring-boot` run without the gateway for that reason,
-and the tests of the route run in a Surefire execution of their own.
+sets it, and hands a request factory built with it to every `RestClient`. The addendum below keeps
+the HTTP service groups of `support` out of that. The other tests of `support/spring-boot` run
+without the gateway, and the tests of the route run in a Surefire execution of their own.
 
 #### Where it applies
 
@@ -5749,6 +5749,22 @@ and the tests of the route run in a Surefire execution of their own.
   `ModuleApi`, `EchoingNginx`, `META-INF/workflow-module`, the `pom.xml` and `README.md`
 - `support/README.md`, section "The user interface from an nginx", and the root `README.md`
 - the wiki page Connecting-a-workflow-module
+
+**Addendum (decided by the maintainer on 2026-11-19):** the HTTP clients of `support` always follow
+redirects, whatever `spring.http.clients.redirects` says for all clients, so the `dont-follow` of
+Spring Cloud Gateway does not reach them. Only the group's own `redirects` key changes it. The
+gateway did more than set the key: its `RestClientCustomizer` hands Spring Boot's request factory,
+built from `spring.http.clients.*`, to every client, and the customizers run after
+`HttpServiceClientConventions`. So a group lost its timeouts, TLS, proxy and pool as well. The new
+configurer `RequestFactoryAfterTheCustomizers`, order 1, puts the factory the keys built back right
+after the customizers. A `RestClientCustomizer` of the application no longer changes the request
+factory of a group; a `RestClientHttpServiceGroupConfigurer` still does. The routes of the gateway
+pass redirects on as before. The application's own other clients keep the gateway's default. On
+Quarkus nothing changes: `RestClients` reads only the keys at its prefix, and `redirects` defaults
+to following there already. It applies in `HttpServiceClientConventions`,
+`RequestFactoryAfterTheCustomizers`, `HttpServiceClientConventionsAutoConfiguration`,
+`SupportClientsFollowRedirectsNextToTheGatewayTest` and the sections "The user interface from an
+nginx", "The keys of a group" and "Changing more" of `support/README.md`.
 
 ### 119. A Quarkus workflow module logs the users of its tests in with `TestLogin`, and a login of its own lives next to the cockpit's cookie
 
