@@ -11,7 +11,9 @@ import com.sun.net.httpserver.HttpServer;
 /**
  * Stands in for the nginx of a user interface. It answers every request with what it got: the
  * method, the path with the query, and the {@code Host} header. A path which ends with
- * {@code missing.js} gets {@code 404}.
+ * {@code missing.js} gets {@code 404}. Like nginx it sends headers which hold for its connection
+ * only: {@code Connection: keep-alive, X-Hop}, {@code Keep-Alive} and {@code X-Hop}, which the
+ * {@code Connection} header names.
  * <p>
  * The test framework loads a test class twice, and the two copies share no static field. So the
  * server is started once per JVM, and its port is kept in a system property, which both copies see.
@@ -57,6 +59,10 @@ public final class EchoingNginx {
             ? 404
             : 200;
         exchange.getResponseHeaders().add("Content-Type", "text/plain");
+        // the headers of a single connection which nginx sends: they must not reach the browser
+        exchange.getResponseHeaders().add("Connection", "keep-alive, X-Hop");
+        exchange.getResponseHeaders().add("Keep-Alive", "timeout=5");
+        exchange.getResponseHeaders().add("X-Hop", "1");
         exchange.sendResponseHeaders(status, body.length);
         exchange.getResponseBody().write(body);
         exchange.close();

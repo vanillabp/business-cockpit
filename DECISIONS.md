@@ -5766,6 +5766,18 @@ to following there already. It applies in `HttpServiceClientConventions`,
 `SupportClientsFollowRedirectsNextToTheGatewayTest` and the sections "The user interface from an
 nginx", "The keys of a group" and "Changing more" of `support/README.md`.
 
+**Addendum (story 1906, 2026-11-19):** the route on Quarkus leaves out the headers of the
+connection to the nginx from its answer: `Connection`, `Keep-Alive`, `Proxy-Connection`,
+`Proxy-Authenticate`, `TE`, `Trailer`, `Transfer-Encoding`, `Upgrade` and every header `Connection`
+names (RFC 9110, section 7.6.1). `vertx-http-proxy` passed nginx's `Connection: keep-alive` on.
+Quarkus accepts HTTP/2 without TLS (h2c), and in HTTP/2 such a header makes the answer malformed
+(RFC 9113, section 8.2.2): the JDK's `HttpClient` of Java 25 refuses it with "Prohibited header name
+'connection'", and a browser with HTTP/2 over TLS would be hit as well. Spring Cloud Gateway leaves
+these headers out on its own, so Spring Boot is unchanged. The `IllegalStateException` in
+`HttpClientRequestImpl.write` which came with it is a consequence of the refused answer and is gone
+with the fix. It applies in `VertxProxyRoute`, `EchoingNginx`, `TheUserInterfaceComesFromTheNginxTest`
+and the section "The user interface from an nginx" of `support/README.md`.
+
 ### 119. A Quarkus workflow module logs the users of its tests in with `TestLogin`, and a login of its own lives next to the cockpit's cookie
 
 This entry adds to decisions 104 and 106, which gave the Quarkus module of `support` its check of

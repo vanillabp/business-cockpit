@@ -65,8 +65,12 @@ so each module of an application gets an address of its own. As an environment v
 request stays as it is, so the nginx serves the files below `/<id>/` as well.
 
 The route takes every GET below `/<id>/` and passes it on with its path and its query. The nginx
-gets the `Host` of the address, and the browser gets its answer as it is, `404` included. The route
-leaves out three kinds of paths, which the application answers itself:
+gets the `Host` of the address, and the browser gets its answer as it is, `404` included, but
+without the headers which hold for the connection to the nginx only: `Connection`, `Keep-Alive`,
+`Proxy-Connection`, `Proxy-Authenticate`, `TE`, `Trailer`, `Transfer-Encoding`, `Upgrade` and every
+header `Connection` names. Such a header makes an answer over HTTP/2 malformed. Spring Cloud Gateway
+leaves them out on its own, on Quarkus the route does it. The route leaves out three kinds of paths,
+which the application answers itself:
 
 - the API of the module below `/<id>/api/`;
 - a path with a dot segment, `.` or `..`, or with an encoded dot, slash or backslash, which could

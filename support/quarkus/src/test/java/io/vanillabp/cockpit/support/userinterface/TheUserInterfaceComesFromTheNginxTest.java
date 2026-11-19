@@ -1,9 +1,15 @@
 package io.vanillabp.cockpit.support.userinterface;
 
 import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
 import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.junit.jupiter.api.Test;
@@ -11,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 import io.quarkus.test.QuarkusExtensionTest;
+import io.restassured.RestAssured;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -61,6 +68,58 @@ public class TheUserInterfaceComesFromTheNginxTest {
         .contentType(startsWith("text/plain"))
         .body(equalTo("nginx got GET /loan-approval/bc-manifest.json?version=2 for "
             + EchoingNginx.address().substring("http://".length())));
+
+  }
+
+  /**
+   * The JDK's client asks Quarkus to switch to HTTP/2 without TLS, and Quarkus does. A header of a
+   * single connection, like {@code Connection}, is not allowed in HTTP/2, and the client refuses an
+   * answer which has one. So the route leaves out every such header of the nginx.
+   */
+  @Test
+  public void aFileComesOverHttp2WithoutTheHeadersOfTheConnectionToTheNginx() throws Exception {
+
+    final var response = fetch(HttpClient.Version.HTTP_2, "/loan-approval/bc-manifest.json");
+
+    assertThat(response.version()).isEqualTo(HttpClient.Version.HTTP_2);
+    assertThat(response.statusCode()).isEqualTo(Response.Status.OK.getStatusCode());
+    assertThat(response.body()).startsWith("nginx got GET /loan-approval/bc-manifest.json");
+    assertThat(response.headers().map().keySet())
+        .doesNotContain("connection", "keep-alive", "x-hop", "proxy-connection", "transfer-encoding", "upgrade");
+    assertThat(response.headers().firstValue("content-type")).hasValue("text/plain");
+
+  }
+
+  @Test
+  public void aFileComesOverHttp1WithoutTheHeadersOfTheConnectionToTheNginx() throws Exception {
+
+    final var response = fetch(HttpClient.Version.HTTP_1_1, "/loan-approval/bc-manifest.json");
+
+    assertThat(response.version()).isEqualTo(HttpClient.Version.HTTP_1_1);
+    assertThat(response.statusCode()).isEqualTo(Response.Status.OK.getStatusCode());
+    assertThat(response.body()).startsWith("nginx got GET /loan-approval/bc-manifest.json");
+    assertThat(response.headers().map().keySet()).doesNotContain("keep-alive", "x-hop");
+    assertThat(response.headers().allValues("connection")).noneMatch(value -> value.contains("X-Hop"));
+
+  }
+
+  private static HttpResponse<String> fetch(
+      final HttpClient.Version version,
+      final String path) throws Exception {
+
+    try (var client = HttpClient
+        .newBuilder()
+        .version(version)
+        .build()) {
+      return client.send(
+          HttpRequest
+              .newBuilder(URI.create("http://localhost:"
+                  + RestAssured.port
+                  + path))
+              .GET()
+              .build(),
+          HttpResponse.BodyHandlers.ofString());
+    }
 
   }
 
