@@ -427,8 +427,19 @@ small npm package in plain JavaScript from its own repository
 entries and their export names, the area `all`, the manifest, the event protocol,
 `defineBcElement` and `bc-check-entries`. The blueprints test their modules with the second package
 of that repository, `@vanillabp/bc-module-host`, a minimal host which loads a module part the way
-[references/module-loading.md](references/module-loading.md) describes. Both packages are not on
-npmjs.com yet; until they are, they come from a local Verdaccio registry.
+[references/module-loading.md](references/module-loading.md) describes. Both packages are on
+npmjs.com as pre-release versions such as `0.1.0-snapshot.4`, until version 1.0 is published.
+
+Always name these two packages with their exact version, in every `package.json` you write, never with a
+range and never without a version. Take the version the blueprints name in their `package.json` (for example
+`blueprints-cockpit/cockpit-user-task-frontend/react/package.json` in `vanillabp-blueprints/blueprints`), or
+ask npm for the newest one:
+
+```bash
+npm view @vanillabp/bc-module-kit dist-tags
+```
+
+While the packages are pre-releases, take the version of the tag `next` if it is newer than `latest`.
 
 The module kit you generate does not take the VanillaBP kit in. Together with the types library
 below it, it is the one contract of this cockpit. It covers the VanillaBP kit as its minimum, with
