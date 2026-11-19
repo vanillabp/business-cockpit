@@ -23,12 +23,13 @@ user interface. When you change a rule here, change the wiki page with it.
 9. [Ask, load, draw](#ask-load-draw)
 10. [A new build of a module](#a-new-build-of-a-module)
 11. [Nothing is shared](#nothing-is-shared)
-12. [A visual part is a web component](#a-visual-part-is-a-web-component)
-13. [The names of the web components](#the-names-of-the-web-components)
-14. [The page of a user task or a case](#the-page-of-a-user-task-or-a-case)
-15. [The other extension points](#the-other-extension-points)
-16. [The event protocol](#the-event-protocol)
-17. [Cells drawn by a workflow module](#cells-drawn-by-a-workflow-module)
+12. [What loading costs](#what-loading-costs)
+13. [A visual part is a web component](#a-visual-part-is-a-web-component)
+14. [The names of the web components](#the-names-of-the-web-components)
+15. [The page of a user task or a case](#the-page-of-a-user-task-or-a-case)
+16. [The other extension points](#the-other-extension-points)
+17. [The event protocol](#the-event-protocol)
+18. [Cells drawn by a workflow module](#cells-drawn-by-a-workflow-module)
 
 ## Self-contained ES modules
 
@@ -176,11 +177,10 @@ the same form built with the Angular compiler, the linker and esbuild by hand, b
 runs Angular's own optimisations. Plain esbuild without the Angular compiler fails in the browser:
 Angular then needs its compiler at runtime, and even with it, signal inputs do not work.
 
-The recipes are a starting point. Nobody has measured yet how the ways of loading compare across
-frameworks in load time and size. This will be measured before the release of Business Cockpit
-1.0, with the example cockpits once they are built, and the recipes will follow the result. Cells
-drawn by a module need the same measurement, see
-[Cells drawn by a workflow module](#cells-drawn-by-a-workflow-module).
+What the ways of loading cost in time, size and memory, for a module in React, Vue and Angular,
+was measured with a neutral host, see [What loading costs](#what-loading-costs). How the framework
+of the cockpit changes the numbers is still open. Cells drawn by a module need a measurement of
+their own, see [Cells drawn by a workflow module](#cells-drawn-by-a-workflow-module).
 
 ## The rules
 
@@ -590,7 +590,8 @@ Every module brings its own framework in its own version. That is what lets a Vu
 React form and an Angular case page, and a module upgrade its framework without asking anybody.
 
 It costs little, because every entry is loaded once, and the entries of one module share their
-framework chunk, see [Self-contained ES modules](#self-contained-es-modules).
+framework chunk, see [Self-contained ES modules](#self-contained-es-modules) and
+[What loading costs](#what-loading-costs).
 
 Shadow DOM isolates the DOM and the styles of a web component, not its JavaScript. Every module
 runs in the same `window`, with the same `customElements` registry and the same global objects. So
@@ -607,6 +608,97 @@ Angular 20.2. A form that relies on `zone.js` to notice changes uses signals ins
 CSS frameworks are the hard part. A global stylesheet of the cockpit changes the look of a form, and
 the stylesheet of a form changes the look of the cockpit. That is why every web component of a
 module renders into a shadow DOM.
+
+## What loading costs
+
+The ways of loading in this description were measured with a neutral host, not with a cockpit.
+The host was the host of the module kit, `@vanillabp/bc-module-host` 0.1.0-snapshot.4, in headless
+Chromium 159. The workflow modules were the three cockpit frontend blueprints of VanillaBP, in
+React 19.3, Vue 3.5 and Angular 22.2, each with two forms of a user task, built as the blueprints
+build them: esbuild for React and Vue, the Angular CLI for Angular. nginx served the files with the
+headers of the blueprints' nginx image, once without compression, as that image does, and once with
+gzip. Every step ran ten times. The numbers below are medians, rounded. Nearly every run lay
+within ten percent of the median. The runs used a development container with shared CPUs, so the
+absolute times are rough. The differences between the frameworks and between the ways are what
+counts.
+
+"Local" means no network delay: the time is the work of the browser alone. "Slow line" means a
+network emulated in the browser with 10 Mbit/s and a round trip of 40 ms. Every time ends when the
+form shows the data it asked its own backend for, so it holds that request as well.
+
+How the framework of the cockpit changes these numbers is still open. That is the measurement in
+real cockpits, a Vue cockpit with a React and an Angular module and so on.
+
+The first form of a module, opened directly with an empty cache:
+
+| Module  | Transferred, without / with gzip | Local | Slow line, without / with gzip | JS heap after it |
+|---------|----------------------------------|-------|--------------------------------|------------------|
+| React   | 246 KB / 79 KB                   | 40 ms | 520 ms / 370 ms                | 0.9 MB           |
+| Vue     | 90 KB / 37 KB                    | 25 ms | 370 ms / 320 ms                | 0.65 MB          |
+| Angular | 149 KB / 51 KB                   | 30 ms | 425 ms / 345 ms                | 1 MB             |
+
+It loads five files: the manifest, the data entry `UserTaskForm`, the small chunk the entries
+share, the visual entry and the framework chunk. Nearly all the bytes are the framework chunk.
+
+The ways a part comes into the page, on the slow line with gzip, local in brackets:
+
+|              Way               |                      What is fetched                       |    React    |     Vue     |   Angular   |
+|--------------------------------|------------------------------------------------------------|-------------|-------------|-------------|
+| the columns of a list          | manifest, data entry and small chunk, 2.5 KB, no framework | 135 ms (4)  | 135 ms (4)  | 135 ms (4)  |
+| the first form, after the list | data entry, visual entry, framework chunk                  | 290 ms (37) | 230 ms (21) | 250 ms (27) |
+| a form of another kind         | its visual entry, about 1 KB                               | 95 ms (7)   | 95 ms (7)   | 95 ms (7)   |
+| a form of the same kind again  | nothing                                                    | 50 ms (6)   | 50 ms (5)   | 50 ms (6)   |
+| after a reload of the page     | the manifest, answered with 304; the rest from the cache   | 130 ms (39) | 115 ms (22) | 120 ms (28) |
+| a new build, without a reload  | see below                                                  | 360 ms (33) | 225 ms (10) | 230 ms (10) |
+
+What the numbers show:
+
+- The framework is the cost, and a module pays it once. A second form of the same module fetches
+  about 1 KB. The same form again fetches nothing, and the 50 ms on the slow line are the request
+  of the form to its own backend.
+- Data entries are cheap. The columns of a module cost 2.5 KB, three short requests and 60 KB of
+  memory, and no framework. That is why a data entry carries no framework, see
+  [Data entries carry no framework](#data-entries-carry-no-framework).
+- Without network delay, a reload is hardly faster than the first load, because the browser spends
+  the time running the framework and drawing, not fetching. On a slow line the HTTP cache saves
+  most of the time: one request of 0.2 KB for the manifest, every other file from the cache.
+- Compression matters on a slow line. gzip sends a third of the bytes, and the first form shows
+  about 15 to 30 percent sooner. nginx does not compress by default, and neither does the image of
+  the blueprints.
+- Round trips add up. The first form waits for about six requests one after the other: the
+  manifest, the data entry, its chunk, the visual entry, the framework chunk and the request of the
+  form. On a line with 40 ms round trip, that is a quarter of a second before the size counts.
+- Every module framework takes its own memory: 0.65 to 1 MB for the first form, 0.1 to 0.2 MB for
+  each further form. A page with forms of a React, a Vue and an Angular module holds the sum.
+
+A new build without a reload of the page. The host of the module kit in this version reads the
+manifest only once, so it shows the old build until the page is reloaded: no request, the old names
+of the web components. The loader of this description reads the manifest again, see
+[A new build of a module](#a-new-build-of-a-module). The measurement renewed the host the way such
+a loader drops everything it holds, and then:
+
+- Vue and Angular fetched the manifest, the two entries and the small chunk, 3 KB with gzip. The
+  framework chunk kept its file name and came from the cache.
+- React fetched everything again, 79 KB with gzip. Its framework chunk imports helper code of
+  esbuild from the small chunk, and the small chunk also holds the build id. So every build gives
+  the framework chunk a new file name as well, although React did not change.
+- The old build stays in memory until the page is reloaded: 0.15 MB for Vue, 0.2 MB for Angular,
+  0.65 MB for React.
+
+What to use for which case:
+
+|               Case                |                                                                                               Way                                                                                               |
+|-----------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| every part shown in the cockpit   | ES modules through `bc-manifest.json` and `import()`, as described here; it is the only way that loads into the cockpit's page                                                                  |
+| columns, header, pages            | data entries without a framework; the measurement backs the rule                                                                                                                                |
+| the page of a user task or a case | load it when it opens, without preloading; with gzip the first form shows within 0.4 s on the slow line, every further form within 0.1 s                                                        |
+| a page of the module's own        | `EXTERNAL`; the cockpit loads nothing, so there is nothing to measure in the cockpit                                                                                                            |
+| the web server of a module        | compress JavaScript and JSON, send an `ETag` so that a check of the manifest is a 304, and cache the files with a hash in their name for good; the proxy of the cockpit passes these headers on |
+| the build of a module             | build twice without a change and compare the file names: only the files that hold the build id may get new names, never the framework chunk                                                     |
+
+Preloading would save at most the first load of a framework, once per module and page. That is a
+few hundred milliseconds on a slow line, so the rule of [Ask, load, draw](#ask-load-draw) stays: no
+preloading until a screen really needs it.
 
 ## A visual part is a web component
 
