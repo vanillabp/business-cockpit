@@ -42,6 +42,68 @@ groups there.
 The sections below describe a part of `support` for both platforms. Where a part exists only on one
 platform so far, the section says so.
 
+## The user interface from an nginx
+
+The cockpit loads the user interface of a workflow module from `/wm/<id>/bc-manifest.json` and
+forwards that to `/<id>/bc-manifest.json` of the application, and the same for every file the
+manifest names. Usually those files are in the UI jar, a dependency of the application, and Spring
+Boot and Quarkus serve them from `META-INF/resources/`. If the user interface runs in an nginx of its
+own instead, with a release cycle of its own, the application passes those requests on. `support`
+brings the route for it on both platforms. The workflow module needs no class and no key for it.
+The application sets the address of the nginx:
+
+```properties
+loan-approval.user-interface.address=http://nginx:8080
+```
+
+The key is below the id of the workflow module, the content of its file `META-INF/workflow-module`,
+so each module of an application gets an address of its own. As an environment variable it is
+`LOAN_APPROVAL_USER_INTERFACE_ADDRESS`. Only the scheme, the host and the port count. The path of a
+request stays as it is, so the nginx serves the files below `/<id>/` as well.
+
+The route takes every GET below `/<id>/` and passes it on with its path and its query. The nginx
+gets the `Host` of the address, and the browser gets its answer as it is, `404` included. The route
+leaves out three kinds of paths, which the application answers itself:
+
+- the API of the module below `/<id>/api/`;
+- a path with a dot segment, `.` or `..`, or with an encoded dot, slash or backslash, which could
+  leave `/<id>/` on the nginx;
+- every other method than GET.
+
+The route runs behind the security of the application: a path which needs a login needs it for the
+files of the nginx as well. With the address, the nginx answers even if the UI jar is there too.
+Without it, there is no route and no library is needed.
+
+The application adds the library which passes a request on:
+
+|  Platform   |                                                                 Dependency                                                                 |
+|-------------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| Spring Boot | `org.springframework.cloud:spring-cloud-starter-gateway-server-webmvc`, with the BOM `org.springframework.cloud:spring-cloud-dependencies` |
+| Quarkus     | `io.vertx:vertx-http-proxy`, whose version the Quarkus BOM names                                                                           |
+
+On Spring Boot the route is a bean of Spring Cloud Gateway named `<id>-user-interface`. A workflow
+module which still brings a bean of that name, its own route from before, keeps it, and the log
+says that the route of `support` is left out. On Quarkus the route is a route of Vert.x. It comes
+after the security of Quarkus, so `quarkus.http.auth.permission.*` covers it, and before Quarkus
+REST and the files of the jars.
+
+Spring Cloud Gateway changes one default of every HTTP client of the application: unless the
+application sets `spring.http.clients.redirects` itself, the gateway sets it to `dont-follow`. An
+HTTP service group without a `redirects` key of its own then does not follow a redirect any more. An
+application whose clients need it sets `spring.http.clients.redirects=follow` or the key of the
+group.
+
+The start ends, with one message for all of them, if
+
+- an address is no address, has no `http` or `https`, holds a user, or has a path, a query or a
+  fragment;
+- a key `<id>.user-interface.address` names a workflow module the application does not have,
+  with the ids it has;
+- an address is set, but the library is missing.
+
+`UserInterfaceRoutes` of [core](./core) does the checks and `UserInterfaceRoute` decides which
+paths the route takes, so both platforms take the same requests and say the same words.
+
 ## REST clients
 
 `support` builds REST clients out of a few keys, so an application does not write the same client

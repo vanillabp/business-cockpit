@@ -62,10 +62,21 @@ below name them where they belong, whichever module holds them.
   every key with its default and shows, step by step, how a client module brings its own
   auto-configuration.
 
+- `io.vanillabp.cockpit.support.userinterface`: the route which passes the files of a workflow
+  module's user interface on to an nginx if the application sets `<id>.user-interface.address`.
+  `UserInterfaceRouteAutoConfiguration` registers one route of Spring Cloud Gateway per such module,
+  as a bean named `<id>-user-interface`, and the application adds
+  `spring-cloud-starter-gateway-server-webmvc`. A wrong key ends the start, and
+  `UserInterfaceRoutesMisconfiguredFailureAnalyzer` prints why. The section
+  [The user interface from an nginx](../README.md#the-user-interface-from-an-nginx) of the support
+  README describes it. Its tests run in a Surefire execution of their own with the gateway, because
+  the gateway changes a default of every HTTP client; the other tests run without it.
+
 The module brings no MongoDB and no Kafka. Spring Web, Spring Security and Spring's JWT classes are
 optional dependencies: an application which checks the login token has them anyway, and one which
 only calls a REST API does not need them. Spring Security's OAuth client is optional as well: only
-an HTTP service group with OAuth needs it. The MongoDB, Kafka and error handling helpers which only
+an HTTP service group with OAuth needs it. So is Spring Cloud Gateway: only an application with a
+route to an nginx needs it. The MongoDB, Kafka and error handling helpers which only
 the cockpit uses live in the library module [business-cockpit](../../business-cockpit).
 
 The Quarkus version is the sibling module [support/quarkus](../quarkus). Both bring the same

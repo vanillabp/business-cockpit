@@ -10,7 +10,7 @@
 
   <artifactId>business-cockpit-spring-boot-support</artifactId>
   <name>Business Cockpit support - Spring Boot</name>
-  <description>What the Business Cockpit and a workflow module behind it share on Spring Boot: the cockpit's SPI, checking the cockpit's login token, the user and the groups, the exceptions and answers for user tasks, and the REST clients for the APIs of a BPMS, of the cockpit or of any other service.</description>
+  <description>What the Business Cockpit and a workflow module behind it share on Spring Boot: the cockpit's SPI, checking the cockpit's login token, the user and the groups, the exceptions and answers for user tasks, the REST clients for the APIs of a BPMS, of the cockpit or of any other service, and the route which passes the files of a user interface on to an nginx.</description>
 
   <licenses>
     <license>
@@ -112,6 +112,15 @@
       <optional>true</optional>
     </dependency>
     <dependency>
+      <!-- the route which passes the files of a workflow module's user interface on to an nginx.
+           Optional: only an application which sets '<id>.user-interface.address' needs it, adds
+           the starter 'spring-cloud-starter-gateway-server-webmvc', and the start says so if it
+           is missing -->
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-gateway-server-webmvc</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
@@ -185,6 +194,40 @@
 
   <build>
     <plugins>
+      <plugin>
+        <!--
+          Spring Cloud Gateway changes every HTTP client of an application it is part of: its
+          EnvironmentPostProcessor sets 'spring.http.clients.redirects' to 'dont-follow', unless the
+          application sets the key itself. So the tests of everything else run without the gateway,
+          the way an application without the route has it, and the tests of the route run on their
+          own with it.
+        -->
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>io/vanillabp/cockpit/support/userinterface/**</exclude>
+          </excludes>
+          <classpathDependencyExcludes>
+            <classpathDependencyExclude>org.springframework.cloud:spring-cloud-gateway-server-webmvc</classpathDependencyExclude>
+            <classpathDependencyExclude>org.springframework.cloud:spring-cloud-commons</classpathDependencyExclude>
+          </classpathDependencyExcludes>
+        </configuration>
+        <executions>
+          <execution>
+            <id>the-route-to-the-user-interface</id>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <excludes combine.self="override"/>
+              <includes>
+                <include>io/vanillabp/cockpit/support/userinterface/**/*Test.java</include>
+              </includes>
+              <classpathDependencyExcludes combine.self="override"/>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <!--
           Generates the client the tests of 'rest.httpservice' call, the way a client module

@@ -10,7 +10,7 @@
 
   <artifactId>business-cockpit-quarkus-support-it</artifactId>
   <name>Business Cockpit support - Quarkus, tested as an application</name>
-  <description>A Quarkus application with the Quarkus module of support as a plain dependency. Its tests show that Quarkus finds the check of the login token, the user context, the mappers and the builder of REST clients in that jar on its own, that a form endpoint answers 401, 403, 404 and 409, and that a client built from keys fetches its OAuth token.</description>
+  <description>A Quarkus application with the Quarkus module of support as a plain dependency. Its tests show that Quarkus finds the check of the login token, the user context, the mappers and the builder of REST clients in that jar on its own, that a form endpoint answers 401, 403, 404 and 409, that a client built from keys fetches its OAuth token, and that the route passes the files of a user interface on to an nginx.</description>
 
   <licenses>
     <license>
@@ -85,6 +85,11 @@
       <!-- the REST client with JSON, which a workflow module brings to call a service -->
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-rest-client-jackson</artifactId>
+    </dependency>
+    <dependency>
+      <!-- the proxy an application adds for the route to the nginx of a user interface -->
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-http-proxy</artifactId>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>

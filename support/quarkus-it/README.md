@@ -23,6 +23,12 @@ token endpoint in the jar on its own: `InventoryClients` builds a client at the 
 and the client fetches a token from a stub server and sends it. `TheInventoryOfTheTests` sets the
 keys before the application starts.
 
+`AModuleWithItsUserInterfaceInAnNginxTest` starts the application with the address of an nginx for
+the workflow module `loan-approval`, which `META-INF/workflow-module` of the test resources names,
+through the test profile `TheUserInterfaceInAnNginx`. `EchoingNginx` plays the nginx. The manifest
+comes from it, and `ModuleApi` below `/loan-approval/api/` stays in the application. The module has
+`io.vertx:vertx-http-proxy` for it, as an application with the route adds it.
+
 The secret comes as the environment variable `BUSINESS_COCKPIT_JWT_HMACSHA256_BASE64`, which the
 Surefire configuration sets, the way a container gets it. So the tests also show that Quarkus finds
 the key `business-cockpit.jwt.hmacSHA256-base64` under that name.

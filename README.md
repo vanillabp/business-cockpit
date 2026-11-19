@@ -127,12 +127,13 @@ In the order they build on each other:
    code is written with to report business data about its user tasks and workflows.
 2. **[support](./support)**:<br>What the cockpit and a workflow module behind it share: the SPI
    above, the check of the cockpit's login token, the user and the groups, the exceptions for a user
-   task which is unknown or no longer open, and a REST client for the APIs of a BPMS or of the
-   cockpit. It brings no MongoDB and no Kafka. A `core` which knows no platform, published as
+   task which is unknown or no longer open, a REST client for the APIs of a BPMS or of the
+   cockpit, and the route which passes the files of a module's user interface on to an nginx. It
+   brings no MongoDB and no Kafka. A `core` which knows no platform, published as
    `business-cockpit-support-core`, and one module per platform on top of it: `spring-boot`,
    published as `business-cockpit-spring-boot-support`, and `quarkus`, published as
    `business-cockpit-quarkus-support`. With the module of its platform as its only dependency, a
-   workflow module compiles. The Quarkus module holds the answers to the exceptions so far.
+   workflow module compiles.
 3. **[apis](./apis)**:<br>The generated clients and servers of the two interfaces the cockpit has:
    `bpms-api` for what workflow modules report, `official-gui-api` for what a user interface reads.
 4. **[extensions-commons](./extensions-commons)**:<br>The platform-neutral half of the integration

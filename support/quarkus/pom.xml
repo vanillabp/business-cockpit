@@ -10,7 +10,7 @@
 
   <artifactId>business-cockpit-quarkus-support</artifactId>
   <name>Business Cockpit support - Quarkus</name>
-  <description>What a workflow module behind the Business Cockpit needs on Quarkus: the cockpit's SPI, the check of the cockpit's login token, the user and the groups, the exceptions of a user task together with the mappers which answer them, and REST clients built from keys at a prefix of the module's choice.</description>
+  <description>What a workflow module behind the Business Cockpit needs on Quarkus: the cockpit's SPI, the check of the cockpit's login token, the user and the groups, the exceptions of a user task together with the mappers which answer them, REST clients built from keys at a prefix of the module's choice, and the route which passes the files of a user interface on to an nginx.</description>
 
   <licenses>
     <license>
@@ -108,6 +108,14 @@
       <!-- the REST client which RestClients builds from keys -->
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-rest-client</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <!-- the proxy behind the route which passes the files of a workflow module's user interface on
+        to an nginx. Optional: only an application which sets '<id>.user-interface.address' needs
+        it, adds it, and the start says so if it is missing. The Quarkus BOM names its version. -->
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-http-proxy</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
