@@ -535,6 +535,58 @@ With a backend of the organisation's own, the skill writes none of this. Tell th
 backend has to serve the pictures with the same answers, protection and headers, and name the
 address in `person-picture-uri`. The path may then be a different one.
 
+## The dashboard
+
+Write this part only when the interview asks for a dashboard with charts by type (`Q-DASHBOARD`).
+The GUI API cannot list the distinct values of a field. The types are not configured either,
+because then every new workflow module would need a change of the configuration. So the
+application writes a controller of its own, in `dashboard/`, which reads the types from the data
+the user may see:
+
+```
+GET /gui/api/v1/dashboard/user-task-types
+GET /gui/api/v1/dashboard/workflow-kinds
+```
+
+The first answers a list of `{ bpmnProcessId, taskDefinition, title }`, with `title` a text per
+language from `taskDefinitionTitle`. The second answers a list of `{ bpmnProcessId }`. The paths
+lie below `/gui/api/v1`, so they need a login like every other path of the chain.
+
+The controller asks MongoDB with one aggregation per call: the condition of the list, then a
+`$group`. It takes the condition from the library, so the user sees the types of exactly the user
+tasks and cases the lists show them. It uses the same visibility as the controller of the task
+list and of the case list, see [The controllers of the lists](#the-controllers-of-the-lists), and
+the mode `All`, so ended user tasks and cases count too. A type which only ended tasks have is on
+the dashboard as well, with an open count of 0.
+
+```java
+final var visible = userTaskService.buildUserTasksCriteria(
+    UserTaskVisibility.everythingTheUserMayWorkOn(currentUser),
+    null,
+    UserTaskService.RetrieveItemsMode.All,
+    List.of());
+final var aggregation = Aggregation.newAggregation(
+    Aggregation.match(visible),
+    Aggregation.group("bpmnProcessId", "taskDefinition")
+        .first("taskDefinitionTitle").as("title"));
+return mongoTemplate.aggregate(aggregation, UserTask.class, UserTaskType.class).getMappedResults();
+```
+
+For the cases it is `workflowlistService.buildWorkflowlistCriteria` with
+`WorkflowVisibility.workflowsAddressedTo(currentUser)`, `null` as the timestamp,
+`WorkflowlistService.RetrieveItemsMode.All`, and `null` for the conditions and the business ids,
+then a `$group` by `bpmnProcessId`. `UserTaskService` and `WorkflowlistService` are beans of the
+library.
+
+The answer holds no counts. The user interface asks the count endpoint of the GUI API for them,
+up to 20 types in one request, see [behaviour.md](behaviour.md#the-screens). So a count follows the
+same rules as the counts next to the primary filters.
+
+With a tile "overdue" (`Q-DASHBOARD`), the same controller also counts the open user tasks whose
+`dueDate` lies before now, with the same visibility and the mode `OpenTasksWithFollowUp`:
+`GET /gui/api/v1/dashboard/overdue-user-tasks/count`. The integration tests of the backend prove
+both lists and the count with two users who see different tasks.
+
 ## The configuration
 
 `application.yaml` holds what every environment shares. `container`'s
@@ -585,10 +637,9 @@ business-cockpit:
   Put no YAML list below `additional-properties`. The library binds it into a
   `Map<String, Object>`, and Spring Boot turns a list there into an object with the keys `"0"`,
   `"1"` and so on, in no fixed order, so `GET /app/info` hands the user interface an object where it
-  expects an array. Write a list as a map instead, keyed by the id, for example
-  `task-types: { confirmRide: Confirm ride, payRide: Pay ride }`, or as one string separated by
-  commas, as `languages` is. The user interface puts the entries in the order it needs, for example
-  by their label. The keys stay as they are written, `task-types` is not turned into `taskTypes`.
+  expects an array. Write a list as a map instead, keyed by the id, or as one string separated by
+  commas, as `languages` is. The user interface puts the entries in the order it needs. The keys
+  stay as they are written, `person-picture-uri` is not turned into `personPictureUri`.
 - `business-cockpit.default-locale` is `Q-LANGUAGE-DEFAULT`, the language of a notification e-mail
   for a user who has none of their own.
 - `application.spa-default-file` and the static locations only matter for `Q-HOSTING` `embedded`.

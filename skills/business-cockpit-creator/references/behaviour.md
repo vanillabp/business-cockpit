@@ -74,18 +74,29 @@ Often there is more:
   click on a slice opens the matching list, narrowed to that type. Each slice is one request to the
   count endpoint, with a filter on the type, see [gui-api.md](gui-api.md#counting).
 
-  The GUI API cannot list the distinct values of a field, and the bundle names no task type or case
-  kind of a workflow module (`PKG-009`). So the backend names the types each chart shows, in
-  `business-cockpit.additional-properties`, and the user interface reads them from `GET /app/info`.
-  Write them as a map from the id to the label, not as a list, see
-  [backend.md](backend.md#the-configuration). What no entry of the map covers is the slice "other".
+  Which types there are comes from the data, not from a configuration, and the bundle names no task
+  type or case kind of a workflow module (`PKG-009`). The GUI API cannot list the distinct values of
+  a field, so the backend the skill creates answers it with an aggregation of MongoDB over every user
+  task or case the user may see, ended or not, see [backend.md](backend.md#the-dashboard). A task
+  type is the pair of `bpmnProcessId` and `taskDefinition`, with the text of `taskDefinitionTitle`
+  as its label; a case kind is `bpmnProcessId`. Then the user interface asks the count endpoint for
+  the slices, one filter per type with `searchQueries` on these paths. One request takes up to 20
+  filters, so the user interface sends the types in groups of 20, all at once, and draws each slice
+  when its count arrives. A type no user task or case of the user has reported yet is not on the
+  dashboard; it comes with the first one.
+
+  A filter matches its text anywhere in the value. When the id of one type holds the id of another,
+  for example `TaxiRide` and `TaxiRideExpress`, the count of the shorter one holds the longer one
+  too. The user interface subtracts the counts of the types whose id holds it, and the list a slice
+  opens shows both, so say so in the tooltip of such a slice.
 
   A tile counts only what the count endpoint can narrow to. A filter (`SearchQuery`) matches a text
   in a field or in the full text. It knows no range, so "due before now" cannot be asked for, and a
   tile "overdue" can neither be counted with one request nor open a list narrowed to it. When the
   interview asks for such a tile, say so in the interview, and offer one of these: a tile which
-  opens the list sorted by the due date, so the overdue tasks come first, without a count; a
-  controller of the application's own backend which counts and lists them; or no such tile.
+  opens the list sorted by the due date, so the overdue tasks come first, without a count; a count
+  by the dashboard endpoint of the backend, which can ask MongoDB for `dueDate` before now, with the
+  list sorted by the due date behind it; or no such tile.
 
 - Sub-lists (`Q-SUB-LISTS`), narrowed to a role or to some task types. An example: a company has a
   list of committees a user can be a member of. There is one card per committee (that is, per
@@ -449,6 +460,33 @@ The notes column needs notes (`Q-NOTES`). The follow-up column only shows
 for `OpenTasksWithFollowUp` and `OpenTaskOnlyFollowUp`. The ended column only shows for
 `ClosedTasksOnly`. Some organisations want fixed columns only and no dynamic ones, because the
 cockpit is used in one area where the list holds known values (`Q-MODULE-COLUMNS`).
+
+#### The fields behind the fixed columns
+
+The interview names the columns in the words of the user. Each name stands for a field of the GUI
+API, and that field is the `path` of the column, for sorting and for filtering. The word of
+`Q-WORDING` changes the heading of a column, never its path: a column "case kind" or "Vorgangsart"
+has the path `bpmnProcessId`, never `caseKind`. Do not make up a path from the name of a column.
+A path the list does not know is answered with 400, see [gui-api.md](gui-api.md#sorting).
+
+| Column in the interview | Path in the task list | Path in the case list |                      What the cell shows                       |
+|-------------------------|-----------------------|-----------------------|----------------------------------------------------------------|
+| id                      | `id`                  | `id`                  | the id                                                         |
+| business id             | `businessId`          | `businessId`          | the business id                                                |
+| title                   | `title`               | `title`               | the text of the user's language (`Translatable`)               |
+| case kind               | `bpmnProcessId`       | `bpmnProcessId`       | the id of the BPMN process                                     |
+| case title              | `workflowTitle`       | `title`               | the text of the user's language (`Translatable`)               |
+| task kind               | `taskDefinition`      | (none)                | the text of `taskDefinitionTitle`, `taskDefinition` without it |
+| created                 | `createdAt`           | `createdAt`           | the date and time                                              |
+| due                     | `dueDate`             | (none)                | the date and time                                              |
+| follow-up               | `followUpDate`        | (none)                | the date and time                                              |
+| ended                   | `endedAt`             | `endedAt`             | the date and time                                              |
+| assignee                | `assignee`            | (none)                | the person                                                     |
+| candidate users         | `candidateUsers`      | (none)                | the persons                                                    |
+| notes                   | `note`                | `note`                | the note                                                       |
+
+The GUI API has no field that names a case kind in words. A column "case kind" shows
+`bpmnProcessId`, unless a workflow module gives a name in a column of its own.
 
 The fixed columns behave and look different from the columns filled with a module's data:
 
