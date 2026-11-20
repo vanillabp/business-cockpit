@@ -558,6 +558,19 @@ It is built like this:
    cockpit it reports to. The types module of its own has the version of the types library
    instead: `1.4.0` of the jar holds the values of `1.4.0` of the user interface.
 
+The download works only once the types library of that version is in the npm registry. Before
+that, for example while `Q-NPM-SCOPE` is a placeholder or before the first release, the registry
+answers 404. `download-maven-plugin` logs a warning first, `Invalid cookie header:
+"set-cookie: __cf_bm=..."`. That warning is harmless: the registry sends this cookie with every
+answer, a 404 too, and the plugin cannot read its date. The error that counts is the next line.
+
+So the types build has a second way, for builds on one machine: a property `bc-types.local` names
+the folder of the types library in a built checkout of the UI repository, the folder that holds
+`ui-uri-types.json` as the package does. A profile that the property switches on skips the download
+(`<skip>true</skip>` of `download-maven-plugin`; with Gradle, a condition on the download task) and
+lets the step that writes `UiUriTypes.java` read the file from that folder. The `README.md` names
+both ways, and says that a release always takes the registry.
+
 The types module of its own, when the skill creates no backend, has few files (`Q-TYPES-JAR`):
 
 ```
