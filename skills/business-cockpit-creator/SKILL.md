@@ -395,8 +395,8 @@ There are three ways. Ask which one in the interview (`Q-HOSTING`); the default 
 2. **`behind`: in an nginx of its own, behind the backend.** The user interface has its own release
    cycle and runs in the nginx image of the UI repository. The browser talks to the backend only. The
    backend has one more route in its Spring Cloud Gateway (the cockpit already uses
-   `spring-cloud-starter-gateway-server-webmvc` for `/wm/`): `/**` to the nginx, with the lowest
-   priority of all routes. So every path the cockpit knows is answered by the cockpit, and only what
+   `spring-cloud-starter-gateway-server-webmvc` for `/wm/`): `/**` to the nginx, asked only after
+   the controllers and the other routes. So every path the cockpit knows is answered by the cockpit, and only what
    it does not know reaches the nginx. The backend's security covers the user interface as well, just
    as in `embedded`. This way has been built so far only with the session or the token in a cookie.
 3. **`in-front`: in an nginx in front of the backend.** The nginx serves the user interface and

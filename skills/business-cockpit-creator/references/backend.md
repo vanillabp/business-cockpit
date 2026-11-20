@@ -58,9 +58,11 @@ application/
     lists/                      one controller per list of Q-LIST-CONTROLLERS
     security/                   the two security chains and userDetailsProvider
     users/                      the two mappers, and the user directory for configuration
+    userinterface/              the route to the dev server or the nginx of the user interface
   src/main/resources/config/
     application.yaml            what every environment shares
     application-local.yaml      the values for docker-compose.yaml
+    application-ui-dev-server.yaml  the address of the dev server of the user interface
   src/test/java/<package>/      the test that starts the application, the integration tests
                                 and the simulator they use
 docker-compose.yaml             MongoDB, Mailpit, Keycloak for Q-LOGIN-KIND oidc, Kafka for Q-KAFKA
@@ -535,6 +537,66 @@ With a backend of the organisation's own, the skill writes none of this. Tell th
 backend has to serve the pictures with the same answers, protection and headers, and name the
 address in `person-picture-uri`. The path may then be a different one.
 
+## The route to the user interface
+
+The backend passes every path it does not know to the user interface with one proxy route of
+Spring Cloud Gateway. With `Q-HOSTING` `behind` the route goes to the nginx image and is always there, see
+[project.md](project.md#behind-the-backend-behind). With `embedded` and `behind` it also goes to the
+dev server of the user interface, in the profile `ui-dev-server`, so a developer works against the
+real backend, see [project.md](project.md#developing-against-the-backend). It is the same route,
+only the address differs, so the application writes it once, in `userinterface/`:
+
+```java
+@Configuration
+@ConditionalOnProperty("user-interface.uri")
+public class UserInterfaceRouteConfiguration {
+
+    // after the controllers (order 0), before the static files of the UI jar
+    // (Ordered.LOWEST_PRECEDENCE - 1)
+    private static final int AFTER_THE_CONTROLLERS = Ordered.LOWEST_PRECEDENCE - 10;
+
+    @Bean
+    public RouterFunctionMapping userInterfaceRoute(
+            @Value("${user-interface.uri}") final String uri) {
+        final var route = GatewayRouterFunctions
+            .route("user-interface")
+            .route(RequestPredicates.method(HttpMethod.GET).and(RequestPredicates.path("/**")),
+                HandlerFunctions.http())
+            .before(BeforeFilterFunctions.uri(uri))
+            .build();
+        final var mapping = new RouterFunctionMapping(route);
+        mapping.setOrder(AFTER_THE_CONTROLLERS);
+        return mapping;
+    }
+
+}
+```
+
+Do not make the route a bean of the type `RouterFunction`, as the routes under `/wm/` are. Spring MVC
+puts every such bean into its one `RouterFunctionMapping`, and that mapping has the order `-1`: it
+is asked before the controllers. A route `/**` there would take every `GET` of the GUI API, whatever
+`@Order` it has. Its own mapping with a late order comes after the controllers and after the routes
+under `/wm/`. So the GUI API, the login and the proxy of the workflow modules answer as before. The
+static files of the UI jar and the shell for an unknown path (`application.spa-default-file`) come
+after this mapping, so with the route the dev server or the nginx answers them. The route sits behind the security chain like every other path: the paths
+below `/assets/` stay open, everything else needs the login, see [The login](#the-login).
+
+`application-ui-dev-server.yaml` holds one value, the address of the dev server on its fixed port:
+
+```yaml
+user-interface:
+  uri: http://localhost:5173
+```
+
+With `behind`, `application.yaml` sets `user-interface.uri` to the address of the nginx from the
+environment, and the profile `ui-dev-server` replaces it with the dev server. With `embedded`
+only the profile sets it, so a deployment never has the route. With `in-front` there is no route
+and no such profile.
+
+The integration tests of the backend prove the route with a small HTTP server in place of the dev
+server: with the profile, an unknown path and a path below `/assets/` reach that server, and the
+GUI API does not; without the profile, the UI jar answers.
+
 ## The dashboard
 
 Write this part only when the interview asks for a dashboard with charts by type (`Q-DASHBOARD`).
@@ -664,6 +726,8 @@ warning. So start it once and follow what it prints.
 `application-local.yaml` holds the values for `docker-compose.yaml`: the address of MongoDB, of
 Kafka, of Mailpit and of Keycloak, the client secret of the local realm, a JWT key for local use
 only and the BPMS API user. The `README.md` starts the application with the profile `local`.
+With `embedded` and `behind`, the profile `ui-dev-server` comes on top of it for a developer of the
+user interface, see [The route to the user interface](#the-route-to-the-user-interface).
 
 ## The docker-compose.yaml
 
@@ -769,5 +833,11 @@ The `README.md` of the backend repository says:
   API user, the client secret of the provider, the mail server,
 - the order of the builds, see [project.md](project.md#where-the-types-jar-is-built): the cockpit
   release, then the user interface, then this repository, the types jar and the application,
-- how a new version of the user interface gets in: a new value of `ui.version`.
+- how a new version of the user interface gets in: a new value of `ui.version`,
+- with `embedded` and `behind`, a section "Developing the user interface": start the application
+  with the profiles `local,ui-dev-server`, for example
+  `mvn spring-boot:run -Dspring-boot.run.profiles=local,ui-dev-server`, run `npm run dev` in the
+  UI repository, and open the address of the backend, not the one of the dev server. It names the
+  address of the dev server in `application-ui-dev-server.yaml` and says that the backend then
+  serves no file of the UI jar.
 
