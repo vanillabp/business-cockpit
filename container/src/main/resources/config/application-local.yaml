@@ -8,7 +8,7 @@ spring:
   # outside the compose network. Without the setting the driver discovers that host and never
   # reaches the server it just talked to.
   mongodb:
-    uri: mongodb://business-cockpit:business-cockpit@localhost:27017/business-cockpit?directConnection=true
+    uri: mongodb://business-cockpit:business-cockpit@localhost:7017/business-cockpit?directConnection=true
   # A person logs in at the simulator of the development tools, which plays an OpenID Connect
   # provider on port 8079 (development/simulator). Client id and secret are the ones the simulator
   # registers in its application.yaml, and they are for a developer's machine only. The endpoints

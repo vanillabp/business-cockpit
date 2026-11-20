@@ -45,7 +45,7 @@ A database tool connects with these:
 
 |                   |                                                                                    |
 |-------------------|------------------------------------------------------------------------------------|
-| Host              | `business-cockpit-mongo`, port 27017                                               |
+| Host              | `business-cockpit-mongo`, port 7017                                               |
 | Replica set       | `rs-business-cockpit`                                                              |
 | User and password | `business-cockpit` / `business-cockpit`, authenticating against `business-cockpit` |
 | Database          | `business-cockpit`                                                                 |
