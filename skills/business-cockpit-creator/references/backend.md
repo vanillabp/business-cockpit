@@ -549,7 +549,10 @@ GET /gui/api/v1/dashboard/workflow-kinds
 ```
 
 The first answers a list of `{ bpmnProcessId, taskDefinition, title }`, with `title` a text per
-language from `taskDefinitionTitle`. The second answers a list of `{ bpmnProcessId }`. The paths
+language from `taskDefinitionTitle`. The second answers a list of `{ caseKind }`, the values of
+the field of `Q-CASE-KIND`: `bpmnProcessId`, the case title `title` (a text per language), or the
+code below `details`. A case without a code gives `null`, which the user interface shows as
+"other". The paths
 lie below `/gui/api/v1`, so they need a login like every other path of the chain.
 
 The controller asks MongoDB with one aggregation per call: the condition of the list, then a
@@ -575,8 +578,8 @@ return mongoTemplate.aggregate(aggregation, UserTask.class, UserTaskType.class).
 For the cases it is `workflowlistService.buildWorkflowlistCriteria` with
 `WorkflowVisibility.workflowsAddressedTo(currentUser)`, `null` as the timestamp,
 `WorkflowlistService.RetrieveItemsMode.All`, and `null` for the conditions and the business ids,
-then a `$group` by `bpmnProcessId`. `UserTaskService` and `WorkflowlistService` are beans of the
-library.
+then a `$group` by the field of `Q-CASE-KIND`. `UserTaskService` and `WorkflowlistService` are
+beans of the library.
 
 The answer holds no counts. The user interface asks the count endpoint of the GUI API for them,
 up to 20 types in one request, see [behaviour.md](behaviour.md#the-screens). So a count follows the

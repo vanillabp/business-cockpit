@@ -79,7 +79,9 @@ Often there is more:
   a field, so the backend the skill creates answers it with an aggregation of MongoDB over every user
   task or case the user may see, ended or not, see [backend.md](backend.md#the-dashboard). A task
   type is the pair of `bpmnProcessId` and `taskDefinition`, with the text of `taskDefinitionTitle`
-  as its label; a case kind is `bpmnProcessId`. Then the user interface asks the count endpoint for
+  as its label; a case kind is the value of the field of `Q-CASE-KIND`, see
+  [The fields behind the fixed columns](#the-fields-behind-the-fixed-columns). Then the user
+  interface asks the count endpoint for
   the slices, one filter per type with `searchQueries` on these paths. One request takes up to 20
   filters, so the user interface sends the types in groups of 20, all at once, and draws each slice
   when its count arrives. A type no user task or case of the user has reported yet is not on the
@@ -466,7 +468,8 @@ cockpit is used in one area where the list holds known values (`Q-MODULE-COLUMNS
 The interview names the columns in the words of the user. Each name stands for a field of the GUI
 API, and that field is the `path` of the column, for sorting and for filtering. The word of
 `Q-WORDING` changes the heading of a column, never its path: a column "case kind" or "Vorgangsart"
-has the path `bpmnProcessId`, never `caseKind`. Do not make up a path from the name of a column.
+has the path of `Q-CASE-KIND`, never a made-up `caseKind`. Do not make up a path from the name of a
+column.
 A path the list does not know is answered with 400, see [gui-api.md](gui-api.md#sorting).
 
 | Column in the interview | Path in the task list | Path in the case list |                      What the cell shows                       |
@@ -474,7 +477,7 @@ A path the list does not know is answered with 400, see [gui-api.md](gui-api.md#
 | id                      | `id`                  | `id`                  | the id                                                         |
 | business id             | `businessId`          | `businessId`          | the business id                                                |
 | title                   | `title`               | `title`               | the text of the user's language (`Translatable`)               |
-| case kind               | `bpmnProcessId`       | `bpmnProcessId`       | the id of the BPMN process                                     |
+| case kind               | see below             | see below             | see below                                                      |
 | case title              | `workflowTitle`       | `title`               | the text of the user's language (`Translatable`)               |
 | task kind               | `taskDefinition`      | (none)                | the text of `taskDefinitionTitle`, `taskDefinition` without it |
 | created                 | `createdAt`           | `createdAt`           | the date and time                                              |
@@ -485,8 +488,16 @@ A path the list does not know is answered with 400, see [gui-api.md](gui-api.md#
 | candidate users         | `candidateUsers`      | (none)                | the persons                                                    |
 | notes                   | `note`                | `note`                | the note                                                       |
 
-The GUI API has no field that names a case kind in words. A column "case kind" shows
-`bpmnProcessId`, unless a workflow module gives a name in a column of its own.
+The GUI API has no field for the kind of a case. The interview picks one (`Q-CASE-KIND`):
+
+|      `Q-CASE-KIND`      | Path in the task list  | Path in the case list |                What the cell shows                |
+|-------------------------|------------------------|-----------------------|---------------------------------------------------|
+| `bpmnProcessId`         | `bpmnProcessId`        | `bpmnProcessId`       | the id of the BPMN process                        |
+| the case title          | `workflowTitle.<lang>` | `title.<lang>`        | the text of the user's language                   |
+| a code, `details.<key>` | `details.<key>`        | `details.<key>`       | the code, an empty cell when the module sent none |
+
+With the case title, the path for sorting and filtering names the language of the user, for
+example `workflowTitle.de`, because the field holds a text per language.
 
 The fixed columns behave and look different from the columns filled with a module's data:
 
