@@ -152,10 +152,13 @@ names `/gui/api/v1`.
 Which paths stay open depends on where the user interface runs (`Q-HOSTING`, see
 [`../SKILL.md`](../SKILL.md#where-the-user-interface-runs)).
 
-With `embedded` and `behind` the login comes first. Only the proxy to the workflow modules under
-`/wm/**` stays open, because a module protects itself. Everything else asks for a login, the files
-of the user interface included. So a browser without a login goes straight to the login of the
-backend, and the user interface loads after it.
+With `embedded` and `behind` the login comes first. `index.html` and every deep link ask for a
+login, so a browser without a login goes straight to the login of the backend, and the user
+interface starts after it. The open matchers of the library stay open, as
+[backend.md](backend.md#the-login) says: the proxy to the workflow modules under `/wm/**`, because
+a module protects itself, and the files below `/assets/` and `/static/`. These files are the
+bundle, with hashed names and without data of the organisation, and without `index.html` nothing
+loads them. Do not close them in the chain: the matchers are the contract with the library.
 
 With `in-front` the single-page application loads without a login and logs in afterwards, when
 needed. So these stay open:

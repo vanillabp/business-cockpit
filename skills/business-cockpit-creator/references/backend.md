@@ -582,6 +582,13 @@ business-cockpit:
   see [gui-api.md](gui-api.md#the-endpoints).
   With `Q-AVATARS` it also carries `person-picture-uri: /person-pictures/{userId}`, see
   [The pictures of persons](#the-pictures-of-persons).
+  Put no YAML list below `additional-properties`. The library binds it into a
+  `Map<String, Object>`, and Spring Boot turns a list there into an object with the keys `"0"`,
+  `"1"` and so on, in no fixed order, so `GET /app/info` hands the user interface an object where it
+  expects an array. Write a list as a map instead, keyed by the id, for example
+  `task-types: { confirmRide: Confirm ride, payRide: Pay ride }`, or as one string separated by
+  commas, as `languages` is. The user interface puts the entries in the order it needs, for example
+  by their label. The keys stay as they are written, `task-types` is not turned into `taskTypes`.
 - `business-cockpit.default-locale` is `Q-LANGUAGE-DEFAULT`, the language of a notification e-mail
   for a user who has none of their own.
 - `application.spa-default-file` and the static locations only matter for `Q-HOSTING` `embedded`.

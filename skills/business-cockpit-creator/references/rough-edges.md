@@ -244,7 +244,10 @@ the retaining path of a detached DOM node leads to the library. See
 
 This description counts on features of the `business-cockpit` repository that came with version
 `1.0.0`. The cockpit version of the interview (`Q-COCKPIT-VERSION`) must be `1.0.0` or later. Until
-`1.0.0` is released, build the snapshot of the branch `main`. Version `1.0.0` brings:
+`1.0.0` is released, build the snapshot of the branch `main`, with the version its `pom.xml` names,
+and write into the report that the project moves to `1.0.0` once it is released. That move changes
+the version property and drops the snapshot repository of Maven Central (`BE-024`), nothing else.
+It is a step of the plan, not a question for the user. Version `1.0.0` brings:
 
 - `endReason` on user tasks and cases, so a cancelled row can be told from a completed one,
 - `customSettings` on the user, read and written one entry at a time with `GET` and

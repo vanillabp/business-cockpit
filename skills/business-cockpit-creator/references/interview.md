@@ -84,6 +84,39 @@ changed, and ask a question marked "Not asked" whose condition holds now.
 
 Generate nothing before every question that applies has an answer in the file.
 
+### Check an answer before you save it
+
+An answer that is unclear or does not fit the others comes back as an open question later, in the
+middle of the work. Settle it while the user is still there.
+
+- **A version against the other versions.** When the user names a library for a framework, ask npm
+  which framework versions each release of the library supports, before you save the answer:
+
+  ```bash
+  npm view <package> versions --json
+  npm view <package>@<version> peerDependencies
+  ```
+
+  If no release supports the version of `Q-FRAMEWORK`, say so at once and let the user choose:
+  the framework version the newest release supports, another library, or no library. For the
+  framework itself, propose a version that is in active support and that the libraries named so
+  far support, not an older one.
+
+- **A list whose order matters.** When the user gives columns or another ordered list and leaves
+  the place of an item open, read the whole list back in the order you understood, and save it
+  only after the user has said yes.
+
+- **A placeholder.** When the user answers a name, a coordinate or an address with a placeholder,
+  such as `com.example`, `@example` or "later", save it with the word `Placeholder:` in front.
+  At the end of the interview, list every placeholder and the question it belongs to, and ask once
+  whether the user wants to give the real values now. A placeholder the user keeps is a decision,
+  not an open question of the work later. Name the placeholders again in the report at the end of
+  the work, with the files that hold them.
+
+- **A feature the GUI API cannot serve.** Some wishes need data the GUI API does not give, for
+  example a count narrowed to a date range. Tell the user what the API can do, see
+  [gui-api.md](gui-api.md), and save the choice they make, not the wish.
+
 ### A newer version of the skill
 
 The question ids are the key, not the numbers. A newer version of this skill may add questions, and
@@ -99,7 +132,7 @@ holds when you upgrade a generated user interface, see
 |          Id           |                                                                                                             Question                                                                                                             |  Default the agent proposes  |
 |-----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------|
 | `Q-FRAMEWORK`         | Which UI framework does the cockpit use, and which version?                                                                                                                                                                      | none, the user has to say    |
-| `Q-DESIGN-LIBRARY`    | Which component or design library, and which version? For example PrimeNG, PrimeVue, MUI, Tailwind.                                                                                                                              | none, the user has to say    |
+| `Q-DESIGN-LIBRARY`    | Which component or design library, and which version? For example PrimeNG, PrimeVue, MUI, Tailwind. Check that the version supports `Q-FRAMEWORK`, see [Check an answer](#check-an-answer-before-you-save-it).                   | none, the user has to say    |
 | `Q-MODULE-FRAMEWORKS` | Which frameworks, and which versions, do the workflow modules use for their forms and pages? Each module may pick its own, apart from the cockpit; an Angular module runs zoneless. This decides which dev shells are generated. | the same as `Q-FRAMEWORK`    |
 | `Q-BUNDLER`           | Which build tool builds the cockpit? It does not matter for loading the modules, because the cockpit loads their parts with plain `import()`.                                                                                    | the default of the framework |
 
@@ -133,7 +166,7 @@ answer no, those two are not asked and do not count in the total.
 |         Id         |                                                                                                                                                                                                                                                                                                                    Question                                                                                                                                                                                                                                                                                                                    |                                    Default the agent proposes                                    |
 |--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
 | `Q-SCREENS`        | Which screens exist beyond the minimum? The minimum is `/tasks` (all user tasks the user may see), `/my-tasks` (those where the user is the assignee) and one case list. The header always has the toggle `My tasks` / `All tasks` / `Cases`, each with its count.                                                                                                                                                                                                                                                                                                                                                                             | the minimum plus a dashboard                                                                     |
-| `Q-DASHBOARD`      | What does the dashboard show, if there is one? For example one pie chart of the open user tasks by task type and one of the open cases by kind. A click opens the list, narrowed.                                                                                                                                                                                                                                                                                                                                                                                                                                                              | two pie charts                                                                                   |
+| `Q-DASHBOARD`      | What does the dashboard show, if there is one? For example one pie chart of the open user tasks by task type and one of the open cases by kind. A click opens the list, narrowed. Ask for each chart which task types or case kinds it names, see [behaviour.md](behaviour.md#the-screens), and offer only tiles the count endpoint can narrow to.                                                                                                                                                                                                                                                                                             | two pie charts                                                                                   |
 | `Q-SUB-LISTS`      | Are there sub-lists, narrowed to a role or to some task types? For example one card per role, with the number of visible and of claimed tasks of that role. Where do the cards show: on the start page, as a column of cards to the left of the list, or in both places?                                                                                                                                                                                                                                                                                                                                                                       | none; if there are sub-lists, cards on the start page                                            |
 | `Q-NOTIFICATIONS`  | Is there a screen where the user sets up notifications?                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | yes                                                                                              |
 | `Q-ROUTES`         | Which paths do the screens have, and are they translated? Translated paths are one path per language, for example `/tasks/4711` and `/aufgabe/4711`, `/workflows/0815` and `/vorgang/0815`. The paths of every language work in every language of the user interface, because an English user may send `/tasks/4711` to a German colleague. The address then changes to the path of the viewer's language, without a new entry in the history, see [behaviour.md](behaviour.md#translated-paths). The pages of a workflow module always have the path `/<workflowModuleId>/<pageId>`, in every language. The default depends on `Q-LANGUAGES`. | with more than one language in `Q-LANGUAGES`: translated paths; with one language: English paths |

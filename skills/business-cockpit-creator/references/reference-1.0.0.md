@@ -126,17 +126,17 @@ These items apply when the skill creates the backend (`Q-BACKEND`). Without it t
 
 ## AUTH: loading and login
 
-|     Id     |                                                                            Item                                                                             |                Applies                |
-|------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------|
-| `AUTH-001` | Without a login, the shell and its static files load, and the frame shows the title from `GET /app/info`.                                                   | `Q-HOSTING` is `in-front`             |
-| `AUTH-002` | When `GET /app/current-user` answers without a body, the browser is sent to the login of the backend.                                                       | always                                |
-| `AUTH-003` | After the login, the user interface shows the user from `GET /app/current-user`.                                                                            | always                                |
-| `AUTH-004` | A 401 on any later request sends the browser to the login, and no error page is shown.                                                                      | always                                |
-| `AUTH-005` | The user interface has no login form, no user management and no rights check of its own.                                                                    | always                                |
-| `AUTH-006` | The user interface makes no request in the background only to stay logged in.                                                                               | always                                |
-| `AUTH-007` | `/logout` ends the session and shows the start page.                                                                                                        | always                                |
-| `AUTH-008` | The groups used to shape the screens come from `GET /app/current-user`, not from the token.                                                                 | always                                |
-| `AUTH-009` | A browser without a login gets the login of the backend before any file of the user interface; after the login the user interface loads and shows the user. | `Q-HOSTING` is `embedded` or `behind` |
+|     Id     |                                                                                Item                                                                                |                Applies                |
+|------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------|
+| `AUTH-001` | Without a login, the shell and its static files load, and the frame shows the title from `GET /app/info`.                                                          | `Q-HOSTING` is `in-front`             |
+| `AUTH-002` | When `GET /app/current-user` answers without a body, the browser is sent to the login of the backend.                                                              | always                                |
+| `AUTH-003` | After the login, the user interface shows the user from `GET /app/current-user`.                                                                                   | always                                |
+| `AUTH-004` | A 401 on any later request sends the browser to the login, and no error page is shown.                                                                             | always                                |
+| `AUTH-005` | The user interface has no login form, no user management and no rights check of its own.                                                                           | always                                |
+| `AUTH-006` | The user interface makes no request in the background only to stay logged in.                                                                                      | always                                |
+| `AUTH-007` | `/logout` ends the session and shows the start page.                                                                                                               | always                                |
+| `AUTH-008` | The groups used to shape the screens come from `GET /app/current-user`, not from the token.                                                                        | always                                |
+| `AUTH-009` | A browser without a login gets the login of the backend before `index.html` and before any deep link; after the login the user interface loads and shows the user. | `Q-HOSTING` is `embedded` or `behind` |
 
 ## NAV: screens, header and menu
 

@@ -626,7 +626,8 @@ shell simulator:
   user below `/dev-shell/user/**`, the same calls the dev shell simulator of VanillaBP answers, see
   [dev-shell.md](dev-shell.md#the-dev-shell-simulator). This includes
   `GET /official-api/gui/api/v1/workflow-module`, which lists only the workflow modules the chosen
-  user sees. As in the cockpit, a module which registered groups is listed only for a user in one
+  user sees. As in the cockpit, a module which registered groups (`accessibleToGroups` in the body of
+  `POST /bpms/api/v1_1/workflow-module/{id}`) is listed only for a user in one
   of them, and a module without groups for everybody. The start page of the dev shell needs it
   (`DS-024`). Each simulated system has a prefix of its
   own, and below it is the path of the original.

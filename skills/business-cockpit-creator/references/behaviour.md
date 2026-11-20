@@ -73,6 +73,20 @@ Often there is more:
   a pie chart of all open user tasks by task type, and a second one of all open cases by kind. A
   click on a slice opens the matching list, narrowed to that type. Each slice is one request to the
   count endpoint, with a filter on the type, see [gui-api.md](gui-api.md#counting).
+
+  The GUI API cannot list the distinct values of a field, and the bundle names no task type or case
+  kind of a workflow module (`PKG-009`). So the backend names the types each chart shows, in
+  `business-cockpit.additional-properties`, and the user interface reads them from `GET /app/info`.
+  Write them as a map from the id to the label, not as a list, see
+  [backend.md](backend.md#the-configuration). What no entry of the map covers is the slice "other".
+
+  A tile counts only what the count endpoint can narrow to. A filter (`SearchQuery`) matches a text
+  in a field or in the full text. It knows no range, so "due before now" cannot be asked for, and a
+  tile "overdue" can neither be counted with one request nor open a list narrowed to it. When the
+  interview asks for such a tile, say so in the interview, and offer one of these: a tile which
+  opens the list sorted by the due date, so the overdue tasks come first, without a count; a
+  controller of the application's own backend which counts and lists them; or no such tile.
+
 - Sub-lists (`Q-SUB-LISTS`), narrowed to a role or to some task types. An example: a company has a
   list of committees a user can be a member of. There is one card per committee (that is, per
   role), with the number of tasks the user can see and the number the user has claimed. A user
@@ -80,7 +94,9 @@ Often there is more:
   list, or in both places, as the interview decided. A click on a card opens the list, narrowed to
   it. Which views exist is always the organisation's choice, because the task query allows many
   kinds of filtering.
+
 - The notification settings (`Q-NOTIFICATIONS`), see [Notifications](#notifications).
+
 - Pages that a workflow module delivers (`Q-EXTENSION-POINTS`).
 
 ### Translated paths
