@@ -164,15 +164,16 @@ Write `CHECKLIST.md` into the project:
 1. Copy [references/reference-1.0.0.md](references/reference-1.0.0.md) into it, with the version
    of the reference at the top.
 2. Drop the items that depend on an interview answer the user gave the other way. Mark them as
-   "not chosen" with the question id, instead of deleting them, so a diff stays readable.
+   "not chosen" with the question id in their column "Applies", instead of deleting them, so a
+   diff stays readable.
 3. Add one item for every wish of the customer that the reference does not cover. Give these items
    their own id prefix, `CUST-`, and number them from `CUST-001`.
 
 Every end-to-end test names the id of the item it proves, for example in its title:
 `TL-003 each primary filter shows its count`. An item without a test is not done.
 
-Ids are never reused and never renumbered. An item that no longer holds is marked as removed, and
-its id stays taken.
+Ids are never reused and never renumbered. An item that no longer holds gets "removed" at the start
+of its column "Applies", and its id stays taken.
 
 Then write the plan, as
 [Planning](references/working-in-stories.md#planning-from-the-checklist-to-stories) says. It cuts
@@ -203,7 +204,16 @@ repository, against the TypeScript simulator, see
 [references/project.md](references/project.md#the-simulators) (`EXT-040`). It passes for a cockpit
 with areas and for one without, because the conformance modules offer both.
 
-1. Take the kit's repository at the version your module kit covers. Run `npm ci`,
+1. Take the kit's repository at the commit of the version your module kit covers. The repository
+   has no tags. npm names the commit each published version was built from:
+
+   ```bash
+   npm view @vanillabp/bc-module-kit@<version> gitHead
+   git clone https://github.com/vanillabp/business-cockpit-module-kit.git
+   git -C business-cockpit-module-kit checkout <gitHead>
+   ```
+
+   Run `npm ci`,
    `npm run build:examples` and `npm run build:conformance`. This writes the folder
    `dist/conformance`, which works on its own: the built modules below `wm/react-module/`,
    `wm/vue-module/` and `wm/angular-module/`, a small web server `serve.mjs`, the test
@@ -222,7 +232,11 @@ with areas and for one without, because the conformance modules offer both.
    `workflowModuleId`, `bpmnProcessId` `TaxiRide`, `taskDefinition` `confirmRide`, the ES module
    value of `Q-UI-URI-TYPE` (by default `ES_MODULES`) as `uiUriType` and `/bc-manifest.json` as
    `uiUriPath`, plus the other fields `UserTaskCreatedEvent` requires, such as `id`,
-   `workflowId` and `timestamp`. Make the test user a candidate. Write both steps into a setup
+   `workflowId` and `timestamp`, and a `title`, a text per language such as
+   `{ "en": "Confirm ride" }`. The cockpit's BPMS API refuses a user task without a title. Make the
+   test user a candidate. When claiming is hard (`Q-CLAIM`), make the test user the assignee as
+   well: the test fills in the form before it claims, and the barrier over the page of an unclaimed
+   task would take every click. Write both steps into a setup
    script of the end-to-end tests, so they run again for every test run. The simulator keeps the
    data in memory only.
 5. Run the test with the address of your user interface and the path of the page of each user task:
@@ -245,6 +259,14 @@ The test opens each page and works with the form the way a user does. It finds t
 shadow root, fills in a comment, claims the task and opens a dialog. A failure means that your
 cockpit breaks the minimum. A blueprint built against the kit would then fail in your cockpit too.
 Fix the cockpit, not the test.
+
+One failure is not the cockpit's. `userTask.title` is a text per language (`Translatable`), in the
+GUI API, in the kit's types and in your types library. A part that draws it as if it were a string
+fails, in React with error #31. Do not hand the parts a plain string to make such a part work: the
+part is wrong. The example forms of the kit up to `0.1.0-snapshot.5` have this fault. With them,
+the React conformance module fails against a running cockpit backend, and the test passes only
+against the simulator with user tasks without a title. Write that into the report, and take a newer
+kit version as soon as one draws the title in the language of the user.
 
 ### Upgrading a generated user interface
 
@@ -373,8 +395,8 @@ There are three ways. Ask which one in the interview (`Q-HOSTING`); the default 
 2. **`behind`: in an nginx of its own, behind the backend.** The user interface has its own release
    cycle and runs in the nginx image of the UI repository. The browser talks to the backend only. The
    backend has one more route in its Spring Cloud Gateway (the cockpit already uses
-   `spring-cloud-starter-gateway-server-webmvc` for `/wm/`): `/**` to the nginx, with the lowest
-   priority of all routes. So every path the cockpit knows is answered by the cockpit, and only what
+   `spring-cloud-starter-gateway-server-webmvc` for `/wm/`): `/**` to the nginx, asked only after
+   the controllers and the other routes. So every path the cockpit knows is answered by the cockpit, and only what
    it does not know reaches the nginx. The backend's security covers the user interface as well, just
    as in `embedded`. This way has been built so far only with the session or the token in a cookie.
 3. **`in-front`: in an nginx in front of the backend.** The nginx serves the user interface and
@@ -464,7 +486,20 @@ different. It is done once the backend is built, and it needs a running cockpit 
 
 Run the generated user interface against a running cockpit with workflow modules. As workflow
 modules, use the Business Cockpit blueprints in the `vanillabp-blueprints` organisation. They do not
-wait for a generated cockpit. They are built against the VanillaBP kit `@vanillabp/bc-module-kit`, a
+wait for a generated cockpit.
+
+The blueprints are public, in `https://github.com/vanillabp-blueprints/blueprints`. If your
+environment does not let you clone it, ask the user to allow it; do not leave the blueprints out.
+Each blueprint below `blueprints-cockpit/` whose name ends in `-application`, for example
+`cockpit-user-task-application`, `cockpit-workflow-details-application` and
+`cockpit-header-extension-application`, is a runnable Spring Boot application in its folder
+`springboot`. It takes the workflow module and the jar of its user interface, serves both and
+reports to a cockpit. Its README says, under "Running it", which jars to install first and how to
+start it with a cockpit. Instead of the cockpit of its `docker-compose.yaml`, point it at your
+backend: the address of your cockpit and the user of `Q-BPMS-API-USER` go below
+`vanillabp.cockpit.rest` in its `application.yaml`, and the address of your cockpit into
+`<module>.cockpit.base-url`. Where a blueprint draws the title of a user task, it takes the text
+of the user's language, so the blueprints load in your cockpit with any kit version. They are built against the VanillaBP kit `@vanillabp/bc-module-kit`, a
 small npm package in plain JavaScript from its own repository
 (`vanillabp/business-cockpit-module-kit`). It holds the minimum of the contract: the four data
 entries and their export names, the area `all`, the manifest, the event protocol,

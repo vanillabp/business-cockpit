@@ -391,7 +391,8 @@ thing: every path that is no file gets `index.html` (`try_files $uri $uri/ /inde
 
 The backend passes on to the nginx what the cockpit does not know itself. The cockpit already
 brings `spring-cloud-starter-gateway-server-webmvc` for its proxy under `/wm/`. One more route
-goes to the nginx, for the path `/**` and with the lowest priority of all routes. Then every path
+goes to the nginx, for the path `/**`, in a handler mapping of its own that Spring MVC asks after
+the controllers, see [backend.md](backend.md#the-route-to-the-user-interface). Then every path
 of the cockpit (the GUI API, `/wm/`, the login) is answered by the cockpit first, and the security
 of the backend covers the files of the user interface as well. The address of the nginx is a
 configuration value of the backend. `application.spa-default-file` is not needed then, because the
@@ -429,6 +430,45 @@ location /gui/api/v1/updates {
 
 The backend then needs no UI jar. It still has to trust the forwarded headers, in Spring Boot with
 `server.forward-headers-strategy=framework` or `native`.
+
+## Developing against the backend
+
+Whatever `Q-HOSTING` says, a developer works on the user interface with the dev server of its
+build tool (`Q-BUNDLER`), and with the real backend: its login, its GUI API, its proxy to the
+workflow modules. The root `package.json` has the script `dev`, which starts the dev server of
+`packages/ui`:
+
+```json
+"scripts": {
+  "dev": "npm run dev --workspace packages/ui"
+}
+```
+
+The dev server listens on a fixed port and refuses to start on another one (in Vite
+`server.port` with `server.strictPort: true`), because the backend names its address. It serves
+the user interface at `/`, the same base path as the built bundle, and answers an unknown path with
+`index.html`, as the nginx does. It forwards nothing itself.
+
+The browser talks to the backend only, as in production with `behind`. The developer opens the
+address of the backend, for example `http://localhost:8080`, never the one of the dev server. The
+backend answers every path it knows itself and passes every other path to the dev server. With
+`embedded` and `behind` the backend does that in its profile `ui-dev-server`, see
+[backend.md](backend.md#the-route-to-the-user-interface). So the login, the cookie, the security
+and the paths are the same as in production, and a change of a file shows in the browser at once.
+
+The gateway of the backend forwards no WebSocket. So the hot reload of the dev server connects to
+the port of the dev server directly, not through the backend: in Vite `server.hmr.clientPort` with
+the port of the dev server. Where the build tool cannot be told so, the page has to be reloaded by
+hand after a change, and the `README.md` says so.
+
+With `in-front` there is no such profile: the dev server forwards the paths of the backend itself,
+the same paths as the nginx image, see [In front of the backend](#in-front-of-the-backend-in-front),
+and the developer opens the address of the dev server.
+
+The `README.md` of the UI repository has a section "Developing against the backend". It names the
+steps in this order: start the backend repository as its `README.md` says, with the profile
+`ui-dev-server` added to `local`; run `npm run dev`; open the address of the backend and log in. It
+names the port of the dev server and what to do when the hot reload does not reach the browser.
 
 ## The backend repository
 
@@ -558,6 +598,19 @@ It is built like this:
    cockpit it reports to. The types module of its own has the version of the types library
    instead: `1.4.0` of the jar holds the values of `1.4.0` of the user interface.
 
+The download works only once the types library of that version is in the npm registry. Before
+that, for example while `Q-NPM-SCOPE` is a placeholder or before the first release, the registry
+answers 404. `download-maven-plugin` logs a warning first, `Invalid cookie header:
+"set-cookie: __cf_bm=..."`. That warning is harmless: the registry sends this cookie with every
+answer, a 404 too, and the plugin cannot read its date. The error that counts is the next line.
+
+So the types build has a second way, for builds on one machine: a property `bc-types.local` names
+the folder of the types library in a built checkout of the UI repository, the folder that holds
+`ui-uri-types.json` as the package does. A profile that the property switches on skips the download
+(`<skip>true</skip>` of `download-maven-plugin`; with Gradle, a condition on the download task) and
+lets the step that writes `UiUriTypes.java` read the file from that folder. The `README.md` names
+both ways, and says that a release always takes the registry.
+
 The types module of its own, when the skill creates no backend, has few files (`Q-TYPES-JAR`):
 
 ```
@@ -626,7 +679,8 @@ shell simulator:
   user below `/dev-shell/user/**`, the same calls the dev shell simulator of VanillaBP answers, see
   [dev-shell.md](dev-shell.md#the-dev-shell-simulator). This includes
   `GET /official-api/gui/api/v1/workflow-module`, which lists only the workflow modules the chosen
-  user sees. As in the cockpit, a module which registered groups is listed only for a user in one
+  user sees. As in the cockpit, a module which registered groups (`accessibleToGroups` in the body of
+  `POST /bpms/api/v1_1/workflow-module/{id}`) is listed only for a user in one
   of them, and a module without groups for everybody. The start page of the dev shell needs it
   (`DS-024`). Each simulated system has a prefix of its
   own, and below it is the path of the original.
@@ -759,8 +813,10 @@ with the same styles and the same elements around each part, see
   [`../SKILL.md`](../SKILL.md#phase-2-generate).
 - `plan/`, the plan of the work in stories, with the questions that came up and the defaults taken,
   see [working-in-stories.md](working-in-stories.md#the-files-of-the-plan).
-- A `README.md` that says how to build, how to publish, how to run against a cockpit, how to run
-  the nginx image and how to run the end-to-end tests.
+- A `README.md` that says how to build, how to publish, how to run against a cockpit, how to
+  develop against the backend with the dev server, see
+  [Developing against the backend](#developing-against-the-backend), how to run the nginx image and
+  how to run the end-to-end tests.
 - The texts of the user interface in separate files, one per language, see
   [behaviour.md](behaviour.md#language-and-texts).
 

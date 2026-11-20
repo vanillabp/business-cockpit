@@ -58,9 +58,11 @@ application/
     lists/                      one controller per list of Q-LIST-CONTROLLERS
     security/                   the two security chains and userDetailsProvider
     users/                      the two mappers, and the user directory for configuration
+    userinterface/              the route to the dev server or the nginx of the user interface
   src/main/resources/config/
     application.yaml            what every environment shares
     application-local.yaml      the values for docker-compose.yaml
+    application-ui-dev-server.yaml  the address of the dev server of the user interface
   src/test/java/<package>/      the test that starts the application, the integration tests
                                 and the simulator they use
 docker-compose.yaml             MongoDB, Mailpit, Keycloak for Q-LOGIN-KIND oidc, Kafka for Q-KAFKA
@@ -535,6 +537,121 @@ With a backend of the organisation's own, the skill writes none of this. Tell th
 backend has to serve the pictures with the same answers, protection and headers, and name the
 address in `person-picture-uri`. The path may then be a different one.
 
+## The route to the user interface
+
+The backend passes every path it does not know to the user interface with one proxy route of
+Spring Cloud Gateway. With `Q-HOSTING` `behind` the route goes to the nginx image and is always there, see
+[project.md](project.md#behind-the-backend-behind). With `embedded` and `behind` it also goes to the
+dev server of the user interface, in the profile `ui-dev-server`, so a developer works against the
+real backend, see [project.md](project.md#developing-against-the-backend). It is the same route,
+only the address differs, so the application writes it once, in `userinterface/`:
+
+```java
+@Configuration
+@ConditionalOnProperty("user-interface.uri")
+public class UserInterfaceRouteConfiguration {
+
+    // after the controllers (order 0), before the static files of the UI jar
+    // (Ordered.LOWEST_PRECEDENCE - 1)
+    private static final int AFTER_THE_CONTROLLERS = Ordered.LOWEST_PRECEDENCE - 10;
+
+    @Bean
+    public RouterFunctionMapping userInterfaceRoute(
+            @Value("${user-interface.uri}") final String uri) {
+        final var route = GatewayRouterFunctions
+            .route("user-interface")
+            .route(RequestPredicates.method(HttpMethod.GET).and(RequestPredicates.path("/**")),
+                HandlerFunctions.http())
+            .before(BeforeFilterFunctions.uri(uri))
+            .build();
+        final var mapping = new RouterFunctionMapping(route);
+        mapping.setOrder(AFTER_THE_CONTROLLERS);
+        return mapping;
+    }
+
+}
+```
+
+Do not make the route a bean of the type `RouterFunction`, as the routes under `/wm/` are. Spring MVC
+puts every such bean into its one `RouterFunctionMapping`, and that mapping has the order `-1`: it
+is asked before the controllers. A route `/**` there would take every `GET` of the GUI API, whatever
+`@Order` it has. Its own mapping with a late order comes after the controllers and after the routes
+under `/wm/`. So the GUI API, the login and the proxy of the workflow modules answer as before. The
+static files of the UI jar and the shell for an unknown path (`application.spa-default-file`) come
+after this mapping, so with the route the dev server or the nginx answers them. The route sits behind the security chain like every other path: the paths
+below `/assets/` stay open, everything else needs the login, see [The login](#the-login).
+
+`application-ui-dev-server.yaml` holds one value, the address of the dev server on its fixed port:
+
+```yaml
+user-interface:
+  uri: http://localhost:5173
+```
+
+With `behind`, `application.yaml` sets `user-interface.uri` to the address of the nginx from the
+environment, and the profile `ui-dev-server` replaces it with the dev server. With `embedded`
+only the profile sets it, so a deployment never has the route. With `in-front` there is no route
+and no such profile.
+
+The integration tests of the backend prove the route with a small HTTP server in place of the dev
+server: with the profile, an unknown path and a path below `/assets/` reach that server, and the
+GUI API does not; without the profile, the UI jar answers.
+
+## The dashboard
+
+Write this part only when the interview asks for a dashboard with charts by type (`Q-DASHBOARD`).
+The GUI API cannot list the distinct values of a field. The types are not configured either,
+because then every new workflow module would need a change of the configuration. So the
+application writes a controller of its own, in `dashboard/`, which reads the types from the data
+the user may see:
+
+```
+GET /gui/api/v1/dashboard/user-task-types
+GET /gui/api/v1/dashboard/workflow-kinds
+```
+
+The first answers a list of `{ bpmnProcessId, taskDefinition, title }`, with `title` a text per
+language from `taskDefinitionTitle`. The second answers a list of `{ caseKind }`, the values of
+the field of `Q-CASE-KIND`: `bpmnProcessId`, the case title `title` (a text per language), or the
+code below `details`. A case without a code gives `null`, which the user interface shows as
+"other". The paths
+lie below `/gui/api/v1`, so they need a login like every other path of the chain.
+
+The controller asks MongoDB with one aggregation per call: the condition of the list, then a
+`$group`. It takes the condition from the library, so the user sees the types of exactly the user
+tasks and cases the lists show them. It uses the same visibility as the controller of the task
+list and of the case list, see [The controllers of the lists](#the-controllers-of-the-lists), and
+the mode `All`, so ended user tasks and cases count too. A type which only ended tasks have is on
+the dashboard as well, with an open count of 0.
+
+```java
+final var visible = userTaskService.buildUserTasksCriteria(
+    UserTaskVisibility.everythingTheUserMayWorkOn(currentUser),
+    null,
+    UserTaskService.RetrieveItemsMode.All,
+    List.of());
+final var aggregation = Aggregation.newAggregation(
+    Aggregation.match(visible),
+    Aggregation.group("bpmnProcessId", "taskDefinition")
+        .first("taskDefinitionTitle").as("title"));
+return mongoTemplate.aggregate(aggregation, UserTask.class, UserTaskType.class).getMappedResults();
+```
+
+For the cases it is `workflowlistService.buildWorkflowlistCriteria` with
+`WorkflowVisibility.workflowsAddressedTo(currentUser)`, `null` as the timestamp,
+`WorkflowlistService.RetrieveItemsMode.All`, and `null` for the conditions and the business ids,
+then a `$group` by the field of `Q-CASE-KIND`. `UserTaskService` and `WorkflowlistService` are
+beans of the library.
+
+The answer holds no counts. The user interface asks the count endpoint of the GUI API for them,
+up to 20 types in one request, see [behaviour.md](behaviour.md#the-screens). So a count follows the
+same rules as the counts next to the primary filters.
+
+With a tile "overdue" (`Q-DASHBOARD`), the same controller also counts the open user tasks whose
+`dueDate` lies before now, with the same visibility and the mode `OpenTasksWithFollowUp`:
+`GET /gui/api/v1/dashboard/overdue-user-tasks/count`. The integration tests of the backend prove
+both lists and the count with two users who see different tasks.
+
 ## The configuration
 
 `application.yaml` holds what every environment shares. `container`'s
@@ -582,6 +699,12 @@ business-cockpit:
   see [gui-api.md](gui-api.md#the-endpoints).
   With `Q-AVATARS` it also carries `person-picture-uri: /person-pictures/{userId}`, see
   [The pictures of persons](#the-pictures-of-persons).
+  Put no YAML list below `additional-properties`. The library binds it into a
+  `Map<String, Object>`, and Spring Boot turns a list there into an object with the keys `"0"`,
+  `"1"` and so on, in no fixed order, so `GET /app/info` hands the user interface an object where it
+  expects an array. Write a list as a map instead, keyed by the id, or as one string separated by
+  commas, as `languages` is. The user interface puts the entries in the order it needs. The keys
+  stay as they are written, `person-picture-uri` is not turned into `personPictureUri`.
 - `business-cockpit.default-locale` is `Q-LANGUAGE-DEFAULT`, the language of a notification e-mail
   for a user who has none of their own.
 - `application.spa-default-file` and the static locations only matter for `Q-HOSTING` `embedded`.
@@ -603,6 +726,8 @@ warning. So start it once and follow what it prints.
 `application-local.yaml` holds the values for `docker-compose.yaml`: the address of MongoDB, of
 Kafka, of Mailpit and of Keycloak, the client secret of the local realm, a JWT key for local use
 only and the BPMS API user. The `README.md` starts the application with the profile `local`.
+With `embedded` and `behind`, the profile `ui-dev-server` comes on top of it for a developer of the
+user interface, see [The route to the user interface](#the-route-to-the-user-interface).
 
 ## The docker-compose.yaml
 
@@ -708,5 +833,11 @@ The `README.md` of the backend repository says:
   API user, the client secret of the provider, the mail server,
 - the order of the builds, see [project.md](project.md#where-the-types-jar-is-built): the cockpit
   release, then the user interface, then this repository, the types jar and the application,
-- how a new version of the user interface gets in: a new value of `ui.version`.
+- how a new version of the user interface gets in: a new value of `ui.version`,
+- with `embedded` and `behind`, a section "Developing the user interface": start the application
+  with the profiles `local,ui-dev-server`, for example
+  `mvn spring-boot:run -Dspring-boot.run.profiles=local,ui-dev-server`, run `npm run dev` in the
+  UI repository, and open the address of the backend, not the one of the dev server. It names the
+  address of the dev server in `application-ui-dev-server.yaml` and says that the backend then
+  serves no file of the UI jar.
 

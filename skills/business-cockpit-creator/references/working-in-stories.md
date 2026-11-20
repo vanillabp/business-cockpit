@@ -158,11 +158,16 @@ story writes the end-to-end tests of its own checklist ids.
 Plan after the interview and before the first line of code.
 
 1. Write `CHECKLIST.md`, as [Phase 2](../SKILL.md#phase-2-generate) of the skill says.
-2. List the ids that the project has to prove. These are all items that are not marked "not chosen"
-   or removed:
+2. List the ids that the project has to prove. These are all items whose last column, "Applies",
+   does not say "not chosen" and does not start with "removed". Read only that column: the text of
+   an item may hold these words too, for example a row "marked as removed" of the live updates.
 
    ```bash
-   awk -F'|' '/^\| `[A-Z0-9]+-[0-9]+`/ && !/not chosen/ && !/removed/ {gsub(/[ `]/, "", $2); print $2}' CHECKLIST.md > plan/ids.txt
+   awk -F'|' '/^\| `[A-Z0-9]+-[0-9]+`/ {
+       applies = $(NF-1); gsub(/^ +| +$/, "", applies)
+       if (applies ~ /not chosen/ || applies ~ /^removed/) next
+       id = $2; gsub(/[ `]/, "", id); print id
+     }' CHECKLIST.md > plan/ids.txt
    wc -l plan/ids.txt
    ```
 3. Cut the work into business slices, as
