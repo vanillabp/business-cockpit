@@ -12,7 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import io.vanillabp.cockpit.extension.config.BusinessCockpitConfiguration;
 import io.vanillabp.cockpit.extension.config.CockpitSettings;
-import io.vanillabp.integration.adapter.migration.config.MigrationAdapterProperties;
+import io.vanillabp.integration.extension.spi.settings.VanillaBpSettings;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
@@ -39,7 +39,7 @@ public class WorkflowSaysWhatItsModuleLeftOutTest {
   private CockpitSettings settings;
 
   @Autowired
-  private MigrationAdapterProperties properties;
+  private VanillaBpSettings properties;
 
   @Test
   @DisplayName("What the workflow says is what its module reports with")

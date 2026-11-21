@@ -20,13 +20,13 @@ import io.vanillabp.cockpit.extension.spi.BusinessCockpitBpmsBridge;
 import io.vanillabp.cockpit.extension.templating.Templating;
 import io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport;
 import io.vanillabp.cockpit.extension.wiring.BusinessCockpitWiringService;
-import io.vanillabp.integration.adapter.migration.config.MigrationAdapterProperties;
-import io.vanillabp.integration.adapter.migration.processservice.PhaseTwoOutboxResolver;
-import io.vanillabp.integration.adapter.migration.processservice.TransactionRunnerResolver;
 import io.vanillabp.integration.extension.spi.ExtensionWiringService;
 import io.vanillabp.integration.extension.spi.election.WorkflowElection;
 import io.vanillabp.integration.extension.spi.handler.ExtensionHandlers;
+import io.vanillabp.integration.extension.spi.resolver.PhaseTwoOutboxResolver;
+import io.vanillabp.integration.extension.spi.resolver.TransactionRunnerResolver;
 import io.vanillabp.integration.extension.spi.service.AggregateServiceFactory;
+import io.vanillabp.integration.extension.spi.settings.VanillaBpSettings;
 import io.vanillabp.integration.spi.PhaseOperationRegistry;
 import io.vanillabp.spi.cockpit.BusinessCockpitService;
 import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
@@ -114,7 +114,7 @@ public class BusinessCockpitProducer {
   @Singleton
   @Unremovable
   public BusinessCockpitConfiguration businessCockpitConfiguration(
-      final MigrationAdapterProperties properties,
+      final VanillaBpSettings properties,
       final CockpitSettings settings,
       @Any final InjectableInstance<BusinessCockpitTransport> transports,
       @Any final Instance<WorkflowModuleGroupHierarchy> groupHierarchies) {

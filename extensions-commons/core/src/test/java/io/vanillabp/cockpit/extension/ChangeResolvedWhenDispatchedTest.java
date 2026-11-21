@@ -15,8 +15,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.vanillabp.cockpit.extension.outbox.BusinessCockpitOperations;
 import io.vanillabp.cockpit.extension.spi.UserTaskReference;
-import io.vanillabp.integration.adapter.migration.config.PhaseTwoOutboxProperties;
 import io.vanillabp.integration.spi.PhaseTwoCall;
+import io.vanillabp.integration.spi.PhaseTwoOutbox;
 import io.vanillabp.integration.spi.PhaseTwoPermanentFailure;
 import io.vanillabp.integration.spi.PhaseTwoRetryLater;
 import io.vanillabp.integration.test.utils.CapturedOutput;
@@ -107,7 +107,7 @@ public class ChangeResolvedWhenDispatchedTest {
         logged.contains("LAST_FAILURE") && logged.contains("lastFailure"),
         "the log names where the entry keeps its reason: %s".formatted(logged));
     assertTrue(
-        logged.contains(PhaseTwoOutboxProperties.BLOCKED_ENTRIES_GUIDE),
+        logged.contains(PhaseTwoOutbox.BLOCKED_ENTRIES_GUIDE),
         "the log links to how to open a blocked entry again: %s".formatted(logged));
 
   }

@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
 import io.vanillabp.cockpit.bpms.api.v1_1.BpmsApiPath;
 import io.vanillabp.cockpit.extension.templating.Templating;
 import io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport;
-import io.vanillabp.integration.adapter.migration.config.MigrationAdapterProperties;
+import io.vanillabp.integration.extension.spi.settings.VanillaBpSettings;
 import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleGroupHierarchy;
 
 /**
@@ -307,7 +307,7 @@ public final class BusinessCockpitConfiguration {
   /**
    * Reads and validates the whole configuration.
    *
-   * @param properties The core's resolved properties, which know the workflow modules of the
+   * @param properties VanillaBP's resolved settings, which know the workflow modules of the
    *          application and the adapters it configured
    * @param settings What the application wrote below <code>vanillabp.cockpit</code> and below
    *          the <code>cockpit</code> sections of its workflow modules
@@ -323,7 +323,7 @@ public final class BusinessCockpitConfiguration {
    *           every defect found, each with the key which fixes it
    */
   public static BusinessCockpitConfiguration readAndValidate(
-      final MigrationAdapterProperties properties,
+      final VanillaBpSettings properties,
       final CockpitSettings settings,
       final boolean templatingAvailable,
       final boolean transportProvidedByTheApplication) {
@@ -337,7 +337,7 @@ public final class BusinessCockpitConfiguration {
    * Reads and validates the whole configuration, for an application which may take the group
    * hierarchy of a workflow module from a bean.
    *
-   * @param properties The core's resolved properties, which know the workflow modules of the
+   * @param properties VanillaBP's resolved settings, which know the workflow modules of the
    *          application and the adapters it configured
    * @param settings What the application wrote below <code>vanillabp.cockpit</code> and below
    *          the <code>cockpit</code> sections of its workflow modules
@@ -352,7 +352,7 @@ public final class BusinessCockpitConfiguration {
    *           every defect found, each with the key which fixes it
    */
   public static BusinessCockpitConfiguration readAndValidate(
-      final MigrationAdapterProperties properties,
+      final VanillaBpSettings properties,
       final CockpitSettings settings,
       final boolean templatingAvailable,
       final boolean transportProvidedByTheApplication,
@@ -383,8 +383,7 @@ public final class BusinessCockpitConfiguration {
 
     final var modules = new LinkedHashMap<String, WorkflowModuleConfiguration>();
     properties
-        .getWorkflowModules()
-        .keySet()
+        .workflowModuleIds()
         .forEach(workflowModuleId -> {
           final var workflowModule = settings.workflowModule(workflowModuleId);
           if ((workflowModule == null) || workflowModule.saysNothing()) {
@@ -408,7 +407,7 @@ public final class BusinessCockpitConfiguration {
         });
 
     final var groupHierarchyBeansByModule = groupHierarchyBeansByModule(
-        groupHierarchyBeans, properties.getWorkflowModules().keySet(), modules, defects);
+        groupHierarchyBeans, properties.workflowModuleIds(), modules, defects);
 
     if (!defects.isEmpty()) {
       throw new IllegalStateException(
@@ -530,7 +529,7 @@ public final class BusinessCockpitConfiguration {
    * Reading the keys of the configured sections does not answer this. An id named in
    * <code>prioritized-adapters</code> needs no section of its own, and an application which
    * configured nothing at all gets the id its single adapter dependency derives.
-   * {@code MigrationAdapterProperties#adapterIdsOfType} adds both, and a BPMS half builds a
+   * {@code VanillaBpSettings#adapterIdsOfType} adds both, and a BPMS half builds a
    * bridge for both. So a message about "the configured adapters" has to name them as well.
    * Otherwise it sends a developer looking for a configuration mistake which is not there.
    *
@@ -538,7 +537,7 @@ public final class BusinessCockpitConfiguration {
    * @return The adapter ids, sorted
    */
   private static Collection<String> configuredAdapterIdsOf(
-      final MigrationAdapterProperties properties) {
+      final VanillaBpSettings properties) {
 
     // the sections, and the order between them, say which BPMS types an application uses. The
     // ids of each type are the core's answer

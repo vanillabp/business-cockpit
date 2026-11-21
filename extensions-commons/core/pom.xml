@@ -29,9 +29,10 @@
   </developers>
 
   <!-- No platform integration is a dependency here, deliberately. This module compiles against
-    the two SPI artifacts and the platform-neutral core of VanillaBP, and against nothing which
-    only exists on Spring Boot or only on Quarkus - see decision 2 in the repository's
-    DECISIONS.md. -->
+    the extension SPI of VanillaBP, which brings the integration SPI along, and against nothing
+    which only exists on Spring Boot or only on Quarkus. The platform-neutral core of VanillaBP
+    is a test dependency only - see decision 2 in the repository's DECISIONS.md and the entry
+    which supersedes it in part. -->
 
   <properties>
     <!-- an application or an adapter builds against this module, so its snapshot carries a
@@ -47,10 +48,6 @@
     <dependency>
       <groupId>io.vanillabp</groupId>
       <artifactId>vanillabp-integration-spi</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.vanillabp.adapter</groupId>
-      <artifactId>migration-adapter</artifactId>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -100,6 +97,14 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- the tests build VanillaBP's settings the way a platform binds them. Only test scope:
+        the extension itself reads them through VanillaBpSettings of the extension SPI, and the
+        enforcer rule of the parent POM stops a compile-scope dependency on the core -->
+      <groupId>io.vanillabp.adapter</groupId>
+      <artifactId>migration-adapter</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

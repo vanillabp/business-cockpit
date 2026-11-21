@@ -23,7 +23,7 @@ import io.vanillabp.cockpit.extension.spi.EventTransaction;
 import io.vanillabp.cockpit.extension.spi.UserTaskEventKind;
 import io.vanillabp.cockpit.extension.spi.WorkflowEventKind;
 import io.vanillabp.cockpit.extension.spi.WorkflowReference;
-import io.vanillabp.integration.adapter.migration.config.MigrationAdapterProperties;
+import io.vanillabp.integration.extension.spi.settings.VanillaBpSettings;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
@@ -57,7 +57,7 @@ public class ConfigurationMatrixTest {
   private CockpitSettings settings;
 
   @Autowired
-  private MigrationAdapterProperties properties;
+  private VanillaBpSettings properties;
 
   @Autowired
   private BusinessCockpitEventPublisher publisher;

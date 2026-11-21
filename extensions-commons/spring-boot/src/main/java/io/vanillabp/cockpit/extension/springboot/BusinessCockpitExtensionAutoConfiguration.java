@@ -32,13 +32,13 @@ import io.vanillabp.cockpit.extension.spi.BusinessCockpitBpmsBridge;
 import io.vanillabp.cockpit.extension.templating.Templating;
 import io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport;
 import io.vanillabp.cockpit.extension.wiring.BusinessCockpitWiringService;
-import io.vanillabp.integration.adapter.migration.config.MigrationAdapterProperties;
-import io.vanillabp.integration.adapter.migration.processservice.PhaseTwoOutboxResolver;
-import io.vanillabp.integration.adapter.migration.processservice.TransactionRunnerResolver;
 import io.vanillabp.integration.extension.spi.ExtensionWiringService;
 import io.vanillabp.integration.extension.spi.election.WorkflowElection;
 import io.vanillabp.integration.extension.spi.handler.ExtensionHandlers;
+import io.vanillabp.integration.extension.spi.resolver.PhaseTwoOutboxResolver;
+import io.vanillabp.integration.extension.spi.resolver.TransactionRunnerResolver;
 import io.vanillabp.integration.extension.spi.service.AggregateServiceFactory;
+import io.vanillabp.integration.extension.spi.settings.VanillaBpSettings;
 import io.vanillabp.integration.spi.PhaseOperationRegistry;
 import io.vanillabp.spi.cockpit.BusinessCockpitService;
 import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
@@ -57,7 +57,7 @@ import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleGroupHierarchyChan
  */
 @AutoConfiguration(afterName = "io.vanillabp.integration.processservice.SpringBootMigrationAdapterAutoConfiguration")
 @ConditionalOnBean({
-    MigrationAdapterProperties.class, ExtensionHandlers.class
+    VanillaBpSettings.class, ExtensionHandlers.class
 })
 @EnableConfigurationProperties(CockpitOverlayProperties.class)
 public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean {
@@ -97,7 +97,7 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
   public CockpitSettings businessCockpitSettings(
       final CockpitOverlayProperties overlay,
       final ConfigurableEnvironment environment,
-      final MigrationAdapterProperties properties) {
+      final VanillaBpSettings properties) {
 
     ConfigurationKeyCheck
         .refuseKeysNobodyReads(
@@ -115,7 +115,7 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
    * @return The type of an adapter id
    */
   private static Function<String, String> adapterTypes(
-      final MigrationAdapterProperties properties) {
+      final VanillaBpSettings properties) {
 
     final var types = properties.adapterTypes();
     return adapterId -> types
@@ -144,7 +144,7 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
    */
   @Bean
   public BusinessCockpitConfiguration businessCockpitConfiguration(
-      final MigrationAdapterProperties properties,
+      final VanillaBpSettings properties,
       final CockpitSettings settings,
       final ApplicationContext applicationContext,
       final ObjectProvider<WorkflowModuleGroupHierarchy> groupHierarchies) {
