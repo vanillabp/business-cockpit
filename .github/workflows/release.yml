@@ -90,7 +90,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: 25.0.5+8
+          java-version: 27.0.1+100000004
           cache: maven
           server-id: vanillabp-central
           server-username-env-var: MAVEN_USERNAME
