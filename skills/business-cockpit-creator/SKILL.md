@@ -263,10 +263,9 @@ Fix the cockpit, not the test.
 One failure is not the cockpit's. `userTask.title` is a text per language (`Translatable`), in the
 GUI API, in the kit's types and in your types library. A part that draws it as if it were a string
 fails, in React with error #31. Do not hand the parts a plain string to make such a part work: the
-part is wrong. The example forms of the kit up to `0.1.0-snapshot.5` have this fault. With them,
-the React conformance module fails against a running cockpit backend, and the test passes only
-against the simulator with user tasks without a title. Write that into the report, and take a newer
-kit version as soon as one draws the title in the language of the user.
+part is wrong. Take the kit's repository at the version of the npm tag `latest`: its example forms
+draw the title in the language of the user. Older pre-releases drew the object, and their React
+conformance module failed against a running cockpit backend.
 
 ### Upgrading a generated user interface
 
@@ -506,7 +505,7 @@ entries and their export names, the area `all`, the manifest, the event protocol
 `defineBcElement` and `bc-check-entries`. The blueprints test their modules with the second package
 of that repository, `@vanillabp/bc-module-host`, a minimal host which loads a module part the way
 [references/module-loading.md](references/module-loading.md) describes. Both packages are on
-npmjs.com as pre-release versions such as `0.1.0-snapshot.5`, until version 1.0 is published.
+npmjs.com as pre-release versions, until version 1.0 is published.
 
 Always name these two packages with their exact version, in every `package.json` you write, never with a
 range and never without a version. Take the version the blueprints name in their `package.json` (for example
@@ -517,7 +516,7 @@ ask npm for the newest one:
 npm view @vanillabp/bc-module-kit dist-tags
 ```
 
-While the packages are pre-releases, take the version of the tag `next` if it is newer than `latest`.
+Take the version of the tag `latest`.
 
 The module kit you generate does not take the VanillaBP kit in. Together with the types library
 below it, it is the one contract of this cockpit. It covers the VanillaBP kit as its minimum, with
