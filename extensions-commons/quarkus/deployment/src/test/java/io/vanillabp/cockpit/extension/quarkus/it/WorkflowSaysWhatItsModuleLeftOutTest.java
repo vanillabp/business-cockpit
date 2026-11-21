@@ -12,7 +12,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import io.quarkus.test.QuarkusExtensionTest;
 import io.vanillabp.cockpit.extension.config.BusinessCockpitConfiguration;
 import io.vanillabp.cockpit.extension.config.CockpitSettings;
-import io.vanillabp.integration.adapter.migration.config.MigrationAdapterProperties;
+import io.vanillabp.integration.extension.spi.settings.VanillaBpSettings;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import jakarta.inject.Inject;
 
@@ -47,7 +47,7 @@ public class WorkflowSaysWhatItsModuleLeftOutTest {
   CockpitSettings settings;
 
   @Inject
-  MigrationAdapterProperties properties;
+  VanillaBpSettings properties;
 
   @Test
   @DisplayName("What the workflow says is what its module reports with")

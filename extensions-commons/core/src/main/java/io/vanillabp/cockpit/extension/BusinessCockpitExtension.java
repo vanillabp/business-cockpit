@@ -44,11 +44,10 @@ import io.vanillabp.cockpit.extension.spi.WorkflowReference;
 import io.vanillabp.cockpit.extension.templating.EventTitles;
 import io.vanillabp.cockpit.extension.templating.Templating;
 import io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport;
-import io.vanillabp.integration.adapter.migration.config.PhaseTwoOutboxProperties;
-import io.vanillabp.integration.adapter.migration.processservice.TransactionRunnerResolver;
 import io.vanillabp.integration.extension.spi.election.WorkflowElection;
 import io.vanillabp.integration.extension.spi.handler.ExtensionHandlers;
 import io.vanillabp.integration.extension.spi.handler.HandlerCall;
+import io.vanillabp.integration.extension.spi.resolver.TransactionRunnerResolver;
 import io.vanillabp.integration.spi.PhaseOperationRegistry;
 import io.vanillabp.integration.spi.PhaseTwoCall;
 import io.vanillabp.integration.spi.PhaseTwoOutbox;
@@ -1612,7 +1611,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
               CHANGE_RESOLUTION_WINDOW,
               waitingFor.otherReading(),
               waitingFor.whatToCheck(),
-              PhaseTwoOutboxProperties.BLOCKED_ENTRIES_GUIDE);
+              PhaseTwoOutbox.BLOCKED_ENTRIES_GUIDE);
       throw new PhaseTwoPermanentFailure(
           "%s named %s for %s, which is %s"
               .formatted(

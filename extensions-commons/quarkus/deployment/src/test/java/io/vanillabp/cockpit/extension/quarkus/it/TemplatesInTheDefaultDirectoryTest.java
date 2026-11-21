@@ -19,7 +19,7 @@ import io.vanillabp.cockpit.extension.config.BusinessCockpitConfiguration;
 import io.vanillabp.cockpit.extension.config.CockpitSettings;
 import io.vanillabp.cockpit.extension.templating.Templating;
 import io.vanillabp.cockpit.extension.test.support.CockpitServer;
-import io.vanillabp.integration.adapter.migration.config.MigrationAdapterProperties;
+import io.vanillabp.integration.extension.spi.settings.VanillaBpSettings;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import jakarta.inject.Inject;
 
@@ -57,7 +57,7 @@ public class TemplatesInTheDefaultDirectoryTest {
   CockpitSettings settings;
 
   @Inject
-  MigrationAdapterProperties properties;
+  VanillaBpSettings properties;
 
   @Test
   @DisplayName("The templates of a module are found in its default directory")

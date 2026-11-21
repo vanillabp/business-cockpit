@@ -52,4 +52,50 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
+
+  <build>
+    <plugins>
+      <plugin>
+        <!-- An extension depends on the extension SPI alone. It brings the integration SPI
+          along, and everything an extension reads from VanillaBP is offered there. This rule
+          stops the build of every module below when the core, the adapter SPI or a platform
+          integration arrives in a scope the extension's users get, even transitively. Tests may
+          still use them in test scope, because nothing of that reaches an application.
+          See decision 2 in the repository's DECISIONS.md and the entry which supersedes it in
+          part. -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>3.5.0</version>
+        <executions>
+          <execution>
+            <id>an-extension-depends-on-the-extension-spi-alone</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <bannedDependencies>
+                  <excludes>
+                    <exclude>io.vanillabp.adapter:migration-adapter:*:*:compile</exclude>
+                    <exclude>io.vanillabp:vanillabp-adapter-spi:*:*:compile</exclude>
+                    <exclude>io.vanillabp:vanillabp-spring-boot-integration:*:*:compile</exclude>
+                    <exclude>io.vanillabp:vanillabp-quarkus-integration:*:*:compile</exclude>
+                    <exclude>io.vanillabp.adapter:migration-adapter:*:*:provided</exclude>
+                    <exclude>io.vanillabp:vanillabp-adapter-spi:*:*:provided</exclude>
+                    <exclude>io.vanillabp:vanillabp-spring-boot-integration:*:*:provided</exclude>
+                    <exclude>io.vanillabp:vanillabp-quarkus-integration:*:*:provided</exclude>
+                    <exclude>io.vanillabp.adapter:migration-adapter:*:*:runtime</exclude>
+                    <exclude>io.vanillabp:vanillabp-adapter-spi:*:*:runtime</exclude>
+                    <exclude>io.vanillabp:vanillabp-spring-boot-integration:*:*:runtime</exclude>
+                    <exclude>io.vanillabp:vanillabp-quarkus-integration:*:*:runtime</exclude>
+                  </excludes>
+                  <message>The Business Cockpit extension depends on io.vanillabp:vanillabp-extension-spi alone, and on the core, the adapter SPI and the platform integrations in test scope only. Everything an extension reads from VanillaBP is offered by the extension SPI and the integration SPI. See migration-adapter/EXTENSION-AUTHORS.md of vanillabp/adapter-platform-integration, section 1.</message>
+                </bannedDependencies>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>

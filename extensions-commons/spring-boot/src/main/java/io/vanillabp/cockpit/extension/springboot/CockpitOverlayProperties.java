@@ -7,7 +7,7 @@ import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import io.vanillabp.cockpit.extension.config.CockpitSettings;
-import io.vanillabp.integration.adapter.migration.config.MigrationAdapterProperties;
+import io.vanillabp.integration.extension.spi.settings.VanillaBpSettings;
 
 /**
  * The Business Cockpit's OVERLAY of the shared <code>vanillabp.*</code> configuration tree on
@@ -35,7 +35,7 @@ import io.vanillabp.integration.adapter.migration.config.MigrationAdapterPropert
  * The workflow modules of the application are never taken from this map. They come from the
  * platform's own properties, and this map is a lookup per module id.
  */
-@ConfigurationProperties(MigrationAdapterProperties.PREFIX)
+@ConfigurationProperties(VanillaBpSettings.PREFIX)
 public class CockpitOverlayProperties {
 
   /** What the whole application says about the Business Cockpit. */

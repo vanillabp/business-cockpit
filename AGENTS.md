@@ -20,8 +20,10 @@ line for a workflow module which still runs on VanillaBP Version 1.
 
 `extensions-commons` is the Version 2 integration, or rather its platform-neutral half. It joins the
 deployment pipeline of the VanillaBP core through `io.vanillabp:vanillabp-extension-spi` and knows
-no BPMS. The five BPMS halves live in their own repositories and consume this one as a published
-artifact:
+no BPMS. That artifact is the only one of VanillaBP it compiles against. The core of VanillaBP,
+the adapter SPI and the platform integrations are allowed in test scope only, and an enforcer rule
+in `extensions-commons/pom.xml` holds that. The five BPMS halves live in their own repositories and
+consume this one as a published artifact:
 
 - [vanillabp/business-cockpit-camunda7-adapter](https://github.com/vanillabp/business-cockpit-camunda7-adapter)
 - [vanillabp/business-cockpit-camunda8-adapter](https://github.com/vanillabp/business-cockpit-camunda8-adapter)

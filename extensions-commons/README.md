@@ -48,6 +48,14 @@ Kafka transports, the templating, the outbox operations, the `BusinessCockpitSer
 interface a BPMS half implements. A platform module finds beans and hands them over; it decides
 nothing, which is what keeps a feature from existing on one platform only.
 
+Of VanillaBP, every module here depends on `io.vanillabp:vanillabp-extension-spi` alone, which
+brings the integration SPI along. It reads VanillaBP's configuration through `VanillaBpSettings`
+and gets the outbox store and the transaction of a workflow aggregate from the resolvers in
+`io.vanillabp.integration.extension.spi.resolver`. The core of VanillaBP (`migration-adapter`), the
+adapter SPI and the platform integrations are test dependencies only. An enforcer rule in
+[`pom.xml`](./pom.xml) stops the build when one of them arrives in another scope, even through a
+different dependency.
+
 The five BPMS halves live in
 [business-cockpit-camunda7-adapter](https://github.com/vanillabp/business-cockpit-camunda7-adapter),
 [business-cockpit-camunda8-adapter](https://github.com/vanillabp/business-cockpit-camunda8-adapter),
@@ -190,7 +198,7 @@ Both are published contracts. A change to them is a change three repositories ha
 A BPMS half hands over nothing else. Which of the application's outbox stores an entry is written
 into is VanillaBP's own answer on both platforms: the store the workflow aggregate's transaction
 reaches, and the transaction is that aggregate's too - `PhaseTwoOutboxResolver` and
-`TransactionRunnerResolver` answer both per aggregate class. A report of `BusinessCockpitService`
+`TransactionRunnerResolver` of the extension SPI answer both per aggregate class. A report of `BusinessCockpitService`
 names that class outright. An event a BPMS observed names a workflow module, a BPMN process and a
 serialized id instead, and the class is looked up: `ExtensionHandlers#workflowAggregateOf` answers
 what VanillaBP read off `@WorkflowService` while it built the process services. So an application
