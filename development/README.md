@@ -45,20 +45,20 @@ A database tool connects with these:
 
 |                   |                                                                                    |
 |-------------------|------------------------------------------------------------------------------------|
-| Host              | `business-cockpit-mongo`, port 7017                                               |
-| Replica set       | `rs-business-cockpit`                                                              |
+| Host              | `localhost`, port 7017                                                             |
+| Connection        | direct connection, `directConnection=true`                                         |
 | User and password | `business-cockpit` / `business-cockpit`, authenticating against `business-cockpit` |
 | Database          | `business-cockpit`                                                                 |
 
-The replica set names its member `business-cockpit-mongo`, and a tool follows that name, so it has
-to resolve. Add it to `/etc/hosts`, or to `C:\Windows\System32\drivers\etc\hosts` on Windows:
+The direct connection matters. The replica set `rs-business-cockpit` names its member
+`business-cockpit-mongo:27017`, the name and port inside the compose network. A tool which discovers
+the replica set follows that name, and on your machine nothing listens on port 27017. With a direct
+connection the tool stays on the address you gave it, and needs no entry in `/etc/hosts`. The
+profile `local` of the container connects the same way:
 
 ```
-127.0.0.1       business-cockpit-mongo
+mongodb://business-cockpit:business-cockpit@localhost:7017/business-cockpit?directConnection=true
 ```
-
-The container itself does not need that entry: the profile `local` connects to `localhost` with
-`?directConnection=true`, which skips the member discovery the name comes from.
 
 ## Notification e-mails (Mailpit)
 
