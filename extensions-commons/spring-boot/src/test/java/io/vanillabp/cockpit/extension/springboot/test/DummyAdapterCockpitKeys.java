@@ -8,7 +8,8 @@ import io.vanillabp.cockpit.extension.spi.AdapterCockpitKeys;
 /**
  * What a BPMS half of the test adapter type announces: one key, read at the adapter only. The
  * service loader finds it through the file below <code>META-INF/services</code> of the test
- * resources, the way it finds the class of a real BPMS half.
+ * resources, the way it finds the class of a real BPMS half. Like a real half, the test half also
+ * binds its key, in {@link DummyAdapterCockpitOverlayProperties}.
  */
 public class DummyAdapterCockpitKeys implements AdapterCockpitKeys {
 
