@@ -58,12 +58,11 @@ jobs:
           java-version: 25.0.5+8
           distribution: temurin
           cache: maven
+      # the cache above can hold old snapshots of our own, so they go and Maven fetches the newest
+      - uses: ./.github/actions/forget-cached-snapshots
       - name: Build and test
-        # '--update-snapshots', because this build reads the snapshots of the VanillaBP platform and
-        # Maven checks a snapshot once a day by default. The runner restores its local repository
-        # from a cache, so without this flag a build compiles against whatever the cache holds: the
-        # extension SPI of story 295 was published two hours before the build which said its package
-        # did not exist.
+        # This build reads the snapshots of the VanillaBP platform. They are always the newest
+        # ones, because the step above removes those which the cache restored.
         #
         # 'install' alone: it runs through verify, which is where the aggregated coverage reports
         # are written, and it puts the reactor's artifacts into the local repository, which the
@@ -72,7 +71,7 @@ jobs:
         #
         # Every snapshot this build reads, the MongoDB changeset library included, comes from
         # the snapshot repository of Maven Central, without a login.
-        run: mvn -s .github/maven/settings.xml ${VBP_SNAPSHOTS_PROFILE} --batch-mode --no-transfer-progress --update-snapshots install
+        run: mvn -s .github/maven/settings.xml ${VBP_SNAPSHOTS_PROFILE} --batch-mode --no-transfer-progress install
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v7

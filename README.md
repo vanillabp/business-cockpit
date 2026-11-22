@@ -75,12 +75,12 @@ finding becomes one issue with the label `chain-check`, and a finding which is s
 next night is a comment on that issue. Run the script locally to get the same report. It needs
 the GitHub CLI, logged in. It reads the snapshots without a login.
 
-The chain check builds nothing. So when a new platform snapshot breaks main and nobody pushes
-here, the chain check does not notice. The workflow `Nightly build` covers this. Once a night it
-runs the pull-request build on main, with `--update-snapshots`, so it builds against the snapshots
+The chain check builds nothing. So when a new platform snapshot breaks main and nobody pushes here,
+the chain check does not notice. The workflow `Nightly build` covers this. Once a night it runs the
+pull-request build on main, never with snapshots from the cache, so it builds against the snapshots
 published since the last run. It publishes nothing. If a publish of main is running or waiting, the
-nightly build waits for it, so the two never run at the same time. A red night becomes one issue with
-the label `nightly-build`, and a night which is still red is a comment on that issue. The two
+nightly build waits for it, so the two never run at the same time. A red night becomes one issue
+with the label `nightly-build`, and a night which is still red is a comment on that issue. The two
 adapter repositories for Camunda 7 and the Process Engine API have the same workflow.
 
 The application runs on Spring Boot 4.1 and Java 21, on Spring MVC with virtual threads. There is no

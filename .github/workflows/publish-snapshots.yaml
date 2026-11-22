@@ -92,6 +92,8 @@ jobs:
           java-version: 25.0.5+8
           distribution: temurin
           cache: maven
+      # the cache above can hold old snapshots of our own, so they go and Maven fetches the newest
+      - uses: ./.github/actions/forget-cached-snapshots
       - name: Publish package
         # This run publishes Java artifacts only. The repository holds no user interface, see
         # decision 63 in the repository's DECISIONS.md.
@@ -100,7 +102,7 @@ jobs:
         # repository and to the snapshot repository of Maven Central. The runnable jars of
         # 'build-runnable-jars' go to both as well.
         run: |
-          mvn -s .github/maven/settings.xml ${VBP_SNAPSHOTS_PROFILE} --batch-mode --no-transfer-progress --update-snapshots \
+          mvn -s .github/maven/settings.xml ${VBP_SNAPSHOTS_PROFILE} --batch-mode --no-transfer-progress \
           deploy -P build-runnable-jars,publish-snapshots
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_PORTAL_TOKEN_USER }}

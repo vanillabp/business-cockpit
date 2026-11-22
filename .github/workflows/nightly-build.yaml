@@ -9,9 +9,9 @@ name: Nightly build
 # sees it. The chain check reads the result of this workflow too, as the newest run on main.
 #
 # The build is the pull-request build, called as it is. So the night proves what a pull
-# request opened tonight would prove, and the two cannot drift apart. That build passes '--
-# update-snapshots', which is what makes it read the snapshots published since the last run,
-# and not what the cache of the runner restored.
+# request opened tonight would prove, and the two cannot drift apart. That build removes the
+# VanillaBP snapshots which the cache of the runner restored, so it reads the snapshots
+# published since the last run and not what the cache held.
 #
 # Nothing is published, and nothing is pushed. This workflow has no push trigger, so a push
 # to a branch costs no CI time here.
