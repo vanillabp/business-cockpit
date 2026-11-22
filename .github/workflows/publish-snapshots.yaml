@@ -91,7 +91,20 @@ jobs:
         with:
           java-version: 25.0.5+8
           distribution: temurin
-          cache: maven
+      # The Maven repository of the newest run on main. 'cache: maven' of setup-java keys on
+      # the POMs alone, and GitHub never writes a key again once it exists. So whatever the
+      # first save lacked, every later run fetched from Maven Central again, and Central
+      # answered with 429. This key carries the run id, so the save at the end of this job
+      # always writes a new entry, and the restore keys find the newest one, also after a
+      # change to a POM.
+      - id: maven-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ hashFiles('**/pom.xml') }}-${{ github.run_id }}
+          restore-keys: |
+            maven-${{ hashFiles('**/pom.xml') }}-
+            maven-
       # the cache above can hold old snapshots of our own, so they go and Maven fetches the newest
       - uses: ./.github/actions/forget-cached-snapshots
       - name: Publish package
@@ -124,6 +137,21 @@ jobs:
         uses: actions/upload-pages-artifact@v5
         with:
           path: coverage
+      # This is the only job of the workflow which writes the Maven cache, so a run writes
+      # it once. It writes on main only: a cache written for a pull request can never be
+      # read by main, it would only push older entries out of the storage of this
+      # repository. Our own snapshots and the marks of failed downloads stay out, so the
+      # cache holds third-party artifacts and our releases.
+      - name: Keep our own snapshots out of the Maven cache
+        if: github.ref == 'refs/heads/main'
+        uses: ./.github/actions/forget-cached-snapshots
+      # The key comes from the restore step: the build can write POMs under target, and
+      # hashFiles would then give a different key here.
+      - uses: actions/cache/save@v6
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: ~/.m2/repository
+          key: ${{ steps.maven-cache.outputs.cache-primary-key }}
 
   deploy-coverage-report:
     # publishes what the job above collected to https://vanillabp.github.io/business-cockpit/,
