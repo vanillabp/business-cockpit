@@ -86,20 +86,27 @@ jobs:
       # runner image ships 3.10 now, so this job brings its own 3.9, like the release does.
       # Remove this step once a plugin version stages a clean bundle under Maven 3.10.
       - name: Use Maven 3.9
-        run: |
-          # Into a file and not through a pipe: a transfer which breaks halfway has already
-          # written to tar, so a repeat of curl could not mend it. Nine repeats wait about
-          # eight minutes, long enough for a 429 of Central to pass.
-          curl -fsSL --retry 9 --retry-all-errors --retry-max-time 600 --connect-timeout 20 --max-time 120 \
-            -o "$RUNNER_TEMP/apache-maven.tar.gz" \
-            https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.9.16/apache-maven-3.9.16-bin.tar.gz
-          tar xzf "$RUNNER_TEMP/apache-maven.tar.gz" -C "$RUNNER_TEMP"
-          echo "$RUNNER_TEMP/apache-maven-3.9.16/bin" >> "$GITHUB_PATH"
+        uses: ./.github/actions/use-maven
       - uses: actions/setup-java@v6
         with:
           java-version: 25.0.5+8
           distribution: temurin
-          cache: maven
+      # The Maven repository of the newest run on main. 'cache: maven' of setup-java keys on
+      # the POMs alone, and GitHub never writes a key again once it exists. So whatever the
+      # first save lacked, every later run fetched from Maven Central again, and Central
+      # answered with 429. This key carries the run id, so the save at the end of this job
+      # always writes a new entry, and the restore keys find the newest one, also after a
+      # change to a POM.
+      - id: maven-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ hashFiles('**/pom.xml') }}-${{ github.run_id }}
+          restore-keys: |
+            maven-${{ hashFiles('**/pom.xml') }}-
+            maven-
+      # the cache above can hold old snapshots of our own, so they go and Maven fetches the newest
+      - uses: ./.github/actions/forget-cached-snapshots
       - name: Publish package
         # This run publishes Java artifacts only. The repository holds no user interface, see
         # decision 63 in the repository's DECISIONS.md.
@@ -108,7 +115,7 @@ jobs:
         # repository and to the snapshot repository of Maven Central. The runnable jars of
         # 'build-runnable-jars' go to both as well.
         run: |
-          mvn -s .github/maven/settings.xml ${VBP_SNAPSHOTS_PROFILE} --batch-mode --no-transfer-progress --update-snapshots \
+          mvn -s .github/maven/settings.xml ${VBP_SNAPSHOTS_PROFILE} --batch-mode --no-transfer-progress \
           deploy -P build-runnable-jars,publish-snapshots
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_PORTAL_TOKEN_USER }}
@@ -130,6 +137,21 @@ jobs:
         uses: actions/upload-pages-artifact@v5
         with:
           path: coverage
+      # This is the only job of the workflow which writes the Maven cache, so a run writes
+      # it once. It writes on main only: a cache written for a pull request can never be
+      # read by main, it would only push older entries out of the storage of this
+      # repository. Our own snapshots and the marks of failed downloads stay out, so the
+      # cache holds third-party artifacts and our releases.
+      - name: Keep our own snapshots out of the Maven cache
+        if: github.ref == 'refs/heads/main'
+        uses: ./.github/actions/forget-cached-snapshots
+      # The key comes from the restore step: the build can write POMs under target, and
+      # hashFiles would then give a different key here.
+      - uses: actions/cache/save@v6
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: ~/.m2/repository
+          key: ${{ steps.maven-cache.outputs.cache-primary-key }}
 
   deploy-coverage-report:
     # publishes what the job above collected to https://vanillabp.github.io/business-cockpit/,
