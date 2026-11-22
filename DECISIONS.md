@@ -32,6 +32,9 @@ the platform's own runner does. What it buys is that no feature can quietly exis
 only. VanillaBP asks this of every extension, and its own sample extension is built that way, so a
 reviewer of either repository expects this shape.
 
+Note (2026-11-22): Since decision 120 `extensions-commons/core` no longer sees `migration-adapter`.
+It sees the extension SPI of VanillaBP and the cockpit's own API artifacts.
+
 ### 3. An outbox entry carries identifiers, and the event is built when it is dispatched - the moment the event is built superseded by decision 26
 
 By contract, VanillaBP's outbox holds at most 2048 characters of arguments per entry. Version 1
@@ -1912,6 +1915,9 @@ transport fails before it sends, and the entry comes back until a newer node tak
 finds no half for the adapter "null" either. That dispatch fails, and the outbox repeats it with its
 own backoff until a newer node takes it or the entry is blocked. All of this was read from the code,
 not tried.
+
+Note (2026-11-22): Since decision 120 the constant is `PhaseTwoOutbox.BLOCKED_ENTRIES_GUIDE` of the
+integration SPI. It is still the same address.
 
 ### 44. A key with a dot in the business data is stored once a replacement is configured
 
@@ -5833,3 +5839,43 @@ class.
   the root `README.md`
 - the wiki page Connecting-a-workflow-module, section "On Quarkus"
 
+### 120. The extension depends on the extension SPI alone
+
+This changes decision 2 and decision 43. `extensions-commons/core` no longer sees
+`migration-adapter`, and the constant decision 43 names is now `PhaseTwoOutbox.BLOCKED_ENTRIES_GUIDE`
+instead of `PhaseTwoOutboxProperties.BLOCKED_ENTRIES_GUIDE`. `adapter-platform-integration` made the
+same change on its side.
+
+Decision 2 let the neutral half see the two SPI artifacts of VanillaBP and the platform-neutral core,
+`migration-adapter`. The extension took five types from the core: `MigrationAdapterProperties` for
+the configured adapters and workflow modules, `PhaseTwoOutboxResolver` and
+`TransactionRunnerResolver` for the store and the transaction of a workflow aggregate,
+`PhaseTwoOutboxProperties` for one constant, and through them the whole core on its compile path.
+None of these types was a promise of the platform, and each could change with any change of the
+core.
+
+The platform now offers all of it in its SPI artifacts:
+
+- `VanillaBpSettings` in `io.vanillabp.integration.extension.spi.settings` answers the adapter ids
+  and their types, `adapterIdsOfType`, the prioritized adapters, the workflow module ids and the
+  root `PREFIX`. Both platforms publish their bound configuration under this type, too. The
+  extension reads it there and no longer reads `MigrationAdapterProperties`.
+- `PhaseTwoOutboxResolver`, `TransactionRunnerResolver` and `TaskDeliveryLogResolver` are interfaces
+  of `io.vanillabp.integration.extension.spi.resolver`.
+- `BLOCKED_ENTRIES_GUIDE` is a constant of `PhaseTwoOutbox` in the integration SPI. It is still the
+  same address the platform's own ERROR lines use.
+
+So every module of `extensions-commons` names `vanillabp-extension-spi` (and, where it uses its
+types directly, `vanillabp-integration-spi`) and nothing else of VanillaBP in a scope an application
+gets. `migration-adapter`, `vanillabp-adapter-spi`, `vanillabp-spring-boot-integration` and
+`vanillabp-quarkus-integration` are test dependencies only. A test may build the configuration the
+way a platform binds it, and a test may play an adapter. Nothing of that reaches an application.
+
+An enforcer rule in `extensions-commons/pom.xml` holds this for every module below it. It bans the
+four artifacts in the scopes `compile`, `provided` and `runtime`, also when they arrive through
+another dependency. It is the rule of the platform's sample extensions, narrowed to these scopes,
+because unlike the samples these modules have tests which boot a platform.
+
+The tests which boot an application now inject `VanillaBpSettings` instead of
+`MigrationAdapterProperties`. So they also show that both platforms publish the bean under that
+type.
