@@ -2,8 +2,9 @@
 
 *Part of the description in [`../SKILL.md`](../SKILL.md).*
 
-Here is what brings a generated user interface down if nobody mentions it. Each point comes from the
-code of the cockpit. Read this before the first screen, not when something does not work.
+Here is what brings a generated user interface down if nobody mentions it. Most points come from the
+code of the cockpit, the last ones from libraries and tools a cockpit is built with. Read this
+before the first screen, not when something does not work.
 
 1. [Assigning makes a candidate](#assigning-makes-a-candidate)
 2. [Claiming overwrites](#claiming-overwrites)
@@ -23,6 +24,10 @@ code of the cockpit. Read this before the first screen, not when something does 
 16. [Removing a web component before its answer](#removing-a-web-component-before-its-answer)
 17. [A component library keeps destroyed rows](#a-component-library-keeps-destroyed-rows)
 18. [What needs a newer cockpit](#what-needs-a-newer-cockpit)
+19. [The JDK client and the Vite dev server](#the-jdk-client-and-the-vite-dev-server)
+20. [An open update stream keeps Playwright waiting](#an-open-update-stream-keeps-playwright-waiting)
+21. [A MUI Snackbar closes on a click elsewhere](#a-mui-snackbar-closes-on-a-click-elsewhere)
+22. [A toast outside a modal dialog cannot be clicked](#a-toast-outside-a-modal-dialog-cannot-be-clicked)
 
 ## Assigning makes a candidate
 
@@ -296,3 +301,48 @@ which tests it since `1.0.0`. A chain which was copied from the wiki before writ
 `oauth2Login(login -> login.securityContextRepository(..))` has no effect, see
 [backend.md](backend.md#oidc-the-default). The integration test of the login in the generated
 backend repository is still the proof for the backend itself (`BE-007`).
+
+## The JDK client and the Vite dev server
+
+The backend passes the paths it does not know to the dev server of the user interface, in the
+profile `ui-dev-server`, see [backend.md](backend.md#the-route-to-the-user-interface). Against a
+real Vite dev server this fails twice, while a test with a small HTTP server passes.
+
+- Vite listens on `localhost`. Node.js may resolve that to the IPv6 address `::1` only, and Java
+  tries `127.0.0.1` first, so the backend gets no connection. Set `server.host: '127.0.0.1'` in
+  Vite, and name `http://127.0.0.1:<port>` in the backend.
+- The JDK `HttpClient` asks for HTTP/2 over a plain connection, with the header `Upgrade: h2c`.
+  Vite does not answer that upgrade the way the client expects, and the request fails or hangs.
+  Give the route a client that speaks HTTP/1.1 only.
+
+## An open update stream keeps Playwright waiting
+
+`page.waitForLoadState('networkidle')` waits until no request has been open for half a second. The
+update stream is a request that stays open as long as the page lives. So `networkidle` never comes
+on a page of the cockpit, and the test runs into its timeout. Wait for what the user sees instead,
+for example with `expect(locator).toBeVisible()` on the first row of the list, or wait for the
+answer of the one request the test is about with `page.waitForResponse`.
+
+## A MUI Snackbar closes on a click elsewhere
+
+The `Snackbar` of MUI calls `onClose` with the reason `clickaway` when the user clicks anywhere
+outside it. A toast that has to stay until the user clicks it away (`EXT-023`, `TF-011`) then goes
+on the first click into the page. Ignore that reason in `onClose`, and close the toast only on its
+own close button. Other libraries have such an option as well; check it for every toast that has to
+stay.
+
+## A toast outside a modal dialog cannot be clicked
+
+A modal dialog makes the rest of the page unreachable. A native `<dialog>` opened with
+`showModal()` lies in the top layer of the browser, above every `z-index`, and makes everything
+outside it `inert`. The dialogs of many design libraries trap the focus and lay a backdrop over the
+page. Either way, a toast drawn outside the dialog may show, but it cannot be clicked away while
+the dialog is open, and a sticky toast keeps the user waiting.
+
+So draw the toasts where the dialog does not block them, see
+[behaviour.md](behaviour.md#toasts). With a native `<dialog>`, a popover does not help: everything
+outside the modal dialog stays `inert`, also in the top layer. Draw the container of the toasts
+inside the open dialog while it is open, or open the dialog with `show()` and a backdrop of your
+own. With a dialog of a design library, use the library's own way to put an element above its
+dialogs, or draw the toasts inside the open dialog as well. A test opens a dialog, shows a sticky
+toast and clicks it away.

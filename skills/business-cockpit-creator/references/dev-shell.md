@@ -130,6 +130,12 @@ and compares:
 - the computed styles of the host element and of the first element in its shadow root: the
   inherited properties and the custom properties of the theme.
 
+Only the custom properties of the theme belong to the contract, the ones the types library names.
+A design library sets custom properties of its own, for example Vuetify `--v-*` or the `--p-*` of
+PrimeVue. In the cockpit they reach a part as well, because custom properties pass into a shadow
+root, but a dev shell of another framework has none of them. So the test does not compare them,
+and a part must not use them: it takes its look from the theme's properties and its own style.
+
 Read both with `getComputedStyle` in the page. Walk up the chain with `parentElement`, and with
 `getRootNode().host` where a shadow root ends. The test fails on the first difference and names the
 element and the property. Do the same for the page of a case.
@@ -194,7 +200,8 @@ The form of the entry point follows the framework, and it does not have to be th
 
 - React: `bootstrapDevShell(elementId, options)`, which renders into the element with that id.
 - Angular: a function that returns an `ApplicationConfig`, plus a `bootstrapDevShell` that starts it.
-- Vue: a component `DevShellApp` with properties, or a plugin.
+- Vue: a component `DevShellApp` with properties. A plugin would work as well, but take the
+  component, so every Vue dev shell looks the same.
 
 Use what is natural in the framework. What is handed over is the same.
 
@@ -227,8 +234,11 @@ Three surfaces are enough:
 
 - A start page, with a way to each part and to each extension point, the choice of the user and
   the choice of the workflow module. The list of workflow modules shows only the modules the chosen
-  user sees. The page gets them with `GET /official-api/gui/api/v1/workflow-module`, through the
-  same generated client as the other data, and gets them again after every change of the user. So
+  user sees: a module that registered groups, `accessibleToGroups` in the body of
+  `POST /bpms/api/v1_1/workflow-module/{id}`, only for a user in one of these groups, and a module
+  without groups for everybody (`DS-024`). The page gets them with
+  `GET /official-api/gui/api/v1/workflow-module`, through the same generated client as the other
+  data, and gets them again after every change of the user. So
   the developer sees for whom the cockpit loads the parts of their module which belong to no case,
   for example a button in the header. If the user sees no module, the start page says so instead of
   showing an empty list.
@@ -362,6 +372,26 @@ cockpit answers, or a form runs here and not there.
 What it does not answer is the rest of the GUI API: claim, assign, mark as read, follow-up, the update
 form of the lists, the user search, the suggestions for the search field and the update stream. A
 shell that calls one of these calls into nothing.
+
+### The TypeScript simulator for the dev shells
+
+The end-to-end tests of the dev shells do not start this Java application. They run against the
+TypeScript simulator of the UI repository, see
+[project.md](project.md#the-simulator-of-the-ui-repository). For the dev shells it answers the same
+paths as the Java simulator, and it does the same with the user:
+
+- `/dev-shell/user/**` offers the users of its own test data, the same users the end-to-end tests
+  of the cockpit use, each with its groups. There is no `users.yaml` and no `john`, `jane` and
+  `joe`, unless the tests make them.
+- `POST /dev-shell/user/{userId}` writes a JWT into the cookie the cockpit uses, `bc` by default,
+  with the path `/` and `HttpOnly`. `---` deletes the cookie. The simulator signs the token with a
+  fixed key of its own; the shape matters, not the security.
+- The official GUI API below `/official-api/gui/api/v1` reads the user from that cookie, as the
+  Java simulator does. `GET /app/current-user` answers that user with the groups, and
+  `GET /workflow-module` lists the modules by these groups (`DS-024`).
+
+So a dev shell runs the same way against both simulators, and a test of the dev shell proves what
+a developer sees with the Java simulator.
 
 ### The simulators of a workflow module
 

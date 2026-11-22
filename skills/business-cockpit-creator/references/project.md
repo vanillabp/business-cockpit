@@ -444,8 +444,11 @@ workflow modules. The root `package.json` has the script `dev`, which starts the
 }
 ```
 
-The dev server listens on a fixed port and refuses to start on another one (in Vite
-`server.port` with `server.strictPort: true`), because the backend names its address. It serves
+The dev server listens on a fixed port of `127.0.0.1` and refuses to start on another one (in Vite
+`server.host: '127.0.0.1'` and `server.port` with `server.strictPort: true`), because the backend
+names its address. Without `server.host`, Vite may listen on the IPv6 address `::1` only, and the
+backend, which tries `127.0.0.1`, does not reach it, see
+[rough-edges.md](rough-edges.md#the-jdk-client-and-the-vite-dev-server). It serves
 the user interface at `/`, the same base path as the built bundle, and answers an unknown path with
 `index.html`, as the nginx does. It forwards nothing itself.
 
@@ -611,6 +614,17 @@ the folder of the types library in a built checkout of the UI repository, the fo
 lets the step that writes `UiUriTypes.java` read the file from that folder. The `README.md` names
 both ways, and says that a release always takes the registry.
 
+As long as the types library of the version in `ui.version` is not in the registry, every build of
+the backend repository needs the property, `mvn verify` included:
+
+```bash
+mvn verify -Dbc-types.local=../<UI repository>/packages/bc-types
+./gradlew build -Pbc-types.local=../<UI repository>/packages/bc-types
+```
+
+Build the UI repository first, so the folder holds `ui-uri-types.json`. The check scripts of the
+plan do the same, see [working-in-stories.md](working-in-stories.md#a-check-script-planchecks18sh).
+
 The types module of its own, when the skill creates no backend, has few files (`Q-TYPES-JAR`):
 
 ```
@@ -704,8 +718,11 @@ client from, so both sides speak the same API.
 ### The three test modules
 
 The three test modules belong to the UI repository, in `e2e/modules/`. One is written in React,
-one in Vue and one in Angular, against the module kit of the repository. The conformance test of
-the kit does not use them; it uses the kit's own modules.
+one in Vue and one in Angular, against the module kit of the repository. These three frameworks are
+fixed, whatever `Q-MODULE-FRAMEWORKS` says: the cockpit has to load modules of every framework, so
+its tests need all three. Each module takes the newest release of its framework, the one npm tags
+`latest` (`npm view react dist-tags`), not the version of `Q-FRAMEWORK` or `Q-MODULE-FRAMEWORKS`.
+The conformance test of the kit does not use them; it uses the kit's own modules.
 
 They differ in what they bring, for example in their columns, so a list shows mixed rows. Together
 they cover every extension point the interview chose: `Header`, `Pages`, the areas of
