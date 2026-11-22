@@ -29,14 +29,15 @@ of the library reaches it by the component scan, exactly like the application yo
 5. [The application](#the-application)
 6. [The controllers of the lists](#the-controllers-of-the-lists)
 7. [The login](#the-login)
-8. [The BPMS API](#the-bpms-api)
-9. [The user directory](#the-user-directory)
-10. [The pictures of persons](#the-pictures-of-persons)
-11. [The configuration](#the-configuration)
-12. [The docker-compose.yaml](#the-docker-composeyaml)
-13. [The test that starts the application](#the-test-that-starts-the-application)
-14. [The integration tests of the backend](#the-integration-tests-of-the-backend)
-15. [The README](#the-readme)
+8. [When a browser goes away](#when-a-browser-goes-away)
+9. [The BPMS API](#the-bpms-api)
+10. [The user directory](#the-user-directory)
+11. [The pictures of persons](#the-pictures-of-persons)
+12. [The configuration](#the-configuration)
+13. [The docker-compose.yaml](#the-docker-composeyaml)
+14. [The test that starts the application](#the-test-that-starts-the-application)
+15. [The integration tests of the backend](#the-integration-tests-of-the-backend)
+16. [The README](#the-readme)
 
 ## Spring Boot only
 
@@ -56,7 +57,9 @@ application/
   src/main/java/<package>/
     CockpitApplication.java     the main class
     lists/                      one controller per list of Q-LIST-CONTROLLERS
-    security/                   the two security chains and userDetailsProvider
+    security/                   the two security chains, userDetailsProvider and, for
+                                Q-LOGIN-KIND oidc, the logout at the provider
+    web/                        the advice for a client that went away
     users/                      the two mappers, and the user directory for configuration
     userinterface/              the route to the dev server or the nginx of the user interface
   src/main/resources/config/
@@ -245,7 +248,7 @@ wiki under [Who sees which user task](https://github.com/vanillabp/business-cock
 The library brings no login. The application writes the security filter chain of the GUI API as a
 bean named `guiHttpSecurity`, with `@Order(99)`. The class
 `container/src/main/java/io/vanillabp/cockpit/security/GuiSecurityConfiguration.java` is the
-template. Every chain keeps four things, whatever the login is:
+template. Every chain keeps five things, whatever the login is:
 
 1. The five matchers of `io.vanillabp.cockpit.config.web.WebSecurityConfiguration` stay
    `permitAll`: `appInfoRequestMatcher`, `currentUserRequestMatcher`, `assetsRequestMatcher`,
@@ -257,6 +260,10 @@ template. Every chain keeps four things, whatever the login is:
    after `business-cockpit.jwt.cookie.expires-duration` while somebody works.
 4. `JwtSecurityContextRepository` is the place the login is written to. So every login ends in the
    same cookie, `bc` by default.
+5. Every request of the dispatcher types `ASYNC` and `ERROR` is let through, with
+   `dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()` as the first
+   rule. The template does not have this rule yet. The reason is in
+   [When a browser goes away](#when-a-browser-goes-away) (`BE-033`).
 
 `anyRequest()` is `authenticated()`. CSRF and CORS stay off, as in `container`, because the browser
 sees one origin and the cookie is the only credential.
@@ -282,6 +289,9 @@ http
     .cors(AbstractHttpConfigurer::disable)
     .anonymous(AbstractHttpConfigurer::disable)
     .authorizeHttpRequests(requests -> requests
+        // a later dispatch of a request that was checked already, see "When a browser goes away"
+        .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR)
+        .permitAll()
         .requestMatchers(appInfoRequestMatcher, currentUserRequestMatcher, assetsRequestMatcher,
             staticRequestMatcher, workflowModulesProxyRequestMatcher)
         .permitAll()
@@ -297,6 +307,8 @@ http
     .oauth2Login(login -> login
         .authorizationEndpoint(endpoint -> endpoint
             .authorizationRequestResolver(authorizationRequests))
+        // keeps the ID token for the logout at the provider
+        .successHandler(new KeepTheIdTokenForTheLogout())
         .withObjectPostProcessor(new ObjectPostProcessor<OAuth2LoginAuthenticationFilter>() {
           @Override
           public <O extends OAuth2LoginAuthenticationFilter> O postProcess(final O filter) {
@@ -306,7 +318,7 @@ http
         }))
     .logout(logout -> logout
         .logoutUrl("/logout")
-        .logoutSuccessHandler(jwtLogoutSuccessHandler))
+        .logoutSuccessHandler(new LogoutAtTheProvider(properties.getJwt(), clientRegistrationRepository)))
     .addFilterAfter(new PassiveJwtSecurityFilter(properties.getJwt(), jwtMapper),
         BasicAuthenticationFilter.class)
     .addFilterAfter(new JwtRenewalFilter(properties.getJwt(), jwtMapper, updatesRequestMatcher),
@@ -336,9 +348,113 @@ the login, see [gui-api.md](gui-api.md#staying-logged-in).
 
 The module `container` of the `business-cockpit` repository has this chain, in
 `GuiSecurityConfiguration`, and a test which logs in at a provider played by a test server,
-`ALoginAtAnOpenIdConnectProviderTest`. Write the integration test of the login of the generated
-backend first anyway (`BE-007`), before anything builds on it. It is one of the
+`ALoginAtAnOpenIdConnectProviderTest`. Its logout ends the login in the cockpit only, so take the
+logout from [Logging out at the provider](#logging-out-at-the-provider) instead. Write the
+integration test of the login of the generated backend first anyway (`BE-007`), before anything
+builds on it. It is one of the
 [integration tests of the backend](#the-integration-tests-of-the-backend).
+
+### Logging out at the provider
+
+`/logout` has to end the login at the provider as well, not only the cookie of the cockpit. The
+provider keeps a session of its own. Without its end, the next request after the logout goes to the
+provider, the provider sees its session and sends the user back logged in, without a question. To
+the user the logout then does nothing that a reload does not undo (`AUTH-007`).
+
+So the generated backend uses the RP-initiated logout of OpenID Connect: after the logout the
+browser goes to the `end_session_endpoint` of the provider, with three parameters:
+
+- `id_token_hint`, the ID token the provider gave at the login. It tells the provider whose session
+  ends, so it asks no question.
+- `client_id`, the client of `Q-OIDC-PROVIDER`.
+- `post_logout_redirect_uri`, the start page of the cockpit. The provider sends the browser back
+  there, and because the session there has ended, the start page asks for a new login.
+
+The cockpit keeps nothing of the provider after the login, so the application keeps the ID token
+itself, in a cookie of its own (`BE-032`). The cookie is `HttpOnly` and has the path `/logout`, so
+the browser sends it with the logout only. Spring Security's
+`OidcClientInitiatedLogoutSuccessHandler` does not help here: it takes the ID token from the login
+of the request, and the login of the cockpit is its own token from the cookie, not the login of the
+provider.
+
+```java
+/** Keeps the ID token of the provider in a cookie of its own, for the logout at the provider. */
+class KeepTheIdTokenForTheLogout extends SavedRequestAwareAuthenticationSuccessHandler {
+
+  static final String ID_TOKEN_COOKIE = "bc-id-token";
+
+  @Override
+  public void onAuthenticationSuccess(final HttpServletRequest request,
+      final HttpServletResponse response, final Authentication authentication)
+      throws ServletException, IOException {
+    if (authentication.getPrincipal() instanceof OidcUser user) {
+      final var cookie = ResponseCookie.from(ID_TOKEN_COOKIE, user.getIdToken().getTokenValue())
+          .httpOnly(true)
+          .secure(request.isSecure())
+          .sameSite("Lax")
+          .path("/logout")
+          .build();
+      response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    }
+    super.onAuthenticationSuccess(request, response, authentication);
+  }
+
+}
+
+/** Ends the login in the cockpit, and at the provider when it offers an end of session. */
+class LogoutAtTheProvider implements LogoutSuccessHandler {
+
+  private final JwtProperties jwtProperties;
+
+  private final ClientRegistrationRepository clientRegistrations;
+
+  LogoutAtTheProvider(final JwtProperties jwtProperties,
+      final ClientRegistrationRepository clientRegistrations) {
+    this.jwtProperties = jwtProperties;
+    this.clientRegistrations = clientRegistrations;
+  }
+
+  @Override
+  public void onLogoutSuccess(final HttpServletRequest request,
+      final HttpServletResponse response, final Authentication authentication) throws IOException {
+    JwtSecurityContextRepository.clearCookie(jwtProperties, response);
+    final var idToken = WebUtils.getCookie(request, KeepTheIdTokenForTheLogout.ID_TOKEN_COOKIE);
+    response.addHeader(HttpHeaders.SET_COOKIE, ResponseCookie
+        .from(KeepTheIdTokenForTheLogout.ID_TOKEN_COOKIE, "").path("/logout").maxAge(0).build()
+        .toString());
+
+    final var startPage = ServletUriComponentsBuilder.fromContextPath(request).path("/")
+        .toUriString();
+    final var provider = clientRegistrations.findByRegistrationId("keycloak");
+    final var endOfSession = provider.getProviderDetails().getConfigurationMetadata()
+        .get("end_session_endpoint");
+    if (endOfSession == null) {
+      response.sendRedirect(startPage);
+      return;
+    }
+    response.sendRedirect(UriComponentsBuilder.fromUriString(endOfSession.toString())
+        .queryParamIfPresent("id_token_hint", Optional.ofNullable(idToken).map(Cookie::getValue))
+        .queryParam("client_id", provider.getClientId())
+        .queryParam("post_logout_redirect_uri", startPage)
+        .encode()
+        .toUriString());
+  }
+
+}
+```
+
+Use the registration id of `Q-OIDC-PROVIDER` in place of `keycloak`. Spring reads
+`end_session_endpoint` from the discovery document of the provider, so configure the provider with
+`issuer-uri`. Without it the metadata is empty, and the logout ends the login in the cockpit only.
+The ID token has often expired when the user logs out. That is fine: the specification of the
+RP-initiated logout asks the provider to accept an expired ID token as the hint. Without the cookie,
+for example after a login from before this logout handler, the provider asks the user whether to log
+out, and that is fine as well.
+
+The provider sends the browser back only to an address it knows. So `keycloak/realm.json` names the
+start page of the cockpit as a post-logout redirect URI of the client, see
+[The docker-compose.yaml](#the-docker-composeyaml). A real provider needs the address of the real
+cockpit there.
 
 ### A login form
 
@@ -347,7 +463,9 @@ The user logs in with a form of the backend. Spring Security's `formLogin` takes
 `UsernamePasswordAuthenticationFilter`, because `formLogin`'s own `securityContextRepository` is
 replaced like the one of `oauth2Login`. The users and their passwords come from
 the user directory, see [The user directory](#the-user-directory). The login paths are `/login` and
-`/logout`. This way is not proven by a test of the cockpit either.
+`/logout`. The logout handler of the template, `JwtLogoutSuccessHandler`, is enough here, because
+the login lives in the cookie of the cockpit only. This way is not proven by a test of the cockpit
+either.
 
 ### The token travels in a cookie
 
@@ -365,6 +483,55 @@ directory of its own: the library's `jwtMapper` asks the `UserDirectoryService` 
 every request, and the details take the groups, the name and the e-mail address from that answer.
 Do not write a `jwtMapper` of your own. If you have to, pass the `UserDirectoryService` to
 `new JwtAuthenticationTokenMapper(properties, userDirectoryService, groupHierarchyService::resolveGroups)`.
+
+## When a browser goes away
+
+A browser goes away all the time: the user closes a tab, reloads the page, or the laptop sleeps.
+Each time the update stream ends from the browser's side. That is normal and no error, so it must
+not fill the log with errors and warnings. Two things in the application see to that.
+
+The update stream runs asynchronously. The request that opened it has ended long ago on its thread,
+and the stream answers from another one. When the browser closes the tab, Tomcat dispatches the same
+request a second time, as an `ASYNC` or an `ERROR` dispatch. Spring Security checks every dispatch.
+But `PassiveJwtSecurityFilter` reads the cookie only once per request and does not run again on
+this dispatch. So Spring Security finds no login and writes an
+`AuthenticationCredentialsNotFoundException` into the log. The first dispatch was checked already,
+so the chain lets these later dispatches through without a check:
+
+```java
+.authorizeHttpRequests(requests -> requests
+    .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR)
+    .permitAll()
+    // then the open matchers and anyRequest(), as above
+```
+
+This is the first rule of `guiHttpSecurity`, whatever the login is (`BE-033`). It lets nothing
+through that was not checked before: a request that reaches an `ASYNC` or `ERROR` dispatch has
+passed the chain on its first dispatch.
+
+The second thing is the write to a connection that is gone. The next event or ping of the stream
+fails with `java.io.IOException: Broken pipe`, and the log shows "Servlet container error
+notification for disconnected client". Spring turns such an error into an
+`AsyncRequestNotUsableException`. The application handles it in an advice of its own and logs it at
+`DEBUG` (`BE-034`). Then a developer who looks for it still finds it, and nobody else sees it:
+
+```java
+/** A browser that went away, for example a closed tab with an open update stream, is no error. */
+@RestControllerAdvice
+class ClientWentAway {
+
+  private static final Logger log = LoggerFactory.getLogger(ClientWentAway.class);
+
+  @ExceptionHandler(AsyncRequestNotUsableException.class)
+  void ignore(final AsyncRequestNotUsableException clientIsGone) {
+    log.debug("The client went away: {}", clientIsGone.getMessage());
+  }
+
+}
+```
+
+The handler returns nothing, because there is nobody left to answer. Do not lower the level of a
+logger of Spring or Tomcat instead: that would hide every other error of the same logger as well.
 
 ## The BPMS API
 
@@ -755,8 +922,9 @@ writes that file for local development:
 
 - a realm, by default `business-cockpit`,
 - a confidential client, by default `business-cockpit`, with the redirect address
-  `http://localhost:8080/login/oauth2/code/<id>` and the secret that `application-local.yaml`
-  names,
+  `http://localhost:8080/login/oauth2/code/<id>`, the start page `http://localhost:8080/` as its
+  post-logout redirect URI (the attribute `post.logout.redirect.uris`), and the secret that
+  `application-local.yaml` names,
 - with `Q-USER-DIRECTORY` `keycloak`: a second confidential client, by default
   `business-cockpit-directory`, with service accounts on, only the role `view-users` of
   `realm-management`, the client scope `kc-admin-api` among its `defaultClientScopes`, and its
@@ -805,6 +973,13 @@ They prove:
   Keycloak and comes back with the cookie of the cockpit. Then `GET /gui/api/v1/app/current-user`
   shows the user with the groups from the user directory (`BE-007`). With `form`, the login form of the
   backend does the same (`BE-009`),
+- the logout. With `oidc`, `/logout` deletes both cookies and sends the browser to the
+  `end_session_endpoint` of Keycloak with `id_token_hint`, and the next request asks for a new login
+  (`BE-032`, `AUTH-007`),
+- a browser that goes away. The test opens `GET /gui/api/v1/updates` with a login, closes the
+  connection and waits for the next ping. The log, read with Spring Boot's `OutputCaptureExtension`,
+  then has no `AuthenticationCredentialsNotFoundException`, and no error or warning about the
+  closed connection (`BE-033`, `BE-034`),
 - every list of `Q-LIST-CONTROLLERS`: it answers, and it shows each test user only the user tasks
   and cases that user may see (`BE-004`). The simulator reports the data through the BPMS API
   first, then the test reads the lists as different users,
