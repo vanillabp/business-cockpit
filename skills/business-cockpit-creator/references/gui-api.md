@@ -217,6 +217,14 @@ it. Plan for two things anyway:
   even in the middle of work. After that every request answers 401, and the user has to log in
   again. So your user interface must handle a 401 at any time, not only at the start.
 
+After a 401 in the middle of the work, the user wants to come back to the screen they were on. With
+`Q-HOSTING` `embedded` or `behind` the backend asks for the login before every page, see
+[Protection and login](#protection-and-login). So the user interface loads its current address
+again as a whole page, with `window.location.assign(location.href)`. The backend keeps that address
+while the user logs in, and after the login the browser comes back to it. With `in-front` the
+browser goes to the login path of `Q-LOGIN`, and after the login it shows the start page, because
+the backend does not know which screen the user was on.
+
 ## The endpoints
 
 The task lists of the runnable cockpit are the same endpoints under three base paths. Which tasks
@@ -312,7 +320,9 @@ The 409 of claim and unclaim carries a plain text body which says that the task 
 
 So switch these actions off in your user interface when `endedAt` is set, and treat a 409 as "the
 task ended or was suspended in the meantime": read the task again, redraw the row and tell the user,
-see [Suspended tasks and cases](#suspended-tasks-and-cases).
+see [Suspended tasks and cases](#suspended-tasks-and-cases). What a bulk action does when the
+selection holds ended tasks is in
+[behaviour.md](behaviour.md#ended-and-suspended-tasks-in-a-selection).
 
 ## Giving back
 
@@ -643,7 +653,15 @@ The stream remembers the ids the lists of its person were answered
 with, at most `business-cockpit.gui-sse.max-known-ids-per-stream` (2,000 by default). When it has to
 forget ids, it sends a `RELOAD`. A new stream always starts with a `RELOAD` for every kind, because
 the page may have loaded a list before the stream was open. So treat `RELOAD` as "load the list
-again", with the same primary filter, filters and sorting.
+again", with the same primary filter, filters and sorting, and with the same `initialTimestamp`, so
+the markers of the rows and the ended rows stay, see [behaviour.md](behaviour.md#how-it-works).
+
+The first `RELOAD` of a stream is only there for a list that loaded before the stream was open. A
+list whose first request went out after the stream was open has seen every change since, so it
+skips that first `RELOAD`. Note for each list whether the stream was open when the list sent its
+first request: with `EventSource` its `open` event has come, with `fetch` the answer has started.
+A stream that connects again starts with a `RELOAD` of its own, and every list takes that one,
+because changes may have fallen into the gap.
 
 ### Timing
 
@@ -713,7 +731,8 @@ one suspended task among those the user may see, and none is changed. This holds
 version with that check on. The follow-up date, the note and mark as read and unread still work. The
 BPMS refuses to complete a suspended task, and the module's form gets that answer from its own
 backend, not from the cockpit. See [behaviour.md](behaviour.md#suspended-tasks) for what the user
-interface does.
+interface does, and
+[behaviour.md](behaviour.md#ended-and-suspended-tasks-in-a-selection) for a selection.
 
 ## User settings
 

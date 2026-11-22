@@ -65,6 +65,19 @@ A list of virtual rows may need its own rows instead of the table component of t
 look of that table: its header, its lines and its spacing. With a library of styles only, such as
 Tailwind, the cockpit builds these controls in one style from its classes, the same way everywhere.
 
+The cockpit has a light look only, unless `Q-THEME` asks for a dark mode. Without a dark mode it
+stays light also when the operating system of the user is set to dark. With a dark mode it follows
+that setting, and the colours of the rows, the legend and the charts have a dark form each.
+
+### Toasts
+
+A toast is a component of the design library as well. Toasts lie above everything, also above a
+modal dialog, and a toast that stays until clicked away can be clicked away while the dialog is
+open. A modal dialog often makes the rest of the page unreachable, so put the toasts where the
+dialog does not block them, see
+[rough-edges.md](rough-edges.md#a-toast-outside-a-modal-dialog-cannot-be-clicked). Every toast is
+in the language of the user, see [Language and texts](#language-and-texts).
+
 ## The screens
 
 Which screens exist is decided per organisation (`Q-SCREENS`). The minimum is:
@@ -110,10 +123,19 @@ Often there is more:
   A tile counts only what the count endpoint can narrow to. A filter (`SearchQuery`) matches a text
   in a field or in the full text. It knows no range, so "due before now" cannot be asked for, and a
   tile "overdue" can neither be counted with one request nor open a list narrowed to it. When the
-  interview asks for such a tile, say so in the interview, and offer one of these: a tile which
+  user wants such a tile, say so in the interview, and offer one of these: a tile which
   opens the list sorted by the due date, so the overdue tasks come first, without a count; a count
   by the dashboard endpoint of the backend, which can ask MongoDB for `dueDate` before now, with the
-  list sorted by the due date behind it; or no such tile.
+  list sorted by the due date behind it; or no such tile. The interview decides (`Q-DASHBOARD`). Its
+  default is the count by the dashboard endpoint when the skill creates the backend, and the tile
+  without a count otherwise.
+
+  The slices take the chart colours of `Q-THEME`, in their order.
+
+  The dashboard follows the update stream like every other count, see [Counts](#counts): an event
+  of its kind asks its counts again, at most once per delivery, unless `Q-LIVE-MODE` is
+  `refresh-button`. It asks the backend for the types only when it opens, so a new type shows the
+  next time the user opens the dashboard.
 
 - Sub-lists (`Q-SUB-LISTS`), narrowed to a role or to some task types. An example: a company has a
   list of committees a user can be a member of. There is one card per committee (that is, per
@@ -143,6 +165,23 @@ With more than one language (`Q-LANGUAGES`), each screen has one path per langua
 - Links the user interface draws, like the title of a row, use the path of the current language.
 - The pages of a workflow module keep `/<workflowModuleId>/<pageId>` in every language. Their ids
   come from the module and are not translated.
+
+The interview agrees on the words of the paths, see
+[interview.md](interview.md#check-an-answer-before-you-save-it). Propose these, and for another
+language words of the same kind. When `Q-WORDING` picks another word for a case, propose paths with
+that word, for example `/faelle` and `/fall/<id>` for `Fall`.
+
+|   Screen    |      English      |      German       |
+|-------------|-------------------|-------------------|
+| all tasks   | `/tasks`          | `/aufgaben`       |
+| my tasks    | `/my-tasks`       | `/meine-aufgaben` |
+| a user task | `/tasks/<id>`     | `/aufgabe/<id>`   |
+| case list   | `/workflows`      | `/vorgaenge`      |
+| a case      | `/workflows/<id>` | `/vorgang/<id>`   |
+| dashboard   | `/dashboard`      | `/uebersicht`     |
+
+A path has no umlaut, so `ä` becomes `ae`, and so on. The link in a notification mail uses paths
+of its own, see [Notifications](#notifications).
 
 ## The header and the menu
 
@@ -373,8 +412,13 @@ to check what the overview must show.
 
 A count in brackets stands next to every part of the toggle in the header and next to every
 primary filter of a list. Each count is a request to the count endpoint, see
-[gui-api.md](gui-api.md#counting). A count in the toggle uses the primary filter the list would open
-with.
+[gui-api.md](gui-api.md#counting).
+
+A count in the toggle uses the default primary filter of the interview (`Q-PRIMARY-FILTERS`,
+`Q-WORKFLOW-FILTERS`), not the primary filter the user chose last. The list itself opens with the
+one chosen last, see [The status line](#the-status-line). So the count in the toggle always means
+the same, for every user and in every browser, and it does not change when the user switches the
+primary filter of a list.
 
 All counts are asked again:
 
@@ -421,9 +465,19 @@ out of sight until its date, see [Follow-up](#follow-up). Without the follow-up 
 `OpenTasksWithFollowUp`. The server takes `OpenTasksWithFollowUp` when a request has no mode, but
 the user interface always sends one, see
 [gui-api.md](gui-api.md#the-primary-filter-which-rows-come-at-all). The buttons show a short,
-translated label, for example "Open" or "Closed", with the count in brackets, see [Counts](#counts).
+translated label with the count in brackets, see [Counts](#counts). The interview agrees on the
+labels (`Q-PRIMARY-FILTERS`). Propose these, and for another language words of the same kind:
+
+|       Primary filter       |  English  |    German     |
+|----------------------------|-----------|---------------|
+| `OpenTasksWithoutFollowUp` | Open      | Offen         |
+| `OpenTasksWithFollowUp`    | All open  | Alle offenen  |
+| `OpenTaskOnlyFollowUp`     | Follow-up | Wiedervorlage |
+| `ClosedTasksOnly`          | Closed    | Erledigt      |
+
 The primary filter last chosen is a user setting and is used again next time, in every browser, see
-[User settings](#user-settings). On its right, the status line shows a colour legend for the states
+[User settings](#user-settings). The counts in the toggle of the header do not follow it, see
+[Counts](#counts). On its right, the status line shows a colour legend for the states
 of a row, for example new, changed and removed, and the looks of a completed, a cancelled and a
 suspended row, see [How the state of a row looks](#how-the-state-of-a-row-looks).
 
@@ -547,8 +601,10 @@ The fixed columns behave and look different from the columns filled with a modul
 
 ### Bulk actions
 
-The selected tasks can be claimed, proposed to another person (they become
+The selected tasks can be claimed, given back, proposed to another person (they become
 candidate users), marked as read or unread, put on follow-up, and given a note (`Q-BULK-ACTIONS`).
+A selection may hold ended or suspended tasks; what each action does with them is in
+[Ended and suspended tasks in a selection](#ended-and-suspended-tasks-in-a-selection).
 The selected cases of the case list can be given a note; that is its one bulk action. The selection
 is a set of ids. It stays when rows leave the window of loaded rows, see
 [Paging and the window of loaded rows](#paging-and-the-window-of-loaded-rows). Switching to another
@@ -567,9 +623,27 @@ so the user sees what the list offers before choosing a row. A tool that needs m
 details over the list, for example the search for a person when the user proposes the selected
 tasks. The details lie over the rows and do not move them, so the selection stays in sight.
 
+A row has no tools of its own. To act on one task, for example to propose it, to mark it as read
+or to put it on follow-up, the user selects its row and takes the tool in the toolbar. Only three
+actions also sit in the cells of a row: claim and give back in the assignee cell, removing a
+candidate in the candidate users column, and the note in the notes column, see
+[Fixed columns](#fixed-columns) and [Notes](#notes). On the open task, the application header
+offers its actions, see [The header while a task is open](#the-header-while-a-task-is-open).
+
 The background of every list is white, so the rows read well. Where the design library gives the
 page no white background, the list is frosted glass: white and partly transparent, so the
 background shows through, and blurred where the browser can, in CSS with `backdrop-filter`.
+
+### When a list does not load
+
+A request of a list can fail: the server does not answer, or it answers with an error. Then the
+list shows no rows, and its toolbar and its status line stay. A toast in the language of the user
+says that the list could not be loaded, see [Toasts](#toasts). It shows no status code and no text
+of the server. The next action that loads the list tries again, for example a click on a primary
+filter, a new search or a new sort. This holds for the task lists and the case list alike.
+
+A 401 is not such a failure. It means that the login has ended, and the browser goes to the login,
+see [gui-api.md](gui-api.md#staying-logged-in).
 
 ### Notes
 
@@ -589,6 +663,10 @@ The same holds for the case list and the page of a case.
 
 A user can put a task on follow-up until a date (`Q-FOLLOW-UP`). It then leaves
 `OpenTasksWithoutFollowUp` until the date has come.
+
+The user picks a day, not a time. The task comes back at the start of that day, at 00:00 in the
+time zone of the user's browser. So the user interface sends `followUpDate` as that moment, in ISO
+8601 with the offset of the time zone, for example `2026-12-01T00:00:00+01:00`.
 
 ## How the columns of a list come about
 
@@ -645,8 +723,9 @@ change of size that a scroll bar causes may start a new draw of the list.
   so the choice does not depend on the order in which pages arrived.
 - A fixed column stays as the cockpit defines it. A module column with the same `path` does not
   replace it.
-- The columns are sorted by `priority`, the smallest number first. A column with `show: false` is
-  not drawn.
+- The fixed columns come first, in the order of the interview. The columns of the modules follow
+  after the last fixed column, sorted by `priority`, the smallest number first. A column with
+  `show: false` is not drawn.
 - A row without a value for a column has an empty cell.
 - A module whose list part does not load must not keep the whole list empty. Its rows show the fixed
   columns and a note in the cells the module would have filled.
@@ -736,7 +815,8 @@ without live updates (`Q-LIVE-MODE` is `refresh-button`) reads the row again aft
 
 Closed tasks: disable claim, unclaim, propose, remove candidate, follow-up and note when `endedAt`
 is set. The server refuses them with 409, see [gui-api.md](gui-api.md#ended-tasks). Mark as read and
-unread stay enabled.
+unread stay enabled. A selection that holds ended tasks is not simply disabled, see
+[Ended and suspended tasks in a selection](#ended-and-suspended-tasks-in-a-selection).
 
 ### Suspended tasks
 
@@ -753,12 +833,8 @@ unclaim, propose and remove candidate, in the row and in the header of the open 
 that nobody can work on only confuses the colleagues. Follow-up, note, mark as read and mark as
 unread stay enabled. They organise the user's own work and do not touch the task in the BPMS.
 
-A bulk action is not simply disabled when the selection holds suspended tasks. For claim, unclaim,
-propose and remove candidate, the user interface first asks, worded for the action and translated,
-for example "The selection also holds suspended tasks. Assign all but the suspended ones?" On yes,
-it sends the request without the suspended tasks. On no, it sends nothing. The server answers a list
-that holds a suspended task with 409 and changes none of the tasks, so the suspended ones must
-never go out. Follow-up, note and read or unread go out for all selected tasks without a question.
+A bulk action is not simply disabled when the selection holds suspended tasks, see
+[Ended and suspended tasks in a selection](#ended-and-suspended-tasks-in-a-selection).
 
 A 409 for a task that was not suspended when the user acted means the task was suspended or ended
 in the meantime. Read the task again, redraw the row and tell the user which of the two it was.
@@ -770,6 +846,31 @@ sent, and the user still reads it.
 When the task is activated again, an update event comes, the cockpit reads the task again and
 `suspendedAt` is gone. The actions are enabled again, and the barrier goes away, without a reload.
 If claiming is hard and the user has not claimed the task, the barrier of the claim stays.
+
+### Ended and suspended tasks in a selection
+
+This section owns the rule for a bulk action whose selection holds ended or suspended tasks. The
+server answers a list that holds such a task with 409 and changes none of the tasks, see
+[gui-api.md](gui-api.md#ended-tasks) and
+[gui-api.md](gui-api.md#suspended-tasks-and-cases). So these tasks must never go out with an action
+the server refuses for them. A bulk action is still not simply disabled:
+
+|                   Action                    |    Ended tasks in the selection    | Suspended tasks in the selection |
+|---------------------------------------------|------------------------------------|----------------------------------|
+| claim, give back, propose, remove candidate | ask first, then leave them out     | ask first, then leave them out   |
+| follow-up, note                             | leave them out, without a question | send for all selected tasks      |
+| mark as read, mark as unread                | send for all selected tasks        | send for all selected tasks      |
+
+"Ask first" means a question worded for the action and translated, for example "The selection
+also holds ended or suspended tasks. Propose all but these?" On yes, the user interface sends the
+request without the ended and the suspended tasks. On no, it sends nothing. A task that is ended
+and suspended at the same time counts as ended, see
+[How the state of a row looks](#how-the-state-of-a-row-looks).
+
+Follow-up and note leave the ended tasks out without a question. An ended task is a record and
+takes no note and no follow-up date any more, so the user loses nothing. They go out for the
+suspended tasks, because they organise the user's own work. When only ended tasks are selected, the
+tools that would send nothing are disabled, as for a single ended task.
 
 ## Opening and working on a user task
 
@@ -801,12 +902,17 @@ The task actions of the cockpit always sit in the application header. There is n
 of the task's own. The header shows information about the task (`Q-TASK-HEADER-INFO`), for example
 task kind or case kind. It does not show the task title, because the form shows it, and it does not
 repeat what the modules show in the area `information` (`Q-TASK-INFORMATION-AREA`), by default the
-business id and the case title. So with the default areas it shows little or nothing. It offers
-claim, unclaim, propose to a person, follow-up and
-the note of the task (`Q-TASK-HEADER-ACTIONS`). The note is an input field at the top of the
-header, visible at once, so the user reads and writes it without a click on a button. The header
-also offers "mark as unread", because an opened task counts as read. In the task tab, the red
-button "back to the list" stands in place of the burger menu, see
+business id and the case title. So with the default areas it shows little or nothing.
+
+It offers the task actions the interview chose (`Q-TASK-HEADER-ACTIONS`). The interview holds the
+default list, see [interview.md](interview.md#a-user-task-and-a-case). Of claim and give back, the
+header shows claim while the user does not hold the task, and give back while the user holds it.
+Claiming a task of another user asks first, as in the list. The note is an input field at the top
+of the header, visible at once, so the user reads and writes it without a click on a button.
+"Mark as unread" is in the default, because an opened task counts as read. For an ended or a
+suspended task the header disables the same actions as its row, see
+[The actions on a user task](#the-actions-on-a-user-task). In the task tab, the red button "back to
+the list" stands in place of the burger menu, see
 [The task in a tab of its own](#the-task-in-a-tab-of-its-own-q-own-window).
 
 The header stands in the same place for all kinds of tasks, so it is a visual anchor for the user.
@@ -872,7 +978,9 @@ question:
    most 300 ms. A `BroadcastChannel` works without any window object, also after `noopener`. If a
    list answers, `window.open('', 'bc-list')` brings that tab to the front. If none answers, the
    cockpit never calls `window.open`, because the browser would open an empty tab. The task tab
-   shows the list itself instead.
+   shows the list itself instead: the list of all tasks, `/tasks` in the path of the user's
+   language, with the primary filter the user chose last. The task tab does not know from which
+   list the task was opened, so it always takes this one.
 4. The task tab closes itself with `window.close()`. A browser closes a tab this way when a script
    opened it, and the click on the title did. A tab the user opened with "open in new tab" may stay
    open. Then the cockpit shows a hint that the list is in another tab or window.
@@ -1066,7 +1174,19 @@ organisation, with two rules:
 - The content under the layer stays readable. The user wants to see the task before taking it.
 - Each area can still be scrolled. A layer inside the scroll container of the area, as high as the
   whole content, does this: the mouse wheel and touch scrolling still move the area, but a click
-  or a key press does not reach the form.
+  does not reach the form.
+
+The layer stops the mouse, not the keyboard. A user can still reach a field with the Tab key. So
+while the barrier lies over an area, the cockpit also sets the attribute `inert` on the host
+element of the module's web component in it, and removes it when the barrier goes. An element with
+`inert` and everything inside it, its shadow root included, takes no focus, no click and no key
+press. The scroll container of the area is the cockpit's own box and does not get `inert`, so it
+still scrolls.
+
+There is no barrier over the page of a task that has ended (`endedAt`), claimed or not. Nobody can
+claim it any more, and claim is disabled, see
+[The actions on a user task](#the-actions-on-a-user-task). The form decides itself whether it shows
+the ended task read-only, see below.
 
 When the user claims the task, the cockpit sets the `userTask` property of the module's web
 components again, with the user as the assignee, see [module-loading.md](module-loading.md#actions).
@@ -1100,6 +1220,10 @@ change between the event and the answer could have changed the initiator.
 
 - `initiatorKind` is `USER` and `initiator` is the current user: the user's own change, no toast.
 - `initiatorKind` is `USER` and `initiator` is another user: the toast comes and names that user.
+  The event carries only the user id. So the toast takes the short form of the name
+  (`displayShort`) from a person the page already has with that id, the assignee or a candidate
+  user of the task, also of the task as it is read again after the event. When none of them has
+  that id, the toast shows the user id. It asks no endpoint for the name.
 - `initiatorKind` is `SYSTEM` (reported by the workflow module) or `COCKPIT` (a job of the cockpit
   itself): no toast. Nobody else is working on the task.
 
@@ -1110,10 +1234,27 @@ The same holds for the open page of a case, see [The page of a case](#the-page-o
 
 ## The case list
 
-Technically the same holds as for the task lists. Only the differences are listed here.
-
 Users find cases, get a first idea of their state from the columns, and open the
 details page when needed.
+
+Technically the case list works like the task lists. These rules of the task lists hold for it
+unchanged, and they are written down once, in the sections named:
+
+- the status line as the footer below the rows, with its buttons of the primary filters, their
+  labels and counts, and the legend, see [The status line](#the-status-line) and [Counts](#counts),
+- the primary filter last chosen, kept as a user setting, see [User settings](#user-settings),
+- the toolbar with the tools, the full-text search and the white background, see
+  [The tools and the look of a list](#the-tools-and-the-look-of-a-list),
+- the look of a row by its state, see [How the state of a row looks](#how-the-state-of-a-row-looks),
+- the columns of the modules and the rules of their merge, see
+  [How the columns of a list come about](#how-the-columns-of-a-list-come-about),
+- searching, filtering and sorting, see [Search, filter, sort](#search-filter-sort),
+- paging, the window of loaded rows and the memory, see
+  [Paging and the window of loaded rows](#paging-and-the-window-of-loaded-rows),
+- the live updates, see [Live updates](#live-updates),
+- the selection, and that switching to another list drops it, see [Bulk actions](#bulk-actions).
+
+The differences follow.
 
 ### Which cases
 
@@ -1126,6 +1267,17 @@ The interview decides which are offered (`Q-WORKFLOW-FILTERS`). By default these
 and `Done`, and `All` is possible as well. The default of the cockpit is `InProgress`. A suspended
 case has not ended, so it shows in `InProgress`.
 
+Each button shows a short, translated label with its count in brackets. The count of
+`ClosedTasksOnly` is the only one asked on mouse-over, see [Counts](#counts), so `Done` and `All`
+show their count like `InProgress`. The interview agrees on the labels. Propose these, and for
+another language words of the same kind:
+
+| Primary filter |   English   |     German     |
+|----------------|-------------|----------------|
+| `InProgress`   | In progress | In Bearbeitung |
+| `Done`         | Done        | Abgeschlossen  |
+| `All`          | All         | Alle           |
+
 The dev shell is different: it always asks with `All`, for user tasks and for cases, see
 [dev-shell.md](dev-shell.md#what-it-shows).
 
@@ -1136,6 +1288,10 @@ columns. The case list has its own fixed columns (`Q-WORKFLOW-COLUMNS`), by defa
 business id (`businessId`) right after the id. There is no read marker and no read function. A case
 list without bulk actions has no selection column. Notes work as in the task list, per row and for
 all selected rows, see [Notes](#notes).
+
+The ended column (`endedAt`) shows only for the primary filters that can hold an ended case,
+`Done` and `All`, and not for `InProgress`. It is the counterpart of the ended column of a task
+list, which shows only for `ClosedTasksOnly`, see [Fixed columns](#fixed-columns).
 
 A case row looks as its state says, the same as a task row, see
 [How the state of a row looks](#how-the-state-of-a-row-looks). So in `Done` every row is grey, and a
@@ -1212,6 +1368,11 @@ a third goes back to the default order of the list. The sort mark appears only o
 
 What a column allows is set per task and case kind, by the column flags `sortable`, `filterable` and
 `resizeable`.
+
+A column of a module with `resizeable` can be made wider or narrower: the user drags the right edge
+of its header. So can every fixed column, except the two that are as wide as an icon, the checkbox
+of `id` and `candidateUsers`. The list keeps the width as a user setting, per list and per path, so
+it holds in every browser, see [User settings](#user-settings).
 
 A new sort or a new search loads the list again, with a new start timestamp.
 
@@ -1331,7 +1492,10 @@ memory test below reads the heap once, at the end, and that does not catch it. S
   [rough-edges.md](rough-edges.md#a-component-library-keeps-destroyed-rows).
 - Leaving the list frees what it held. A service or store that lives longer than the list empties
   its rows and its load options when the list closes. Opening the list again adds no second
-  subscription on top of the first.
+  subscription on top of the first. The base of this check is the memory after the user has left
+  the list once, not before the list first opened. The first visit loads code that stays on
+  purpose: the parts of the modules, the generated client, the texts. So open and leave the list
+  once, measure, then open and leave it again and measure once more (`SRCH-018`).
 - A row draws as few components as it can. Each component in a row is created and destroyed
   thousands of times while the user scrolls. A tooltip, a checkbox or a skeleton is cheap once and
   expensive ten thousand times. Create such a component when it is needed, for example on
@@ -1383,7 +1547,8 @@ to the Chrome DevTools Protocol. It goes through these steps:
 2. Scroll slowly to the end and back up.
 3. Scroll fast to the end and back up.
 4. Jump to 37 %, 71 % and 12 % of the scroll bar.
-5. Open another screen and come back to the list.
+5. Open another screen and come back to the list, twice. The values after the first time are the
+   base of the second time.
 
 Before each value, force a garbage collection with `HeapProfiler.collectGarbage`. Then write down
 the heap (`Runtime.getHeapUsage`), the DOM nodes and event listeners (`Memory.getDOMCounters`), the
@@ -1457,7 +1622,11 @@ when changes were reported. Nothing else moves.
    from [gui-api.md](gui-api.md#the-timestamp-that-keeps-a-list-stable).
 2. Listen on the update stream to the name of the list's kind, `UserTask` or `Workflow`. Take the id
    from each event. Every type leads to the same action, except `RELOAD`, which loads the whole list
-   again.
+   again. It keeps the `initialTimestamp`, the primary filter, the filters and the sorting, so the
+   markers and the ended rows stay. Only acknowledging, a new sort, a new search and opening the
+   list again start a new timestamp. A list whose first request went out after the stream was open
+   skips the first `RELOAD` of that stream, see
+   [gui-api.md](gui-api.md#what-a-stream-remembers).
 3. Read the rows of the window again. If the window starts at the top of the list, ask with `PUT`
    for as many rows as the window holds, plus a reserve of one page, and leave out the ids of the
    changed rows. They come back in full. If the window starts further down, read its pages again
@@ -1466,16 +1635,20 @@ when changes were reported. Nothing else moves.
    as for the first page, also `workflowModuleIds`, and for cases also `businessIds`. A list that
    shows only some workflow modules does not ask at all for an event whose `workflowModuleId`
    belongs to none of them.
-4. Set the state of each returned row:
+4. Take the order of the answer. A new row stands where the sort of the list puts it, not at the
+   top: the server keeps it at that place in every later page too, and a row drawn somewhere else
+   would show twice. A changed row whose sorted value changed moves to its new place, with its
+   marker.
+5. Set the state of each returned row:
    * ended after the start timestamp: `ENDED`,
    * otherwise created after the start timestamp: `NEW`,
    * otherwise changed after the start timestamp, not only by the user's own changes (see
      [How it looks](#how-it-looks-q-live-mode-is-live)): `UPDATED`,
    * otherwise `INITIAL`.
-5. A row in the window the server no longer returns stays in place and becomes `REMOVED_FROM_LIST`.
-6. The user's selection stays.
-7. The counts are asked again, see [Counts](#counts).
-8. Acknowledging loads the list again with a new start timestamp. That drops the markers and the
+6. A row in the window the server no longer returns stays in place and becomes `REMOVED_FROM_LIST`.
+7. The user's selection stays.
+8. The counts are asked again, see [Counts](#counts).
+9. Acknowledging loads the list again with a new start timestamp. That drops the markers and the
    ended rows a list of open rows still showed.
 
 The states `INITIAL`, `NEW`, `UPDATED`, `ENDED` and `REMOVED_FROM_LIST` each have a look from the
@@ -1501,8 +1674,36 @@ and per kind of case, whether they want notifications and on which channel. The 
 `GET /notifications/media`, `GET` and `PUT /notifications/config`, `GET /notifications/recipient-config`,
 `PUT /notifications/recipient-config/{mediumType}` and `GET /notifications/workflows`.
 
+The screen of the settings has three parts, all from these endpoints:
+
+- The channels. `GET /notifications/media` names them, each with a `type`, for example `email`,
+  and a translated `name`. A channel is a medium in the words of the API.
+- A table of what the user wants. Its columns are the channels. Its first row is "all cases", the
+  flags `globalAllViaMedium`, one per channel. Then comes one row per kind of case. A kind of case
+  here is a process of a workflow module, one entry of `GET /notifications/workflows` with
+  `workflowModuleId`, `bpmnProcessId` and a translated `workflowTitle`. That list holds the
+  processes of which the user can see user tasks. It does not follow `Q-CASE-KIND`. Such a row
+  overrides the first row, in `perWorkflow` under the key `<workflowModuleId>#<bpmnProcessId>`: a
+  flag per channel in `allViaMedium`, or `none` for no notification at all. A row without an entry
+  follows the first row. `PUT /notifications/config` stores the whole table.
+- Where each channel reaches the user, for example the address of the mails.
+  `GET /notifications/recipient-config` answers one entry per channel with its fields, each with a
+  translated `title` and `description` and its `value`.
+  `PUT /notifications/recipient-config/{mediumType}` stores the fields of one channel as a map from
+  the `type` of a field to its value.
+
+The names of the channels and of the processes are shown in the language of the user, as every
+`Translatable` is, see [Language and texts](#language-and-texts).
+
 A link in a notification mail points to the task page. It must work without a detour over the start
-page, also when the user has to log in first.
+page, also when the user has to log in first. The mail is written by the template of the
+`business-cockpit` library, and that template builds the path itself, from the language of the
+mail: `/aufgabe/<id>` in German and `/task/<id>` in every other language, and `/aufgaben` or
+`/tasks` for the task list. These paths do not follow `Q-ROUTES`. So the user interface also
+answers `/task/<id>` and `/aufgabe/<id>`, and `/tasks` and `/aufgaben`: each opens its screen and
+replaces the address with the path of the user's language, as a translated path does, see
+[Translated paths](#translated-paths). A backend the skill creates may bring mail templates of its
+own instead, with the paths of `Q-ROUTES`, see [backend.md](backend.md#the-configuration).
 
 ## User settings
 

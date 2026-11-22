@@ -176,10 +176,10 @@ see [Planning](#planning-from-the-checklist-to-stories). The ids of the customer
 ```text
 project|The UI repository builds and tests itself|PKG-044, PKG-035, PKG-045, PKG-019, PKG-002, PKG-062, PKG-055, PKG-047, PKG-046, PKG-014, PKG-008, PKG-052, PKG-063, PKG-064, PKG-054
 backend|The backend starts and serves the user interface|BE-001, BE-024, BE-025, BE-002, BE-003, BE-014, BE-028, BE-012, BE-006, PKG-003, PKG-004, PKG-005, PKG-059, BE-031
-login|A user logs in and out|BE-005, BE-010, BE-011, BE-007, BE-008, BE-013, BE-017, BE-026, BE-027, BE-009, AUTH-002, AUTH-003, AUTH-004, AUTH-005, AUTH-006, AUTH-008, AUTH-001, AUTH-009, AUTH-007, BE-032, BE-033, BE-034
+login|A user logs in and out|BE-005, BE-010, BE-011, BE-007, BE-008, BE-013, BE-017, BE-026, BE-027, BE-009, AUTH-002, AUTH-003, AUTH-004, AUTH-005, AUTH-006, AUTH-008, AUTH-001, AUTH-009, AUTH-010, AUTH-007, BE-032, BE-033, BE-034
 frame|The user sees the header and the menu|NAV-006, NAV-009, NAV-010, NAV-011, NAV-013, NAV-029, NAV-031, NAV-032, I18N-001, I18N-002, I18N-004, I18N-005, I18N-006
 settings|The settings of a user are kept on the server|SET-001, SET-002, SET-004, SET-005, SET-006
-task-list|A clerk sees the tasks waiting for them|BE-004, NAV-001, NAV-002, TL-008, TL-012, TL-013, TL-015, TL-016, TL-018, TL-024, TL-032, COL-015, COL-017, COL-018, COL-019, COL-021, BE-020
+task-list|A clerk sees the tasks waiting for them|BE-004, NAV-001, NAV-002, TL-008, TL-012, TL-013, TL-015, TL-016, TL-018, TL-024, TL-032, COL-015, COL-017, COL-018, COL-019, COL-021, BE-020, TL-033
 status-line|A clerk switches between open and closed tasks and sees the counts|TL-001, TL-002, TL-003, TL-005, TL-006, TL-009, TL-010, TL-021, TL-026, TL-028
 row-looks|A clerk sees which tasks are unread, ended or suspended|TL-007, TL-023, TL-027
 actions|A clerk claims, proposes, marks and puts aside a task in the list|TL-014, TL-017, TL-025, ACT-001, ACT-003, ACT-004, ACT-005, ACT-006, ACT-007, ACT-008, ACT-009, ACT-010, ACT-012, ACT-013, ACT-014, ACT-015, ACT-016, ACT-017
@@ -188,14 +188,14 @@ paging|A clerk scrolls through very many tasks|I18N-007, SRCH-010, SRCH-011, SRC
 tools|A clerk acts on several selected tasks at once|TL-011, TL-019, TL-029, TL-030, TL-031, ACT-018
 module-kit|A workflow module builds its parts against the module kit|PKG-006, PKG-009, PKG-017, PKG-020, PKG-033, PKG-039, PKG-040, PKG-041, PKG-042, PKG-043, PKG-048, PKG-049, PKG-050, PKG-051, PKG-053, PKG-056, PKG-057
 module-loading|The cockpit loads the parts of the modules|EXT-005, EXT-007, EXT-008, EXT-009, EXT-010, EXT-011, EXT-016, EXT-019, EXT-021, EXT-026, EXT-027, EXT-029, EXT-031, EXT-033, EXT-034, EXT-035, EXT-036, EXT-037, EXT-041, EXT-043, EXT-044, EXT-045, EXT-046, EXT-047, EXT-048, EXT-049, EXT-050, EXT-051, EXT-052, EXT-053, EXT-054, EXT-055, EXT-056, EXT-057, EXT-059
-module-columns|The lists show the columns of the modules|COL-001, COL-003, COL-004, COL-005, COL-006, COL-007, COL-008, COL-009, COL-010, COL-011, COL-012, COL-013, COL-014, COL-016, COL-020
+module-columns|The lists show the columns of the modules|COL-001, COL-003, COL-004, COL-005, COL-006, COL-007, COL-008, COL-009, COL-010, COL-011, COL-012, COL-013, COL-014, COL-016, COL-020, COL-022
 task-page|A clerk opens a task and works on it in the form of the module|TL-022, ACT-019, TF-001, TF-004, TF-005, TF-006, TF-008, TF-016, TF-019, TF-020, TF-022, TF-023, TF-025, TF-026, TF-027, TF-029, TF-039, TF-040, TF-041, TF-042
 task-tab|A clerk works on a task in a tab of its own and goes back to the list|TF-007, TF-017, TF-018, TF-024, TF-045
 barrier|A clerk claims a task before working on it, and a suspended task waits|TF-030, TF-031, TF-035, TF-036, TF-038, TF-043, TF-044
-case-list|A clerk looks up a case in the case list|NAV-003, WL-001, WL-002, WL-003, WL-004, WL-005, WL-006, WL-007, WL-008, WL-009, WL-010, WL-011, WL-012
+case-list|A clerk looks up a case in the case list|NAV-003, WL-001, WL-002, WL-003, WL-004, WL-005, WL-006, WL-007, WL-008, WL-009, WL-010, WL-011, WL-012, WL-013
 case-page|A clerk opens the page of a case|NAV-004, TF-013, WP-001, WP-003, WP-007, WP-008, WP-009, WP-010, WP-011, WP-012, WP-014, WP-015
-live|A clerk sees changes without a reload|TF-011, TF-037, LIVE-001, LIVE-002, LIVE-003, LIVE-004, LIVE-005, LIVE-006, LIVE-007, LIVE-008, LIVE-009, LIVE-010, LIVE-011, LIVE-012, LIVE-013, LIVE-014, LIVE-015, LIVE-016, LIVE-017, LIVE-018, LIVE-019, LIVE-020, LIVE-021, LIVE-022, LIVE-023
-extension-points|A module adds pages, dialogs, buttons and charts of its own|BE-030, NAV-005, NAV-007, NAV-008, NAV-017, NAV-018, EXT-012, EXT-013, EXT-014, EXT-017, EXT-018, EXT-023, EXT-024, EXT-039, EXT-040, EXT-042
+live|A clerk sees changes without a reload|TF-011, TF-037, LIVE-001, LIVE-002, LIVE-003, LIVE-004, LIVE-005, LIVE-006, LIVE-007, LIVE-008, LIVE-009, LIVE-010, LIVE-011, LIVE-012, LIVE-013, LIVE-014, LIVE-015, LIVE-016, LIVE-017, LIVE-018, LIVE-019, LIVE-020, LIVE-021, LIVE-022, LIVE-023, LIVE-024, LIVE-025
+extension-points|A module adds pages, dialogs, buttons and charts of its own|BE-030, NAV-005, NAV-033, NAV-007, NAV-008, NAV-017, NAV-018, EXT-012, EXT-013, EXT-014, EXT-017, EXT-018, EXT-023, EXT-060, EXT-024, EXT-039, EXT-040, EXT-042
 language|A clerk works in their language, in every browser|NAV-014, NAV-015, NAV-016, NAV-028, SET-003, I18N-003, I18N-008
 rights-pictures|A clerk sees their rights and the pictures of persons|PKG-058, BE-021, BE-022, BE-023, BE-029, NAV-019, NAV-020, NAV-021, NAV-022, NAV-023, NAV-024, NAV-025, NAV-026, NAV-027, NAV-030
 notifications|A clerk sets up notifications and gets mails|BE-015, BE-016, TF-014, NOTI-001, NOTI-002, NOTI-003
@@ -299,8 +299,15 @@ These are the steps for one story. Do them in this order, and do not skip one.
 
 1. In `plan/INDEX.md`, change the status of the story from `open` to `in-progress`. Do not commit
    this change on its own. In the story file, write the time into the line `Started:`.
-2. Read the story file `plan/<id>.md`. Then read the sections it lists under `Read first`, and only
-   those. Do not read whole reference pages, so your context stays small.
+2. Read the story file `plan/<id>.md`. Then read the sections it lists under `Read first`, and the
+   lines of its checklist ids in `CHECKLIST.md`. Do not read whole reference pages, so your context
+   stays small. A rule the story needs may still stand in another section, or in another file. So
+   search the whole skill for the terms the story builds, for example the names of its controls,
+   its endpoints and its checklist ids, and read the paragraphs the search finds:
+
+   ```bash
+   grep -rn -i -E 'follow-up|followUpDate|TL-009' <folder of this skill>
+   ```
 3. Work through the steps of the story file one by one. After each step, put a tick on it
    (`- [x]`) and save the file at once. The ticks are how others see your progress. If you stop in
    the middle of a step, write into `Notes` what is done and what comes next. Keep to the line
@@ -413,6 +420,20 @@ Running a check is steering, not building. If it fails, the story goes back to a
 When you do not know something, you do not wait for an answer. You write the question down with a
 default, take the default and go on.
 
+First make sure that the skill really has no answer. Most questions of earlier runs were answered
+in a section the story did not list, or in another file. Search the whole skill, `SKILL.md` and
+every page of `references/`, for the key words of the question, in more than one form:
+
+```bash
+grep -rn -i -E 'ended|endedAt|bulk' <folder of this skill>
+```
+
+Read every paragraph the search finds. Write a question only when none of them answers it.
+
+`plan/QUESTIONS.md` holds questions only, things you need the user to decide. A choice you made on
+purpose, for example another way than the skill shows, with your reason, is no question. Write it
+into `Notes` of the story file, and do not add it to `plan/QUESTIONS.md`.
+
 1. Pick the default. Take the default the skill names, for example in
    [interview.md](interview.md). If the skill names none, take the choice that is easiest to change
    later and that commits the customer to nothing.
@@ -486,7 +507,7 @@ Started: 2026-11-19
 |-----|-------|--------|---------------|---------------|
 | S01 | The UI repository builds and tests itself (1 of 3) | done | PKG-044, PKG-035, PKG-045, PKG-019, PKG-002, PKG-062 | `sh plan/checks/S01.sh` |
 | S02 | The UI repository builds and tests itself (2 of 3) | done | PKG-055, PKG-047, PKG-046, PKG-014, PKG-008, PKG-052 | `sh plan/checks/S02.sh` |
-| S17 | A clerk sees the tasks waiting for them (3 of 3) | done | COL-017, COL-018, COL-019, COL-021, BE-020 | `sh plan/checks/S17.sh` |
+| S17 | A clerk sees the tasks waiting for them (3 of 3) | done | COL-017, COL-018, COL-019, COL-021, BE-020, TL-033 | `sh plan/checks/S17.sh` |
 | S18 | A clerk switches between open and closed tasks and sees the counts (1 of 2) | in-progress | TL-001, TL-002, TL-003, TL-005, TL-006, TL-009 | `sh plan/checks/S18.sh` |
 | S19 | A clerk switches between open and closed tasks and sees the counts (2 of 2) | open | TL-010, TL-021, TL-026, TL-028 | `sh plan/checks/S19.sh` |
 | S20 | A clerk sees which tasks are unread, ended or suspended | open | TL-007, TL-023, TL-027 | `sh plan/checks/S20.sh` |
@@ -587,10 +608,13 @@ A check of a story that changes the backend repository as well:
 set -e
 cd ../<backend repository>
 test -f application/src/test/java/<package path>/LoginIT.java
-mvn -B verify
+mvn -B verify -Dbc-types.local=../<UI repository>/packages/bc-types
 ```
 
-With Gradle (`Q-BUILD-TOOL`), the last line is `./gradlew build`.
+With Gradle (`Q-BUILD-TOOL`), the last line is
+`./gradlew build -Pbc-types.local=../<UI repository>/packages/bc-types`. The property is needed as
+long as the types library of this version is not in the npm registry, see
+[project.md](project.md#where-the-types-jar-is-built). Build the UI repository first.
 
 The check of the story "Every checklist item has a passing test":
 
@@ -620,5 +644,7 @@ to change later.
 Answer: open
 ```
 
-`Answer: open` stays until the user answers. Then it holds the answer, for example
-`Answer: yes, show the closed cases as well (2026-11-21)`.
+Every entry has the line `Answer:`. `Answer: open` stays until the user answers. Then it holds the
+answer, for example `Answer: yes, show the closed cases as well (2026-11-21)`. An entry without the
+line is not found by the search for open questions in
+[the first step of every start](#the-first-step-of-every-start-resume).

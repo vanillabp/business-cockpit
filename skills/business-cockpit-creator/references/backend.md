@@ -752,8 +752,23 @@ below `/assets/` stay open, everything else needs the login, see [The login](#th
 
 ```yaml
 user-interface:
-  uri: http://localhost:5173
+  uri: http://127.0.0.1:5173
 ```
+
+Two things keep the route from reaching a real Vite dev server, and the small HTTP server of the
+tests below shows neither of them:
+
+- The address is `127.0.0.1`, not `localhost`. Vite listens on `localhost`, and Node.js may resolve
+  that to the IPv6 address `::1` only, while Java tries `127.0.0.1` first. So the dev server sets
+  `server.host: '127.0.0.1'`, see [project.md](project.md#developing-against-the-backend), and the
+  backend names the same address.
+- The client of the route speaks HTTP/1.1. The JDK `HttpClient` asks a server for HTTP/2 over a
+  plain connection (`Upgrade: h2c`), and Vite does not answer that the way the client expects. So in
+  the profile `ui-dev-server` the application gives the gateway a client that speaks HTTP/1.1 only,
+  for example a `JdkClientHttpRequestFactory` on an `HttpClient` built with
+  `.version(HttpClient.Version.HTTP_1_1)`, or the setting
+  `spring.http.clients.imperative.factory: simple`. Check it once against the real dev server.
+  See [rough-edges.md](rough-edges.md#the-jdk-client-and-the-vite-dev-server).
 
 With `behind`, `application.yaml` sets `user-interface.uri` to the address of the nginx from the
 environment, and the profile `ui-dev-server` replaces it with the dev server. With `embedded`
@@ -884,7 +899,16 @@ business-cockpit:
 - With `Q-MAIL`, `spring.mail.host`, `spring.mail.port`,
   `business-cockpit.notification.smtp.enabled`, `.smtp.from` and
   `business-cockpit.notification.interval` switch on the e-mails.
-  `container/src/main/resources/config/application-mailpit.yaml` is the template.
+  `container/src/main/resources/config/application-mailpit.yaml` is the template. The interval is
+  one minute by default. A test that waits for a mail sets it to `1s` in its own properties, so it
+  does not wait a minute.
+- The mail of the library builds the link to the task itself, `/aufgabe/<id>` in German and
+  `/task/<id>` in every other language, whatever `Q-ROUTES` says. The user interface answers these
+  paths, see [behaviour.md](behaviour.md#notifications). An application that wants the paths of
+  `Q-ROUTES` in the mail brings templates of its own, `email-body.ftl` and `email-body.ftlh` with
+  the model of the library's templates, and names their folder in
+  `business-cockpit.notification.templates.email`, for example
+  `classpath:cockpit-mail/`, a folder the library does not use.
 
 The application tells the rest while it starts. A value it cannot run without ends the start, and
 the message lists every missing key with an example. A feature that is not configured yet gives a
@@ -924,7 +948,9 @@ writes that file for local development:
 - a confidential client, by default `business-cockpit`, with the redirect address
   `http://localhost:8080/login/oauth2/code/<id>`, the start page `http://localhost:8080/` as its
   post-logout redirect URI (the attribute `post.logout.redirect.uris`), and the secret that
-  `application-local.yaml` names,
+  `application-local.yaml` names. Both lists also hold `http://localhost:*`. The integration tests
+  start the application on a free port, and without that entry Keycloak refuses their login and
+  their logout as an invalid redirect,
 - with `Q-USER-DIRECTORY` `keycloak`: a second confidential client, by default
   `business-cockpit-directory`, with service accounts on, only the role `view-users` of
   `realm-management`, the client scope `kc-admin-api` among its `defaultClientScopes`, and its
@@ -993,6 +1019,17 @@ They start the application the way the test above does, with MongoDB of Testcont
 `oidc` also a Keycloak of Testcontainers that imports `keycloak/realm.json`. They are plain Java
 tests and need no browser, so the repository stays without a `package.json` (`PKG-014`).
 `Q-E2E-TOOL` holds for the UI repository only.
+
+Two settings keep them fast and right:
+
+- A test that adds a user or a group to Keycloak or LDAP first empties the cache of the user
+  directory, with `DELETE /actuator/userdirectorycache`. Otherwise the directory answers from its
+  cache, for up to 14 hours, and the new user has no groups, see
+  [The user directory](#the-user-directory). The test properties expose this endpoint
+  (`management.endpoints.web.exposure.include`), and the test sends the request with a login, like
+  any request of the chain.
+- A test that waits for a notification mail sets `business-cockpit.notification.interval` to `1s`,
+  see [The configuration](#the-configuration).
 
 ## The README
 
