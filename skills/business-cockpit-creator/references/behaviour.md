@@ -7,24 +7,25 @@ interview. What follows is the behaviour users know and workflow modules rely on
 depends on an interview answer, the question id is named.
 
 1. [The whole](#the-whole)
-2. [The screens](#the-screens)
-3. [The header and the menu](#the-header-and-the-menu)
-4. [Counts](#counts)
-5. [The task lists](#the-task-lists)
-6. [How the columns of a list come about](#how-the-columns-of-a-list-come-about)
-7. [The columns a workflow module brings](#the-columns-a-workflow-module-brings)
-8. [The actions on a user task](#the-actions-on-a-user-task)
-9. [Opening and working on a user task](#opening-and-working-on-a-user-task)
-10. [The case list](#the-case-list)
-11. [The page of a case](#the-page-of-a-case)
-12. [Search, filter, sort](#search-filter-sort)
-13. [Paging and the window of loaded rows](#paging-and-the-window-of-loaded-rows)
-14. [Live updates](#live-updates)
-15. [Notifications](#notifications)
-16. [User settings](#user-settings)
-17. [Language and texts](#language-and-texts)
-18. [Extension points](#extension-points)
-19. [Who sees what](#who-sees-what)
+2. [Controls from the design library](#controls-from-the-design-library)
+3. [The screens](#the-screens)
+4. [The header and the menu](#the-header-and-the-menu)
+5. [Counts](#counts)
+6. [The task lists](#the-task-lists)
+7. [How the columns of a list come about](#how-the-columns-of-a-list-come-about)
+8. [The columns a workflow module brings](#the-columns-a-workflow-module-brings)
+9. [The actions on a user task](#the-actions-on-a-user-task)
+10. [Opening and working on a user task](#opening-and-working-on-a-user-task)
+11. [The case list](#the-case-list)
+12. [The page of a case](#the-page-of-a-case)
+13. [Search, filter, sort](#search-filter-sort)
+14. [Paging and the window of loaded rows](#paging-and-the-window-of-loaded-rows)
+15. [Live updates](#live-updates)
+16. [Notifications](#notifications)
+17. [User settings](#user-settings)
+18. [Language and texts](#language-and-texts)
+19. [Extension points](#extension-points)
+20. [Who sees what](#who-sees-what)
 
 ## The whole
 
@@ -49,6 +50,20 @@ a page where a user sets a substitute for an absence.
 Many developers find it unusual that the parts of a module are loaded into the cockpit at runtime,
 because it is not how web applications are usually built. The dev shell is the answer for the
 modules' developers, see [dev-shell.md](dev-shell.md).
+
+## Controls from the design library
+
+The cockpit uses the design library of `Q-DESIGN-LIBRARY` fully, not only for its colours. Every
+control is one of its components and has its look. An action is a button, an icon button or a menu
+entry, never a plain link: claim, propose, the note, the tools of a list, "back to the list". The
+toolbar above a list, the dialogs, the chips of a filter, the inputs and the toasts are its
+components too, and the lists have the look of its table. Only what leads to another page is a
+link, like the title of a row. A user who knows the library then knows at once what can be clicked.
+
+A list of virtual rows may need its own rows instead of the table component of the library, see
+[Paging and the window of loaded rows](#paging-and-the-window-of-loaded-rows). It still takes the
+look of that table: its header, its lines and its spacing. With a library of styles only, such as
+Tailwind, the cockpit builds these controls in one style from its classes, the same way everywhere.
 
 ## The screens
 
@@ -134,9 +149,13 @@ With more than one language (`Q-LANGUAGES`), each screen has one path per langua
 The application header is the one bar of the cockpit. There is no second bar for a user task,
 neither above nor below the form.
 
-On its left the header has a toggle with three parts: `My tasks`, `All tasks` and `Cases`, using
-the word from `Q-WORDING`. Each part shows its count in brackets, for example `My tasks (4)`, see
-[Counts](#counts). The toggle opens the list without narrowing.
+At its very left the header shows the title of the application from `GET /app/info`, for example
+"Business Cockpit". It is a link to the start page. It stands there in every view, also while a user
+task or a case is open.
+
+Next to the title the header has a toggle with three parts: `My tasks`, `All tasks` and `Cases`,
+using the word from `Q-WORDING`. Each part shows its count in brackets, for example `My tasks (4)`,
+see [Counts](#counts). The toggle opens the list without narrowing.
 
 What else the header shows depends on the view:
 
@@ -161,7 +180,9 @@ of the user, and the initials are its placeholder, see [Pictures of persons](#pi
 
 Below the user come the menu entries: the screens of the interview, the notification settings and
 the entries of modules. Below the entries comes the language switch (`Q-LANGUAGE-SWITCH`), and at
-the end the logout.
+the end the logout. The logout ends the login at the identity provider as well, not only in the
+cockpit. Otherwise the next reload would log the user in again at once, see
+[backend.md](backend.md#logging-out-at-the-provider).
 
 ### Pictures of persons
 
@@ -388,7 +409,8 @@ cockpit lays a barrier over the page until the user has claimed the task (`Q-CLA
 
 ### The status line
 
-On the left, the status line has a group of buttons to choose the primary filter. The interview
+The status line is the footer of the list. It stands below the rows, does not scroll with them and
+is always visible. On its left it has a group of buttons to choose the primary filter. The interview
 decides which primary filters are offered and which is the default (`Q-PRIMARY-FILTERS`). Possible
 are `OpenTasksWithFollowUp` (all open tasks), `OpenTasksWithoutFollowUp` (open tasks without those
 put aside until a follow-up date), `OpenTaskOnlyFollowUp` and `ClosedTasksOnly`. Without the
@@ -401,7 +423,7 @@ the user interface always sends one, see
 [gui-api.md](gui-api.md#the-primary-filter-which-rows-come-at-all). The buttons show a short,
 translated label, for example "Open" or "Closed", with the count in brackets, see [Counts](#counts).
 The primary filter last chosen is a user setting and is used again next time, in every browser, see
-[User settings](#user-settings). On the right, the status line shows a colour legend for the states
+[User settings](#user-settings). On its right, the status line shows a colour legend for the states
 of a row, for example new, changed and removed, and the looks of a completed, a cancelled and a
 suspended row, see [How the state of a row looks](#how-the-state-of-a-row-looks).
 
@@ -456,8 +478,9 @@ adds are the look above and, for a suspended task, the barrier and the disabled 
 ### Fixed columns
 
 Some columns every task has (`Q-TASK-COLUMNS`). The organisation picks them and
-their order. The proposed default is id, title, due (`dueDate`), assignee, candidate users, notes,
-follow-up (`followUpDate`) and ended (`endedAt`). Case kind and created (`createdAt`) can be added.
+their order. The proposed default is id, business id (`businessId`, the business id of the case),
+title, due (`dueDate`), assignee, candidate users, notes, follow-up (`followUpDate`) and ended
+(`endedAt`). Case kind and created (`createdAt`) can be added.
 The notes column needs notes (`Q-NOTES`). The follow-up column only shows
 for `OpenTasksWithFollowUp` and `OpenTaskOnlyFollowUp`. The ended column only shows for
 `ClosedTasksOnly`. Some organisations want fixed columns only and no dynamic ones, because the
@@ -502,8 +525,11 @@ example `workflowTitle.de`, because the field holds a text per language.
 The fixed columns behave and look different from the columns filled with a module's data:
 
 - `id`: a checkbox to select the row for bulk actions. The id itself is not shown.
-- `title`: the text is a link that opens the full view inside the application, in the same tab. It
-  is a real `<a>` element, so "open in new tab" from the right mouse button works.
+- `title`: the text is a link that opens the full view. A task opens in a tab of its own
+  (`Q-OWN-WINDOW`, see
+  [The task in a tab of its own](#the-task-in-a-tab-of-its-own-q-own-window)), a case inside the
+  application, in the same tab. It is a real `<a>` element, so "open in new tab" from the right
+  mouse button works.
 - `assignee`: the short form of the person. On mouse-over of the name, the details of the person:
   the long form, the user id and the email address, and with `Q-AVATARS` the badge of the person
   above them, see [Pictures of persons](#pictures-of-persons). On mouse-over of the cell, a checkbox appears
@@ -525,7 +551,25 @@ The selected tasks can be claimed, proposed to another person (they become
 candidate users), marked as read or unread, put on follow-up, and given a note (`Q-BULK-ACTIONS`).
 The selected cases of the case list can be given a note; that is its one bulk action. The selection
 is a set of ids. It stays when rows leave the window of loaded rows, see
-[Paging and the window of loaded rows](#paging-and-the-window-of-loaded-rows).
+[Paging and the window of loaded rows](#paging-and-the-window-of-loaded-rows). Switching to another
+list, for example from `My tasks` to `All tasks`, drops it. The rows of the other list are other
+rows, and an action must never reach a task the user no longer sees.
+
+### The tools and the look of a list
+
+The tools of a list stand in a toolbar above the rows, in the task lists and in the case list. They
+are the bulk actions and the button that resets all searches and filters. The full-text search
+comes after them and takes the rest of the width of the toolbar, see
+[Full-text search](#full-text-search).
+
+The tools are always shown. A tool that acts on the selection is disabled while no row is selected,
+so the user sees what the list offers before choosing a row. A tool that needs more input shows its
+details over the list, for example the search for a person when the user proposes the selected
+tasks. The details lie over the rows and do not move them, so the selection stays in sight.
+
+The background of every list is white, so the rows read well. Where the design library gives the
+page no white background, the list is frosted glass: white and partly transparent, so the
+background shows through, and blurred where the browser can, in CSS with `backdrop-filter`.
 
 ### Notes
 
@@ -536,8 +580,8 @@ can be written in three places:
 
 - in the list, per row, in the notes column,
 - in the list, once for all selected rows, as a bulk action,
-- on the full view, in the application header, see
-  [The header while a task is open](#the-header-while-a-task-is-open).
+- on the full view, in the application header, as an input field that is visible at once and not
+  hidden behind a button, see [The header while a task is open](#the-header-while-a-task-is-open).
 
 The same holds for the case list and the page of a case.
 
@@ -685,8 +729,10 @@ to everybody: it takes the names from the first later report that has some. The 
 
 The update stream takes some time. So show the effect of the user's own action as soon as the server
 has accepted it, for example the read marker or the new assignee. The stream confirms it a moment
-later. A user interface without live updates (`Q-LIVE-MODE` is `refresh-button`) reads the row again
-after every action.
+later. This holds for an action on the open task as well: the list shows it at once, also when the
+list is in another tab, see
+[What the list shows of the task tab](#what-the-list-shows-of-the-task-tab). A user interface
+without live updates (`Q-LIVE-MODE` is `refresh-button`) reads the row again after every action.
 
 Closed tasks: disable claim, unclaim, propose, remove candidate, follow-up and note when `endedAt`
 is set. The server refuses them with 409, see [gui-api.md](gui-api.md#ended-tasks). Mark as read and
@@ -734,10 +780,13 @@ and shows the general functions in the application header.
 
 ### Opening
 
-The title in the list is a link to the task page. A click opens the page inside the single-page
-application, in the same tab. The page of a case opens the same way. The cockpit never opens a task
-or a case in a tab of its own by itself. Users often find many tabs hard to work with. The title is
-a real link, so a user who wants a tab can still choose "open in new tab".
+The title in the list is a link to the task page. A click opens the task at once in a tab of its
+own, and the list stays in its tab (`Q-OWN-WINDOW`, by default yes), see
+[The task in a tab of its own](#the-task-in-a-tab-of-its-own-q-own-window). Without it, a click
+opens the page inside the single-page application, in the same tab. The page of a case always opens
+in the same tab. Apart from the task tab, the cockpit never opens a task or a case in a tab of its
+own by itself. The title is a real link, so a user who wants another tab can still choose "open in
+new tab".
 
 There is one exception. A task whose `uiUriType` is `EXTERNAL` opens its address in a tab of its
 own, so the list stays. That is the module's choice, made through the type, not the form of the
@@ -754,9 +803,11 @@ task kind or case kind. It does not show the task title, because the form shows 
 repeat what the modules show in the area `information` (`Q-TASK-INFORMATION-AREA`), by default the
 business id and the case title. So with the default areas it shows little or nothing. It offers
 claim, unclaim, propose to a person, follow-up and
-the note of the task (`Q-TASK-HEADER-ACTIONS`). It also offers "mark as unread", because an opened
-task counts as read, and the button that moves the list into a window of its own, see
-[The list in a window of its own](#the-list-in-a-window-of-its-own-q-own-window).
+the note of the task (`Q-TASK-HEADER-ACTIONS`). The note is an input field at the top of the
+header, visible at once, so the user reads and writes it without a click on a button. The header
+also offers "mark as unread", because an opened task counts as read. In the task tab, the red
+button "back to the list" stands in place of the burger menu, see
+[The task in a tab of its own](#the-task-in-a-tab-of-its-own-q-own-window).
 
 The header stands in the same place for all kinds of tasks, so it is a visual anchor for the user.
 The controls of the actions are always in the same place. Its content can never break it: each
@@ -769,86 +820,96 @@ lighter text for a suspended one, see
 
 The header belongs to the cockpit, not to the workflow module.
 
-### The list in a window of its own (`Q-OWN-WINDOW`)
+### The task in a tab of its own (`Q-OWN-WINDOW`)
 
 The use case: a customer calls and wants to know about their case while the user is in the middle
 of a form. The user must not have to close the form and lose the input.
 
-Outlook solves something like this with a button that pops a mail out into a window of its own.
-The cockpit does it the other way round. In a web application the form would lose its input if it
-moved to a new window. So the form stays, and the list moves out.
+So a task opens at once in a tab of its own, and the list stays in its tab. The user goes back to
+the list, looks the case up, and comes back to the form, which still holds the input. Whether the
+browser shows a tab or a window is up to the browser.
 
-The header of an open task offers a button "list in its own window". It opens the list with
-`window.open(listUrl, 'bc-list')`, without `noopener`, and the cockpit keeps the window object this
-returns. The list page sets `window.name = 'bc-list'` itself as well, so the name finds it again when
-the window object is gone. Whether the browser shows a window or a tab is up to the browser. The
-task stays in this tab. From then on, the application header of the task tab stays as it is,
-because it holds the task actions. Only the burger menu goes. In its place stands a red icon button
-"back to the list".
+A click on the title of a task in a list does this:
 
-The window object only works while both pages share one browsing context group. `noopener`, a link
+1. The list page sets `window.name = 'bc-list'`. It does this right before it opens the task, not
+   only when it loads, so the name is there whatever happened to the tab before. The task tab finds
+   the list by this name when it has no other way.
+2. It calls `window.open(taskUrl)`, without `noopener`. The task tab then has the list as its
+   `window.opener`.
+3. The title stays a real link. "Open in new tab" with the right mouse button still works, only the
+   task tab then has no `window.opener`.
+
+`userTask.open` of a module part opens a task in the same way.
+
+The task tab keeps the application header, because it holds the task actions. Only the burger menu
+goes. In its place stands a red icon button "back to the list".
+
+`window.opener` only works while both pages share one browsing context group. `noopener`, a link
 with `target="_blank"` and no `rel="opener"`, and a different `Cross-Origin-Opener-Policy` on the two
-pages all cut it: the list then has no `opener`, and the window object reports `closed`. So the
-cockpit sends no `noopener`, and if it sets a `Cross-Origin-Opener-Policy`, every page of the cockpit
-sets the same value.
+pages all cut it: the task tab then has no `opener`. So the cockpit sends no `noopener`, and if it
+sets a `Cross-Origin-Opener-Policy`, every page of the cockpit sets the same value.
 
 #### Back to the list
 
-Before anything else, the button asks in a dialog of the cockpit whether the input may be lost, and
-the user can stay. The cockpit does not use `window.confirm` for this. A browser lets a page bring
-another window to the front only for a few seconds after a click, and a user who reads a
-`window.confirm` for longer has used that time up. The click on the dialog's confirm button gives a
-fresh one, so the steps below run in that click handler:
+The button asks first in a dialog of the cockpit whether the input may be lost, and the user can
+stay. It asks only when the current user is the assignee of the task. For any other task the user
+could not change anything, so the button goes back at once.
+
+The cockpit does not use `window.confirm` for the question. A browser lets a page bring another
+window to the front only for a few seconds after a click, and a user who reads a `window.confirm`
+for longer has used that time up. The click on the dialog's confirm button gives a fresh one. So the
+steps below run in that click handler, or in the click handler of the button when there is no
+question:
 
 1. The cockpit removes its `beforeunload` handler first. Otherwise the browser asks a second time
-   when the tab closes itself in step 5.
-2. If the kept window object is not `closed`, has the cockpit's origin and still shows the list
-   (`location.pathname`), the cockpit calls `focus()` on it. The path matters: a list window that
-   went to another page of the cockpit is still open, and `focus()` would bring that page to the
-   front instead.
-3. If there is no usable window object, for example because the task tab was reloaded, the cockpit
-   asks over a `BroadcastChannel` whether a list tab is alive and waits at most 300 ms. A
-   `BroadcastChannel` works without any window object, also after `noopener`. If a list answers,
-   `window.open('', 'bc-list')` brings that tab to the front. If none answers, the cockpit never
-   calls `window.open`, because the browser would open an empty tab.
-4. About 300 ms later the cockpit asks the list again whether its `document.visibilityState` is
-   `visible`. It does not trust `hasFocus()`, which some browsers report as true for a tab in the
-   background.
-5. If the list did not come to the front, or no list answered, the task tab tries `window.close()`.
-   A browser closes a tab this way only if a script opened it, or if it has exactly one entry in its
-   history, so this rarely works. If the tab is still open afterwards, the cockpit shows a hint that
-   the list is in another tab or window.
+   when the tab closes itself in step 4.
+2. If `window.opener` is not `closed`, has the cockpit's origin and still shows a list
+   (`location.pathname`), the cockpit calls `focus()` on it. The path matters: a list tab that went
+   to another page of the cockpit is still open, and `focus()` would bring that page to the front
+   instead.
+3. If there is no usable `window.opener`, for example because the user opened the task with "open in
+   new tab", the cockpit asks over a `BroadcastChannel` whether a list tab is alive and waits at
+   most 300 ms. A `BroadcastChannel` works without any window object, also after `noopener`. If a
+   list answers, `window.open('', 'bc-list')` brings that tab to the front. If none answers, the
+   cockpit never calls `window.open`, because the browser would open an empty tab. The task tab
+   shows the list itself instead.
+4. The task tab closes itself with `window.close()`. A browser closes a tab this way when a script
+   opened it, and the click on the title did. A tab the user opened with "open in new tab" may stay
+   open. Then the cockpit shows a hint that the list is in another tab or window.
 
-This way is fixed for version 1.0.0 of the checklist; build it as written. It was tried by hand and
-with real clicks in Chrome, Edge, Chromium and Firefox, and in Safari 26 on macOS. All of them bring
-the list to the front, as a tab and as a window, also after the task tab was reloaded. The answer of
-the list came within 0 to 13 ms, well inside the time a click gives. Only the WebKit browsers of
-Linux (GNOME Web, the Playwright MiniBrowser) leave the list behind, and the user sees the hint
-there. A tab in the background never brings itself to the front, in no browser, also not when it
-receives a `postMessage` or a `BroadcastChannel` message. So the call must come from the tab the
-user just clicked in.
+The calls that bring the list to the front are fixed for version 1.0.0 of the checklist; build them
+as written. `focus()` on the list and `window.open('', 'bc-list')` were tried by hand and with real
+clicks in Chrome, Edge, Chromium and Firefox, and in Safari 26 on macOS. All of them bring the list
+to the front, as a tab and as a window, also after the task tab was reloaded. The answer of the list
+came within 0 to 13 ms, well inside the time a click gives. Only the WebKit browsers of Linux (GNOME
+Web, the Playwright MiniBrowser) leave the list behind. A tab in the background never brings itself
+to the front, in no browser, also not when it receives a `postMessage` or a `BroadcastChannel`
+message. So the call must come from the tab the user just clicked in.
 
-The code of both pages, in plain JavaScript. `LIST_URL`, `LIST_PATH`, `warnOnLeave` and `showHint`
-come from your cockpit. Wrap the code in your framework, but keep the order of the steps. Before the
-call that brings the list to the front, the code waits for nothing but the first answer of the list:
+The code of both pages, in plain JavaScript. `LIST_PATHS`, `warnOnLeave`, `showListHere`,
+`showHint` and `readRowAgain` come from your cockpit. Wrap the code in your framework, but keep the
+order of the steps. Before the call that brings the list to the front, the code waits for nothing
+but the first answer of the list:
 
 ```js
 // the list page
-window.name = 'bc-list';
 const channel = new BroadcastChannel('bc-cockpit');
 channel.onmessage = (e) => {
   if (e.data?.type === 'list-ping') {
     channel.postMessage({ type: 'list-pong', id: e.data.id, visible: document.visibilityState === 'visible' });
+  } else if (e.data?.type === 'task-changed') {
+    readRowAgain(e.data.userTaskId);              // the user's own change in the task tab
   }
 };
 
+function openTask(event, taskUrl) {              // the click on the title of a task
+  event.preventDefault();                         // the title stays a real link
+  window.name = 'bc-list';                        // before the task tab exists
+  window.open(taskUrl);                           // never 'noopener'
+}
+
 // the task page
 const channel = new BroadcastChannel('bc-cockpit');
-let listWindow = null;
-
-function openListWindow() {                       // the button "list in its own window"
-  listWindow = window.open(LIST_URL, 'bc-list');  // never 'noopener'
-}
 
 function askList(timeoutMs) {                     // the answer of a list, or null
   return new Promise((resolve) => {
@@ -866,12 +927,21 @@ function askList(timeoutMs) {                     // the answer of a list, or nu
 
 function listByReference() {
   try {
-    return listWindow && !listWindow.closed && listWindow.location.origin === location.origin
-      && listWindow.location.pathname === LIST_PATH ? listWindow : null;
+    const list = window.opener;
+    return list && !list.closed && list.location.origin === location.origin
+      && LIST_PATHS.includes(list.location.pathname) ? list : null;
   } catch { return null; }                        // another origin: not usable
 }
 
-// runs in the click handler of the confirm button of the cockpit's own dialog
+function mayLoseInput(userTask, currentUser) {    // ask, and warn on closing, only then
+  return userTask.assignee === currentUser.id;
+}
+
+function tellTheList(userTaskId) {                // after the server accepted an action
+  channel.postMessage({ type: 'task-changed', userTaskId });
+}
+
+// runs in the click handler of the button, or of the confirm button of the cockpit's own dialog
 async function backToTheList() {
   window.removeEventListener('beforeunload', warnOnLeave);
   const ref = listByReference();
@@ -880,35 +950,41 @@ async function backToTheList() {
   } else if (await askList(300)) {
     window.open('', 'bc-list');
   } else {
-    return closeOrHint();
+    return showListHere();                        // no list answered: this tab shows the list
   }
-  await new Promise((r) => setTimeout(r, 300));
-  const answer = await askList(300);
-  if (!answer?.visible) closeOrHint();
-}
-
-function closeOrHint() {
   window.close();
   setTimeout(() => { if (!window.closed) showHint(); }, 300);   // "The list is open in another tab or window."
 }
 ```
 
-The end-to-end tests prove what a browser test can see: the window object is kept and not
-`closed`, the list answers the question over the channel, no empty tab opens when no list answers,
-the hint shows when the list was closed, and the dialog of the cockpit comes first. A browser test
-cannot prove that a window really came to the front, because the window manager decides that. So
-the test checks the `visibilityState` the list reports, not the screen.
+The end-to-end tests prove what a browser test can see: the task opens in a new tab and the list
+stays, the task tab has the list as its `window.opener`, the list answers the question over the
+channel, no empty tab opens when no list answers, the dialog of the cockpit comes first for a task
+of the user and not for any other, and the task tab closes. A browser test cannot prove that a
+window really came to the front, because the window manager decides that. So the test checks the
+`visibilityState` the list reports, not the screen.
 
 Not tried yet: Safari 27 and 18, Safari on iOS, Chrome on Android, and the window mode on Windows,
 where the window manager may decide differently. The way stays the same there. Where the list stays
-behind, the hint is the answer.
+behind, the user still finds it in its tab.
 
 #### Closing the task tab
 
-Closing or reloading the task tab warns with `beforeunload`, and the user can stay. A browser shows
-this question only after the user has interacted with the page, and some browsers (GNOME Web) never
-show it. So the dialog of the cockpit stays the real protection for "back to the list", and
+Closing or reloading the task tab warns with `beforeunload`, and the user can stay. Like the
+question of the button, it warns only when the current user is the assignee of the task. A browser
+shows this question only after the user has interacted with the page, and some browsers (GNOME Web)
+never show it. So the dialog of the cockpit stays the real protection for "back to the list", and
 `beforeunload` only covers closing the tab.
+
+#### What the list shows of the task tab
+
+What the user changes on the open task shows in the list at once: mark as read, also by opening
+the task, mark as unread, the note, the follow-up, claim and unclaim. The list is in another tab and
+does not see the click. So when the server has accepted the change, the task tab names the task on
+the `BroadcastChannel` `bc-cockpit`, and the list reads that row again. It does not wait for the
+update stream, which takes some time and sends no event for read and unread at all. The row shows
+the new data without a highlight, because the change is the user's own, see
+[Live updates](#live-updates).
 
 ### What the page does
 
@@ -1056,13 +1132,20 @@ The dev shell is different: it always asks with `All`, for user tasks and for ca
 ### Rows
 
 Every case has one row. Modules define their own columns for the case list, apart from the task
-columns. The case list has its own fixed columns (`Q-WORKFLOW-COLUMNS`). There is no read marker
-and no read function. A case list without bulk actions has no selection column. Notes work as in
-the task list, per row and for all selected rows, see [Notes](#notes).
+columns. The case list has its own fixed columns (`Q-WORKFLOW-COLUMNS`), by default with the
+business id (`businessId`) right after the id. There is no read marker and no read function. A case
+list without bulk actions has no selection column. Notes work as in the task list, per row and for
+all selected rows, see [Notes](#notes).
 
 A case row looks as its state says, the same as a task row, see
 [How the state of a row looks](#how-the-state-of-a-row-looks). So in `Done` every row is grey, and a
 cancelled case also has its title struck through. A suspended case in `InProgress` has lighter text.
+
+The case list has the same status line as a task list, as a footer below the rows, see
+[The status line](#the-status-line). On its right it shows the same legend: the looks of a
+completed, a cancelled and a suspended case, and of a new, a changed and a removed row. The tools,
+the full-text search in their toolbar and the white background are the same as well, see
+[The tools and the look of a list](#the-tools-and-the-look-of-a-list).
 
 Some organisations want fixed columns only, as for the task lists (`Q-MODULE-COLUMNS`).
 
@@ -1074,14 +1157,15 @@ handles in an event-based sub-process.
 
 The page works like the page of a user task, with these differences:
 
-- It opens inside the application, in the same tab, like the page of a user task. There is no
-  button that moves the list into a window of its own. "Open in new tab" with the right mouse button
-  on a link to the case works.
+- It opens inside the application, in the same tab, also when a user task opens in a tab of its own
+  (`Q-OWN-WINDOW`). There is no red button "back to the list". "Open in new tab" with the right
+  mouse button on a link to the case works.
 - The application header has a form of its own for a case, like the one for a user task. It shows
   information about the case (`Q-WORKFLOW-HEADER-INFO`), by default nothing. It never shows the
   case title or the business id, because the main area of the page shows them, and the more areas
   the page has, the less goes into the header. It shows the actions on the case
-  (`Q-WORKFLOW-HEADER-ACTIONS`), for example the note of the case. It
+  (`Q-WORKFLOW-HEADER-ACTIONS`), for example the note of the case, as an input field that is visible
+  at once. It
   shows no task actions. The same rule holds as for the task: each value has its own share of the
   width, and the controls stay in the same place. There is no header or footer of the case's own.
 - The header has the look of the state of the case, the same as its row, see
@@ -1105,7 +1189,9 @@ The user copes well with many rows.
 
 ### Full-text search
 
-Both lists have it. The input has an x button that clears it. The field offers
+Both lists have it. It stands in the toolbar above the rows, after the tools, and takes the rest of
+the width of the toolbar, see [The tools and the look of a list](#the-tools-and-the-look-of-a-list).
+The input has an x button that clears it. The field offers
 suggestions: it asks from three characters on, 300 milliseconds after the last key, and shows at most
 20 suggestions in the order the server returns them, the most frequent first. A suggestion is taken
 with a click, the input with the Enter key. The search ignores upper and lower case. Send the input

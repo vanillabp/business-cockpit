@@ -197,7 +197,11 @@ The groups come from this answer and not from the JWT. A token may carry few gro
 authenticated, but only its answer carries the cookie. The cockpit reads the user from the cookie,
 so exactly this request has no user yet, and the client asks again with the cookie.
 
-`/logout` deletes the cookie and sends the browser to the start page.
+`/logout` deletes the cookie and sends the browser to the start page. With an OIDC login it ends the
+session at the provider as well, and the provider sends the browser back to the start page, see
+[backend.md](backend.md#logging-out-at-the-provider). Your user interface only links to `/logout`
+as a whole page, never with a `fetch`: the browser has to follow the redirects to the provider and
+back.
 
 ## Staying logged in
 
@@ -675,6 +679,10 @@ What your user interface does about it:
 - Before every ordinary request, connect a stream that is waiting for its next attempt right away.
   Otherwise a change the request causes falls into the gap.
 - Whatever was missed in a gap comes back through the `RELOAD` of the new stream.
+
+The other end goes away as well. When the user closes the tab, the server notices it only when it
+writes the next event or ping, and that write fails. A backend the skill creates keeps this out of
+its log, see [backend.md](backend.md#when-a-browser-goes-away).
 
 ## How a row ended
 

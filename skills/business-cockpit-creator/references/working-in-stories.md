@@ -16,11 +16,13 @@ If you expect more than one commit, or more than five changed files, make a plan
 1. [The first step of every start: resume](#the-first-step-of-every-start-resume)
 2. [The files of the plan](#the-files-of-the-plan)
 3. [Stories are business slices](#stories-are-business-slices)
-4. [Planning: from the checklist to stories](#planning-from-the-checklist-to-stories)
-5. [Working on one story](#working-on-one-story)
-6. [Questions never block](#questions-never-block)
-7. [Update jobs](#update-jobs)
-8. [Templates](#templates)
+4. [The fixed list of slices](#the-fixed-list-of-slices)
+5. [Planning: from the checklist to stories](#planning-from-the-checklist-to-stories)
+6. [Working on one story](#working-on-one-story)
+7. [Driving sub-agents](#driving-sub-agents)
+8. [Questions never block](#questions-never-block)
+9. [Update jobs](#update-jobs)
+10. [Templates](#templates)
 
 ## The first step of every start: resume
 
@@ -88,6 +90,9 @@ All files of the plan are in the folder `plan/` of the UI repository, next to `I
 |         File          |                            What it holds                             |
 |-----------------------|----------------------------------------------------------------------|
 | `plan/INDEX.md`       | one line per story: id, title, status, checklist ids, check command  |
+| `plan/ids.txt`        | the checklist ids the project has to prove                           |
+| `plan/slices.txt`     | the fixed list of slices, copied from this page                      |
+| `plan/stories.txt`    | the stories as the script cut them from the two files above          |
 | `plan/<id>.md`        | one file per story: goal, what to read, files, steps, notes          |
 | `plan/checks/<id>.sh` | the check command of a story, as a small script that fails or passes |
 | `plan/QUESTIONS.md`   | the questions that came up, each with the default you took           |
@@ -101,57 +106,107 @@ The check command is a script and not a line in the table, because a test filter
 
 ## Stories are business slices
 
-A story is one thing a user of the cockpit can do. You build it through all layers at once: the
-backend, the user interface, the simulated workflow modules and the end-to-end tests. A story is
-done when a user can do this thing in the cockpit, and the tests of its checklist ids prove it.
+A story is one step of one thing a user of the cockpit can do. You build it through all layers at
+once: the backend, the user interface, the simulated workflow modules and the end-to-end tests. A
+story is done when the tests of its checklist ids pass.
 
 Never build layer by layer. A plan such as "first the whole backend, then all screens, then all
 tests" runs for a long time before a user can do anything, and nobody can say whether the cockpit
 is right.
 
-Cut the stories from the inside out:
+The things a user can do are fixed. They are the slices of
+[The fixed list of slices](#the-fixed-list-of-slices). Each slice comes from one section of the
+checklist, or from a part of it, and the list orders them from the inside out:
 
-1. **The core first.** The first story lets a user do the most basic thing, on the simplest path:
-   log in and see the user tasks that wait for them. No filter, no sorting, no search, no live
-   update.
-2. **One more thing per story.** Each next story adds one thing a user can do or one case that
-   differs from the simple path: open a task, look up a case, see the closed tasks, sort, search,
-   work with very many tasks, see a new task without a reload.
-3. **Cross-cutting things last.** Dev shells, demo data, the nginx image, extra views and the types
-   jar come after the user can do their work.
+1. The base first: the UI repository, the backend and the login. Each brings only what the slices
+   after it need.
+2. Then the core: the frame, the task list with its status line, and the actions on a task. A
+   clerk logs in and sees the tasks waiting for them.
+3. Then one more thing per slice: search, very many tasks, the parts of the modules, the page of a
+   task, the case list, the page of a case, live updates.
+4. Cross-cutting things last: extension points, language, the rights, notifications, the dev
+   shells and the delivery.
 
-The technical base comes only as far as the first story needs it. For the first story that is the
-npm workspaces with the generated client, an empty shell, the backend application with its login,
-and one simulated workflow module. The module kit, the module host, the theme and the update
-stream come in the first story that needs them. Put the base into the first story, or into one
-story right before it when it gets too big. Never spread it over more stories.
+A slice is often too big for one story. So each slice becomes one story or several, each with at
+most four checklist ids. The plan takes the ids in the order the list gives them, so the same job
+with the same interview always gives the same stories, whichever agent writes the plan. Plans can
+then be compared, and no model has to decide how to cut.
+
+The technical base comes only as far as the slices need it. The first slices build the npm
+workspaces with the generated client, the backend application and the login. The module kit, the
+module host, the theme and the update stream come with the slices that need them.
 
 [The order of building](../SKILL.md#the-order-of-building) still says what builds on what. Use it
-to find out what a story needs from the layers below. Do not use it as the order of the stories.
+to find out what a story needs from the layers below. The list of slices already follows it.
 
-The checklist ids are not the cut. They are what a story fulfils. Each story names the ids that its
-business slice proves, and every id belongs to exactly one story.
+The checklist ids are what a story proves. Each story names its ids, and every id belongs to exactly
+one story.
 
 ### A worked example: a cockpit for a loan approval module
 
-The organisation has one workflow module, loan approval. Its user task is "Assess risk".
+The organisation has one workflow module, loan approval. Its user task is "Assess risk". Most items
+of the checklist apply, so the plan has about a hundred stories. The numbers below assume that every
+item applies, so the real plan has a few stories less. It starts like this:
 
-| Story |                          Business slice                           |
-|-------|-------------------------------------------------------------------|
-| S01   | A clerk logs in and sees the loan approval tasks waiting for them |
-| S02   | The clerk opens a task and works on it in the form of the module  |
-| S03   | The clerk looks up the state of a loan request in the case list   |
-| S04   | The clerk switches to the closed tasks and sees the counts        |
-| S05   | The clerk sorts and searches the task list                        |
-| S06   | A clerk with 30,000 tasks still scrolls the list smoothly         |
-| S07   | A new task shows up without a reload                              |
-| S08   | A module developer works on a form in the dev shell               |
-| S09   | Every checklist item has a passing test                           |
-| S10   | Run against a running cockpit                                     |
+| Story |                               Business slice                                |
+|-------|-----------------------------------------------------------------------------|
+| S01   | The UI repository builds and tests itself (1 of 4)                          |
+| S02   | The UI repository builds and tests itself (2 of 4)                          |
+| S03   | The UI repository builds and tests itself (3 of 4)                          |
+| S04   | The UI repository builds and tests itself (4 of 4)                          |
+| S05   | The backend starts and serves the user interface (1 of 4)                   |
+| ...   | ...                                                                         |
+| S09   | A user logs in and out (1 of 6)                                             |
+| ...   | ...                                                                         |
+| S21   | A clerk sees the tasks waiting for them (1 of 5)                            |
+| ...   | ...                                                                         |
+| S26   | A clerk switches between open and closed tasks and sees the counts (1 of 3) |
 
-S01 brings the skeleton, the backend with its login and a list without the columns of the modules.
-It goes through both repositories. S02 brings the module host and the page of a user task. Each
-story writes the end-to-end tests of its own checklist ids.
+S01 to S04 bring the npm workspaces and the generated client. S05 to S08 bring the backend, which
+serves the empty shell. The login comes next, then the frame and the settings, and S21 is the first
+story in which a clerk sees a task. Each story writes the end-to-end tests of its own checklist ids.
+
+## The fixed list of slices
+
+Copy this list into `plan/slices.txt`, exactly as it stands. One line is one slice: its key, the
+title of its stories, and its checklist ids in the order of building. Do not add an id, move one or
+change the order. An id that does not apply to the project is left out when the stories are cut,
+see [Planning](#planning-from-the-checklist-to-stories). The ids of the customer's own items,
+`CUST-001` and on, go into the last slice, `customer`.
+
+```text
+project|The UI repository builds and tests itself|PKG-044, PKG-035, PKG-045, PKG-019, PKG-002, PKG-062, PKG-055, PKG-047, PKG-046, PKG-014, PKG-008, PKG-052, PKG-063, PKG-064, PKG-054
+backend|The backend starts and serves the user interface|BE-001, BE-024, BE-025, BE-002, BE-003, BE-014, BE-028, BE-012, BE-006, PKG-003, PKG-004, PKG-005, PKG-059, BE-031
+login|A user logs in and out|BE-005, BE-010, BE-011, BE-007, BE-008, BE-013, BE-017, BE-026, BE-027, BE-009, AUTH-002, AUTH-003, AUTH-004, AUTH-005, AUTH-006, AUTH-008, AUTH-001, AUTH-009, AUTH-007, BE-032, BE-033, BE-034
+frame|The user sees the header and the menu|NAV-006, NAV-009, NAV-010, NAV-011, NAV-013, NAV-029, NAV-031, NAV-032, I18N-001, I18N-002, I18N-004, I18N-005, I18N-006
+settings|The settings of a user are kept on the server|SET-001, SET-002, SET-004, SET-005, SET-006
+task-list|A clerk sees the tasks waiting for them|BE-004, NAV-001, NAV-002, TL-008, TL-012, TL-013, TL-015, TL-016, TL-018, TL-024, TL-032, COL-015, COL-017, COL-018, COL-019, COL-021, BE-020
+status-line|A clerk switches between open and closed tasks and sees the counts|TL-001, TL-002, TL-003, TL-005, TL-006, TL-009, TL-010, TL-021, TL-026, TL-028
+row-looks|A clerk sees which tasks are unread, ended or suspended|TL-007, TL-023, TL-027
+actions|A clerk claims, proposes, marks and puts aside a task in the list|TL-014, TL-017, TL-025, ACT-001, ACT-003, ACT-004, ACT-005, ACT-006, ACT-007, ACT-008, ACT-009, ACT-010, ACT-012, ACT-013, ACT-014, ACT-015, ACT-016, ACT-017
+search|A clerk searches, filters and sorts a list|SRCH-001, SRCH-002, SRCH-003, SRCH-004, SRCH-005, SRCH-006, SRCH-007, SRCH-008, SRCH-009, SRCH-026, SRCH-027, SRCH-033
+paging|A clerk scrolls through very many tasks|I18N-007, SRCH-010, SRCH-011, SRCH-012, SRCH-013, SRCH-014, SRCH-015, SRCH-016, SRCH-017, SRCH-018, SRCH-019, SRCH-020, SRCH-021, SRCH-022, SRCH-023, SRCH-024, SRCH-025, SRCH-028, SRCH-029, SRCH-030, SRCH-031, SRCH-032
+tools|A clerk acts on several selected tasks at once|TL-011, TL-019, TL-029, TL-030, TL-031, ACT-018
+module-kit|A workflow module builds its parts against the module kit|PKG-006, PKG-009, PKG-017, PKG-020, PKG-033, PKG-039, PKG-040, PKG-041, PKG-042, PKG-043, PKG-048, PKG-049, PKG-050, PKG-051, PKG-053, PKG-056, PKG-057
+module-loading|The cockpit loads the parts of the modules|EXT-005, EXT-007, EXT-008, EXT-009, EXT-010, EXT-011, EXT-016, EXT-019, EXT-021, EXT-026, EXT-027, EXT-029, EXT-031, EXT-033, EXT-034, EXT-035, EXT-036, EXT-037, EXT-041, EXT-043, EXT-044, EXT-045, EXT-046, EXT-047, EXT-048, EXT-049, EXT-050, EXT-051, EXT-052, EXT-053, EXT-054, EXT-055, EXT-056, EXT-057, EXT-059
+module-columns|The lists show the columns of the modules|COL-001, COL-003, COL-004, COL-005, COL-006, COL-007, COL-008, COL-009, COL-010, COL-011, COL-012, COL-013, COL-014, COL-016, COL-020
+task-page|A clerk opens a task and works on it in the form of the module|TL-022, ACT-019, TF-001, TF-004, TF-005, TF-006, TF-008, TF-016, TF-019, TF-020, TF-022, TF-023, TF-025, TF-026, TF-027, TF-029, TF-039, TF-040, TF-041, TF-042
+task-tab|A clerk works on a task in a tab of its own and goes back to the list|TF-007, TF-017, TF-018, TF-024, TF-045
+barrier|A clerk claims a task before working on it, and a suspended task waits|TF-030, TF-031, TF-035, TF-036, TF-038, TF-043, TF-044
+case-list|A clerk looks up a case in the case list|NAV-003, WL-001, WL-002, WL-003, WL-004, WL-005, WL-006, WL-007, WL-008, WL-009, WL-010, WL-011, WL-012
+case-page|A clerk opens the page of a case|NAV-004, TF-013, WP-001, WP-003, WP-007, WP-008, WP-009, WP-010, WP-011, WP-012, WP-014, WP-015
+live|A clerk sees changes without a reload|TF-011, TF-037, LIVE-001, LIVE-002, LIVE-003, LIVE-004, LIVE-005, LIVE-006, LIVE-007, LIVE-008, LIVE-009, LIVE-010, LIVE-011, LIVE-012, LIVE-013, LIVE-014, LIVE-015, LIVE-016, LIVE-017, LIVE-018, LIVE-019, LIVE-020, LIVE-021, LIVE-022, LIVE-023
+extension-points|A module adds pages, dialogs, buttons and charts of its own|BE-030, NAV-005, NAV-007, NAV-008, NAV-017, NAV-018, EXT-012, EXT-013, EXT-014, EXT-017, EXT-018, EXT-023, EXT-024, EXT-039, EXT-040, EXT-042
+language|A clerk works in their language, in every browser|NAV-014, NAV-015, NAV-016, NAV-028, SET-003, I18N-003, I18N-008
+rights-pictures|A clerk sees their rights and the pictures of persons|PKG-058, BE-021, BE-022, BE-023, BE-029, NAV-019, NAV-020, NAV-021, NAV-022, NAV-023, NAV-024, NAV-025, NAV-026, NAV-027, NAV-030
+notifications|A clerk sets up notifications and gets mails|BE-015, BE-016, TF-014, NOTI-001, NOTI-002, NOTI-003
+dev-shell|A module developer works on a form in the dev shell|PKG-034, DS-001, DS-002, DS-003, DS-004, DS-005, DS-006, DS-007, DS-008, DS-009, DS-010, DS-011, DS-012, DS-013, DS-014, DS-015, DS-016, DS-017, DS-018, DS-019, DS-020, DS-021, DS-022, DS-023, DS-024
+delivery|The cockpit is released and deployed|PKG-011, PKG-012, PKG-013, PKG-024, PKG-025, PKG-032, PKG-036, PKG-037, PKG-038, PKG-060, PKG-061, BE-018, BE-019, EXT-058
+customer|The wishes of the customer|CUST-*
+```
+
+Every id of [reference-1.0.0.md](reference-1.0.0.md) is in exactly one line. A later version of the
+reference brings its own list, with a line for each new id.
 
 ## Planning: from the checklist to stories
 
@@ -170,24 +225,51 @@ Plan after the interview and before the first line of code.
      }' CHECKLIST.md > plan/ids.txt
    wc -l plan/ids.txt
    ```
-3. Cut the work into business slices, as
-   [Stories are business slices](#stories-are-business-slices) says. Write down one title per story:
-   what a user can do when it is done. Start with the simplest path, then one more thing per story,
-   then the cross-cutting things.
-4. Give every id of `plan/ids.txt` to exactly one story: the first story whose business slice needs
-   it. That story writes the test for it. An id that no user notices, such as most `PKG-` ids, goes
-   to the first story that needs the part it describes.
-5. Keep each story small. A story has at most about eight checklist ids and changes at most about
-   fifteen files, in one or both repositories. If a story is bigger, split it along the business,
-   not along the layers. For example, "see the open tasks" and "see the closed tasks" are two
-   stories, not "the backend of the list" and "the screen of the list".
-6. The last two stories are always the same:
+3. Copy [the fixed list of slices](#the-fixed-list-of-slices) into `plan/slices.txt`.
+4. Cut the stories. The script goes through the slices in their order. Of each slice it keeps the
+   ids of `plan/ids.txt`, in the order of the slice, and puts four of them into each story. A slice
+   with five to eight ids gives two stories, and a slice without an id that applies gives none. The
+   title of a story is the title of its slice, with its part when the slice gives more than one
+   story, for example "A user logs in and out (2 of 5)". The script prints the lines of the table of
+   `plan/INDEX.md`:
+
+   ```bash
+   awk -F'|' '
+     NR == FNR { applies[$1] = 1; order[++count] = $1; next }
+     {
+       n = 0
+       if ($3 == "CUST-*") {
+         for (i = 1; i <= count; i++) if (order[i] ~ /^CUST-/) ids[++n] = order[i]
+       } else {
+         split($3, list, /, */)
+         for (i = 1; i in list; i++) if (list[i] in applies) ids[++n] = list[i]
+       }
+       parts = int((n + 3) / 4)
+       for (p = 1; p <= parts; p++) {
+         line = ""
+         for (i = (p - 1) * 4 + 1; i <= p * 4 && i <= n; i++) line = line (line == "" ? "" : ", ") ids[i]
+         title = $2 (parts > 1 ? " (" p " of " parts ")" : "")
+         printf "| S%02d | %s | open | %s | `sh plan/checks/S%02d.sh` |\n", ++story, title, line, story
+       }
+     }' plan/ids.txt plan/slices.txt > plan/stories.txt
+   ```
+
+   Do not change the cut by hand. Two agents with the same `CHECKLIST.md` get the same stories.
+
+5. Add the last two stories after the printed ones. They are always the same:
+
    - "Every checklist item has a passing test": runs the whole end-to-end suite and checks that
      every id of `plan/ids.txt` names a test, see the template of the check below.
    - "Run against a running cockpit": the steps of
      [How you know it is done](../SKILL.md#how-you-know-it-is-done).
-7. Write `plan/INDEX.md`, one story file per line, and one check script per story. Use the
-   [Templates](#templates).
+6. Write `plan/INDEX.md` with the lines of `plan/stories.txt` and the last two stories, one story
+   file per line, and one check script per story. Use the [Templates](#templates).
+7. Keep each story small. A story has at most four checklist ids, and it changes at most about
+   eight files, in one or both repositories. When the list `Files` of a story file has more than
+   eight files, split the story in two: the first half of its ids stays, and the rest goes into a
+   new story with the same id and the letter `b`, for example `S17b`, in the line right after it.
+   Split along the ids, never along the layers. "The backend of the list" and "the screen of the
+   list" are no stories.
 8. Prove that every id has its story. This prints nothing when the plan is complete:
 
    ```bash
@@ -205,24 +287,27 @@ proves nothing. So a check names the tests of its ids, or the files the story cr
 fails when `--grep` finds no test, so a check over test titles fails as long as the test is
 missing. With another tool from `Q-E2E-TOOL`, use its filter by test title in the same way.
 
-A story with no id is rare, for example the base when it gets a story of its own. Its check is a
-build.
+A story with no id is rare. The last two stories are such stories, and so is a technical story of
+an update job. Its check is a build.
 
-Number the stories `S01`, `S02` and so on, in the order you will work on them. A story id is a name
-in the plan only. It never goes into the code, the tests or the texts of the cockpit, see
-[code-that-reads-like-prose.md](code-that-reads-like-prose.md#nothing-points-at-the-plan).
+Number the stories `S01`, `S02` and so on, in the order you will work on them. The script does that.
+A story id is a name in the plan only. It never goes into the code, the tests or the texts of the
+cockpit, see [code-that-reads-like-prose.md](code-that-reads-like-prose.md#nothing-points-at-the-plan).
 
 ## Working on one story
 
 These are the steps for one story. Do them in this order, and do not skip one.
 
 1. In `plan/INDEX.md`, change the status of the story from `open` to `in-progress`. Do not commit
-   this change on its own.
+   this change on its own. In the story file, write the time into the line `Started:`.
 2. Read the story file `plan/<id>.md`. Then read the sections it lists under `Read first`, and only
    those. Do not read whole reference pages, so your context stays small.
 3. Work through the steps of the story file one by one. After each step, put a tick on it
-   (`- [x]`) and save the file. If you stop in the middle of a step, write into `Notes` what is done
-   and what comes next.
+   (`- [x]`) and save the file at once. The ticks are how others see your progress. If you stop in
+   the middle of a step, write into `Notes` what is done and what comes next. Keep to the line
+   `Time budget:` of the story file, 20 minutes unless it says otherwise. When the time is up and
+   the check does not pass yet, write into `Notes` which step you are on and what holds you up, and
+   tell the agent that started you, or the user.
 4. When something comes up that you have to decide and cannot find in the skill, do what
    [Questions never block](#questions-never-block) says.
 5. Run the check:
@@ -242,7 +327,7 @@ These are the steps for one story. Do them in this order, and do not skip one.
 
    ```bash
    git add -A
-   git commit -m "S04 The clerk switches to the closed tasks and sees the counts (TL-001, TL-002, TL-003)"
+   git commit -m "S26 A clerk switches between open and closed tasks and sees the counts (1 of 3) (TL-001, TL-002, TL-003, TL-005)"
    ```
 
    A story that changes the backend repository as well makes two commits with the same message:
@@ -254,6 +339,75 @@ These are the steps for one story. Do them in this order, and do not skip one.
 
 After each story you may stop. Stop also when the user asks you to, or when your context is nearly
 full. The files hold everything the next agent needs.
+
+## Driving sub-agents
+
+Often one agent, the main agent, holds the plan and starts a sub-agent for each story. This section
+is for the main agent. It steers and does not build: it writes no code, puts no tick on a step and
+changes no test and no check. It reads `plan/INDEX.md`, the story files and `git log`, and it talks
+to the sub-agent. A main agent that builds on its own fills its context with code, and then nobody
+watches the sub-agent any more.
+
+### The time budget
+
+Every story file has the line `Time budget: 20 minutes`. Twenty minutes is the default for every
+story. For a story that is clearly larger, for example the first story of a slice that brings a new
+layer, the main agent may raise the budget in the story file before the story starts. It writes the
+reason into `Notes`. It never raises the budget while a sub-agent works, as a way around a decision
+about a stuck sub-agent.
+
+### Starting a story
+
+1. Change the status of the story to `in-progress` and write the time into the line `Started:` of
+   the story file.
+2. Start one sub-agent. Tell it the folder of the UI repository and the story id, and that it works
+   as [Working on one story](#working-on-one-story) says: a tick after each step, saved at once, and
+   a stop at the end of the story.
+3. Run one sub-agent at a time. The stories build on each other.
+
+### Watching the progress
+
+The ticks in the story file are the progress. Count them about every five minutes, and remember the
+count:
+
+```bash
+grep -c '^- \[x\]' plan/S26.md
+```
+
+- There is a new tick since the last count: the sub-agent moves on. Look again later.
+- There is no new tick since the last count: ask the sub-agent for its state and for what holds it
+  up. A short answer is enough: the step it is on, the obstacle, and what it tries next.
+- The sub-agent is stuck when one of these holds: there is still no new tick at the next count, the
+  time budget is used up, or its answer shows that it goes round in circles, for example the same
+  failing test with the same fix again.
+
+### When a sub-agent is stuck
+
+1. Stop the sub-agent.
+2. Write a note into `Notes` of the story file: the time, the step, the obstacle as the sub-agent
+   named it, and what it tried.
+3. Then do one of two things:
+   - Split the story when it is too big for one go: the obstacle is a piece of work of its own, or
+     the steps without a tick need more files than the story file names. The first ids stay in the
+     story with the steps that are done. The other ids go into a new story with the same id and the
+     letter `b`, for example `S26b`, in the line of `plan/INDEX.md` right after it, with its own
+     story file and check.
+   - Start a new sub-agent on the same story with a hint when the obstacle is clear: the note, and
+     one sentence about the way around, for example the section of the skill that answers it.
+4. A story that gets stuck again after a hint is split. A story with one id that gets stuck again
+   goes back to `open`, with a note. Write the obstacle into `plan/QUESTIONS.md`, as
+   [Questions never block](#questions-never-block) says, and go on with the next story.
+
+### After a story
+
+Before the next story, check the end of this one: the status in `plan/INDEX.md` is `done`, the last
+commit names the story id, and the check passes:
+
+```bash
+sh plan/checks/S26.sh
+```
+
+Running a check is steering, not building. If it fails, the story goes back to a sub-agent.
 
 ## Questions never block
 
@@ -279,29 +433,39 @@ When the answer changes an interview answer, write it into `INTERVIEW.md` as wel
 
 An update job works in the same way. Only the planning reads something else.
 
-Where something changes for the user, cut business slices. Where only the technique changes, cut a
-technical story. A plain raise of a version, for example of the cockpit library or the web
-framework, is one technical story. Its check is the build and the whole end-to-end suite.
+Where only the technique changes, cut a technical story. A plain raise of a version, for example of
+the cockpit library or the web framework, is one technical story. Its check is the build and the
+whole end-to-end suite.
 
-**A newer reference.** Do the steps of
+### A newer reference
+
+Do the steps of
 [Upgrading a generated user interface](../SKILL.md#upgrading-a-generated-user-interface). Then plan:
 
 1. One story for the new interview questions, if there are any. Its check is a `grep` for the new
    question ids in `INTERVIEW.md`.
-2. One business slice for each thing a user can newly do or does differently, with the new or
-   changed ids it proves. New or changed ids that no user notices go into one technical story.
+2. Copy the list of slices of the new reference into `plan/slices.txt`. Write the new and the
+   changed ids that apply into `plan/ids.txt`, and only those. Then cut the stories with the script
+   of [Planning](#planning-from-the-checklist-to-stories), step 4. So the new ids get their stories
+   by the same fixed rule.
 3. One story for the removed ids: mark them in `CHECKLIST.md` and delete or change their tests.
 4. The same two last stories as for a new cockpit.
 
-**A new wish of the customer.** Add the `CUST-` items to `CHECKLIST.md` first. Then cut business
-slices for them, as for a new cockpit.
+### A new wish of the customer
 
-**A finished plan.** When `plan/INDEX.md` has no open story and a new job starts, move the old plan
+Add the `CUST-` items to `CHECKLIST.md` first. Then write their ids into `plan/ids.txt` and cut them
+with the script of [Planning](#planning-from-the-checklist-to-stories), step 4. They land in the
+slice `customer`, four ids to a story.
+
+### A finished plan
+
+When `plan/INDEX.md` has no open story and a new job starts, move the old plan
 away first. Then write the new one:
 
 ```bash
 mkdir -p plan/archive/2026-11-19
-git mv plan/INDEX.md plan/QUESTIONS.md plan/S*.md plan/checks plan/ids.txt plan/archive/2026-11-19/
+git mv plan/INDEX.md plan/QUESTIONS.md plan/S*.md plan/checks plan/ids.txt plan/slices.txt plan/stories.txt \
+  plan/archive/2026-11-19/
 git commit -m "Archive the finished plan"
 ```
 
@@ -319,58 +483,70 @@ Job: generate the Business Cockpit of <organisation>
 Reference: 1.0.0
 Started: 2026-11-19
 
-| Id  | Title                                                             | Status      | Checklist ids                                       | Check command           |
-|-----|-------------------------------------------------------------------|-------------|-----------------------------------------------------|-------------------------|
-| S01 | A clerk logs in and sees the loan approval tasks waiting for them | done        | PKG-002, PKG-003, BE-001, AUTH-001, NAV-001, TL-008 | `sh plan/checks/S01.sh` |
-| S02 | The clerk opens a task and works on it in the form of the module  | done        | TF-001, TF-004                                      | `sh plan/checks/S02.sh` |
-| S03 | The clerk looks up the state of a loan request in the case list   | in-progress | NAV-003, WL-001, WL-002, WP-001                     | `sh plan/checks/S03.sh` |
-| S04 | The clerk switches to the closed tasks and sees the counts        | open        | TL-001, TL-002, TL-003                              | `sh plan/checks/S04.sh` |
+| Id  | Title | Status | Checklist ids | Check command |
+|-----|-------|--------|---------------|---------------|
+| S01 | The UI repository builds and tests itself (1 of 4) | done | PKG-044, PKG-035, PKG-045, PKG-019 | `sh plan/checks/S01.sh` |
+| S02 | The UI repository builds and tests itself (2 of 4) | done | PKG-002, PKG-062, PKG-055, PKG-047 | `sh plan/checks/S02.sh` |
+| S25 | A clerk sees the tasks waiting for them (5 of 5) | done | BE-020 | `sh plan/checks/S25.sh` |
+| S26 | A clerk switches between open and closed tasks and sees the counts (1 of 3) | in-progress | TL-001, TL-002, TL-003, TL-005 | `sh plan/checks/S26.sh` |
+| S27 | A clerk switches between open and closed tasks and sees the counts (2 of 3) | open | TL-006, TL-009, TL-010, TL-021 | `sh plan/checks/S27.sh` |
+| S28 | A clerk switches between open and closed tasks and sees the counts (3 of 3) | open | TL-026, TL-028 | `sh plan/checks/S28.sh` |
 ```
 
-Each title says what a user can do when the story is done. The ids in this example only show the
-form. Take the ids from your `CHECKLIST.md`.
+The lines come from the script of [Planning](#planning-from-the-checklist-to-stories), step 4. Each
+title is the title of its slice and says what a user can do when the slice is done. The example
+shows a few lines only, and its ids assume that every item applies. Your plan takes its ids from
+your `CHECKLIST.md`.
 
-### A story file, plan/S04.md
+### A story file, plan/S26.md
 
 ```markdown
-# S04 The clerk switches to the closed tasks and sees the counts
+# S26 A clerk switches between open and closed tasks and sees the counts (1 of 3)
 
 Repositories: ui
-Checklist ids: TL-001, TL-002, TL-003
-Depends on: S01
+Checklist ids: TL-001, TL-002, TL-003, TL-005
+Depends on: S25
+Time budget: 20 minutes
+Started:
 
 ## Goal
 
-Above the task list, the clerk sees the primary filter with the number of open and of closed
-tasks. One click switches the list to the closed tasks, another one back.
+In the status line below the task list, the clerk sees the primary filters with the number of open
+tasks. One click switches the list to the closed tasks, another one back, and the list opens the
+next time with the primary filter chosen last.
 
 ## Done when
 
-The end-to-end tests of TL-001, TL-002 and TL-003 pass against the simulator. The tests of S01
-still pass.
+The end-to-end tests of TL-001, TL-002, TL-003 and TL-005 pass against the simulator. The tests of
+S25 still pass.
 
 ## Read first
 
-- business-cockpit-creator, references/behaviour.md, section "The task lists"
+- business-cockpit-creator, references/behaviour.md, section "The status line"
+- business-cockpit-creator, references/behaviour.md, section "Counts"
 - business-cockpit-creator, references/gui-api.md, section "The primary filter: which rows come at all"
-- CHECKLIST.md, the lines of TL-001, TL-002 and TL-003
+- CHECKLIST.md, the lines of TL-001, TL-002, TL-003 and TL-005
 
 ## Files
 
 - packages/ui/src/tasks/PrimaryFilter.vue (new)
+- packages/ui/src/tasks/StatusLine.vue (new)
 - packages/ui/src/tasks/TaskList.vue (change)
 - e2e/simulator/ (change: some tasks get the state closed)
 - e2e/task-list.spec.ts (change)
 
 ## Steps
 
-- [ ] 1. Write the test "TL-001 the primary filter shows the open tasks first" in
+- [ ] 1. Write the test "TL-001 the status line offers the primary filters" in
       e2e/task-list.spec.ts. Run the check. It fails.
 - [ ] 2. Give some of the tasks of the simulator the state closed.
-- [ ] 3. Write PrimaryFilter.vue and put it above the list in TaskList.vue, until the test passes.
+- [ ] 3. Write PrimaryFilter.vue and StatusLine.vue, and put the status line below the rows in
+      TaskList.vue, until the test passes.
 - [ ] 4. Write the tests for TL-002 and TL-003.
-- [ ] 5. Change PrimaryFilter.vue until all three tests pass.
-- [ ] 6. Run `sh plan/checks/S04.sh`. It passes.
+- [ ] 5. Change PrimaryFilter.vue until the three tests pass.
+- [ ] 6. Write the test for TL-005, and keep the primary filter with the settings service until it
+      passes.
+- [ ] 7. Run `sh plan/checks/S26.sh`. It passes.
 
 ## Notes
 
@@ -380,12 +556,12 @@ still pass.
 Write the steps so concrete that a weaker model can do each of them without thinking about the
 whole cockpit. One step is one file or one test, not "build the list".
 
-### A check script, plan/checks/S04.sh
+### A check script, plan/checks/S26.sh
 
 ```sh
 #!/bin/sh
 set -e
-npx playwright test --grep "TL-001|TL-002|TL-003"
+npx playwright test --grep "TL-001|TL-002|TL-003|TL-005"
 ```
 
 A check of a story without ids builds and tests what the story created:

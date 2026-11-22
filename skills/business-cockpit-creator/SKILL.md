@@ -57,14 +57,21 @@ in the folder of the UI repository. They tell you whether to start the interview
 write the plan or go on with a story.
 
 A cockpit does not fit into one session. So the plan lives in the UI repository, in `plan/INDEX.md`
-and one file per story, and never only in the chat. Each story is a small business slice: one thing
-a cockpit user can do, built through backend, user interface and tests at once. The first story
-does the simplest thing on the simplest path, and each next story adds one more. Each story names
-the checklist ids it proves and has a check command that shows when it is done. Any agent, also a weaker model with a
+and one file per story, and never only in the chat. Each story is a small step of a business slice:
+one thing a cockpit user can do, built through backend, user interface and tests at once. The
+slices are a fixed list, from the inside out, and a script cuts them into stories of at most four
+checklist ids. So the same job always gives the same stories. Each story names the checklist ids it
+proves and has a check command that shows when it is done. Any agent, also a weaker model with a
 small context, can stop after any step and the next one goes on from the files.
 [references/working-in-stories.md](references/working-in-stories.md) has the procedure and the
 templates. Follow it for every job of this skill that needs more than one prompt: a new cockpit, an
 upgrade, a new wish of the customer.
+
+When you start a sub-agent for each story, you steer and do not build. Each story has a time budget,
+20 minutes by default, and the ticks in its story file show the progress. When no new tick comes,
+ask the sub-agent where it is and what holds it up. When it is stuck, stop it, write a note into the
+story file, and split the story or start it again with a hint, see
+[Driving sub-agents](references/working-in-stories.md#driving-sub-agents).
 
 The code you generate explains itself: names read like small sentences, comments say why, and the
 English is plain. [references/code-that-reads-like-prose.md](references/code-that-reads-like-prose.md)
@@ -177,7 +184,8 @@ of its column "Applies", and its id stays taken.
 
 Then write the plan, as
 [Planning](references/working-in-stories.md#planning-from-the-checklist-to-stories) says. It cuts
-the work into business slices and gives every checklist id that applies to exactly one story. Then work on one story after the other, as
+the work along the fixed list of slices, at most four checklist ids to a story, and gives every
+checklist id that applies to exactly one story. Then work on one story after the other, as
 [Working on one story](references/working-in-stories.md#working-on-one-story) says.
 
 Generate the UI repository as [references/project.md](references/project.md) describes, and the
