@@ -3,6 +3,7 @@ io.vanillabp.cockpit.config.startup.CockpitIsNotConfiguredFailureAnalyzer,\
 io.vanillabp.cockpit.config.startup.WritesAreNotAcknowledgedFailureAnalyzer,\
 io.vanillabp.cockpit.config.startup.MapKeyDotReplacementIsNotUsableFailureAnalyzer,\
 io.vanillabp.cockpit.config.startup.JwtLifetimeIsNotUsableFailureAnalyzer,\
+io.vanillabp.cockpit.config.startup.JwtCookieIsNotUsableFailureAnalyzer,\
 io.vanillabp.cockpit.config.startup.SortIndexLimitIsNotUsableFailureAnalyzer,\
 io.vanillabp.cockpit.config.startup.RemovedPropertyIsSetFailureAnalyzer,\
 io.vanillabp.cockpit.config.startup.UserDetailsProviderIsMissingFailureAnalyzer,\

@@ -14,7 +14,11 @@ public class JwtCookie {
 
   private String path = "/";
 
-  private SameSite sameSite;
+  /**
+   * Lax: a browser sends the cookie when the user follows a link to the application, but not with
+   * a request another site starts in the background.
+   */
+  private SameSite sameSite = SameSite.LAX;
 
   private boolean secure;
 
@@ -37,7 +41,8 @@ public class JwtCookie {
 
   /**
    * Creates the settings with their defaults: the cookie is called {@code bc}, holds for the whole
-   * site, and a token lives twelve hours within a login of at most seven days. A login is not
+   * site, it is {@code SameSite=Lax}, and a token lives twelve hours within a login of at most seven
+   * days. A login is not
    * renewed once the user directory does not know its user any more.
    */
   public JwtCookie() {
@@ -85,7 +90,8 @@ public class JwtCookie {
    * The SameSite attribute of the cookie: whether the browser sends it with requests started by
    * other sites.
    *
-   * @return The attribute, or {@code null} to leave it to the browser
+   * @return The attribute, {@link SameSite#LAX} by default, or {@code null} to leave it to the
+   *         browser
    */
   public SameSite getSameSite() {
     return sameSite;

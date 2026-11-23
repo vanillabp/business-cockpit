@@ -611,6 +611,33 @@ class StartupConfigurationCheckTest {
 
   }
 
+  /**
+   * A browser drops a cookie with {@code SameSite=None} which is not {@code Secure}, so nobody
+   * could log in.
+   */
+  @Test
+  void aCookieForOtherSitesWhichIsNotSecureStopsTheStart() {
+
+    final var environment = configurationWithout()
+        .withProperty("business-cockpit.jwt.cookie.same-site", "none");
+
+    assertThatThrownBy(() -> check.checkConfigurationOf(environment))
+        .hasMessageContaining("business-cockpit.jwt.cookie.same-site")
+        .hasMessageContaining("Example: business-cockpit.jwt.cookie.secure: true");
+
+  }
+
+  @Test
+  void aCookieForOtherSitesWhichIsSecureIsAccepted() {
+
+    check.checkConfigurationOf(configurationWithout()
+        .withProperty("business-cockpit.jwt.cookie.same-site", "None")
+        .withProperty("business-cockpit.jwt.cookie.secure", "true"));
+
+    assertThat(warnings()).isEmpty();
+
+  }
+
   @Test
   void bothTokenLifetimesAreReportedInOneMessage() {
 

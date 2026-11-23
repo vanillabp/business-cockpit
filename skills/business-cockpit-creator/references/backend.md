@@ -264,8 +264,14 @@ template. Every chain keeps five things, whatever the login is:
    `dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()` as the first
    rule. The reason is in [When a browser goes away](#when-a-browser-goes-away) (`BE-033`).
 
-`anyRequest()` is `authenticated()`. CSRF and CORS stay off, as in `container`, because the browser
-sees one origin and the cookie is the only credential.
+`anyRequest()` is `authenticated()`. CSRF protection and CORS stay off, as in `container`. The
+cookie is the only credential, so what keeps another site from using it is this: every GUI endpoint
+which changes something is PATCH, PUT or DELETE with a JSON body, which a browser sends to another
+site only after a CORS preflight the cockpit does not answer, and the cookie is `SameSite=Lax` by
+default, so a browser leaves it out of a request another site starts in the background. Keep both:
+do not add a GUI endpoint which changes something on GET or on a form POST, and do not set
+`business-cockpit.jwt.cookie.same-site: none`. A workflow module behind `/wm/**` keeps the same rule
+for its own endpoints.
 
 The chain differs only in how the user logs in (`Q-LOGIN-KIND`).
 

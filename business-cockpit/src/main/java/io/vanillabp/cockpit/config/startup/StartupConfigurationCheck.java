@@ -9,6 +9,8 @@ import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.DEFAULT_L
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.JWT_EXPIRES_DURATION;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.JWT_KEY;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.JWT_MAX_LOGIN_DURATION;
+import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.JWT_SAME_SITE;
+import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.JWT_SECURE;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.KAFKA_GROUP_ID_SUFFIX;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.KAFKA_TOPIC_USER_TASK;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.KAFKA_TOPIC_WORKFLOW;
@@ -167,6 +169,7 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
     failOnARemovedProperty(environment);
     failOnAnUnusableMapKeyDotReplacement(environment);
     failOnAnUnusableJwtLifetime(environment);
+    failOnAJwtCookieABrowserDrops(environment);
     failOnAnUnusableSortIndexLimit(environment);
     failOnAnUnusableUserDirectory(environment);
     generateAJwtKeyIfNoneIsConfigured(environment);
@@ -325,6 +328,35 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
     if (!unusable.isEmpty()) {
       throw new JwtLifetimeIsNotUsableException(List.copyOf(unusable));
     }
+
+  }
+
+  /**
+   * The cookie is written only when somebody logs in, and a browser which drops it says nothing to
+   * the server. So a combination which cannot work is reported now instead.
+   */
+  private void failOnAJwtCookieABrowserDrops(
+      final Environment environment) {
+
+    final var sameSite = CockpitConfiguration.valueOf(environment, JWT_SAME_SITE).orElse("").trim();
+    if (!"none".equalsIgnoreCase(sameSite) || isJwtCookieSecure(environment)) {
+      return;
+    }
+    throw new JwtCookieIsNotUsableException(List.of(new MissingConfiguration(
+        JWT_SECURE, "'"
+            + JWT_SAME_SITE
+            + "' is '"
+            + sameSite
+            + "', so the browser sends the cookie with "
+            + "requests of other sites as well. A browser takes such a cookie only if it is sent over HTTPS only.", JWT_SECURE
+                + ": true")));
+
+  }
+
+  private static boolean isJwtCookieSecure(
+      final Environment environment) {
+
+    return "true".equalsIgnoreCase(CockpitConfiguration.valueOf(environment, JWT_SECURE).orElse("").trim());
 
   }
 

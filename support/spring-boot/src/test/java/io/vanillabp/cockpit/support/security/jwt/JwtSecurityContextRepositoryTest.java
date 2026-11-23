@@ -100,6 +100,20 @@ class JwtSecurityContextRepositoryTest {
 
   }
 
+  /**
+   * Without a setting the cookie is {@code SameSite=Lax}: a browser sends it when the user follows
+   * a link to the cockpit, but not with a request another site starts in the background.
+   */
+  @Test
+  void theCookieIsSameSiteLaxUnlessConfiguredOtherwise() {
+
+    final var response = new MockHttpServletResponse();
+    JwtSecurityContextRepository.addCookie(new JwtProperties(), response, "token", Instant.now().plusSeconds(60));
+
+    assertThat(response.getCookie("bc").getAttribute("SameSite")).isEqualTo("Lax");
+
+  }
+
   @Test
   void aRequestWithoutTheCookieGetsAnEmptyContext() {
 

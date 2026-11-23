@@ -94,6 +94,17 @@ public final class CockpitConfiguration {
   public static final String JWT_MAX_LOGIN_DURATION = "business-cockpit.jwt.cookie.max-login-duration";
 
   /**
+   * The SameSite attribute of the login cookie. Unset means the default of the properties,
+   * {@code Lax}.
+   */
+  public static final String JWT_SAME_SITE = "business-cockpit.jwt.cookie.same-site";
+
+  /**
+   * Whether the browser sends the login cookie over HTTPS only. Unset means {@code false}.
+   */
+  public static final String JWT_SECURE = "business-cockpit.jwt.cookie.secure";
+
+  /**
    * The realm of the HTTP basic authentication which protects the BPMS API.
    */
   public static final String BPMS_API_REALM_NAME = "bpms-api.realm-name";
