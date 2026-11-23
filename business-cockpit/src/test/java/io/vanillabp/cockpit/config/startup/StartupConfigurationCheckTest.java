@@ -638,6 +638,34 @@ class StartupConfigurationCheckTest {
 
   }
 
+  /**
+   * A cockpit reached over HTTPS should send its login cookie over HTTPS only. Without
+   * {@code secure} the browser sends it over plain HTTP as well, for example after a link to
+   * {@code http://}. The application starts, and the warning shows the line to copy.
+   */
+  @Test
+  void aCockpitReachedOverHttpsWithACookieWhichIsNotSecureIsAWarning() {
+
+    check.checkConfigurationOf(configurationWithout()
+        .withProperty(CockpitConfiguration.APPLICATION_URI, "https://cockpit.example.com"));
+
+    assertThat(warnings())
+        .contains(CockpitConfiguration.APPLICATION_URI)
+        .contains("business-cockpit.jwt.cookie.secure: true");
+
+  }
+
+  @Test
+  void aCockpitReachedOverHttpsWithASecureCookieIsToldNothingAboutIt() {
+
+    check.checkConfigurationOf(configurationWithout()
+        .withProperty(CockpitConfiguration.APPLICATION_URI, "https://cockpit.example.com")
+        .withProperty("business-cockpit.jwt.cookie.secure", "true"));
+
+    assertThat(warnings()).doesNotContain("business-cockpit.jwt.cookie.secure");
+
+  }
+
   @Test
   void bothTokenLifetimesAreReportedInOneMessage() {
 

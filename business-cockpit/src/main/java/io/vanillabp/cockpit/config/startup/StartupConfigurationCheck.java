@@ -175,6 +175,7 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
     generateAJwtKeyIfNoneIsConfigured(environment);
     warnAboutAWeakJwtKey(environment);
     warnAboutALoginWhichIsNeverRenewed(environment);
+    warnAboutACookieWhichIsNotSecureOverHttps(environment);
     warnAboutKafkaIngestion(environment);
     warnAboutUserDirectorySettingsWhichAreNotRead(environment);
     warnAboutTheRemainingValues(environment);
@@ -350,6 +351,28 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
             + "', so the browser sends the cookie with "
             + "requests of other sites as well. A browser takes such a cookie only if it is sent over HTTPS only.", JWT_SECURE
                 + ": true")));
+
+  }
+
+  /**
+   * A cockpit reached over HTTPS needs no login cookie which travels over plain HTTP. Without
+   * {@code secure} a browser sends it there as well, for example after a link to {@code http://}.
+   * A developer's machine runs without HTTPS, so the default stays and this is a warning.
+   */
+  private void warnAboutACookieWhichIsNotSecureOverHttps(
+      final Environment environment) {
+
+    final var applicationUri = CockpitConfiguration.valueOf(environment, APPLICATION_URI).orElse("").trim();
+    if (!applicationUri.regionMatches(true, 0, "https://", 0, "https://".length()) || isJwtCookieSecure(environment)) {
+      return;
+    }
+
+    logger.warn("""
+        The cockpit is reached at '{}' ('{}'), but its login cookie is not secure, so a browser \
+        sends it over plain HTTP as well. Set:
+
+          {}: true""",
+        applicationUri, APPLICATION_URI, JWT_SECURE);
 
   }
 
