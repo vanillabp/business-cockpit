@@ -120,6 +120,20 @@ becomes
 > The method returns `UserTaskDetails`. To get the id of the task, add a parameter annotated with
 > `@TaskId`.
 
+## After a security audit
+
+The wiki page [Security audit](https://github.com/vanillabp/business-cockpit/wiki/Security-audit)
+has a table with one row per run of the skill `security-audit`. Keep it complete:
+
+- A run ends with a new row at the top of the table: the date, the audited commit, and the number
+  of confirmed findings per level. Update the date of the last run in the README as well.
+- A change which fixes a finding adds its commit to the cell of that finding's level. Link the
+  commit with the name of its repository if it is not this one. A finding which is not fixed on
+  purpose is entered as "accepted", with a link to the decision. A finding nobody has fixed yet is
+  entered as "open".
+- The table, the page and the commit messages name no details of a finding and no titles of
+  findings, because the page is public.
+
 ## Before you open a pull request
 
 A number your branch hands out can be taken by the time you open the pull request. Another branch
