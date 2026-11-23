@@ -5922,3 +5922,82 @@ stored, and the cockpit starts even if a stored registration cannot be routed.
 - `extensions-commons/core`: `BusinessCockpitConfiguration`
 - the wiki pages "Connecting a workflow module" and "Configuration"
 
+### 122. Addendum to decision 91: a login is not renewed once the directory does not know its user any more
+
+This entry adds to decision 91. It also changes point 3 of decision 87 and point 6 of decision 90
+for the renewal of a login. The rest of these entries stays as it is.
+
+#### What was found
+
+Decision 91 said that a locked account ends earlier than a change of its groups. The cockpit renews
+its own login token from the claims of the old one, without asking the identity provider or the
+directory, so this held for the groups only. Decisions 87 and 90 describe the renewal the same way.
+
+#### The decision
+
+1. A login is not renewed once the directory does not know its user any more, although it knew the
+   user before. The login then ends when its token expires, at most
+   `business-cockpit.jwt.cookie.expires-duration` later, twelve hours by default.
+2. The token remembers whether the directory knew the user. The login and every renewal which finds
+   the user in the directory write the claim `known_to_directory` with the value `true`. A token of
+   an older version gets the claim at its first renewal.
+3. `business-cockpit.jwt.cookie.unknown-user-renewal` chooses the behaviour:
+   - `refuse-if-known-before`, the default: as in point 1. A user the directory never knew keeps
+     the login and is renewed as before. This is the case of an application whose directory does
+     not know the users by the id of the login, for example because it is not set up yet. Such an
+     application keeps working, and the log warns about every unknown user, as decision 87 says.
+   - `refuse`: no login of a user the directory does not know is renewed, whether it knew the user
+     before or not.
+   - `allow`: the behaviour before this entry. Every login is renewed up to `max-login-duration`.
+4. The renewal asks no system of its own. It uses the answer of `getUser` which the request asked
+   for anyway. So how fast a removed user is noticed depends on the cache of the directory. With the
+   directories the cockpit brings and their defaults, the directory notices it at most 14 hours
+   later, or at the clearing at 2 a.m. if that comes first. With the twelve hours of the last token,
+   a removed user is logged out at most 26 hours after the change, usually on the next day. For a
+   user who must go at once, operations empty the cache with the actuator endpoint
+   `userdirectorycache`. Then the login ends at most `expires-duration` later.
+5. A disabled user in Keycloak counts as unknown, as decision 90 says. For LDAP a user counts as
+   unknown only when its entry is gone, or is no longer found below `user-search-base`. The LDAP
+   directory reads no attribute which marks a locked account.
+6. There is no list of single tokens which are not valid any more. A token which was handed out
+   stays valid until it expires, at the cockpit and at every workflow module which checks it with
+   the same key. Only a new key ends all logins at once.
+
+#### What follows
+
+- Only the cockpit renews tokens, so only the cockpit reads the key. A workflow module checks the
+  token and never renews it. On Quarkus the key is refused with the other keys which say how the
+  cookie is written.
+- An application which builds its own `JwtMapper` gets the behaviour if its authentication keeps
+  the user the directory gave, as `JwtAuthenticationTokenMapper` does. If it does not, every user
+  counts as unknown, and the default renews as before.
+- The wiki page Security says how fast a removed user is logged out.
+
+### 123. Addendum to decision 91: the chains of `container` refuse `/actuator`, and an application which exposes an endpoint writes a chain for it
+
+This entry adds to decision 91. It replaces the first point of its "What follows". The rest of
+decision 91 stays as it is.
+
+#### What was found
+
+Decision 91 said that the two security chains of the cockpit do not cover `/actuator`. The GUI chain
+of `container` takes every request which no other chain takes, so it covers `/actuator/**` as well.
+A management port of its own does not change that, because Spring Boot uses the security filter of
+the application on the management side too.
+
+#### The decision
+
+1. The GUI chain of `container` refuses `/actuator/**` to every user, with `denyAll()` before
+   `anyRequest()`. The chain of the derived cockpit in the tests and the chains the skill
+   `business-cockpit-creator` writes do the same.
+2. An application which exposes an actuator endpoint writes a security chain of its own with
+   `securityMatcher("/actuator/**")` and an order below 99, the order of the GUI chain, and lets
+   only operations in. This holds for a management port of its own as well.
+3. The library brings no chain and does not change. `container` brings no Actuator, so nothing
+   changes for it until an application adds Actuator.
+
+#### What follows
+
+- The wiki page Security shows such a chain for operations.
+- The rule `BE-005` of the skill names the refusal of `/actuator/**`.
+
