@@ -300,6 +300,10 @@ http
         .requestMatchers(appInfoRequestMatcher, currentUserRequestMatcher, assetsRequestMatcher,
             staticRequestMatcher, workflowModulesProxyRequestMatcher)
         .permitAll()
+        // the actuator is for operations: an application which exposes an endpoint writes a
+        // chain of its own for /actuator/** with an order below 99
+        .requestMatchers(pathPattern("/actuator/**"))
+        .denyAll()
         .anyRequest()
         .authenticated())
     // the GUI API answers 401 instead of a redirect to the provider, so the user interface
@@ -601,7 +605,9 @@ taken away counts the next day at the latest. A removed or disabled user loses t
 way: once the directory does not find a user it found before, the login token is not renewed any
 more and ends when it expires, twelve hours later at most. With the defaults the login ends at most
 26 hours after the change. Operations can empty the cache at once with the actuator endpoint
-`userdirectorycache`: a `DELETE` on `/actuator/userdirectorycache`. Like every actuator endpoint it
+`userdirectorycache`: a `DELETE` on `/actuator/userdirectorycache`. The GUI chain refuses
+`/actuator/**` to every user, so operations need a chain of their own for it, with an order below
+99; a management port of its own does not replace that chain. Like every actuator endpoint it
 is reachable only where operations exposes it. The directory with `configuration` reads memory and
 needs no cache. What the cockpit does with the answer:
 
