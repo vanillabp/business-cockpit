@@ -25,8 +25,8 @@ public class AMissingKeyIsExplainedTest {
           .addClasses(DirectoryOfTheTest.class))
       .assertException(failure -> assertThat(failure)
           .isInstanceOf(IllegalStateException.class)
-          .hasMessageStartingWith("No property 'business-cockpit.jwt.hmacSHA256-base64' set! "
-              + "One could use this generated key: '")
+          .hasMessageStartingWith("No property 'business-cockpit.jwt.hmacSHA256-base64' set! ")
+          .hasMessageContaining("'openssl rand -base64 32'")
           .hasMessageContaining("Set it to the secret of the cockpit")
           .hasMessageContaining("'business-cockpit.jwt.enabled=false'"));
 

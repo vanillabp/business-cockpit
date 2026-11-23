@@ -4,12 +4,9 @@ import java.text.ParseException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
-
-import javax.crypto.KeyGenerator;
 
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -131,8 +128,8 @@ public class LoginTokenVerifier {
   }
 
   /**
-   * The text which explains that the secret is missing. It suggests a newly generated secret, so a
-   * developer can start at once.
+   * The text which explains that the secret is missing. It says how to create a secret, and it
+   * holds none: a secret written to a log is known to everybody who reads the log.
    *
    * @param property The name of the setting which holds the secret, Base64 encoded
    * @return The explanation
@@ -140,25 +137,10 @@ public class LoginTokenVerifier {
   public static String explainTheMissingSecret(
       final String property) {
 
-    final String secret;
-    try {
-      secret = Base64
-          .getEncoder()
-          .encodeToString(KeyGenerator
-              .getInstance("HmacSha256")
-              .generateKey()
-              .getEncoded());
-    } catch (Exception e) {
-      return "No property '"
-          + property
-          + "' set! Additionally, on generating a key to be used an error occurred: "
-          + e.getMessage();
-    }
     return "No property '"
         + property
-        + "' set! One could use this generated key: '"
-        + secret
-        + "'.";
+        + "' set! It holds the secret the Business Cockpit signs its login tokens with, at least "
+        + "256 bits in Base64. A new secret is created by 'openssl rand -base64 32'.";
 
   }
 

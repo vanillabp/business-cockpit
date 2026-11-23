@@ -289,23 +289,59 @@ class StartupConfigurationCheckTest {
   }
 
   /**
-   * The key is the one value the check can make up itself, so it does. The message hands over the
-   * generated key, so that somebody can write it down.
+   * The key is the one value the check can make up itself, so it does, for this start only. The
+   * key in use never appears in the log: whoever reads the log could sign a login with it. The
+   * message says how to create a key of one's own instead.
    */
   @Test
-  void aMissingSigningKeyIsGeneratedAndHandedToTheDeveloper() {
+  void aMissingSigningKeyIsGeneratedForThisStartButNeverLogged() {
 
     final var environment = configurationWithout(CockpitConfiguration.JWT_KEY);
 
     check.checkConfigurationOf(environment);
 
-    assertThat(warnings()).contains(CockpitConfiguration.JWT_KEY);
     final var generated = environment.getProperty(CockpitConfiguration.JWT_KEY);
     assertThat(generated).isNotBlank();
-    assertThat(warnings()).contains("Example: "
-        + CockpitConfiguration.JWT_KEY
-        + ": "
-        + generated);
+    assertThat(warnings())
+        .contains(CockpitConfiguration.JWT_KEY)
+        .contains("openssl rand -base64 32")
+        .contains("for this start only")
+        .doesNotContain(generated);
+
+  }
+
+  /**
+   * The profile 'local' and the simulators bring a key which anybody can read in the sources. It
+   * is fine on a developer's machine, so it is a warning, which names the command for a key of
+   * one's own.
+   */
+  @Test
+  void thePublishedKeyOfTheProfileLocalIsAWarning() {
+
+    check.checkConfigurationOf(configurationWithout()
+        .withProperty(CockpitConfiguration.JWT_KEY, "4FTHgU8uHPy/ahy8IhXHj/K/BVlh7snSUtf3m1XWLkg="));
+
+    assertThat(warnings())
+        .contains(CockpitConfiguration.JWT_KEY)
+        .contains("profile 'local'")
+        .contains("openssl rand -base64 32");
+
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "abc", "123", "MTIz"
+  })
+  void aKeyWhichIsTooShortOrNoBase64IsAWarning(
+      final String key) {
+
+    check.checkConfigurationOf(configurationWithout().withProperty(CockpitConfiguration.JWT_KEY, key));
+
+    assertThat(warnings())
+        .contains(CockpitConfiguration.JWT_KEY)
+        .contains("openssl rand -base64 32")
+        .doesNotContain(key
+            + "'");
 
   }
 

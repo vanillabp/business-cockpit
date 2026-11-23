@@ -41,7 +41,7 @@ public class JwtProperties {
 
   /**
    * The key the tokens are signed with (HMAC with SHA-256), Base64 encoded. There is no default. If
-   * it is missing, this method fails with a message which suggests a newly generated key.
+   * it is missing, this method fails with a message which says how to create a key.
    *
    * @return The key, Base64 encoded
    */

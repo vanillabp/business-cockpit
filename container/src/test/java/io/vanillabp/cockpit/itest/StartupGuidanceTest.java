@@ -364,20 +364,18 @@ class StartupGuidanceTest {
 
   /**
    * Without a signing key the cockpit could not hand out a single login cookie, so one is made up
-   * for the run. The login below proves that the run is usable. The warning carries the key to
-   * write down, so that the next start keeps everybody logged in.
+   * for the run. The login below proves that the run is usable. The warning shows the command which
+   * creates a key of one's own, never the key in use.
    */
   @Test
-  void startingWithoutASigningKeyBootsAndReportsTheGeneratedKey() {
+  void startingWithoutASigningKeyBootsAndNeverLogsTheGeneratedKey() {
 
     try (var application = startWith(unset(CockpitConfiguration.JWT_KEY))) {
 
       assertThat(warnings())
           .contains(CockpitConfiguration.JWT_KEY)
-          .contains("Example: "
-              + CockpitConfiguration.JWT_KEY
-              + ": "
-              + application.getEnvironment().getProperty(CockpitConfiguration.JWT_KEY));
+          .contains("openssl rand -base64 32")
+          .doesNotContain(application.getEnvironment().getProperty(CockpitConfiguration.JWT_KEY));
 
       final var response = send(HttpRequest
           .newBuilder(URI.create("http://localhost:"

@@ -108,7 +108,7 @@ says what to do:
 - a key which says how the cookie is written, like `business-cockpit.jwt.cookie.secure`,
   `same-site`, `domain`, `path`, `expires-duration`, `max-login-duration` and
   `unknown-user-renewal`: only the cockpit writes and renews the cookie;
-- no secret, with the text of the Spring Boot module and a newly generated secret, or a secret
+- no secret, with the text of the Spring Boot module and the command which creates a secret, or a secret
   which is no Base64 or shorter than 256 bits;
 - no bean of type `UserDirectoryService`, with the text of the Spring Boot module's failure
   analyzer and the Quarkus code to add.

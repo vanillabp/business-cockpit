@@ -885,7 +885,9 @@ business-cockpit:
 
 - `spring.mongodb.uri` names MongoDB. Spring Boot 4 no longer reads `spring.data.mongodb`.
 - `business-cockpit.jwt.hmacSHA256-base64` is the key the cookie's token is signed with, 32 bytes
-  in base64. It comes from the environment.
+  in base64. It comes from the environment. Create it with `openssl rand -base64 32`. Without it
+  the cockpit generates a key for each start and does not log it, so every restart logs everybody
+  out.
 - `business-cockpit.additional-properties` carries the languages of `Q-LANGUAGES` as one string,
   see [gui-api.md](gui-api.md#the-endpoints).
   With `Q-AVATARS` it also carries `person-picture-uri: /person-pictures/{userId}`, see
