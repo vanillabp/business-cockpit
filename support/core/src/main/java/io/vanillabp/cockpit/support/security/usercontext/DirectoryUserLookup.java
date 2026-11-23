@@ -22,8 +22,9 @@ import org.slf4j.LoggerFactory;
  * {@link UserDirectoryService} of the application. So a group which the directory takes away is
  * gone on the next request, or once the cache of the directory expires.
  * <p>
- * A user the directory does not know keeps its login, but it has no groups, only its own authority
- * {@code USER_} plus the user id. That is worth a warning, but a browser sends many requests, so
+ * A request of a user the directory does not know goes on, but the user has no groups, only its own
+ * authority {@code USER_} plus the user id. The cockpit does not renew the login of such a user once
+ * the directory knew it before. That is worth a warning, but a browser sends many requests, so
  * the warning comes once a minute at most for each user. A directory which fails fails the request
  * as well. Going on without groups would show the user less than it may see, and nobody would know
  * why.
@@ -150,8 +151,8 @@ public class DirectoryUserLookup {
     }
     lastWarningAboutAnUnknownUser.put(userId, now);
     logger.warn("""
-        The user directory does not know the user '{}' of a valid login token. The user keeps its \
-        login, but it has no groups, only its own authority '{}{}'. This warning comes once a \
+        The user directory does not know the user '{}' of a valid login token. The request goes \
+        on, but the user has no groups, only its own authority '{}{}'. This warning comes once a \
         minute at most for each user. Check whether the user was removed from the directory, or \
         whether the directory knows the user by another id than the subject of the token.""",
         userId, USER_AUTHORITY_PREFIX, userId);

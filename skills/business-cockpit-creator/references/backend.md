@@ -591,14 +591,20 @@ With OIDC the id is the claim of `Q-OIDC-PROVIDER`, by default `preferred_userna
 user with its groups for 14 hours, `business-cockpit.user-directory.cache-duration`. Every night at
 2 a.m. in the time zone of the server they empty the whole cache,
 `business-cockpit.user-directory.cache-clear-cron`, `-` switches this off. So a group given or
-taken away counts the next day at the latest. A locked account ends earlier, because its login
-token is not refreshed any more. Operations can empty the cache at once with the actuator endpoint
+taken away counts the next day at the latest. A removed or disabled user loses the login the same
+way: once the directory does not find a user it found before, the login token is not renewed any
+more and ends when it expires, twelve hours later at most. With the defaults the login ends at most
+26 hours after the change. Operations can empty the cache at once with the actuator endpoint
 `userdirectorycache`: a `DELETE` on `/actuator/userdirectorycache`. Like every actuator endpoint it
 is reachable only where operations exposes it. The directory with `configuration` reads memory and
 needs no cache. What the cockpit does with the answer:
 
-- A user the directory does not know keeps the login, but has no groups. The log warns once a
-  minute at most for each such user.
+- A request of a user the directory does not know goes on, but without groups. The log warns once
+  a minute at most for each such user. If the directory knew the user before, the login is not
+  renewed any more. `business-cockpit.jwt.cookie.unknown-user-renewal` changes that:
+  `refuse-if-known-before` is the default, `refuse` stops the renewal for every unknown user, and
+  `allow` renews every login up to `max-login-duration`. Keep the default while the directory and
+  the login do not agree on the ids yet, because `refuse` then ends every login after twelve hours.
 - If `getUser` throws, the request fails and the log shows the error. The directories of the
   library do that when Keycloak or LDAP does not answer, and the message says what to check.
 

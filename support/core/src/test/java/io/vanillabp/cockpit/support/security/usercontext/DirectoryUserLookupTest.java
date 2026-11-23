@@ -21,8 +21,8 @@ import org.slf4j.helpers.MessageFormatter;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * The groups of a login come from the directory on every request. A user the directory does not
- * know keeps its login without groups, and a directory which fails fails the request.
+ * The groups of a login come from the directory on every request. A request of a user the directory
+ * does not know goes on without groups, and a directory which fails fails the request.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class DirectoryUserLookupTest {

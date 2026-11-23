@@ -66,8 +66,9 @@ public interface UserDirectoryService {
    * login. If this method throws, the request of the user fails.
    *
    * @param id The id of the user
-   * @return The user, or empty if the directory does not know the id. Such a user keeps its login
-   *         but has no groups.
+   * @return The user, or empty if the directory does not know the id. A request of such a user goes
+   *         on without groups. The cockpit does not renew the login of a user it found here before
+   *         and does not find any more, by default.
    */
   Optional<UserDetails> getUser(
       String id);

@@ -31,8 +31,14 @@ public class JwtCookie {
   private String maxLoginDuration = "P7D";
 
   /**
+   * Whether the login of a user whom the user directory does not know is renewed.
+   */
+  private UnknownUserRenewal unknownUserRenewal = UnknownUserRenewal.REFUSE_IF_KNOWN_BEFORE;
+
+  /**
    * Creates the settings with their defaults: the cookie is called {@code bc}, holds for the whole
-   * site, and a token lives twelve hours within a login of at most seven days.
+   * site, and a token lives twelve hours within a login of at most seven days. A login is not
+   * renewed once the user directory does not know its user any more.
    */
   public JwtCookie() {
   }
@@ -169,6 +175,25 @@ public class JwtCookie {
   public void setMaxLoginDuration(
       String maxLoginDuration) {
     this.maxLoginDuration = maxLoginDuration;
+  }
+
+  /**
+   * Whether the login of a user whom the user directory does not know is renewed.
+   *
+   * @return The setting, {@link UnknownUserRenewal#REFUSE_IF_KNOWN_BEFORE} by default
+   */
+  public UnknownUserRenewal getUnknownUserRenewal() {
+    return unknownUserRenewal;
+  }
+
+  /**
+   * Sets whether the login of a user whom the user directory does not know is renewed.
+   *
+   * @param unknownUserRenewal The setting
+   */
+  public void setUnknownUserRenewal(
+      UnknownUserRenewal unknownUserRenewal) {
+    this.unknownUserRenewal = unknownUserRenewal;
   }
 
 }

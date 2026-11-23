@@ -41,6 +41,13 @@ public abstract class JwtMapper<D extends AbstractAuthenticationToken> {
   public static final String LOGIN_TIME_CLAIM = "auth_time";
 
   /**
+   * Set to {@code true} once the user directory knew the user, at the login or at a renewal. With
+   * the default of {@link JwtCookie#getUnknownUserRenewal()}, a login with this claim is not
+   * renewed once the directory does not know its user any more.
+   */
+  public static final String KNOWN_TO_THE_DIRECTORY_CLAIM = "known_to_directory";
+
+  /**
    * Added to the lifetime of a new token, so a token is not judged expired by a clock which is a
    * few seconds ahead.
    */
@@ -207,12 +214,45 @@ public abstract class JwtMapper<D extends AbstractAuthenticationToken> {
    * The login time comes from the claim {@value #LOGIN_TIME_CLAIM}. A token without it was
    * issued before renewal existed, or by an application of its own, and was never renewed, so
    * its issue time is its login time.
+   * <p>
+   * This method does not ask whether the user directory still knows the user.
+   * {@link #renew(JwtAuthenticationToken)} does.
    *
    * @param jwt The token of the current request, already checked
    * @return The new token and the moment it expires, or empty if there is nothing to renew
    */
   public Optional<Map.Entry<String, Instant>> renew(
       final Jwt jwt) {
+
+    return renew(jwt, DirectoryAnswer.NOT_ASKED);
+
+  }
+
+  /**
+   * Like {@link #renew(Jwt)}, and it also asks whether the user directory knows the user of the
+   * login, as the authentication of this request found it. If the directory does not know the
+   * user, {@link JwtCookie#getUnknownUserRenewal()} decides whether the login is renewed. If the
+   * directory knows the user, the new token notes that in the claim
+   * {@value #KNOWN_TO_THE_DIRECTORY_CLAIM}.
+   *
+   * @param authentication The authentication of the current request, with the user as the
+   *                       directory gave it
+   * @return The new token and the moment it expires, or empty if there is nothing to renew
+   */
+  public Optional<Map.Entry<String, Instant>> renew(
+      final JwtAuthenticationToken authentication) {
+
+    return renew(
+        authentication.getJwt(),
+        authentication.getDirectoryUser().isPresent()
+            ? DirectoryAnswer.KNOWS_THE_USER
+            : DirectoryAnswer.DOES_NOT_KNOW_THE_USER);
+
+  }
+
+  private Optional<Map.Entry<String, Instant>> renew(
+      final Jwt jwt,
+      final DirectoryAnswer directory) {
 
     final var loginAt = loginTimeOf(jwt);
     final var expiresAt = jwt.getExpiresAt();
@@ -237,6 +277,16 @@ public abstract class JwtMapper<D extends AbstractAuthenticationToken> {
       return Optional.empty();
     }
 
+    final var knownBefore = Boolean.TRUE.equals(jwt.getClaims().get(KNOWN_TO_THE_DIRECTORY_CLAIM));
+    if ((directory == DirectoryAnswer.DOES_NOT_KNOW_THE_USER) && !properties.getCookie().getUnknownUserRenewal()
+        .renews(knownBefore)) {
+      // the directory's own warning about the unknown user is in the log already
+      getLogger().debug(
+          "The login of '{}' is not renewed, because the user directory does not know the user. It ends at {}.",
+          jwt.getSubject(), expiresAt);
+      return Optional.empty();
+    }
+
     try {
 
       final var claimsSet = JwtClaimsSet
@@ -244,6 +294,9 @@ public abstract class JwtMapper<D extends AbstractAuthenticationToken> {
           .claims(claims -> {
             claims.putAll(jwt.getClaims());
             claims.remove(AUTHORITIES_CLAIM);
+            if (directory == DirectoryAnswer.KNOWS_THE_USER) {
+              claims.put(KNOWN_TO_THE_DIRECTORY_CLAIM, true);
+            }
           })
           .expiresAt(renewedExpiresAt)
           .id(UUID.randomUUID().toString())
@@ -260,6 +313,18 @@ public abstract class JwtMapper<D extends AbstractAuthenticationToken> {
       return Optional.empty();
     }
 
+  }
+
+  /**
+   * What the user directory said about the user of a login which is renewed.
+   */
+  private enum DirectoryAnswer {
+    /** The caller of the renewal did not ask the directory. */
+    NOT_ASKED,
+    /** The directory knows the user. */
+    KNOWS_THE_USER,
+    /** The directory does not know the user. */
+    DOES_NOT_KNOW_THE_USER
   }
 
   private static Optional<Instant> loginTimeOf(

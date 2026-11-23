@@ -106,8 +106,8 @@ says what to do:
 
 - a key below `business-cockpit.` which nobody reads, with the key that was probably meant;
 - a key which says how the cookie is written, like `business-cockpit.jwt.cookie.secure`,
-  `same-site`, `domain`, `path`, `expires-duration` and `max-login-duration`: only the cockpit
-  writes the cookie;
+  `same-site`, `domain`, `path`, `expires-duration`, `max-login-duration` and
+  `unknown-user-renewal`: only the cockpit writes and renews the cookie;
 - no secret, with the text of the Spring Boot module and a newly generated secret, or a secret
   which is no Base64 or shorter than 256 bits;
 - no bean of type `UserDirectoryService`, with the text of the Spring Boot module's failure

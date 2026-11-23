@@ -31,6 +31,7 @@ public class AWriteOnlyCookieKeyIsRefusedTest {
       .overrideConfigKey("business-cockpit.jwt.cookie.path", "/")
       .overrideConfigKey("business-cockpit.jwt.cookie.expires-duration", "PT1H")
       .overrideConfigKey("business-cockpit.jwt.cookie.max-login-duration", "P1D")
+      .overrideConfigKey("business-cockpit.jwt.cookie.unknown-user-renewal", "refuse")
       .assertException(failure -> assertThat(failure)
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("'business-cockpit.jwt.cookie.secure' says how the cookie is written, "
@@ -40,6 +41,7 @@ public class AWriteOnlyCookieKeyIsRefusedTest {
           .hasMessageContaining("'business-cockpit.jwt.cookie.path' says how")
           .hasMessageContaining("'business-cockpit.jwt.cookie.expires-duration' says how")
           .hasMessageContaining("'business-cockpit.jwt.cookie.max-login-duration' says how")
+          .hasMessageContaining("'business-cockpit.jwt.cookie.unknown-user-renewal' says how")
           .hasMessageContaining("keep it in the settings of the cockpit")
           .hasMessageNotContaining("'business-cockpit.jwt.cookie.name'")
           .hasMessageNotContaining("'business-cockpit.jwt.hmacSHA256-base64'"));

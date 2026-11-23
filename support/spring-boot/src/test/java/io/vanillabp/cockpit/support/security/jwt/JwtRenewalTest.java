@@ -56,6 +56,8 @@ class JwtRenewalTest {
 
   private JwtAuthenticationTokenMapper mapper;
 
+  private UserDirectoryForTests directory;
+
   @BeforeEach
   void setUp() throws Exception {
 
@@ -65,8 +67,8 @@ class JwtRenewalTest {
         .encodeToString(KeyGenerator.getInstance("HmacSha256").generateKey().getEncoded()));
     properties.getCookie().setExpiresDuration(EXPIRES.toString());
     properties.getCookie().setMaxLoginDuration(MAX_LOGIN.toString());
-    mapper = new JwtAuthenticationTokenMapper(properties, new UserDirectoryForTests().with("john", "ADMIN"), Function
-        .identity());
+    directory = new UserDirectoryForTests().with("john", "ADMIN");
+    mapper = new JwtAuthenticationTokenMapper(properties, directory, Function.identity());
 
   }
 
@@ -241,6 +243,109 @@ class JwtRenewalTest {
 
   }
 
+  /**
+   * The user logged in while the directory knew it, and was removed from the directory later. The
+   * token stays valid until it expires, but it is not renewed any more.
+   */
+  @Test
+  void aLoginIsNotRenewedOnceTheDirectoryNoLongerKnowsItsUser() throws Exception {
+
+    final var old = sevenHoursOld(login());
+    directory.remove("john");
+
+    final var response = filter(new MockHttpServletRequest("GET", "/gui/api/v1/app/current-user"),
+        mapper.toAuth(old));
+
+    assertThat(response.getCookie(properties.getCookie().getName()))
+        .as("the directory knew the user at the login and does not know it any more")
+        .isNull();
+
+  }
+
+  @Test
+  void aLoginIsRenewedWhileTheDirectoryKnowsItsUser() throws Exception {
+
+    final var old = sevenHoursOld(login());
+
+    final var response = filter(new MockHttpServletRequest("GET", "/gui/api/v1/app/current-user"),
+        mapper.toAuth(old));
+
+    final var cookie = response.getCookie(properties.getCookie().getName());
+    assertThat(cookie).isNotNull();
+    assertThat(decode(cookie.getValue()).getClaims())
+        .as("the renewed token still says that the directory knew the user")
+        .containsEntry(JwtMapper.KNOWN_TO_THE_DIRECTORY_CLAIM, true);
+
+  }
+
+  /**
+   * An application whose directory does not know its users by the id of the login, for example
+   * because it is not set up yet, keeps its users logged in as before.
+   */
+  @Test
+  void aLoginOfAUserTheDirectoryNeverKnewIsRenewedByDefault() throws Exception {
+
+    directory.remove("john");
+    final var old = sevenHoursOld(login());
+
+    final var response = filter(new MockHttpServletRequest("GET", "/gui/api/v1/app/current-user"),
+        mapper.toAuth(old));
+
+    assertThat(response.getCookie(properties.getCookie().getName())).isNotNull();
+
+  }
+
+  @Test
+  void aLoginOfAUserTheDirectoryDoesNotKnowIsNeverRenewedIfSoConfigured() throws Exception {
+
+    properties.getCookie().setUnknownUserRenewal(UnknownUserRenewal.REFUSE);
+    directory.remove("john");
+    final var old = sevenHoursOld(login());
+
+    final var response = filter(new MockHttpServletRequest("GET", "/gui/api/v1/app/current-user"),
+        mapper.toAuth(old));
+
+    assertThat(response.getCookie(properties.getCookie().getName())).isNull();
+
+  }
+
+  @Test
+  void aLoginOfAUserTheDirectoryNoLongerKnowsIsRenewedIfSoConfigured() throws Exception {
+
+    properties.getCookie().setUnknownUserRenewal(UnknownUserRenewal.ALLOW);
+    final var old = sevenHoursOld(login());
+    directory.remove("john");
+
+    final var response = filter(new MockHttpServletRequest("GET", "/gui/api/v1/app/current-user"),
+        mapper.toAuth(old));
+
+    assertThat(response.getCookie(properties.getCookie().getName())).isNotNull();
+
+  }
+
+  /**
+   * A token written by an older version does not say whether the directory knew the user. Its
+   * first renewal adds that, so the second one is refused once the user is gone.
+   */
+  @Test
+  void anOlderTokenLearnsAtItsRenewalThatTheDirectoryKnowsItsUser() throws Exception {
+
+    final var loginAt = Instant.now().minus(Duration.ofHours(7));
+    final var old = token(loginAt, loginAt, loginAt.plus(EXPIRES));
+    assertThat(decode(old).hasClaim(JwtMapper.KNOWN_TO_THE_DIRECTORY_CLAIM)).isFalse();
+
+    final var renewed = filter(new MockHttpServletRequest("GET", "/gui/api/v1/app/current-user"),
+        mapper.toAuth(old))
+        .getCookie(properties.getCookie().getName())
+        .getValue();
+    directory.remove("john");
+    final var response = filter(new MockHttpServletRequest("GET", "/gui/api/v1/app/current-user"),
+        mapper.toAuth(sevenHoursOld(renewed)));
+
+    assertThat(response.getCookie(properties.getCookie().getName())).isNull();
+
+  }
+
   private MockHttpServletResponse filter(
       final MockHttpServletRequest request,
       final Authentication authentication) throws Exception {
@@ -304,6 +409,32 @@ class JwtRenewalTest {
       claims.claim(JwtMapper.LOGIN_TIME_CLAIM, loginAt.getEpochSecond());
     }
 
+    return sign(claims.build());
+
+  }
+
+  /**
+   * The same login, as if it had been made seven hours ago: the token is in the second half of
+   * its lifetime, so a request renews it.
+   */
+  private String sevenHoursOld(
+      final String token) {
+
+    final var jwt = decode(token);
+    final var loginAt = Instant.now().minus(Duration.ofHours(7));
+    return sign(JwtClaimsSet
+        .builder()
+        .claims(claims -> claims.putAll(jwt.getClaims()))
+        .issuedAt(loginAt)
+        .expiresAt(loginAt.plus(EXPIRES))
+        .claim(JwtMapper.LOGIN_TIME_CLAIM, loginAt.getEpochSecond())
+        .build());
+
+  }
+
+  private String sign(
+      final JwtClaimsSet claims) {
+
     final var jwk = new OctetSequenceKey.Builder(properties.getHmacSHA256())
         .keyID(UUID.randomUUID().toString())
         .algorithm(JWSAlgorithm.HS256)
@@ -314,7 +445,7 @@ class JwtRenewalTest {
         context) -> List.of(jwk))
         .encode(JwtEncoderParameters.from(
             JwsHeader.with(MacAlgorithm.HS256).build(),
-            claims.build()))
+            claims))
         .getTokenValue();
 
   }
