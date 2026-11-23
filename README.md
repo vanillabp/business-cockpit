@@ -22,8 +22,9 @@ What an application has to change when it moves to a new version of the cockpit 
 1. [Building it](#building-it)
 2. [Test coverage](#test-coverage)
 3. [The modules](#the-modules)
-4. [Noteworthy & Contributors](#noteworthy--contributors)
-5. [License](#license)
+4. [Security audit](#security-audit)
+5. [Noteworthy & Contributors](#noteworthy--contributors)
+6. [License](#license)
 
 ## Building it
 
@@ -170,6 +171,14 @@ In the order they build on each other:
    far each report still is from that rule. The same module checks that every test class of this
    repository keeps quiet while it passes, so the log of a red build holds the output of the test
    which failed and almost nothing else.
+
+## Security audit
+
+The code of this repository is checked for security bugs with the skill `security-audit` from
+[cloudflare/security-audit-skill](https://github.com/cloudflare/security-audit-skill). The last
+run was on 2026-11-23. How the audit works, what it covers and what each run found is on the wiki
+page [Security audit](https://github.com/vanillabp/business-cockpit/wiki/Security-audit). Its
+table links the commits which fixed the findings.
 
 ## Noteworthy & Contributors
 
