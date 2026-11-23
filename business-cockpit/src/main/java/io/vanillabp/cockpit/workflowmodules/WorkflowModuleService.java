@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.workflowmodules;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -8,18 +9,28 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationStartedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.data.mongodb.core.messaging.Message;
+import org.springframework.data.mongodb.core.messaging.Subscription;
 import org.springframework.stereotype.Service;
 
+import com.mongodb.client.model.changestream.ChangeStreamDocument;
+
+import io.vanillabp.cockpit.mongo.changestreams.ChangeStreamUtils;
+import io.vanillabp.cockpit.mongo.changestreams.OperationType;
 import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
 import io.vanillabp.cockpit.workflowmodules.model.GroupHierarchy;
 import io.vanillabp.cockpit.workflowmodules.model.WorkflowModule;
 import io.vanillabp.cockpit.workflowmodules.model.WorkflowModuleRepository;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 
 /**
  * Keeps the registrations of the workflow modules. A module registers itself when it starts, and
@@ -31,6 +42,9 @@ public class WorkflowModuleService {
 
   private static final Logger logger = LoggerFactory.getLogger(WorkflowModuleService.class);
 
+  /** How long the start of the application waits for the change stream to run. */
+  private static final Duration STREAM_STARTS_WITHIN = Duration.ofSeconds(10);
+
   /** Creates the service. Spring fills the fields. */
   public WorkflowModuleService() {
   }
@@ -40,6 +54,11 @@ public class WorkflowModuleService {
 
   @Autowired
   private MicroserviceProxyRegistry microserviceProxyRegistry;
+
+  @Autowired
+  private ChangeStreamUtils changeStreamUtils;
+
+  private Subscription registrationsSubscription;
 
   /**
    * Loads every stored workflow module on startup. It fills the cache of group hierarchies and
@@ -56,6 +75,72 @@ public class WorkflowModuleService {
     workflowModules
         .findAll()
         .forEach(this::applyStoredRegistration);
+
+  }
+
+  /**
+   * Starts to watch the stored registrations once the application has started. A cockpit with
+   * several nodes stores a registration on the node which received it, and every other node keeps
+   * the group hierarchies and the routes in its own memory. Watching the collection is how they
+   * learn a new module, a moved URI or a changed hierarchy without a restart.
+   * <p>
+   * The startup has read every stored module already. A registration stored between that read and
+   * the start of the stream would be missed, so everything stored is read once more as soon as the
+   * stream runs.
+   *
+   * @param event The event which says the application has started
+   */
+  @EventListener
+  public void watchTheStoredRegistrations(
+      final ApplicationStartedEvent event) {
+
+    // an update brings the whole document, because only the whole document says what is stored
+    registrationsSubscription = changeStreamUtils.subscribe(
+        WorkflowModule.class,
+        true,
+        this::applyChangedRegistration,
+        OperationType.INSERT,
+        OperationType.UPDATE);
+    try {
+      if (!registrationsSubscription.await(STREAM_STARTS_WITHIN)) {
+        logger.warn(
+            "The change stream of the workflow modules did not start within {}. A registration "
+                + "another node stores until it starts reaches this node at its next restart only.",
+            STREAM_STARTS_WITHIN);
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      return;
+    }
+    registerProxiesForWorkflowModules();
+
+  }
+
+  /**
+   * Nothing is caught here. A failure is reported by {@code ChangeStreamUtils}, which names the
+   * document, and the stream keeps running.
+   */
+  private void applyChangedRegistration(
+      final Message<ChangeStreamDocument<Document>, WorkflowModule> message) {
+
+    final var stored = message.getBody();
+    if (stored == null) {
+      // the document was deleted before its change could be looked up
+      return;
+    }
+    applyStoredRegistration(stored);
+
+  }
+
+  /**
+   * Stops watching the stored registrations. Called by Spring when the application stops.
+   */
+  @PreDestroy
+  public void stopWatchingTheStoredRegistrations() {
+
+    if (registrationsSubscription != null) {
+      changeStreamUtils.unsubscribe(registrationsSubscription);
+    }
 
   }
 

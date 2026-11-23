@@ -18,7 +18,8 @@ import io.vanillabp.cockpit.support.security.usercontext.GroupHierarchyResolver;
  *
  * <p>The hierarchies of all modules are merged, so a group a user gets through one module's
  * hierarchy counts in every module. The cache is static because it is filled by
- * {@link WorkflowModuleService} on startup and on every registration.
+ * {@link WorkflowModuleService}: on startup, on every registration, and whenever another node of
+ * the cockpit stores a registration.
  */
 @Service
 public class GroupHierarchyService {
