@@ -262,8 +262,7 @@ template. Every chain keeps five things, whatever the login is:
    same cookie, `bc` by default.
 5. Every request of the dispatcher types `ASYNC` and `ERROR` is let through, with
    `dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()` as the first
-   rule. The template does not have this rule yet. The reason is in
-   [When a browser goes away](#when-a-browser-goes-away) (`BE-033`).
+   rule. The reason is in [When a browser goes away](#when-a-browser-goes-away) (`BE-033`).
 
 `anyRequest()` is `authenticated()`. CSRF and CORS stay off, as in `container`, because the browser
 sees one origin and the cookie is the only credential.
@@ -348,8 +347,9 @@ the login, see [gui-api.md](gui-api.md#staying-logged-in).
 
 The module `container` of the `business-cockpit` repository has this chain, in
 `GuiSecurityConfiguration`, and a test which logs in at a provider played by a test server,
-`ALoginAtAnOpenIdConnectProviderTest`. Its logout ends the login in the cockpit only, so take the
-logout from [Logging out at the provider](#logging-out-at-the-provider) instead. Write the
+`ALoginAtAnOpenIdConnectProviderTest`. Its logout ends the session at the provider as well, with
+the classes `KeepTheIdTokenForTheLogout` and `LogoutAtTheProvider`, the way
+[Logging out at the provider](#logging-out-at-the-provider) describes. Write the
 integration test of the login of the generated backend first anyway (`BE-007`), before anything
 builds on it. It is one of the
 [integration tests of the backend](#the-integration-tests-of-the-backend).
@@ -512,8 +512,11 @@ passed the chain on its first dispatch.
 The second thing is the write to a connection that is gone. The next event or ping of the stream
 fails with `java.io.IOException: Broken pipe`, and the log shows "Servlet container error
 notification for disconnected client". Spring turns such an error into an
-`AsyncRequestNotUsableException`. The application handles it in an advice of its own and logs it at
-`DEBUG` (`BE-034`). Then a developer who looks for it still finds it, and nobody else sees it:
+`AsyncRequestNotUsableException`. It is handled and logged at `DEBUG` (`BE-034`). Then a
+developer who looks for it still finds it, and nobody else sees it. Since `1.0.0` the library does
+this in its `RestfulExceptionHandler`, which answers for every controller of the application, so
+the application needs nothing for it. Only with an older library the application handles it in an
+advice of its own:
 
 ```java
 /** A browser that went away, for example a closed tab with an open update stream, is no error. */
@@ -763,12 +766,12 @@ tests below shows neither of them:
   `server.host: '127.0.0.1'`, see [project.md](project.md#developing-against-the-backend), and the
   backend names the same address.
 - The client of the route speaks HTTP/1.1. The JDK `HttpClient` asks a server for HTTP/2 over a
-  plain connection (`Upgrade: h2c`), and Vite does not answer that the way the client expects. So in
-  the profile `ui-dev-server` the application gives the gateway a client that speaks HTTP/1.1 only,
-  for example a `JdkClientHttpRequestFactory` on an `HttpClient` built with
-  `.version(HttpClient.Version.HTTP_1_1)`, or the setting
-  `spring.http.clients.imperative.factory: simple`. Check it once against the real dev server.
-  See [rough-edges.md](rough-edges.md#the-jdk-client-and-the-vite-dev-server).
+  plain connection (`Upgrade: h2c`), and Vite does not answer that the way the client expects. The
+  library brings the client of the gateway, and that client speaks HTTP/1.1 and passes a compressed
+  answer on as it is, with its `Content-Encoding`. It holds for this route and for the proxy of
+  the workflow modules below `/wm/` (`EXT-059`). So the application writes no client, no
+  `ClientHttpRequestFactory` and no `spring.http.clients.imperative.factory` for the gateway. See
+  [rough-edges.md](rough-edges.md#the-jdk-client-and-the-vite-dev-server).
 
 With `behind`, `application.yaml` sets `user-interface.uri` to the address of the nginx from the
 environment, and the profile `ui-dev-server` replaces it with the dev server. With `embedded`
@@ -902,13 +905,27 @@ business-cockpit:
   `container/src/main/resources/config/application-mailpit.yaml` is the template. The interval is
   one minute by default. A test that waits for a mail sets it to `1s` in its own properties, so it
   does not wait a minute.
-- The mail of the library builds the link to the task itself, `/aufgabe/<id>` in German and
-  `/task/<id>` in every other language, whatever `Q-ROUTES` says. The user interface answers these
-  paths, see [behaviour.md](behaviour.md#notifications). An application that wants the paths of
-  `Q-ROUTES` in the mail brings templates of its own, `email-body.ftl` and `email-body.ftlh` with
-  the model of the library's templates, and names their folder in
-  `business-cockpit.notification.templates.email`, for example
-  `classpath:cockpit-mail/`, a folder the library does not use.
+- The mail of the library links the task and the task list with a path per language. Without a
+  configuration it is `/aufgabe/<id>` and `/aufgaben` in German, and `/task/<id>` and `/tasks` in
+  every other language. With `Q-ROUTES` the application names its own paths,
+  `business-cockpit.notification.task-path.<language>` for the page of a task and
+  `business-cockpit.notification.task-list-path.<language>` for the list. The key `default` holds
+  the path of every language without a key of its own, and a key adds to the library's defaults:
+
+  ```yaml
+  business-cockpit:
+    notification:
+      task-path:
+        default: tasks
+        de: aufgaben
+      task-list-path:
+        default: tasks
+        de: aufgaben
+  ```
+
+  The user interface still answers the library's paths as well, see
+  [behaviour.md](behaviour.md#notifications), because a mail sent before the change carries them.
+  Templates of its own are needed only for another wording of the mail.
 
 The application tells the rest while it starts. A value it cannot run without ends the start, and
 the message lists every missing key with an example. A feature that is not configured yet gives a

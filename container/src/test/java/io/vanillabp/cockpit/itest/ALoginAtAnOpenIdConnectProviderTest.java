@@ -52,8 +52,9 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * A person logs in to the application at an OpenID Connect provider, the default login of the
  * profile {@code local}, and ends up with the cockpit's own JWT cookie.
  *
- * <p>A test server plays the provider. It answers the three endpoints the cockpit uses:
- * authorization, token and keys. The test walks the redirects of the login one by one, the way a
+ * <p>A test server plays the provider. It answers the endpoints the cockpit uses: the discovery
+ * document, authorization, token and keys, and its discovery document names the end of a session
+ * for the logout. The test walks the redirects of the login one by one, the way a
  * browser does, with a cookie store of its own. The simulator of the development tools plays the
  * same provider for a developer, and its own test shows that it answers like this one.
  *
@@ -69,6 +70,7 @@ class ALoginAtAnOpenIdConnectProviderTest {
   private static final String CLIENT_SECRET = "business-cockpit-secret";
   private static final String USER = "martin";
   private static final String CODE = "a-code-for-martin";
+  private static final String END_OF_SESSION = "/oauth2/logout";
 
   private static final MongoDBContainer MONGODB = new MongoDBContainer(ContainerImages.MONGODB)
       .withReplicaSet();
@@ -81,6 +83,9 @@ class ALoginAtAnOpenIdConnectProviderTest {
 
   /** The nonce of the last authorization request, which the ID token has to repeat. */
   private static final AtomicReference<String> nonce = new AtomicReference<>();
+
+  /** The last ID token the provider handed out. */
+  private static final AtomicReference<String> idToken = new AtomicReference<>();
 
   /** How the cockpit authenticated at the token endpoint. */
   private static final AtomicReference<String> clientAuthentication = new AtomicReference<>();
@@ -120,6 +125,9 @@ class ALoginAtAnOpenIdConnectProviderTest {
             "--dev-shell-simulator.users-uri=http://localhost:"
                 + usersStub.getAddress().getPort()
                 + "/dev-shell/user",
+            // the discovery document of the issuer names the end of a session, for the logout
+            "--spring.security.oauth2.client.provider.simulator.issuer-uri="
+                + providerUri,
             "--spring.security.oauth2.client.provider.simulator.authorization-uri="
                 + providerUri
                 + "/oauth2/authorize",
@@ -201,9 +209,20 @@ class ALoginAtAnOpenIdConnectProviderTest {
     assertThat(get(cockpitUri("/gui/api/v1/workflow-module"), "application/json").statusCode())
         .isEqualTo(HttpStatus.OK.value());
 
-    // a logout removes the cookie, and the GUI API answers 401 again
+    // a logout removes both cookies and ends the session at the provider as well. Without that,
+    // the provider would log the person in again on the next request, without a question
     final var logout = get(cockpitUri("/logout"), "text/html");
     assertThat(logout.statusCode()).isEqualTo(HttpStatus.FOUND.value());
+    final var endOfSession = location(logout);
+    assertThat(endOfSession.getPort()).isEqualTo(provider.getAddress().getPort());
+    assertThat(endOfSession.getPath()).isEqualTo(END_OF_SESSION);
+    assertThat(queryOf(endOfSession))
+        .containsEntry("id_token_hint", idToken.get())
+        .containsEntry("client_id", CLIENT_ID)
+        .containsEntry("post_logout_redirect_uri", cockpitUri("/").toString());
+    assertThat(cookies.getCookieStore().getCookies())
+        .noneMatch(cookie -> cookie.getName().equals("bc"))
+        .noneMatch(cookie -> cookie.getName().equals("bc-id-token"));
     assertThat(get(cockpitUri("/gui/api/v1/workflow-module"), "application/json").statusCode())
         .isEqualTo(HttpStatus.UNAUTHORIZED.value());
 
@@ -318,6 +337,20 @@ class ALoginAtAnOpenIdConnectProviderTest {
             "scope": "openid profile", "id_token": "%s" }
           """.formatted(idToken(exchange)));
     });
+    server.createContext("/.well-known/openid-configuration", exchange -> {
+      final var issuer = "http://localhost:"
+          + exchange.getLocalAddress().getPort();
+      answer(exchange, HttpStatus.OK, "application/json", """
+          { "issuer": "%1$s",
+            "authorization_endpoint": "%1$s/oauth2/authorize",
+            "token_endpoint": "%1$s/oauth2/token",
+            "jwks_uri": "%1$s/oauth2/jwks",
+            "end_session_endpoint": "%1$s%2$s",
+            "response_types_supported": [ "code" ],
+            "subject_types_supported": [ "public" ],
+            "id_token_signing_alg_values_supported": [ "RS256" ] }
+          """.formatted(issuer, END_OF_SESSION));
+    });
     server.createContext("/oauth2/jwks", exchange -> answer(exchange, HttpStatus.OK,
         "application/json", new JWKSet(signingKey.toPublicJWK()).toString()));
     server.start();
@@ -342,7 +375,8 @@ class ALoginAtAnOpenIdConnectProviderTest {
       final var token = new SignedJWT(
           new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(signingKey.getKeyID()).build(), claims);
       token.sign(new RSASSASigner(signingKey));
-      return token.serialize();
+      idToken.set(token.serialize());
+      return idToken.get();
     } catch (JOSEException e) {
       throw new IllegalStateException("Could not sign the ID token", e);
     }

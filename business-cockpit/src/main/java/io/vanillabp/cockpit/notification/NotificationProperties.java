@@ -25,6 +25,12 @@ public class NotificationProperties {
    */
   public static final String EVERY_CLASSPATH_PREFIX = "classpath*:";
 
+  /**
+   * The key of {@code task-path} and {@code task-list-path} which holds the path for every language
+   * without a key of its own.
+   */
+  public static final String EVERY_OTHER_LANGUAGE = "default";
+
   /** What a template directory starts with to be read from the file system. */
   public static final String FILE_PREFIX = "file:";
 
@@ -66,6 +72,25 @@ public class NotificationProperties {
   private Map<String, String> templates = new HashMap<>();
 
   /**
+   * The path of the page of one user task in the user interface, per language. The links of a
+   * notification lead there: the base URI of the cockpit, this path and the id of the task. The key
+   * is the language of the recipient, like {@code de}, and {@value #EVERY_OTHER_LANGUAGE} holds the
+   * path for every language without a key of its own. An entry configured for a language is added
+   * to these defaults, so a configuration only names what differs.
+   */
+  private Map<String, String> taskPath = new HashMap<>(Map.of(
+      EVERY_OTHER_LANGUAGE, "task",
+      "de", "aufgabe"));
+
+  /**
+   * The path of the task list in the user interface, per language, the same way as
+   * {@link #taskPath}.
+   */
+  private Map<String, String> taskListPath = new HashMap<>(Map.of(
+      EVERY_OTHER_LANGUAGE, "tasks",
+      "de", "aufgaben"));
+
+  /**
    * Creates the properties with their defaults. Spring Boot calls it and then binds the
    * configured values.
    */
@@ -94,6 +119,45 @@ public class NotificationProperties {
         + "templates/notification/"
         + type
         + "/";
+
+  }
+
+  /**
+   * The path of the page of one user task for a recipient who reads the given language.
+   *
+   * @param language the language of the recipient, like {@code de}, or an empty string if it is
+   *        not known
+   * @return the path of that language, or the one of {@value #EVERY_OTHER_LANGUAGE}
+   */
+  public String taskPathFor(
+      final String language) {
+
+    return forLanguage(taskPath, language);
+
+  }
+
+  /**
+   * The path of the task list for a recipient who reads the given language.
+   *
+   * @param language the language of the recipient, like {@code de}, or an empty string if it is
+   *        not known
+   * @return the path of that language, or the one of {@value #EVERY_OTHER_LANGUAGE}
+   */
+  public String taskListPathFor(
+      final String language) {
+
+    return forLanguage(taskListPath, language);
+
+  }
+
+  private static String forLanguage(
+      final Map<String, String> paths,
+      final String language) {
+
+    final var path = paths.get(language);
+    return path != null
+        ? path
+        : paths.get(EVERY_OTHER_LANGUAGE);
 
   }
 
@@ -225,6 +289,44 @@ public class NotificationProperties {
   public void setTemplates(
       Map<String, String> templates) {
     this.templates = templates;
+  }
+
+  /**
+   * The path of the page of one user task in the user interface, per language.
+   *
+   * @return The paths, keyed by language and {@value #EVERY_OTHER_LANGUAGE}
+   */
+  public Map<String, String> getTaskPath() {
+    return taskPath;
+  }
+
+  /**
+   * The path of the page of one user task in the user interface, per language.
+   *
+   * @param taskPath The paths, keyed by language and {@value #EVERY_OTHER_LANGUAGE}
+   */
+  public void setTaskPath(
+      Map<String, String> taskPath) {
+    this.taskPath = taskPath;
+  }
+
+  /**
+   * The path of the task list in the user interface, per language.
+   *
+   * @return The paths, keyed by language and {@value #EVERY_OTHER_LANGUAGE}
+   */
+  public Map<String, String> getTaskListPath() {
+    return taskListPath;
+  }
+
+  /**
+   * The path of the task list in the user interface, per language.
+   *
+   * @param taskListPath The paths, keyed by language and {@value #EVERY_OTHER_LANGUAGE}
+   */
+  public void setTaskListPath(
+      Map<String, String> taskListPath) {
+    this.taskListPath = taskListPath;
   }
 
   /**

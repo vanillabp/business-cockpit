@@ -45,6 +45,7 @@ import io.vanillabp.cockpit.support.security.jwt.JwtUserDetailsProvider;
 import io.vanillabp.cockpit.support.security.jwt.PassiveJwtSecurityFilter;
 import io.vanillabp.cockpit.support.security.usercontext.UserDetailsProvider;
 import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
+import jakarta.servlet.DispatcherType;
 
 /**
  * How a person logs in to this application. A person logs in once, and after that every request
@@ -62,8 +63,10 @@ import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
  * scripts, for the tests of this module, and for a run without the simulator.</li>
  * </ul>
  * Both chains end in the same cookie, so the rest of the cockpit does not know which one logged
- * the user in. The wiki page "Security" says what every chain has to keep: the five open paths,
- * the two JWT filters and the {@link JwtSecurityContextRepository}. Neither chain is meant for
+ * the user in. The logout of {@link LoginByOpenIdConnect} ends the session at the provider as
+ * well, see {@link LogoutAtTheProvider}. The wiki page "Security" says what every chain has to
+ * keep: the five open paths, the rule for a request dispatched again, the two JWT filters and the
+ * {@link JwtSecurityContextRepository}. Neither chain is meant for
  * production as it is. The provider of the profile {@code local} and the password are for a
  * developer's machine.
  */
@@ -170,7 +173,12 @@ public class GuiSecurityConfiguration {
           .oauth2Login(login -> login
               .authorizationEndpoint(endpoint -> endpoint
                   .authorizationRequestResolver(authorizationRequests))
-              .withObjectPostProcessor(writeTheLoginInto(jwtSecurityContextRepository)));
+              .successHandler(new KeepTheIdTokenForTheLogout())
+              .withObjectPostProcessor(writeTheLoginInto(jwtSecurityContextRepository)))
+          // the login at the provider has to end as well, so this replaces the logout of
+          // keepWhatEveryChainNeeds
+          .logout(logout -> logout
+              .logoutSuccessHandler(new LogoutAtTheProvider(properties.getJwt(), providers)));
 
       return http.build();
 
@@ -305,6 +313,12 @@ public class GuiSecurityConfiguration {
         .cors(AbstractHttpConfigurer::disable)
         .anonymous(AbstractHttpConfigurer::disable)
         .authorizeHttpRequests(requests -> requests
+            // a request dispatched again, for the update stream when it answers from another
+            // thread or when the browser has gone away. Its first dispatch passed this chain
+            // already. PassiveJwtSecurityFilter reads the cookie once per request, so on this
+            // dispatch there is no login, and the check would only log an error
+            .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR)
+            .permitAll()
             .requestMatchers(appInfoRequestMatcher, currentUserRequestMatcher, assetsRequestMatcher,
                 staticRequestMatcher, workflowModulesProxyRequestMatcher)
             .permitAll()

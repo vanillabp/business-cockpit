@@ -1,2 +1,3 @@
 io.vanillabp.cockpit.support.rest.httpservice.HttpServiceClientConventionsAutoConfiguration
 io.vanillabp.cockpit.support.userinterface.UserInterfaceRouteAutoConfiguration
+io.vanillabp.cockpit.support.userinterface.GatewayClientAutoConfiguration

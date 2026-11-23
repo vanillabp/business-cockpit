@@ -17,6 +17,7 @@ import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 import io.vanillabp.cockpit.support.security.BcUnauthorizedException;
@@ -267,6 +268,23 @@ public class RestfulExceptionHandler {
         ? "is not valid"
         : "breaks the rule @"
             + constraint;
+
+  }
+
+  /**
+   * A browser which went away is no error. The user closed a tab or reloaded the page, and the next
+   * write to the connection, often a ping of the update stream, fails with a broken pipe. Spring
+   * reports that as this exception, and the catch-all below would log it as a warning about a
+   * fault of the cockpit. Nobody is left to read an answer, so there is none. The log keeps it at
+   * {@code DEBUG}, so a developer who looks for it still finds it.
+   *
+   * @param clientIsGone What Spring reported about the connection
+   */
+  @ExceptionHandler(AsyncRequestNotUsableException.class)
+  public void handleClientWhichWentAway(
+      final AsyncRequestNotUsableException clientIsGone) {
+
+    log.debug("The client went away: {}", clientIsGone.getMessage());
 
   }
 

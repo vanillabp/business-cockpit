@@ -67,7 +67,8 @@ below name them where they belong, whichever module holds them.
   `UserInterfaceRouteAutoConfiguration` registers one route of Spring Cloud Gateway per such module,
   as a bean named `<id>-user-interface`, and the application adds
   `spring-cloud-starter-gateway-server-webmvc`. A wrong key ends the start, and
-  `UserInterfaceRoutesMisconfiguredFailureAnalyzer` prints why. The section
+  `UserInterfaceRoutesMisconfiguredFailureAnalyzer` prints why. `GatewayClientAutoConfiguration`
+  gives the gateway a client which passes an answer on unchanged and speaks HTTP/1.1. The section
   [The user interface from an nginx](../README.md#the-user-interface-from-an-nginx) of the support
   README describes it. Its tests run in a Surefire execution of their own with the gateway, because
   the gateway changes a default of every HTTP client; the other tests run without it.

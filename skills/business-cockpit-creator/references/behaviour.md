@@ -1697,13 +1697,13 @@ The names of the channels and of the processes are shown in the language of the 
 
 A link in a notification mail points to the task page. It must work without a detour over the start
 page, also when the user has to log in first. The mail is written by the template of the
-`business-cockpit` library, and that template builds the path itself, from the language of the
-mail: `/aufgabe/<id>` in German and `/task/<id>` in every other language, and `/aufgaben` or
-`/tasks` for the task list. These paths do not follow `Q-ROUTES`. So the user interface also
-answers `/task/<id>` and `/aufgabe/<id>`, and `/tasks` and `/aufgaben`: each opens its screen and
-replaces the address with the path of the user's language, as a translated path does, see
-[Translated paths](#translated-paths). A backend the skill creates may bring mail templates of its
-own instead, with the paths of `Q-ROUTES`, see [backend.md](backend.md#the-configuration).
+`business-cockpit` library, with a path per language: `/aufgabe/<id>` in German and `/task/<id>` in
+every other language, and `/aufgaben` or `/tasks` for the task list, unless the backend configures
+the paths of `Q-ROUTES`, see [backend.md](backend.md#the-configuration). The backend the skill
+creates configures them. The user interface still answers `/task/<id>` and `/aufgabe/<id>`, and
+`/tasks` and `/aufgaben`, because an older mail or a backend without the keys uses them: each opens
+its screen and replaces the address with the path of the user's language, as a translated path
+does, see [Translated paths](#translated-paths).
 
 ## User settings
 
