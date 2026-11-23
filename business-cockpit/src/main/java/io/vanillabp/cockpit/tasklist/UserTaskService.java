@@ -8,7 +8,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -41,7 +40,6 @@ import org.springframework.util.StringUtils;
 
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
-import com.mongodb.client.result.UpdateResult;
 
 import io.vanillabp.cockpit.bpms.OrderOfReports;
 import io.vanillabp.cockpit.bpms.OutcomeOfStoring;
@@ -931,18 +929,31 @@ public class UserTaskService {
       final String currentUser,
       final boolean severalTasks) {
 
-    final BiFunction<Query, Update, UpdateResult> write = (
-        query,
-        update) -> severalTasks
-            ? mongoTemplate.updateMulti(query, update, UserTask.class)
-            : mongoTemplate.updateFirst(query, update, UserTask.class);
-    final var addressedToSomebody = write.apply(
-        whatCanBeGivenBack(whichTasks, personId).addCriteria(new Criteria().orOperator(aCandidate())),
-        LatestChange.recordIn(unsetAssignee(currentUser).set("dangling", false), initiatorFor(currentUser)));
-    final var addressedToNobody = write.apply(
-        whatCanBeGivenBack(whichTasks, personId).addCriteria(new Criteria().norOperator(aCandidate())),
-        LatestChange.recordIn(unsetAssignee(currentUser).set("dangling", true), initiatorFor(currentUser)));
-    return addressedToSomebody.getMatchedCount() + addressedToNobody.getMatchedCount();
+    final var addressedToSomebody = whatCanBeGivenBack(whichTasks, personId)
+        .addCriteria(new Criteria().orOperator(aCandidate()));
+    final var addressedToNobody = whatCanBeGivenBack(whichTasks, personId)
+        .addCriteria(new Criteria().norOperator(aCandidate()));
+    // each statement records the change itself, see EveryUpdateOfATaskOrACaseSaysWhoMadeItTest
+    if (severalTasks) {
+      return mongoTemplate.updateMulti(
+          addressedToSomebody,
+          LatestChange.recordIn(unsetAssignee(currentUser).set("dangling", false), initiatorFor(currentUser)),
+          UserTask.class).getMatchedCount() + mongoTemplate
+              .updateMulti(
+                  addressedToNobody,
+                  LatestChange.recordIn(unsetAssignee(currentUser).set("dangling", true), initiatorFor(currentUser)),
+                  UserTask.class)
+              .getMatchedCount();
+    }
+    return mongoTemplate.updateFirst(
+        addressedToSomebody,
+        LatestChange.recordIn(unsetAssignee(currentUser).set("dangling", false), initiatorFor(currentUser)),
+        UserTask.class).getMatchedCount() + mongoTemplate
+            .updateFirst(
+                addressedToNobody,
+                LatestChange.recordIn(unsetAssignee(currentUser).set("dangling", true), initiatorFor(currentUser)),
+                UserTask.class)
+            .getMatchedCount();
 
   }
 
