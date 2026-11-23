@@ -276,6 +276,11 @@ The two forms of each action, one for one task and one for a list of ids, do the
 form is there so that several selected rows do not cause twenty requests. For an ended task both
 forms answer 409, see [Ended tasks](#ended-tasks).
 
+The list form names at most 1,000 ids, and a note holds at most 10,000 characters. A request beyond
+that answers 400, so a bulk action over more selected rows splits them into several requests, and
+the note field stops the user at 10,000 characters. A request body to the GUI API holds at most
+1 MB, unless the application sets another limit, and a larger one answers 413.
+
 Take the details of the note and count endpoints from the OpenAPI file of the pinned cockpit
 version, not from this text. The path of the user settings is fixed, see
 [User settings](#user-settings). For counts see [Counting](#counting).

@@ -30,8 +30,8 @@ class TheSettingsOfAUserTest extends ItestBase {
 
   private static final String SETTINGS = "/app/current-user/settings/";
 
-  /** MongoDB takes a document of at most 16 MB. */
-  private static final int SIXTEEN_MEGABYTES = 16 * 1024 * 1024;
+  /** The largest body the GUI API reads, unless the application sets another limit. */
+  private static final int ONE_MEGABYTE = 1024 * 1024;
 
   private String martin;
   private String petra;
@@ -283,31 +283,53 @@ class TheSettingsOfAUserTest extends ItestBase {
   }
 
   /**
-   * There is no limit of the cockpit. A setting is refused where MongoDB refuses the document:
-   * one value which is too large alone, and one which only makes the document too large.
+   * The GUI API reads a body of at most 1 MB, so a larger setting is refused before it is read.
+   * Below that limit, a setting is refused where MongoDB refuses the document. All settings of a
+   * user share one document, and MongoDB takes 16 MB, so the document fills up after about 16
+   * settings of nearly 1 MB each.
    */
   @Test
-  void settingsLargerThanMongoDbTakesAreRefused() {
+  void settingsLargerThanTheLimitsAreRefused() {
 
-    final var tooLargeAlone = guiPut(petra, SETTINGS + unique("large"), "\""
-        + "x".repeat(SIXTEEN_MEGABYTES + 1)
-        + "\"");
+    final var tooLargeAlone = guiPut(petra, SETTINGS + unique("large"), quoted(ONE_MEGABYTE - 1));
     assertThat(tooLargeAlone.statusCode()).isEqualTo(413);
-    assertThat(tooLargeAlone.body()).contains("16 MB");
+    assertThat(tooLargeAlone.body()).contains(ONE_MEGABYTE
+        + " bytes");
 
-    final var half = "\""
-        + "x".repeat(SIXTEEN_MEGABYTES / 2 + 1)
-        + "\"";
-    final var first = unique("half");
-    assertThat(guiPut(petra, SETTINGS + first, half).statusCode()).isEqualTo(204);
-    final var second = guiPut(petra, SETTINGS + unique("half"), half);
-    assertThat(second.statusCode()).isEqualTo(413);
-    assertThat(second.body()).contains("16 MB");
+    final var nearlyOneMegabyte = quoted(ONE_MEGABYTE - 2);
+    final var written = new ArrayList<String>();
+    HttpResponse<String> refused = null;
+    while ((refused == null) && (written.size() < 20)) {
+      final var key = unique("nearly-one-megabyte");
+      final var answer = guiPut(petra, SETTINGS + key, nearlyOneMegabyte);
+      if (answer.statusCode() == 204) {
+        written.add(key);
+      } else {
+        refused = answer;
+      }
+    }
+    assertThat(refused).as("MongoDB refuses the document before 20 settings of 1 MB").isNotNull();
+    assertThat(refused.statusCode()).isEqualTo(413);
+    assertThat(refused.body()).contains("16 MB");
+    assertThat(written).as("the settings which went in first").hasSizeGreaterThan(10);
 
     // the other tests of this class share the user, so the space is given back
-    guiDelete(petra, SETTINGS + first);
+    written.forEach(key -> guiDelete(petra, SETTINGS + key));
     final var key = unique("small");
     assertThat(guiPut(petra, SETTINGS + key, "1").statusCode()).isEqualTo(204);
+
+  }
+
+  /**
+   * @param length The number of letters
+   * @return A JSON string of that many letters, so a body two bytes longer
+   */
+  private static String quoted(
+      final int length) {
+
+    return "\""
+        + "x".repeat(length)
+        + "\"";
 
   }
 

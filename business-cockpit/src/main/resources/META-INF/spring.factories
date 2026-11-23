@@ -8,3 +8,5 @@ io.vanillabp.cockpit.config.startup.SortIndexLimitIsNotUsableFailureAnalyzer,\
 io.vanillabp.cockpit.config.startup.RemovedPropertyIsSetFailureAnalyzer,\
 io.vanillabp.cockpit.config.startup.UserDetailsProviderIsMissingFailureAnalyzer,\
 io.vanillabp.cockpit.config.startup.UserDirectoryIsNotUsableFailureAnalyzer
+org.springframework.boot.EnvironmentPostProcessor=\
+io.vanillabp.cockpit.config.web.JsonStringLengthDefault
