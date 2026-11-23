@@ -3,10 +3,9 @@ package io.vanillabp.cockpit.bpms.kafka;
 
 import static io.vanillabp.cockpit.bpms.kafka.KafkaConfiguration.KAFKA_CONSUMER_PREFIX;
 
-import java.util.Collection;
-import java.util.stream.Collectors;
-
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -15,6 +14,8 @@ import io.vanillabp.cockpit.bpms.BpmsApiProperties;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.GroupHierarchy;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.RegisterWorkflowModuleEvent;
+import io.vanillabp.cockpit.exceptions.BcInvalidRequestException;
+import io.vanillabp.cockpit.workflowmodules.WhatARegistrationMustSay;
 import io.vanillabp.cockpit.workflowmodules.WorkflowModuleService;
 
 /**
@@ -23,6 +24,7 @@ import io.vanillabp.cockpit.workflowmodules.WorkflowModuleService;
  */
 public class KafkaWorkflowModuleController {
 
+  private static final Logger logger = LoggerFactory.getLogger(KafkaWorkflowModuleController.class);
 
   private final WorkflowModuleService workflowModuleService;
 
@@ -76,27 +78,36 @@ public class KafkaWorkflowModuleController {
     }
   }
 
+  /**
+   * A registration which breaks the rules of {@link WhatARegistrationMustSay} is dropped and
+   * logged. Kafka has no answer to tell the sender, and the same record would be refused again.
+   */
   private void handleRegisterWorkflowModuleEvent(
       final RegisterWorkflowModuleEvent event) {
 
-    final var groupHierarchy = event.getGroupHierarchyCount() > 0
-        ? event
-            .getGroupHierarchyList()
-            .stream()
-            .collect(Collectors.toMap(GroupHierarchy::getGroup, hierarchy -> (Collection<String>) hierarchy
-                .getTargetList()
-                .stream()
-                .toList()))
-        : null;
+    try {
+      final var groupHierarchy = event.getGroupHierarchyCount() > 0
+          ? WhatARegistrationMustSay.groupHierarchyOf(
+              event.getGroupHierarchyList(),
+              GroupHierarchy::getGroup,
+              GroupHierarchy::getTargetList)
+          : null;
 
-    workflowModuleService
-        .registerOrUpdateWorkflowModule(
-            event.getWorkflowModuleId(),
-            event.getUri(),
-            event.getTaskProviderApiUriPath(),
-            event.getWorkflowProviderApiUriPath(),
-            event.getAccessibleToGroupsList(),
-            groupHierarchy);
+      workflowModuleService
+          .registerOrUpdateWorkflowModule(
+              event.getWorkflowModuleId(),
+              event.getUri(),
+              event.getTaskProviderApiUriPath(),
+              event.getWorkflowProviderApiUriPath(),
+              event.getAccessibleToGroupsList(),
+              groupHierarchy);
+    } catch (BcInvalidRequestException e) {
+      logger.error(
+          "Dropping the registration of the workflow module '{}' received by Kafka: {}. "
+              + "Correct the configuration of the module and start it again.",
+          event.getWorkflowModuleId(),
+          e.getMessage());
+    }
 
   }
 

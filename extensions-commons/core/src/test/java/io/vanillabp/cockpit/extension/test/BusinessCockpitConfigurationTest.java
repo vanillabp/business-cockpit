@@ -367,6 +367,44 @@ public class BusinessCockpitConfigurationTest {
   }
 
   @Test
+  @DisplayName("A workflow module URI which the cockpit cannot call stops the start")
+  public void aWorkflowModuleUriWhichIsNoHttpAddressStopsTheStart() {
+
+    for (final var uri : List.of("http://my host:8080", "my-module:8080", "ftp://my-module", "/relative")) {
+      final var defects = defectsOf(
+          ConfigurationFixture.aConfiguredApplication().withWorkflowModule("workflow-module-uri", uri),
+          false);
+
+      assertTrue(
+          defects.contains("'vanillabp.workflow-modules.test-module.cockpit.workflow-module-uri' is '"
+              + uri
+              + "', which is no absolute http or https URI with a host"),
+          defects);
+    }
+    assertDoesNotThrow(() -> read(
+        ConfigurationFixture.aConfiguredApplication().withWorkflowModule("workflow-module-uri",
+            "https://my-module:8443/base"),
+        false));
+
+  }
+
+  @Test
+  @DisplayName("A workflow module id which is no plain path segment stops the start")
+  public void aWorkflowModuleIdWhichIsNoPlainPathSegmentStopsTheStart() {
+
+    for (final var id : List.of("{x}", "*", "..", "with space")) {
+      final var defects = defectsOf(
+          ConfigurationFixture.aConfiguredApplication().withWorkflowModuleId(id),
+          false);
+
+      assertTrue(defects.contains("The id of the workflow module '"
+          + id
+          + "' cannot report to the cockpit"), defects);
+    }
+
+  }
+
+  @Test
   @DisplayName("A workflow module which says nothing about the cockpit reports nothing")
   public void aSilentWorkflowModuleTakesNoPart() {
 

@@ -1,5 +1,7 @@
 package io.vanillabp.cockpit.extension.config;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -12,8 +14,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +45,11 @@ public final class BusinessCockpitConfiguration {
 
   private static final Logger logger = LoggerFactory
       .getLogger(BusinessCockpitConfiguration.class);
+
+  /** What the id of a workflow module may hold, the same rule the cockpit checks. */
+  private static final Pattern PLAIN_PATH_SEGMENT = Pattern.compile("[A-Za-z0-9._~-]+");
+
+  private static final Pattern ONLY_DOTS = Pattern.compile("\\.+");
 
   private final boolean userTasksEnabled;
 
@@ -1136,10 +1145,12 @@ public final class BusinessCockpitConfiguration {
         templateLoaderPathOfTheApplication, templatingAvailable, defects);
     final var templating = templateDirectory != null;
 
+    refuseAnIdWhichIsNoPlainPathSegment(workflowModuleId, defects);
     final var workflowModuleUri = required(
         workflowModuleId, settings.workflowModuleUri(), ConfigurationKeys.WORKFLOW_MODULE_URI,
         defects,
         "It is the address the cockpit server calls back for user-task forms and workflow pages.");
+    refuseAUriTheCockpitCannotCall(workflowModuleId, workflowModuleUri, defects);
     final var uiUriPath = required(
         workflowModuleId, settings.uiUriPath(), ConfigurationKeys.UI_URI_PATH, defects,
         "It is the path below the module's URI the forms are served from.");
@@ -1507,6 +1518,63 @@ public final class BusinessCockpitConfiguration {
                               defects)));
         });
     return configurations;
+
+  }
+
+  /**
+   * The cockpit serves a workflow module below {@code /wm/<id>/} and refuses the registration of
+   * an id which is no plain segment of a path. The rule is the same as the cockpit's: letters,
+   * digits, {@code -}, {@code _}, {@code .} and {@code ~}, and not only dots. Checking it here
+   * stops the module at its start, instead of the cockpit refusing it later.
+   */
+  private static void refuseAnIdWhichIsNoPlainPathSegment(
+      final String workflowModuleId,
+      final List<String> defects) {
+
+    if (PLAIN_PATH_SEGMENT.matcher(workflowModuleId).matches() && !ONLY_DOTS.matcher(workflowModuleId).matches()) {
+      return;
+    }
+    defects
+        .add(
+            """
+                The id of the workflow module '%s' cannot report to the cockpit. The cockpit \
+                serves the module below '/wm/<id>/', so the id may hold only letters, digits, \
+                '-', '_', '.' and '~', and not only dots. Rename the workflow module.""".formatted(
+                workflowModuleId));
+
+  }
+
+  /**
+   * The cockpit passes the requests for a workflow module on to this URI, and it refuses a
+   * registration whose URI it cannot call. Checking it here stops the module at its start.
+   */
+  private static void refuseAUriTheCockpitCannotCall(
+      final String workflowModuleId,
+      final String workflowModuleUri,
+      final List<String> defects) {
+
+    if (workflowModuleUri == null) {
+      return; // reported as missing already
+    }
+    URI parsed;
+    try {
+      parsed = new URI(workflowModuleUri);
+    } catch (URISyntaxException e) {
+      parsed = null;
+    }
+    if ((parsed != null) && parsed.isAbsolute() && Set.of("http", "https")
+        .contains(parsed.getScheme().toLowerCase(Locale.ROOT)) && (parsed.getHost() != null)) {
+      return;
+    }
+    defects
+        .add(
+            """
+                '%s' is '%s', which is no absolute http or https URI with a host. The cockpit \
+                server calls this address for user-task forms and workflow pages, e.g. \
+                'http://my-module:8080'.""".formatted(
+                ConfigurationKeys
+                    .workflowModuleKey(workflowModuleId, ConfigurationKeys.WORKFLOW_MODULE_URI),
+                workflowModuleUri));
 
   }
 
