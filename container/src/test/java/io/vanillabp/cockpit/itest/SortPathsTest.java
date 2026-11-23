@@ -118,6 +118,47 @@ class SortPathsTest extends ItestBase {
   }
 
   /**
+   * A sort names at most five paths in at most 500 characters. A longer one is refused before
+   * any of its paths is looked at, and the answer does not repeat it.
+   */
+  @Test
+  void aSortOfMoreThan500CharactersIsRefused() {
+
+    final var tooLong = "details.a"
+        + "a".repeat(492);
+
+    assertThat(listSortedBy("usertask", tooLong)).isEqualTo(400);
+    assertThat(listSortedBy("workflow", tooLong)).isEqualTo(400);
+    assertThat(guiPost(cookie, "/usertask", """
+        { "pageNumber": 0, "pageSize": 1, "sort": "%s" }
+        """.formatted(tooLong)).body()).doesNotContain(tooLong);
+
+  }
+
+  @Test
+  void aSortOfMoreThanFivePathsIsRefused() {
+
+    assertThat(listSortedBy("usertask", "details.a,details.b,details.c,details.d,details.e,details.f"))
+        .isEqualTo(400);
+    assertThat(listSortedBy("workflow", "details.a,details.b,details.c,details.d,details.e,details.f"))
+        .isEqualTo(400);
+
+  }
+
+  /** The positive twin: five paths in 500 characters are sorted by. */
+  @Test
+  void aSortOfFivePathsIn500CharactersIsSortedBy() {
+
+    final var fivePaths = "details.b,details.c,details.d,details.e,details.a"
+        + "a".repeat(451);
+    assertThat(fivePaths).hasSize(500);
+
+    assertThat(listSortedBy("usertask", fivePaths)).isEqualTo(200);
+    assertThat(listSortedBy("workflow", fivePaths)).isEqualTo(200);
+
+  }
+
+  /**
    * A hundred paths below {@code details} are a hundred allowed combinations, and the lists are
    * sorted by each of them. The collections get no more than 30 sort indexes all the same.
    */

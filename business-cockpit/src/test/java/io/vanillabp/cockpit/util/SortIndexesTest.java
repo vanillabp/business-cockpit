@@ -133,6 +133,25 @@ class SortIndexesTest {
 
   }
 
+  @Test
+  void aSortOfMoreThan500CharactersOrMoreThanFivePathsIsRefusedWithoutRepeatingIt() {
+
+    final var sortIndexes = sortIndexes(30, Optional.empty());
+    final var tooLong = "details.a"
+        + "a".repeat(492);
+
+    assertThatThrownBy(() -> sortIndexes.checkSort(tooLong))
+        .isInstanceOf(BcInvalidRequestException.class)
+        .hasMessage("'sort' holds at most 500 characters");
+    assertThatThrownBy(() -> sortIndexes.checkSort("dueDate,title.de,details.a,details.b,details.c,details.d"))
+        .isInstanceOf(BcInvalidRequestException.class)
+        .hasMessage("'sort' names at most 5 paths");
+    assertThatCode(() -> sortIndexes.checkSort("dueDate,title.de,details.a,details.b,details.c,,"))
+        .doesNotThrowAnyException();
+    assertThatCode(() -> sortIndexes.checkSort(null)).doesNotThrowAnyException();
+
+  }
+
   /**
    * With a replacement for the dot configured, a key like {@code order.id} is stored as
    * {@code order~id}, and a column has to name it like that.
@@ -187,6 +206,31 @@ class SortIndexesTest {
 
     assertThat(sortIndexNames()).containsExactlyInAnyOrder("_sort_details.a", "_sort_details.b");
     verify(logger, times(2)).warn(anyString(), any(Object[].class));
+
+  }
+
+  /**
+   * Once the limit is reached, every new combination is sorted without an index, and the warning
+   * about it is written once. The combinations which got that warning are remembered, but only the
+   * last 1,000 of them, because each of them came from a request. The oldest one is forgotten and
+   * warned about again when it comes back.
+   */
+  @Test
+  void theCombinationsWithoutAnIndexWhichAreRememberedHaveALimit() {
+
+    final var sortIndexes = sortIndexes(0, Optional.empty());
+
+    for (int i = 0; i <= 1_000; ++i) {
+      sortIndexes.ensureIndex("details.a"
+          + i,
+          List.of("details.a"
+              + i, "_id"));
+    }
+    sortIndexes.ensureIndex("details.a1000", List.of("details.a1000", "_id"));
+    verify(logger, times(1_001)).warn(anyString(), any(Object[].class));
+
+    sortIndexes.ensureIndex("details.a0", List.of("details.a0", "_id"));
+    verify(logger, times(1_002)).warn(anyString(), any(Object[].class));
 
   }
 

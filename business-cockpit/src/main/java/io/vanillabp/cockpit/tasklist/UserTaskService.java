@@ -1017,6 +1017,7 @@ public class UserTaskService {
       final String _sort,
       final boolean sortAscending) {
 
+    sortIndexes.checkSort(_sort);
     final var sort = _sort == null
         ? PROPERTY_DUEDATE
         : _sort;

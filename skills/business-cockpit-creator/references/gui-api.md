@@ -397,7 +397,8 @@ below `details.`.
 The server refuses every other path with 400:
 `The request is not valid: 'sort' may only name fields of the list or keys below 'details.'. A part
 of a path holds letters, digits and '_', and below 'details.' also '-'.` This holds for the list and
-for the update.
+for the update. `sort` also names at most five paths in at most 500 characters. A longer one is
+refused with 400 as well.
 
 For every new combination of paths the server creates an index in the database, but at most 30 per
 collection (`business-cockpit.mongodb.sort-indexes-per-collection`). After that it sorts without

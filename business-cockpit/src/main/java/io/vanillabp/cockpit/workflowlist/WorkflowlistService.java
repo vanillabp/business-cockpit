@@ -722,6 +722,7 @@ public class WorkflowlistService {
       final String _sort,
       final boolean sortAscending) {
 
+    sortIndexes.checkSort(_sort);
     final var sort = _sort == null
         ? PROPERTY_CREATEDAT
         : _sort;
