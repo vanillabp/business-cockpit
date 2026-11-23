@@ -24,6 +24,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import io.vanillabp.cockpit.exceptions.RestfulExceptionHandler;
 import io.vanillabp.cockpit.notification.NotificationService;
 import io.vanillabp.cockpit.notification.RecipientConfiguration;
 import io.vanillabp.cockpit.notification.model.NotificationConfiguration;
@@ -179,6 +180,39 @@ class NotificationConfigGuiApiControllerTest {
         .contentType(MediaType.APPLICATION_JSON)
         .content("{ \"phone\": \"123\" }"))
         .andExpect(status().isNotFound());
+  }
+
+  private MockMvc clientWithTheExceptionHandler() {
+    controller = new NotificationConfigGuiApiController(
+        userContext, userRepository, List.of(emailMedium()), userTaskService);
+    return MockMvcBuilders.standaloneSetup(controller).setControllerAdvice(new RestfulExceptionHandler()).build();
+  }
+
+  /**
+   * Spring Data reads a key {@code _class} in a stored document as the Java type to create, so a
+   * configuration which held one would make the whole document of the user unreadable.
+   */
+  @Test
+  void aTypeKeyInTheRecipientConfigurationIsRefused() throws Exception {
+    clientWithTheExceptionHandler().perform(put("/gui/api/v1/notifications/recipient-config/email")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{ \"_class\": \"com.example.Type\", \"emailAddress\": \"a@example.org\" }"))
+        .andExpect(status().isBadRequest());
+    verify(userRepository, never()).writeRecipientConfiguration(any(), any(), any());
+  }
+
+  @Test
+  void aTypeKeyInTheNotificationConfigurationIsRefused() throws Exception {
+    final var client = clientWithTheExceptionHandler();
+    client.perform(put("/gui/api/v1/notifications/config")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{ \"globalAllViaMedium\": { \"_class\": true } }"))
+        .andExpect(status().isBadRequest());
+    client.perform(put("/gui/api/v1/notifications/config")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{ \"perWorkflow\": { \"_class\": { \"allViaMedium\": { \"email\": true } } } }"))
+        .andExpect(status().isBadRequest());
+    verify(userRepository, never()).writeNotificationConfiguration(any(), any());
   }
 
   @Test

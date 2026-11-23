@@ -749,7 +749,9 @@ browser. Your user interface never keeps a setting in `localStorage`, `sessionSt
 of its own.
 
 `GET /gui/api/v1/app/current-user/settings/{key}` answers the value of one entry, and `PUT` on the
-same path stores it. The value is any JSON.
+same path stores it. The value is any JSON, with one exception: the key `_class` is refused with
+400, as the name of a setting and at any depth inside a value, because the database layer of the
+cockpit reserves it. The same holds for the notification and recipient configurations.
 
 Your user interface talks to these endpoints through one global settings service, see
 [behaviour.md](behaviour.md#user-settings). No other code calls them. The dev shell simulator answers

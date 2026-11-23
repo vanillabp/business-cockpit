@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.notification.api.v1;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,6 +20,7 @@ import io.vanillabp.cockpit.support.security.usercontext.UserContext;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.UserTaskVisibility;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
+import io.vanillabp.cockpit.users.model.TypeHintKey;
 import io.vanillabp.cockpit.users.model.UserRepository;
 
 /**
@@ -86,6 +88,16 @@ public class NotificationConfigGuiApiController implements OfficialNotificationC
   public ResponseEntity<Void> saveNotificationConfiguration(
       final NotificationConfiguration notificationConfiguration) {
 
+    // the key would make the whole document of the user unreadable for Spring Data
+    if (notificationConfiguration != null) {
+      TypeHintKey.refuseIn("globalAllViaMedium", notificationConfiguration.getGlobalAllViaMedium());
+      TypeHintKey.refuseIn("perWorkflow", notificationConfiguration.getPerWorkflow());
+      if (notificationConfiguration.getPerWorkflow() != null) {
+        notificationConfiguration.getPerWorkflow().values().stream()
+            .filter(Objects::nonNull)
+            .forEach(workflow -> TypeHintKey.refuseIn("perWorkflow.allViaMedium", workflow.getAllViaMedium()));
+      }
+    }
     final var userId = userContext.getUserLoggedInDetails().getId();
     // one atomic update of the field, so a setting written at the same time is no conflict
     userRepository.writeNotificationConfiguration(userId, toDomainConfig(notificationConfiguration));
@@ -116,6 +128,8 @@ public class NotificationConfigGuiApiController implements OfficialNotificationC
       return ResponseEntity.notFound().build();
     }
 
+    // the key would make the whole document of the user unreadable for Spring Data
+    TypeHintKey.refuseIn("recipient configuration", requestBody);
     final var userId = userContext.getUserLoggedInDetails().getId();
     service.saveRecipientConfiguration(userId, requestBody);
 

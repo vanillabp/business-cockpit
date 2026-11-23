@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,6 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.convert.MongoConverter;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
@@ -95,7 +98,11 @@ class AGroupOfTheHierarchyIsNotifiedTest {
     lead.setId(LEAD);
     lead.setNotificationConfiguration(new NotificationConfiguration(Map.of(EMAIL, true), Map.of()));
     final var users = mock(UserRepository.class);
-    when(users.findAll()).thenReturn(List.of(lead));
+    when(mongoTemplate.find(any(Query.class), eq(Document.class), eq(User.COLLECTION_NAME)))
+        .thenReturn(List.of(new Document("_id", LEAD)));
+    final var converter = mock(MongoConverter.class);
+    when(converter.read(eq(User.class), any(Bson.class))).thenReturn(lead);
+    when(mongoTemplate.getConverter()).thenReturn(converter);
 
     // the directory knows the lead as a lead only, and not as a member
     final var directory = mock(UserDirectoryService.class);

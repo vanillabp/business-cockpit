@@ -283,6 +283,34 @@ class TheSettingsOfAUserTest extends ItestBase {
   }
 
   /**
+   * Spring Data reads a key {@code _class} in a stored document as the Java type to create. A
+   * setting which held one would make the whole document of the user unreadable. So the key is
+   * refused as the name of a setting and at any depth inside a value.
+   */
+  @Test
+  void aTypeKeyAsTheNameOfASettingOrInsideItsValueIsRefused() {
+
+    final var inAnObject = guiPut(martin, SETTINGS + unique("type"), "{ \"_class\": \"com.example.Type\" }");
+    assertThat(inAnObject.statusCode()).isEqualTo(400);
+    assertThat(inAnObject.body()).contains("'_class'");
+
+    assertThat(guiPut(martin, SETTINGS + unique("type"), "[ { \"columns\": { \"_class\": 1 } } ]").statusCode())
+        .as("deep inside a list")
+        .isEqualTo(400);
+    assertThat(guiPut(martin, SETTINGS
+        + "_class", "\"com.example.Type\"").statusCode())
+        .as("as the name of the setting")
+        .isEqualTo(400);
+
+    assertThat(guiGet(martin, "/app/current-user").statusCode()).isEqualTo(200);
+    assertThat(guiPut(martin, "/notifications/config", """
+        { "globalAllViaMedium": { "email": true } }""").statusCode())
+        .as("the document of the user can still be read and written")
+        .isEqualTo(200);
+
+  }
+
+  /**
    * The GUI API reads a body of at most 1 MB, so a larger setting is refused before it is read.
    * Below that limit, a setting is refused where MongoDB refuses the document. All settings of a
    * user share one document, and MongoDB takes 16 MB, so the document fills up after about 16
