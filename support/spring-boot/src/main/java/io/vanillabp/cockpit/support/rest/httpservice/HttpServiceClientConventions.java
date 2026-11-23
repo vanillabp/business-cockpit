@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -22,6 +23,7 @@ import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.HttpClientSettings;
 import org.springframework.boot.http.client.HttpComponentsClientHttpRequestFactoryBuilder;
+import org.springframework.boot.http.client.HttpCookieHandling;
 import org.springframework.boot.http.client.HttpRedirects;
 import org.springframework.boot.http.client.JdkClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.autoconfigure.ApiversionProperties;
@@ -59,6 +61,11 @@ import org.springframework.web.service.registry.HttpServiceGroup;
  * gateway also hands the request factory of that key to every client through a
  * {@code RestClientCustomizer}, so {@link RequestFactoryAfterTheCustomizers} puts the factory of
  * the group back after the customizers.</li>
+ * <li>A group which sends the cookie of the user's request along, see
+ * {@link ForwardsTheUsersCookie}, keeps no cookies of its own. {@code spring.http.clients.cookie-handling}
+ * does not reach it, and its own key {@code cookie-handling} stops the start unless it is
+ * {@code disable}: the one HTTP client of the group would keep one store of cookies for all
+ * users.</li>
  * <li>A key below the prefix which no setting reads stops the start, so a typo does not go
  * unnoticed.</li>
  * </ul>
@@ -99,6 +106,8 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
 
   private final List<HttpServiceApiPath> apiPaths;
 
+  private final List<ForwardsTheUsersCookie> cookieForwarders;
+
   /** The request factory each group got, for {@link RequestFactoryAfterTheCustomizers}. */
   private final Map<String, ClientHttpRequestFactory> requestFactories = new ConcurrentHashMap<>();
 
@@ -123,6 +132,35 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
       final List<HttpServiceGroupPrefix> prefixes,
       final List<HttpServiceApiPath> apiPaths) {
 
+    this(environment, sslBundles, defaultSettings, requestFactoryBuilder, prefixes, apiPaths, List.of());
+
+  }
+
+  /**
+   * Creates the conventions. Two prefixes for one group stop the start here already.
+   *
+   * @param environment           where the keys are read from
+   * @param sslBundles            the SSL bundles of the application, or {@code null} if it has none
+   * @param defaultSettings       the settings for all clients, from {@code spring.http.clients.*}
+   * @param requestFactoryBuilder Spring Boot's, so its {@code ClientHttpRequestFactoryBuilderCustomizer}
+   *                              beans apply. {@code null} builds with the JDK's HttpClient.
+   * @param prefixes              where the keys of the groups live which do not use Spring Boot's
+   *                              place
+   * @param apiPaths              the paths of APIs which the groups with their interfaces add to
+   *                              their address
+   * @param cookieForwarders      say which groups send the cookie of the user's request along, so
+   *                              they keep no cookies of their own
+   */
+  public HttpServiceClientConventions(
+      final Environment environment,
+      final @Nullable SslBundles sslBundles,
+      final @Nullable HttpClientSettings defaultSettings,
+      final @Nullable ClientHttpRequestFactoryBuilder<?> requestFactoryBuilder,
+      final List<HttpServiceGroupPrefix> prefixes,
+      final List<HttpServiceApiPath> apiPaths,
+      final List<ForwardsTheUsersCookie> cookieForwarders) {
+
+    this.cookieForwarders = List.copyOf(cookieForwarders);
     this.environment = environment;
     this.sslBundles = sslBundles;
     // a group follows redirects unless its own 'redirects' key says otherwise, whatever
@@ -250,7 +288,11 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
     if (useOAuth) {
       checkOAuth(name, prefix, keys, problems);
     }
-    final var requestFactory = requestFactory(name, prefix, keys, problems);
+    final var forwardsTheUsersCookie = forwardsTheUsersCookie(group);
+    if (forwardsTheUsersCookie) {
+      checkNoCookieHandling(name, prefix, keys, problems);
+    }
+    final var requestFactory = requestFactory(name, prefix, keys, forwardsTheUsersCookie, problems);
     if (!problems.isEmpty()) {
       return problems;
     }
@@ -400,6 +442,41 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
 
   }
 
+  private boolean forwardsTheUsersCookie(
+      final HttpServiceGroup group) {
+
+    return group
+        .httpServiceTypes()
+        .stream()
+        .anyMatch(type -> cookieForwarders
+            .stream()
+            .anyMatch(forwarder -> forwarder.forwardsTheUsersCookieOf(type)));
+
+  }
+
+  /**
+   * A group which forwards the user's cookie must keep no cookies of its own. Its one HTTP client
+   * serves every user, so a stored cookie of one user would go out with the calls of the others.
+   */
+  private static void checkNoCookieHandling(
+      final String name,
+      final String prefix,
+      final HttpServiceGroupProperties keys,
+      final List<String> problems) {
+
+    final var cookieHandling = keys.getCookieHandling();
+    if ((cookieHandling == null) || (cookieHandling == HttpCookieHandling.DISABLE)) {
+      return;
+    }
+    problems.add("""
+        The HTTP service group '%s' sends the cookie of the user's request along, so it keeps no \
+        cookies of its own. With '%s.cookie-handling: %s' its one HTTP client would keep one store \
+        of cookies for all users, and a cookie the server sets in its answer to one user would go \
+        out with the calls of other users. Remove the key, or set it to 'disable'."""
+        .formatted(name, prefix, cookieHandling.name().toLowerCase(Locale.ROOT).replace('_', '-')));
+
+  }
+
   private static void checkProxy(
       final String name,
       final String prefix,
@@ -491,20 +568,25 @@ public class HttpServiceClientConventions implements RestClientHttpServiceGroupC
    * Spring Boot builds one request factory per group from its keys, but it reads them only below
    * {@code spring.http.serviceclient}, and it has no proxy, no {@code verify-ssl} and no size of the
    * connection pool. So the factory is built again here: from the group's keys, with the proxy and
-   * the pool. The login for the proxy is added by {@link ProxyLogin}.
+   * the pool. The login for the proxy is added by {@link ProxyLogin}. A group which forwards the
+   * user's cookie gets no cookie handling, whatever the keys for all clients say.
    */
   private @Nullable ClientHttpRequestFactory requestFactory(
       final String name,
       final String prefix,
       final HttpServiceGroupProperties keys,
+      final boolean forwardsTheUsersCookie,
       final List<String> problems) {
 
     final var ownBundle = keys.getSsl().getBundle();
-    final HttpClientSettings settings;
+    HttpClientSettings settings;
     try {
       settings = keys.isVerifySsl()
           ? settingsMapper.map(keys)
           : settingsMapper.map(keys).withSslBundle(TrustEveryServer.bundle(bundleOrNull(ownBundle)));
+      if (forwardsTheUsersCookie) {
+        settings = settings.withCookieHandling(HttpCookieHandling.DISABLE);
+      }
     } catch (NoSuchSslBundleException | IllegalStateException e) {
       problems.add("""
           The HTTP service group '%s' names the SSL bundle '%s' in '%s.ssl.bundle', but there is no \

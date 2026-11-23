@@ -2,8 +2,11 @@ package io.vanillabp.cockpit.support.security.jwt;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -16,6 +19,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtException;
 
 
 /**
@@ -365,6 +369,58 @@ public abstract class JwtMapper<D extends AbstractAuthenticationToken> {
       final JwtClaimsSet claimsSet) {
 
     return keySource.sign(claimsSet);
+
+  }
+
+  /**
+   * Chooses the token of a request out of the values of its login cookies. A browser sends the
+   * cookie more than once if it keeps an old one, because the path or the domain of the cookie
+   * changed since. An HTTP client which keeps one store of cookies for all its users sends the
+   * cookie of another user next to the one it forwards.
+   * <p>
+   * One value is taken as it is, and checked later like every token. Of several values, those
+   * which are not valid, expired for example, are left out. If the valid ones all name the same
+   * user, the one issued last is taken. If they name different users, none is taken, so the
+   * request goes on without a user, and a path which needs a login answers 401.
+   *
+   * @param tokens The values of all login cookies of the request
+   * @return The token to use, or empty for a request without a user
+   */
+  Optional<String> oneLoginOf(
+      final List<String> tokens) {
+
+    if (tokens.size() <= 1) {
+      return tokens.stream().findFirst();
+    }
+
+    final var valid = new ArrayList<Jwt>();
+    for (final var token : tokens) {
+      try {
+        valid.add(buildJwt(token));
+      } catch (JwtException e) {
+        // an old cookie the browser kept, which does not stand in the way of a valid one
+      }
+    }
+    final var users = valid
+        .stream()
+        .map(Jwt::getSubject)
+        .distinct()
+        .toList();
+    if (users.size() > 1) {
+      getLogger().warn("""
+          A request carries {} login cookies of {} different users, so it goes on without a user. \
+          A browser keeps an old cookie when the path or the domain of the cookie changed. That \
+          ends when the older login expires. An HTTP client which keeps cookies for all its users \
+          sends such requests as well. Switch its cookie handling off.""",
+          tokens.size(), users.size());
+      return Optional.empty();
+    }
+    return valid
+        .stream()
+        .max(Comparator.comparing(jwt -> Optional
+            .ofNullable(jwt.getIssuedAt())
+            .orElse(Instant.EPOCH)))
+        .map(Jwt::getTokenValue);
 
   }
 

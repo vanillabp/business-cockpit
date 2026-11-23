@@ -1,6 +1,8 @@
 package io.vanillabp.cockpit.support.security.jwt;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.JwtException;
@@ -18,7 +20,8 @@ import jakarta.servlet.http.HttpServletResponse;
  * Reads the login token from its cookie and makes the user known to Spring Security for this
  * request. It is passive: it never answers a request on its own. A request without a token, or
  * with a token which is not valid, goes on without a user, and the security rules decide what it
- * may do.
+ * may do. So does a request with login cookies of two different users: the cookie of one user must
+ * not be taken for a request which carries the cookie of another.
  */
 public class PassiveJwtSecurityFilter extends OncePerRequestFilter {
 
@@ -76,6 +79,10 @@ public class PassiveJwtSecurityFilter extends OncePerRequestFilter {
 
   }
 
+  /**
+   * The token of the request. A request may carry the cookie more than once, and then the one user
+   * the cookies agree on is taken, see {@link JwtMapper#oneLoginOf(List)}.
+   */
   private String resolveToken(
       final HttpServletRequest request) {
 
@@ -84,13 +91,13 @@ public class PassiveJwtSecurityFilter extends OncePerRequestFilter {
       return null;
     }
 
-    for (final Cookie cookie : cookies) {
-      if (cookie.getName().equals(properties.getCookie().getName())) {
-        return cookie.getValue();
-      }
-    }
-
-    return null;
+    final var tokens = Arrays
+        .stream(cookies)
+        .filter(cookie -> cookie.getName().equals(properties.getCookie().getName()))
+        .map(Cookie::getValue)
+        .filter(StringUtils::hasText)
+        .toList();
+    return jwtMapper.oneLoginOf(tokens).orElse(null);
 
   }
 

@@ -136,6 +136,13 @@ A call outside of a request, in a test or in a scheduled job, sends no cookie. A
 the `Cookie` header itself, for example through a `default-header` key, keeps its own. The servlet
 API is an optional dependency: an application without it never forwards a cookie.
 
+A group with an interface of this API keeps no cookies of its own. A group has one HTTP client for
+all users, so a store of cookies would be shared by all of them, and the cookie the cockpit sends
+back to one user, a renewed login for example, would go out with the calls of the next user. So
+`spring.http.clients.cookie-handling` does not switch cookies on for such a group, and its own key
+`cookie-handling` stops the start with any value but `disable`. The cockpit, too, answers a request
+with login cookies of two different users as a request without a login.
+
 ```java
 @Component
 class Assignment {
