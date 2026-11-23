@@ -685,7 +685,9 @@ components:
             every dot of a key is stored as the replacement and comes back as a dot. That costs
             two things. Search and sorting find such a key only by its stored form, like
             'details.order~id' for the replacement '~'. And a key which holds the replacement
-            already comes back with a dot in its place.
+            already comes back with a dot in its place. A whole number beyond the range of a
+            64-bit integer cannot be stored either, and such a report is answered with 422 as well.
+            A decimal number is stored as a double.
           additionalProperties: true
           example: '{ "customer": "passanger A" }'
         detailsFulltextSearch:
@@ -848,7 +850,9 @@ components:
             every dot of a key is stored as the replacement and comes back as a dot. That costs
             two things. Search and sorting find such a key only by its stored form, like
             'details.order~id' for the replacement '~'. And a key which holds the replacement
-            already comes back with a dot in its place.
+            already comes back with a dot in its place. A whole number beyond the range of a
+            64-bit integer cannot be stored either, and such a report is answered with 422 as well.
+            A decimal number is stored as a double.
           additionalProperties: true
           example: '{ "ride-request": "4711" }'
         detailsFulltextSearch:

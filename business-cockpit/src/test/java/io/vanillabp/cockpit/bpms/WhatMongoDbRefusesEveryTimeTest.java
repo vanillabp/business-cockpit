@@ -2,6 +2,8 @@ package io.vanillabp.cockpit.bpms;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,11 +12,13 @@ import java.util.UUID;
 
 import org.bson.BsonMaximumSizeExceededException;
 import org.bson.Document;
+import org.bson.codecs.configuration.CodecConfigurationException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.core.NestedExceptionUtils;
+import org.springframework.core.convert.ConversionFailedException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Sort;
@@ -47,6 +51,8 @@ import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.integration.test.utils.ContainerImages;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Which failed saves {@link OutcomeOfStoring} treats as failing every time. Measured against a
@@ -56,13 +62,16 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * Spring translates it, and what it wraps. Each test stores one user task through the real
  * {@link UserTaskService}, so the outcome is the one a REST call or a Kafka record gets.
  * <p>
- * All three failures which fail every time are about the document alone, so the same report fails
+ * All failures which fail every time are about the document alone, so the same report fails
  * the same way however often it comes. The one failure shown which goes away is a report stored in
  * between.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
 class WhatMongoDbRefusesEveryTimeTest {
+
+  private static final TypeReference<Map<String, Object>> A_JSON_OBJECT = new TypeReference<>() {
+  };
 
   private static final OffsetDateTime CREATED_AT = OffsetDateTime.parse("2026-10-04T08:00:00Z");
 
@@ -222,6 +231,110 @@ class WhatMongoDbRefusesEveryTimeTest {
     assertThat(outcome.reason()).isEqualTo(
         "The user task 'task-1' cannot be stored: an index of the collection covers two fields which both hold a list. "
             + "Drop that index, its name starts with '_sort_'.");
+
+  }
+
+  /**
+   * MongoDB keeps a decimal number in 34 digits. A number with more, as {@code new BigDecimal(0.1)}
+   * gives it, cannot be converted, and it cannot be converted when it comes again either. A report
+   * over Kafka carries every number as such a decimal.
+   */
+  @Test
+  void aNumberWithMoreDigitsThanMongoDbKeepsFailsEveryTime() {
+
+    final var service = serviceOn(cockpitLikeTemplate());
+    final var digits = "0.1000000000000000055511151231257827021181583404541015625";
+
+    final var outcome = service.reportCreatedUserTask(
+        "task-1",
+        CREATED_AT,
+        () -> reportedTask("task-1", Map.of("amount", new BigDecimal(digits))));
+
+    assertThat(outcome.isUpToDate()).isFalse();
+    assertThat(outcome.failure())
+        .as("Spring wraps what the converter throws")
+        .isInstanceOf(ConversionFailedException.class)
+        .hasRootCauseInstanceOf(NumberFormatException.class);
+    assertThat(outcome.failsEveryTime()).isTrue();
+    assertThat(outcome.reason())
+        .isEqualTo("The user task 'task-1' cannot be stored: it holds a value which MongoDB cannot store, "
+            + "like a decimal number with more than 34 digits or a whole number beyond the range of a long.")
+        .as("the reason never repeats a value of the report")
+        .doesNotContain("1000000000000000055511151231257827021181583404541015625");
+
+  }
+
+  /** A decimal number whose exponent MongoDB cannot keep fails the same way. */
+  @Test
+  void aNumberWithAnExponentMongoDbCannotTakeFailsEveryTime() {
+
+    final var service = serviceOn(cockpitLikeTemplate());
+
+    final var outcome = service.reportCreatedUserTask(
+        "task-1",
+        CREATED_AT,
+        () -> reportedTask("task-1", Map.of("amount", new BigDecimal("1E+7000"))));
+
+    assertThat(outcome.isUpToDate()).isFalse();
+    assertThat(outcome.failure())
+        .isInstanceOf(ConversionFailedException.class)
+        .hasRootCauseInstanceOf(NumberFormatException.class);
+    assertThat(outcome.failsEveryTime()).isTrue();
+    assertThat(outcome.reason()).doesNotContain("7000");
+
+  }
+
+  /**
+   * What a report over REST carries: Jackson reads a decimal number of the JSON body as a double,
+   * which MongoDB stores rounded, and a whole number beyond the range of a long as a
+   * {@link BigInteger}. The driver of MongoDB cannot store a {@code BigInteger}, so such a report
+   * fails every time.
+   */
+  @Test
+  void aWholeNumberOfAJsonBodyBeyondTheRangeOfALongFailsEveryTime() {
+
+    final var mongoTemplate = cockpitLikeTemplate();
+    final var service = serviceOn(mongoTemplate);
+    final Map<String, Object> decimal = JsonMapper
+        .builder()
+        .build()
+        .readValue("{\"amount\": 0.1000000000000000055511151231257827021181583404541015625}", A_JSON_OBJECT);
+    final Map<String, Object> whole = JsonMapper
+        .builder()
+        .build()
+        .readValue("{\"amount\": 10000000000000000000000000000000000}", A_JSON_OBJECT);
+
+    final var decimalOutcome = service.reportCreatedUserTask("task-1", CREATED_AT,
+        () -> reportedTask("task-1", decimal));
+    final var wholeOutcome = service.reportCreatedUserTask("task-2", CREATED_AT, () -> reportedTask("task-2", whole));
+
+    assertThat(decimal.get("amount")).isInstanceOf(Double.class);
+    assertThat(decimalOutcome.isUpToDate()).isTrue();
+    assertThat(whole.get("amount")).isInstanceOf(BigInteger.class);
+    assertThat(wholeOutcome.isUpToDate()).isFalse();
+    assertThat(wholeOutcome.failure())
+        .as("the driver has no codec for a BigInteger, whatever its size")
+        .isInstanceOf(CodecConfigurationException.class);
+    assertThat(wholeOutcome.failsEveryTime()).isTrue();
+    assertThat(wholeOutcome.reason()).doesNotContain("10000000000000000000000000000000000");
+
+  }
+
+  /** The positive twin of the tests above: a decimal number of 34 digits is stored as it is. */
+  @Test
+  void aNumberOf34DigitsIsStored() {
+
+    final var mongoTemplate = cockpitLikeTemplate();
+    final var service = serviceOn(mongoTemplate);
+    final var digits = new BigDecimal("0.1000000000000000055511151231257827");
+
+    final var outcome = service.reportCreatedUserTask(
+        "task-1",
+        CREATED_AT,
+        () -> reportedTask("task-1", Map.of("amount", digits)));
+
+    assertThat(outcome.isUpToDate()).isTrue();
+    assertThat(service.getUserTask("task-1").getDetails().get("amount")).hasToString(digits.toPlainString());
 
   }
 
