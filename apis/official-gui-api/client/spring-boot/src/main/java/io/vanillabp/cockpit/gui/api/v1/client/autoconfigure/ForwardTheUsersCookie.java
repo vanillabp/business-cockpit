@@ -15,6 +15,8 @@ import org.springframework.web.client.support.RestClientHttpServiceGroupConfigur
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import io.vanillabp.cockpit.support.rest.httpservice.ForwardsTheUsersCookie;
+
 /**
  * Sends the cookie of the user's request along with each call of the official GUI API. The cookie
  * holds the user's login, so the cockpit answers as the user who sent the request to the workflow
@@ -26,9 +28,11 @@ import org.springframework.web.context.request.ServletRequestAttributes;
  * {@code Cookie} header itself keeps its own.
  * <p>
  * It applies to every HTTP service group with an interface of the API, the group of
- * {@link OfficialGuiApiClientAutoConfiguration} and the groups of the application alike.
+ * {@link OfficialGuiApiClientAutoConfiguration} and the groups of the application alike. Such a
+ * group keeps no cookies of its own, see {@link ForwardsTheUsersCookie}: its one HTTP client serves
+ * every user.
  */
-public class ForwardTheUsersCookie implements RestClientHttpServiceGroupConfigurer, ClientHttpRequestInterceptor {
+public class ForwardTheUsersCookie implements RestClientHttpServiceGroupConfigurer, ClientHttpRequestInterceptor, ForwardsTheUsersCookie {
 
   private static final boolean SERVLET_PRESENT = ClassUtils.isPresent("jakarta.servlet.http.HttpServletRequest",
       ForwardTheUsersCookie.class.getClassLoader());
@@ -56,6 +60,12 @@ public class ForwardTheUsersCookie implements RestClientHttpServiceGroupConfigur
             group,
             builder) -> builder.requestInterceptor(this));
 
+  }
+
+  @Override
+  public boolean forwardsTheUsersCookieOf(
+      final Class<?> type) {
+    return isOfTheApi(type);
   }
 
   private boolean isOfTheApi(

@@ -17,8 +17,9 @@ depends on the module of its platform.
   all users, which the application provides. `GroupHierarchyResolver`, which adds the groups a
   group hierarchy implies to the groups a user is assigned to. `DirectoryUserLookup` asks the
   directory for the user of a token on every request and gives a `LoggedInUser` with the authority
-  `USER_<id>` and the groups. A user the directory does not know keeps its login without groups and
-  is warned about once a minute at most. A directory which fails fails the request.
+  `USER_<id>` and the groups. A request of a user the directory does not know goes on without
+  groups, and the user is warned about once a minute at most. The cockpit stops renewing the login
+  of a user the directory knew before. A directory which fails fails the request.
   `UserDirectoryIsMissing` holds the words both platforms say when the application has no
   directory.
 - `io.vanillabp.cockpit.support.usertask`: `BcUnknownTaskException`, `BcTaskNotOpenException` and

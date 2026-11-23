@@ -322,6 +322,10 @@ public class GuiSecurityConfiguration {
             .requestMatchers(appInfoRequestMatcher, currentUserRequestMatcher, assetsRequestMatcher,
                 staticRequestMatcher, workflowModulesProxyRequestMatcher)
             .permitAll()
+            // the actuator is for operations, not for the users of the cockpit. An application
+            // which exposes an endpoint writes a chain of its own for it, with a lower order
+            .requestMatchers(pathPattern("/actuator/**"))
+            .denyAll()
             .anyRequest()
             .authenticated())
         .logout(logout -> logout

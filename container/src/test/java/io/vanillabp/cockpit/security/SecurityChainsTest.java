@@ -25,9 +25,11 @@ import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockServletContext;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.ObjectPostProcessor;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
@@ -49,6 +51,7 @@ import io.vanillabp.cockpit.support.security.jwt.JwtSecurityContextRepository;
 import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
+import jakarta.servlet.http.Cookie;
 
 /**
  * The servlet security chains of this application: the chain of the BPMS API, and the two GUI chains
@@ -419,6 +422,38 @@ class SecurityChainsTest {
         .isEqualTo(HttpStatus.UNAUTHORIZED.value());
     assertThat(send(chain, "/bpms/api/v1_1/workflow-module/x", "application/json").getStatus())
         .isEqualTo(HttpStatus.UNAUTHORIZED.value());
+
+  }
+
+  /**
+   * The actuator endpoints are for operations, not for the users of the cockpit. Both chains
+   * refuse them even to a user who is logged in. An application which exposes an endpoint writes a
+   * chain of its own for {@code /actuator/**}.
+   */
+  @Test
+  void theActuatorIsRefusedToAUserWhoIsLoggedIn() throws Exception {
+
+    for (final var chain : bothGuiChains()) {
+      final var request = new MockHttpServletRequest("DELETE", "/actuator/userdirectorycache");
+      request.setCookies(new Cookie("bc", loginToken()));
+      final var response = new MockHttpServletResponse();
+      final var passedOn = new MockFilterChain();
+
+      new FilterChainProxy(chain).doFilter(request, response, passedOn);
+
+      assertThat(passedOn.getRequest())
+          .as("the request does not reach the endpoint")
+          .isNull();
+      assertThat(response.getStatus()).isEqualTo(HttpStatus.FORBIDDEN.value());
+    }
+
+  }
+
+  private String loginToken() {
+
+    final var context = new SecurityContextImpl(new UsernamePasswordAuthenticationToken(
+        "test", "", List.of()));
+    return jwtMapper().toToken(context).orElseThrow().getKey();
 
   }
 

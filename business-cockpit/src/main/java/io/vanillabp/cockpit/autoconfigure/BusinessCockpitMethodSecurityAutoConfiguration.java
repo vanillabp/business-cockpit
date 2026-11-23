@@ -30,9 +30,10 @@ public class BusinessCockpitMethodSecurityAutoConfiguration {
 
     new WholeApplicationSwitch(
         "@EnableMethodSecurity(securedEnabled = true)", "@Secured is enforced on every bean of this application, yours included. The cockpit "
-            + "needs it for the BPMS API, whose controllers carry @Secured.", "set 'business-cockpit.method-security.enabled: false' and write @EnableMethodSecurity "
-                + "yourself. Without it the BPMS API is left with what its own security chain "
-                + "protects.")
+            + "needs it for the BPMS API, whose controllers carry @Secured.", "set 'business-cockpit.method-security.enabled: false' and write "
+                + "@EnableMethodSecurity(securedEnabled = true) yourself. A plain @EnableMethodSecurity "
+                + "does not count @Secured, and the start stops then, because the BPMS API would be "
+                + "open to every user who is logged in.")
         .reportTo(logger);
 
   }

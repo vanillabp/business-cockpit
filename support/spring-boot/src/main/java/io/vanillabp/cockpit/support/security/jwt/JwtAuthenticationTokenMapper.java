@@ -36,6 +36,8 @@ public class JwtAuthenticationTokenMapper extends JwtMapper<JwtAuthenticationTok
 
   private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationTokenMapper.class);
 
+  private final UserDirectoryService userDirectory;
+
   private final DirectoryUserLookup userLookup;
 
   private Clock clock = Clock.systemUTC();
@@ -55,6 +57,7 @@ public class JwtAuthenticationTokenMapper extends JwtMapper<JwtAuthenticationTok
       final Function<Collection<String>, Collection<String>> groupResolverFunction) {
 
     super(properties);
+    this.userDirectory = userDirectory;
     this.userLookup = lookupWithTheClockOfThisMapper(userDirectory, groupResolverFunction);
 
   }
@@ -76,6 +79,7 @@ public class JwtAuthenticationTokenMapper extends JwtMapper<JwtAuthenticationTok
       final Function<Collection<String>, Collection<String>> groupResolverFunction) {
 
     super(properties, keySource);
+    this.userDirectory = userDirectory;
     this.userLookup = lookupWithTheClockOfThisMapper(userDirectory, groupResolverFunction);
 
   }
@@ -134,16 +138,41 @@ public class JwtAuthenticationTokenMapper extends JwtMapper<JwtAuthenticationTok
    * Writes the user id as subject. The id is the name of the authentication. For a login by user
    * name and password it is the user name. For a login by OpenID Connect it is the claim Spring
    * Security is configured to name the user by, {@code sub} by default. No groups are written.
+   * <p>
+   * If the directory knows the user, the claim {@value JwtMapper#KNOWN_TO_THE_DIRECTORY_CLAIM}
+   * says so. Then the login is not renewed once the directory does not know the user any more,
+   * see {@link JwtCookie#getUnknownUserRenewal()}.
    */
   @Override
   protected void applyJwtClaimsSet(
       final JwtClaimsSet.Builder claimsSetBuilder,
       final SecurityContext context) {
 
+    final var userId = context.getAuthentication().getName();
     claimsSetBuilder
         .issuer("bc")
-        .subject(context.getAuthentication().getName())
+        .subject(userId)
         .audience(List.of("bc"));
+    if (directoryKnows(userId)) {
+      claimsSetBuilder.claim(KNOWN_TO_THE_DIRECTORY_CLAIM, true);
+    }
+
+  }
+
+  /**
+   * A directory which fails does not stop the login. The next request asks the directory again,
+   * and it fails there if the directory still fails. The first renewal which finds the user notes
+   * the claim.
+   */
+  private boolean directoryKnows(
+      final String userId) {
+
+    try {
+      return userDirectory.getUser(userId).isPresent();
+    } catch (RuntimeException e) {
+      logger.debug("The user directory could not load the user '{}' at the login.", userId, e);
+      return false;
+    }
 
   }
 

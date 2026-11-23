@@ -97,6 +97,8 @@ public class DerivedCockpitSecurity {
             .requestMatchers(appInfoRequestMatcher, currentUserRequestMatcher, assetsRequestMatcher,
                 staticRequestMatcher, workflowModulesProxyRequestMatcher)
             .permitAll()
+            .requestMatchers(pathPattern("/actuator/**"))
+            .denyAll()
             .anyRequest()
             .authenticated())
         .authenticationManager(new ProviderManager(new DaoAuthenticationProvider(persons)))

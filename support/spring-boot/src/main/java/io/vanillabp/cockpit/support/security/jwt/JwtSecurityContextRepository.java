@@ -5,8 +5,6 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Optional;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.context.DeferredSecurityContext;
 import org.springframework.security.core.context.SecurityContext;
@@ -37,8 +35,6 @@ import jakarta.servlet.http.HttpServletResponse;
  * wrapped request and response to notice a context being written.
  */
 public class JwtSecurityContextRepository implements SecurityContextRepository {
-
-  private static final Logger logger = LoggerFactory.getLogger(JwtSecurityContextRepository.class);
 
   private final JwtProperties properties;
 
@@ -169,18 +165,14 @@ public class JwtSecurityContextRepository implements SecurityContextRepository {
       return Optional.empty();
     }
 
-    final var matching = Arrays
+    // several cookies are chosen from as PassiveJwtSecurityFilter chooses
+    final var tokens = Arrays
         .stream(cookies)
         .filter(cookie -> cookie.getName().equals(properties.getCookie().getName()))
+        .map(Cookie::getValue)
+        .filter(token -> (token != null) && !token.isBlank())
         .toList();
-    if (matching.isEmpty()) {
-      return Optional.empty();
-    }
-    if (matching.size() > 1) {
-      logger.warn("Got more than one cookie named '{}'. Will use the first!",
-          properties.getCookie().getName());
-    }
-    return Optional.of(matching.get(0).getValue());
+    return jwtMapper.oneLoginOf(tokens);
 
   }
 

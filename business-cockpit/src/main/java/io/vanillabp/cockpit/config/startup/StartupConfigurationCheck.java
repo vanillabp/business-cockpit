@@ -9,6 +9,8 @@ import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.DEFAULT_L
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.JWT_EXPIRES_DURATION;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.JWT_KEY;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.JWT_MAX_LOGIN_DURATION;
+import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.JWT_SAME_SITE;
+import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.JWT_SECURE;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.KAFKA_GROUP_ID_SUFFIX;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.KAFKA_TOPIC_USER_TASK;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.KAFKA_TOPIC_WORKFLOW;
@@ -68,8 +70,10 @@ import io.vanillabp.cockpit.users.directory.UserDirectoryConfiguration;
  * {@link CockpitIsNotConfiguredException} listing all of them.</li>
  * <li>Values which switch off one feature let the application boot. They are reported as a
  * warning naming that feature, so the developer can fix them one start at a time.</li>
- * <li>The JWT signing key is generated on the spot and the generated value is handed to the
- * developer to copy, because guessing a key is the one thing this check can do for them.</li>
+ * <li>A missing JWT signing key is generated on the spot, for this start only. The generated key
+ * is never logged, because whoever reads the log could sign a login with it. The warning shows the
+ * command which creates a key of one's own. A key which anybody can read in the sources, or which
+ * is too weak, is a warning as well.</li>
  * <li>A missing security chain is a warning. The library brings none, and the application decides
  * how it is protected. A missing user details provider stops the start, because nothing works
  * without it. So does a missing user directory, a second one, or settings of the directory the
@@ -96,6 +100,20 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
   private static final String WIKI_SECURITY = "https://github.com/vanillabp/business-cockpit/wiki/Security";
 
   private static final String GENERATED_JWT_KEY_SOURCE = "business-cockpit-generated-jwt-key";
+
+  /**
+   * Creates a key of 256 bits in Base64, the shortest an HMAC-SHA256 key may be.
+   */
+  static final String COMMAND_WHICH_CREATES_A_JWT_KEY = "openssl rand -base64 32";
+
+  /**
+   * The key of the profile {@code local} of the module {@code container} and of the simulators of
+   * the development tools. It is in the public sources, so anybody can sign a login with it.
+   */
+  static final String PUBLISHED_JWT_KEY = "4FTHgU8uHPy/ahy8IhXHj/K/BVlh7snSUtf3m1XWLkg=";
+
+  /** HMAC-SHA256 needs a key of at least 256 bits. */
+  private static final int SHORTEST_JWT_KEY_IN_BYTES = 32;
 
   /**
    * Holds the defaults of the two lifetimes of the login token, so they are written down once.
@@ -151,10 +169,13 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
     failOnARemovedProperty(environment);
     failOnAnUnusableMapKeyDotReplacement(environment);
     failOnAnUnusableJwtLifetime(environment);
+    failOnAJwtCookieABrowserDrops(environment);
     failOnAnUnusableSortIndexLimit(environment);
     failOnAnUnusableUserDirectory(environment);
     generateAJwtKeyIfNoneIsConfigured(environment);
+    warnAboutAWeakJwtKey(environment);
     warnAboutALoginWhichIsNeverRenewed(environment);
+    warnAboutACookieWhichIsNotSecureOverHttps(environment);
     warnAboutKafkaIngestion(environment);
     warnAboutUserDirectorySettingsWhichAreNotRead(environment);
     warnAboutTheRemainingValues(environment);
@@ -308,6 +329,57 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
     if (!unusable.isEmpty()) {
       throw new JwtLifetimeIsNotUsableException(List.copyOf(unusable));
     }
+
+  }
+
+  /**
+   * The cookie is written only when somebody logs in, and a browser which drops it says nothing to
+   * the server. So a combination which cannot work is reported now instead.
+   */
+  private void failOnAJwtCookieABrowserDrops(
+      final Environment environment) {
+
+    final var sameSite = CockpitConfiguration.valueOf(environment, JWT_SAME_SITE).orElse("").trim();
+    if (!"none".equalsIgnoreCase(sameSite) || isJwtCookieSecure(environment)) {
+      return;
+    }
+    throw new JwtCookieIsNotUsableException(List.of(new MissingConfiguration(
+        JWT_SECURE, "'"
+            + JWT_SAME_SITE
+            + "' is '"
+            + sameSite
+            + "', so the browser sends the cookie with "
+            + "requests of other sites as well. A browser takes such a cookie only if it is sent over HTTPS only.", JWT_SECURE
+                + ": true")));
+
+  }
+
+  /**
+   * A cockpit reached over HTTPS needs no login cookie which travels over plain HTTP. Without
+   * {@code secure} a browser sends it there as well, for example after a link to {@code http://}.
+   * A developer's machine runs without HTTPS, so the default stays and this is a warning.
+   */
+  private void warnAboutACookieWhichIsNotSecureOverHttps(
+      final Environment environment) {
+
+    final var applicationUri = CockpitConfiguration.valueOf(environment, APPLICATION_URI).orElse("").trim();
+    if (!applicationUri.regionMatches(true, 0, "https://", 0, "https://".length()) || isJwtCookieSecure(environment)) {
+      return;
+    }
+
+    logger.warn("""
+        The cockpit is reached at '{}' ('{}'), but its login cookie is not secure, so a browser \
+        sends it over plain HTTP as well. Set:
+
+          {}: true""",
+        applicationUri, APPLICATION_URI, JWT_SECURE);
+
+  }
+
+  private static boolean isJwtCookieSecure(
+      final Environment environment) {
+
+    return "true".equalsIgnoreCase(CockpitConfiguration.valueOf(environment, JWT_SECURE).orElse("").trim());
 
   }
 
@@ -535,7 +607,8 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
   /**
    * A cockpit without a signing key could not hand out a single login cookie, so a key is made up
    * rather than refusing to start. It is only good for this run, which is what the warning is
-   * about.
+   * about. The key is not part of the warning: whoever reads the log could sign a login for any
+   * user with it, at the cockpit and at every workflow module which shares the key.
    */
   private void generateAJwtKeyIfNoneIsConfigured(
       final ConfigurableEnvironment environment) {
@@ -552,16 +625,79 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
         .addFirst(new MapPropertySource(GENERATED_JWT_KEY_SOURCE, Map.of(JWT_KEY, generatedKey)));
 
     logger.warn("""
-        No JWT signing key is configured, so one was generated for this start. Every restart \
-        and every further instance of this application signs with a different key, which \
-        logs all users out. Missing:
+        No JWT signing key is configured, so one was generated for this start only. It is not \
+        shown here. Every restart and every further instance of this application signs with a \
+        different key, which logs all users out. Create a key of your own with '{}', and give it \
+        to the cockpit and to every workflow module which checks its login. Missing:
 
         {}""",
+        COMMAND_WHICH_CREATES_A_JWT_KEY,
         new MissingConfiguration(
-            JWT_KEY, "The Base64 encoded HMAC-SHA256 key the login cookie is signed with.", JWT_KEY
-                + ": "
-                + generatedKey)
+            JWT_KEY, "The Base64 encoded HMAC-SHA256 key the login cookie is signed with, at least 256 bits.", JWT_KEY
+                + ": <the output of '"
+                + COMMAND_WHICH_CREATES_A_JWT_KEY
+                + "'>")
             .asMessageBlock());
+
+  }
+
+  /**
+   * A configured key which cannot keep a login safe lets the application start, because a
+   * developer's machine may use it. The warning names the reason and the command for a better key,
+   * never the key.
+   */
+  private void warnAboutAWeakJwtKey(
+      final Environment environment) {
+
+    final var key = CockpitConfiguration.valueOf(environment, JWT_KEY).orElse("").trim();
+    if (key.isEmpty() || environment.getProperty(JWT_KEY, "").equals(generatedKeyOf(environment))) {
+      return;
+    }
+
+    final String reason;
+    if (key.equals(PUBLISHED_JWT_KEY)) {
+      reason = """
+          is the key of the profile 'local' and of the simulators of the Business Cockpit. It is \
+          in the public sources, so anybody can sign a login for any user with it. Use it on a \
+          developer's machine only.""";
+    } else {
+      final var length = lengthInBytesOf(key);
+      if (length < 0) {
+        reason = "is no Base64, so it cannot be read as a key.";
+      } else if (length < SHORTEST_JWT_KEY_IN_BYTES) {
+        reason = "has %d bits, but HMAC-SHA256 needs a key of at least 256 bits. Such a key is easy to guess."
+            .formatted(length * 8);
+      } else {
+        return;
+      }
+    }
+
+    logger.warn("""
+        The JWT signing key in '{}' {} Create a key of your own with '{}' and set it in '{}'.""",
+        JWT_KEY, reason, COMMAND_WHICH_CREATES_A_JWT_KEY, JWT_KEY);
+
+  }
+
+  private static String generatedKeyOf(
+      final Environment environment) {
+
+    if (environment instanceof ConfigurableEnvironment configurable && configurable.getPropertySources()
+        .get(GENERATED_JWT_KEY_SOURCE) instanceof MapPropertySource generated) {
+      return String.valueOf(generated.getProperty(JWT_KEY));
+    }
+    return null;
+
+  }
+
+  /** The length of the decoded key, or -1 if it is no Base64. */
+  private static int lengthInBytesOf(
+      final String key) {
+
+    try {
+      return Base64.getDecoder().decode(key).length;
+    } catch (IllegalArgumentException e) {
+      return -1;
+    }
 
   }
 

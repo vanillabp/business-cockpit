@@ -62,7 +62,9 @@ public class JwtStartupCheck {
       JwtSettings.PREFIX
           + ".cookie.expires-duration",
       JwtSettings.PREFIX
-          + ".cookie.max-login-duration");
+          + ".cookie.max-login-duration",
+      JwtSettings.PREFIX
+          + ".cookie.unknown-user-renewal");
 
   /**
    * Up to this many single-character edits, a key counts as a misspelling of a known key.

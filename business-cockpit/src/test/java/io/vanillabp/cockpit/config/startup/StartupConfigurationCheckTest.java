@@ -289,23 +289,59 @@ class StartupConfigurationCheckTest {
   }
 
   /**
-   * The key is the one value the check can make up itself, so it does. The message hands over the
-   * generated key, so that somebody can write it down.
+   * The key is the one value the check can make up itself, so it does, for this start only. The
+   * key in use never appears in the log: whoever reads the log could sign a login with it. The
+   * message says how to create a key of one's own instead.
    */
   @Test
-  void aMissingSigningKeyIsGeneratedAndHandedToTheDeveloper() {
+  void aMissingSigningKeyIsGeneratedForThisStartButNeverLogged() {
 
     final var environment = configurationWithout(CockpitConfiguration.JWT_KEY);
 
     check.checkConfigurationOf(environment);
 
-    assertThat(warnings()).contains(CockpitConfiguration.JWT_KEY);
     final var generated = environment.getProperty(CockpitConfiguration.JWT_KEY);
     assertThat(generated).isNotBlank();
-    assertThat(warnings()).contains("Example: "
-        + CockpitConfiguration.JWT_KEY
-        + ": "
-        + generated);
+    assertThat(warnings())
+        .contains(CockpitConfiguration.JWT_KEY)
+        .contains("openssl rand -base64 32")
+        .contains("for this start only")
+        .doesNotContain(generated);
+
+  }
+
+  /**
+   * The profile 'local' and the simulators bring a key which anybody can read in the sources. It
+   * is fine on a developer's machine, so it is a warning, which names the command for a key of
+   * one's own.
+   */
+  @Test
+  void thePublishedKeyOfTheProfileLocalIsAWarning() {
+
+    check.checkConfigurationOf(configurationWithout()
+        .withProperty(CockpitConfiguration.JWT_KEY, "4FTHgU8uHPy/ahy8IhXHj/K/BVlh7snSUtf3m1XWLkg="));
+
+    assertThat(warnings())
+        .contains(CockpitConfiguration.JWT_KEY)
+        .contains("profile 'local'")
+        .contains("openssl rand -base64 32");
+
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "abc", "123", "MTIz"
+  })
+  void aKeyWhichIsTooShortOrNoBase64IsAWarning(
+      final String key) {
+
+    check.checkConfigurationOf(configurationWithout().withProperty(CockpitConfiguration.JWT_KEY, key));
+
+    assertThat(warnings())
+        .contains(CockpitConfiguration.JWT_KEY)
+        .contains("openssl rand -base64 32")
+        .doesNotContain(key
+            + "'");
 
   }
 
@@ -572,6 +608,61 @@ class StartupConfigurationCheckTest {
             + CockpitConfiguration.JWT_EXPIRES_DURATION
             + ": PT12H")
         .hasMessageNotContaining(CockpitConfiguration.JWT_MAX_LOGIN_DURATION);
+
+  }
+
+  /**
+   * A browser drops a cookie with {@code SameSite=None} which is not {@code Secure}, so nobody
+   * could log in.
+   */
+  @Test
+  void aCookieForOtherSitesWhichIsNotSecureStopsTheStart() {
+
+    final var environment = configurationWithout()
+        .withProperty("business-cockpit.jwt.cookie.same-site", "none");
+
+    assertThatThrownBy(() -> check.checkConfigurationOf(environment))
+        .hasMessageContaining("business-cockpit.jwt.cookie.same-site")
+        .hasMessageContaining("Example: business-cockpit.jwt.cookie.secure: true");
+
+  }
+
+  @Test
+  void aCookieForOtherSitesWhichIsSecureIsAccepted() {
+
+    check.checkConfigurationOf(configurationWithout()
+        .withProperty("business-cockpit.jwt.cookie.same-site", "None")
+        .withProperty("business-cockpit.jwt.cookie.secure", "true"));
+
+    assertThat(warnings()).isEmpty();
+
+  }
+
+  /**
+   * A cockpit reached over HTTPS should send its login cookie over HTTPS only. Without
+   * {@code secure} the browser sends it over plain HTTP as well, for example after a link to
+   * {@code http://}. The application starts, and the warning shows the line to copy.
+   */
+  @Test
+  void aCockpitReachedOverHttpsWithACookieWhichIsNotSecureIsAWarning() {
+
+    check.checkConfigurationOf(configurationWithout()
+        .withProperty(CockpitConfiguration.APPLICATION_URI, "https://cockpit.example.com"));
+
+    assertThat(warnings())
+        .contains(CockpitConfiguration.APPLICATION_URI)
+        .contains("business-cockpit.jwt.cookie.secure: true");
+
+  }
+
+  @Test
+  void aCockpitReachedOverHttpsWithASecureCookieIsToldNothingAboutIt() {
+
+    check.checkConfigurationOf(configurationWithout()
+        .withProperty(CockpitConfiguration.APPLICATION_URI, "https://cockpit.example.com")
+        .withProperty("business-cockpit.jwt.cookie.secure", "true"));
+
+    assertThat(warnings()).doesNotContain("business-cockpit.jwt.cookie.secure");
 
   }
 

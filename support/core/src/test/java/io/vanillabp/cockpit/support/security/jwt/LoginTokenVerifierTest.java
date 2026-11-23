@@ -7,7 +7,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.Base64;
 import java.util.Date;
 
 import org.junit.jupiter.api.Test;
@@ -147,17 +146,18 @@ class LoginTokenVerifierTest {
 
   }
 
+  /**
+   * The explanation says how to create a secret, but holds none, so no secret ends up in a log.
+   */
   @Test
-  void theExplanationOfAMissingSecretSuggestsOne() {
+  void theExplanationOfAMissingSecretSaysHowToCreateOne() {
 
     final var explanation = LoginTokenVerifier.explainTheMissingSecret("business-cockpit.jwt.hmacSHA256-base64");
 
-    assertThat(explanation).startsWith("No property 'business-cockpit.jwt.hmacSHA256-base64' set!");
-    final var suggested = explanation.replaceAll("(?s).*key: '([^']+)'.*", "$1");
-    assertThat(Base64.getDecoder().decode(suggested))
-        .as("the suggested secret works with the verifier")
-        .hasSize(32);
-    new LoginTokenVerifier(Base64.getDecoder().decode(suggested));
+    assertThat(explanation)
+        .startsWith("No property 'business-cockpit.jwt.hmacSHA256-base64' set!")
+        .contains("openssl rand -base64 32")
+        .doesNotContainPattern("[A-Za-z0-9+/]{43}=");
 
   }
 

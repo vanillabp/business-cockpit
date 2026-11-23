@@ -1,8 +1,11 @@
 package io.vanillabp.cockpit.autoconfigure;
 
+import java.util.List;
+
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 
 /**
@@ -24,6 +27,21 @@ public class BusinessCockpitBpmsApiAutoConfiguration {
    * Called by Spring Boot. Everything this configuration adds comes from its annotations.
    */
   public BusinessCockpitBpmsApiAutoConfiguration() {
+
+  }
+
+  /**
+   * Ends the start if {@code @Secured} does not count for the controllers, whoever switched method
+   * security on.
+   *
+   * @return the check, run once the application is ready
+   */
+  @Bean
+  SecuredCountsForTheBpmsApi securedCountsForTheBpmsApi() {
+
+    return new SecuredCountsForTheBpmsApi(List.of(
+        io.vanillabp.cockpit.bpms.api.v1.BpmsApiController.class,
+        io.vanillabp.cockpit.bpms.api.v1_1.BpmsApiController.class));
 
   }
 

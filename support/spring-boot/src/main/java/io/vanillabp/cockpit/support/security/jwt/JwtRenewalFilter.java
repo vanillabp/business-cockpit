@@ -24,6 +24,10 @@ import jakarta.servlet.http.HttpServletResponse;
  * one: it connects again by itself, and if it renewed the token, a tab nobody looks at would stay
  * logged in for as long as {@code max-login-duration} allows. Such requests are named by the
  * matcher passed in, and they keep their token as it is.
+ * <p>
+ * The login of a user whom the user directory does not know any more is not renewed, so it ends
+ * when its token expires. {@link JwtCookie#getUnknownUserRenewal()} says when a user counts as
+ * gone.
  */
 public class JwtRenewalFilter extends OncePerRequestFilter {
 
@@ -61,7 +65,7 @@ public class JwtRenewalFilter extends OncePerRequestFilter {
     if (!requestsWhichDoNotRenew.matches(request) && (SecurityContextHolder.getContext()
         .getAuthentication() instanceof JwtAuthenticationToken authentication)) {
       jwtMapper
-          .renew(authentication.getJwt())
+          .renew(authentication)
           .ifPresent(token -> JwtSecurityContextRepository.addCookie(
               properties, response, token.getKey(), token.getValue()));
     }

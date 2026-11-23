@@ -264,8 +264,14 @@ template. Every chain keeps five things, whatever the login is:
    `dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()` as the first
    rule. The reason is in [When a browser goes away](#when-a-browser-goes-away) (`BE-033`).
 
-`anyRequest()` is `authenticated()`. CSRF and CORS stay off, as in `container`, because the browser
-sees one origin and the cookie is the only credential.
+`anyRequest()` is `authenticated()`. CSRF protection and CORS stay off, as in `container`. The
+cookie is the only credential, so what keeps another site from using it is this: every GUI endpoint
+which changes something is PATCH, PUT or DELETE with a JSON body, which a browser sends to another
+site only after a CORS preflight the cockpit does not answer, and the cookie is `SameSite=Lax` by
+default, so a browser leaves it out of a request another site starts in the background. Keep both:
+do not add a GUI endpoint which changes something on GET or on a form POST, and do not set
+`business-cockpit.jwt.cookie.same-site: none`. A workflow module behind `/wm/**` keeps the same rule
+for its own endpoints.
 
 The chain differs only in how the user logs in (`Q-LOGIN-KIND`).
 
@@ -294,6 +300,10 @@ http
         .requestMatchers(appInfoRequestMatcher, currentUserRequestMatcher, assetsRequestMatcher,
             staticRequestMatcher, workflowModulesProxyRequestMatcher)
         .permitAll()
+        // the actuator is for operations: an application which exposes an endpoint writes a
+        // chain of its own for /actuator/** with an order below 99
+        .requestMatchers(pathPattern("/actuator/**"))
+        .denyAll()
         .anyRequest()
         .authenticated())
     // the GUI API answers 401 instead of a redirect to the provider, so the user interface
@@ -591,14 +601,22 @@ With OIDC the id is the claim of `Q-OIDC-PROVIDER`, by default `preferred_userna
 user with its groups for 14 hours, `business-cockpit.user-directory.cache-duration`. Every night at
 2 a.m. in the time zone of the server they empty the whole cache,
 `business-cockpit.user-directory.cache-clear-cron`, `-` switches this off. So a group given or
-taken away counts the next day at the latest. A locked account ends earlier, because its login
-token is not refreshed any more. Operations can empty the cache at once with the actuator endpoint
-`userdirectorycache`: a `DELETE` on `/actuator/userdirectorycache`. Like every actuator endpoint it
+taken away counts the next day at the latest. A removed or disabled user loses the login the same
+way: once the directory does not find a user it found before, the login token is not renewed any
+more and ends when it expires, twelve hours later at most. With the defaults the login ends at most
+26 hours after the change. Operations can empty the cache at once with the actuator endpoint
+`userdirectorycache`: a `DELETE` on `/actuator/userdirectorycache`. The GUI chain refuses
+`/actuator/**` to every user, so operations need a chain of their own for it, with an order below
+99; a management port of its own does not replace that chain. Like every actuator endpoint it
 is reachable only where operations exposes it. The directory with `configuration` reads memory and
 needs no cache. What the cockpit does with the answer:
 
-- A user the directory does not know keeps the login, but has no groups. The log warns once a
-  minute at most for each such user.
+- A request of a user the directory does not know goes on, but without groups. The log warns once
+  a minute at most for each such user. If the directory knew the user before, the login is not
+  renewed any more. `business-cockpit.jwt.cookie.unknown-user-renewal` changes that:
+  `refuse-if-known-before` is the default, `refuse` stops the renewal for every unknown user, and
+  `allow` renews every login up to `max-login-duration`. Keep the default while the directory and
+  the login do not agree on the ids yet, because `refuse` then ends every login after twelve hours.
 - If `getUser` throws, the request fails and the log shows the error. The directories of the
   library do that when Keycloak or LDAP does not answer, and the message says what to check.
 
@@ -879,7 +897,9 @@ business-cockpit:
 
 - `spring.mongodb.uri` names MongoDB. Spring Boot 4 no longer reads `spring.data.mongodb`.
 - `business-cockpit.jwt.hmacSHA256-base64` is the key the cookie's token is signed with, 32 bytes
-  in base64. It comes from the environment.
+  in base64. It comes from the environment. Create it with `openssl rand -base64 32`. Without it
+  the cockpit generates a key for each start and does not log it, so every restart logs everybody
+  out.
 - `business-cockpit.additional-properties` carries the languages of `Q-LANGUAGES` as one string,
   see [gui-api.md](gui-api.md#the-endpoints).
   With `Q-AVATARS` it also carries `person-picture-uri: /person-pictures/{userId}`, see
