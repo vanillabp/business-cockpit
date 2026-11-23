@@ -243,31 +243,31 @@ the first base path, and `/my-tasks` the second one, or the first with a filter 
 
 The endpoints, all relative to the base path:
 
-|                                   Call                                   |                                                  What for                                                  |
-|--------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
-| `POST /usertask`                                                         | one page of the task list                                                                                  |
-| `PUT /usertask`                                                          | the same query as an update, see below                                                                     |
-| `OPTIONS /usertask`                                                      | suggestions for a search field over user tasks                                                             |
-| `GET /usertask/{id}`                                                     | one user task, with `markAsRead` also marked as read                                                       |
-| `PATCH /usertask/{id}/claim`, `PATCH /usertask/claim`                    | set the assignee, with `unclaim=true` give it back; 409 for an ended task, 400 for a task of another user  |
-| `PATCH /usertask/{id}/assign`, `PATCH /usertask/assign`                  | add a person as candidate user, with `unassign=true` remove them; 409 for an ended task                    |
-| `PATCH /usertask/{id}/mark-as-read`, `PATCH /usertask/mark-as-read`      | mark as read, with `unread=true` take it back                                                              |
-| `PATCH /usertask/{id}/follow-up-date`                                    | set or delete the follow-up date                                                                           |
-| `PATCH /usertask/{id}/note`, `PATCH /usertask/note`                      | set, change or clear the note of a user task or of several                                                 |
-| `PATCH /workflow/{id}/note`, `PATCH /workflow/note`                      | set, change or clear the note of a case or of several                                                      |
-| `POST /usertask/count`, `POST /workflow/count`                           | the number of rows of several lists, for the counts                                                        |
-| `POST /user`                                                             | search users, to propose a task to a person                                                                |
-| `POST /workflow`                                                         | one page of the case list                                                                                  |
-| `PUT /workflow`                                                          | the same query as an update                                                                                |
-| `OPTIONS /workflow`                                                      | suggestions for a search field over cases                                                                  |
-| `GET /workflow/{id}`                                                     | one case                                                                                                   |
-| `POST /workflow/{id}/usertasks`                                          | the user tasks of a case                                                                                   |
-| `GET /workflow-module`, `GET /workflow-module/{id}`                      | the workflow modules the user may see                                                                      |
-| `GET /notifications/media`, `/config`, `/recipient-config`, `/workflows` | the notification settings of the user; `PUT` on `/config` and `/recipient-config/{mediumType}` stores them |
-| `GET /app/info`, `GET /app/current-user`                                 | the application and the user                                                                               |
-| `GET /app/current-user/group-hierarchy`                                  | where each group and right of the user comes from, see `behaviour.md`                                      |
-| `GET /app/current-user/settings/{key}`, `PUT` on the same path           | read and write one entry of `customSettings`                                                               |
-| `GET /updates`                                                           | the update stream, see below                                                                               |
+|                                   Call                                   |                                                     What for                                                     |
+|--------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| `POST /usertask`                                                         | one page of the task list                                                                                        |
+| `PUT /usertask`                                                          | the same query as an update, see below                                                                           |
+| `OPTIONS /usertask`                                                      | suggestions for a search field over user tasks                                                                   |
+| `GET /usertask/{id}`                                                     | one user task, with `markAsRead` also marked as read                                                             |
+| `PATCH /usertask/{id}/claim`, `PATCH /usertask/claim`                    | set the assignee, with `unclaim=true` give it back; 409 for an ended task, 400 for a task of another user        |
+| `PATCH /usertask/{id}/assign`, `PATCH /usertask/assign`                  | add a person as candidate user, with `unassign=true` remove them; 409 for an ended task, 400 for an unknown user |
+| `PATCH /usertask/{id}/mark-as-read`, `PATCH /usertask/mark-as-read`      | mark as read, with `unread=true` take it back                                                                    |
+| `PATCH /usertask/{id}/follow-up-date`                                    | set or delete the follow-up date                                                                                 |
+| `PATCH /usertask/{id}/note`, `PATCH /usertask/note`                      | set, change or clear the note of a user task or of several                                                       |
+| `PATCH /workflow/{id}/note`, `PATCH /workflow/note`                      | set, change or clear the note of a case or of several                                                            |
+| `POST /usertask/count`, `POST /workflow/count`                           | the number of rows of several lists, for the counts                                                              |
+| `POST /user`                                                             | search users, to propose a task to a person                                                                      |
+| `POST /workflow`                                                         | one page of the case list                                                                                        |
+| `PUT /workflow`                                                          | the same query as an update                                                                                      |
+| `OPTIONS /workflow`                                                      | suggestions for a search field over cases                                                                        |
+| `GET /workflow/{id}`                                                     | one case                                                                                                         |
+| `POST /workflow/{id}/usertasks`                                          | the user tasks of a case                                                                                         |
+| `GET /workflow-module`, `GET /workflow-module/{id}`                      | the workflow modules the user may see                                                                            |
+| `GET /notifications/media`, `/config`, `/recipient-config`, `/workflows` | the notification settings of the user; `PUT` on `/config` and `/recipient-config/{mediumType}` stores them       |
+| `GET /app/info`, `GET /app/current-user`                                 | the application and the user                                                                                     |
+| `GET /app/current-user/group-hierarchy`                                  | where each group and right of the user comes from, see `behaviour.md`                                            |
+| `GET /app/current-user/settings/{key}`, `PUT` on the same path           | read and write one entry of `customSettings`                                                                     |
+| `GET /updates`                                                           | the update stream, see below                                                                                     |
 
 The last four rows are in the cockpit's own file, all the others in the `official-gui-api`. They
 exist only under `/gui/api/v1`, not under the other two base paths.

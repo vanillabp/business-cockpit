@@ -46,6 +46,10 @@ import io.vanillabp.cockpit.users.model.Person;
  * describe the task. The task then stops being dangling, because the cockpit computes that flag
  * from the fields each time it stores the task.
  * <p>
+ * An assign in the cockpit does not change this. A user who assigns a task which addresses nobody
+ * makes a person a candidate, and the next report which names somebody still decides who sees the
+ * task. The person of the assign is no candidate after that report.
+ * <p>
  * The cockpit does not warn about a report which names other people. A workflow module cannot
  * know whether the cockpit already holds the task, so such a report is no mistake. A DEBUG line
  * says that it happened.
@@ -138,10 +142,16 @@ public final class WhoSeesAUserTask {
       final String kindOfReport,
       final Consumer<UserTask> report) {
 
-    final var wasDangling = stored.isDangling();
+    final var takesWhoSeesIt = stored.takesWhoSeesItFromAReport();
     final var asStored = Visibility.of(stored);
+    if (stored.isAddressedByTheCockpitOnly()) {
+      // the candidates of an assign in the cockpit do not count, so the report says who sees it
+      stored.setCandidateUsers(null);
+      stored.setCandidateUsersSince(null);
+    }
     report.accept(stored);
-    if (wasDangling && !stored.isDangling()) {
+    if (takesWhoSeesIt && !stored.isDangling()) {
+      stored.setAddressedByTheCockpitOnly(false);
       tookWhoSeesTheTask(stored, kindOfReport);
       return;
     }
@@ -165,7 +175,7 @@ public final class WhoSeesAUserTask {
       final UserTask stored,
       final Supplier<UserTask> asReported) {
 
-    if (!stored.isDangling()) {
+    if (!stored.takesWhoSeesItFromAReport()) {
       if (logger.isDebugEnabled() && Visibility.of(asReported.get()).namesOtherPeopleThan(Visibility.of(stored))) {
         logDifference(stored.getId(), "creation");
       }
@@ -176,6 +186,7 @@ public final class WhoSeesAUserTask {
       return false;
     }
     Visibility.of(creation).putBackOnto(stored);
+    stored.setAddressedByTheCockpitOnly(false);
     tookWhoSeesTheTask(stored, "creation");
     return true;
 

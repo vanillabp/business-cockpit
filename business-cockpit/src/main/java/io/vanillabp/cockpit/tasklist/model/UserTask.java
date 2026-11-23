@@ -192,6 +192,14 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware,
   private List<Person> excludedCandidateUsers = null;
 
   /**
+   * Whether the only people who see the task came from an assign in the cockpit, on a task which
+   * addressed nobody before. Such a task still takes who sees it from the first later report which
+   * names somebody, as a task which addresses nobody does, see
+   * {@link #takesWhoSeesItFromAReport()}.
+   */
+  private boolean addressedByTheCockpitOnly;
+
+  /**
    * Users the workflow module let through although they are no candidate. Whoever is in here
    * sees the task whatever the candidates say, and even where {@link #excludedCandidateUsers}
    * names them. That is how a module keeps a case readable for everybody who had a hand in it.
@@ -304,6 +312,9 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware,
     if (person == null) {
       return;
     }
+    if (isDangling()) {
+      addressedByTheCockpitOnly = true;
+    }
     if (getCandidateUsers() == null) {
       setCandidateUsers(new ArrayList<>(List.of(person)));
     } else {
@@ -333,7 +344,45 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware,
     }
 
     this.getCandidateUsers().removeIf(candidate -> candidate.getId().equals(personId));
+    if (isDangling()) {
+      addressedByTheCockpitOnly = false;
+    }
 
+  }
+
+  /**
+   * Whether the next report which names somebody decides who sees the task. That is so for a task
+   * which addresses nobody, and for one whose only people came from an assign in the cockpit while
+   * it addressed nobody. A user of the cockpit cannot take that decision away from the workflow
+   * module.
+   *
+   * @return {@code true} if a report which names somebody decides who sees the task
+   */
+  public boolean takesWhoSeesItFromAReport() {
+
+    return isDangling() || addressedByTheCockpitOnly;
+
+  }
+
+  /**
+   * Whether the only people who see the task came from an assign in the cockpit, on a task which
+   * addressed nobody before.
+   *
+   * @return The flag as it is stored
+   */
+  public boolean isAddressedByTheCockpitOnly() {
+    return addressedByTheCockpitOnly;
+  }
+
+  /**
+   * Sets whether the only people who see the task came from an assign in the cockpit. A report
+   * which decided who sees the task clears it.
+   *
+   * @param addressedByTheCockpitOnly The flag
+   */
+  public void setAddressedByTheCockpitOnly(
+      final boolean addressedByTheCockpitOnly) {
+    this.addressedByTheCockpitOnly = addressedByTheCockpitOnly;
   }
 
   /**
