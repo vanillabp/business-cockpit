@@ -141,6 +141,12 @@ public class UserTaskService {
       "assignee", "candidateUsers", "candidateGroups", PROPERTY_DUEDATE, "followUpDate",
       "detailsFulltextSearch", "endReason", "note", "suspendedAt", "suspendedBy");
 
+  /**
+   * The fields of {@link #FIELDS_OF_THE_LIST} which hold a list. A sort names at most one of them,
+   * see {@link SortIndexes}.
+   */
+  public static final Set<String> LIST_FIELDS_OF_THE_LIST = Set.of("candidateUsers", "candidateGroups");
+
   @Autowired
   private ApplicationEventPublisher applicationEventPublisher;
 
@@ -243,7 +249,7 @@ public class UserTaskService {
     listPaths = new ListPaths(
         FIELDS_OF_THE_LIST, MapKeyDotReplacement.configuredIn(environment));
     sortIndexes = new SortIndexes(
-        UserTask.COLLECTION_NAME, listPaths, SortIndexLimit.configuredIn(
+        UserTask.COLLECTION_NAME, listPaths, LIST_FIELDS_OF_THE_LIST, SortIndexLimit.configuredIn(
             environment), CockpitConfiguration.MONGODB_SORT_INDEXES_PER_COLLECTION, mongoTemplate, log);
     sortIndexes.learnExistingIndexes();
 

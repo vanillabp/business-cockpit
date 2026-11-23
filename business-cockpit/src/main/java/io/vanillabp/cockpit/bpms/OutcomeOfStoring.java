@@ -20,7 +20,7 @@ import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
  * however often it comes. REST answers {@code 422} with the reason, and Kafka skips the
  * record, so that the records behind it are not held up for good.</li>
  * </ul>
- * Only three failures are of the second kind. Each of them depends on nothing but the document,
+ * Only four failures are of the second kind. Each of them depends on nothing but the document,
  * so the same report fails the same way however often it comes. Everything else counts as a failure
  * for now. Repeating a report which could have gone through costs a few more attempts. Giving it up
  * loses it.
@@ -37,12 +37,22 @@ import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
  * and before anything is sent. The case known is a key of the business data with a dot in it, like
  * {@code order.id}: unless {@link MapKeyDotReplacement} is configured, Spring Data refuses such a
  * key, and the reason names the property and what it costs.</li>
+ * <li>A write which an index of the collection cannot take, because the index covers two fields
+ * which both hold a list in the document. MongoDB answers it with the error code
+ * {@value #CANNOT_INDEX_PARALLEL_ARRAYS}, even when both lists are empty. The cockpit no longer
+ * creates such an index, but one created before stays until an operator drops it.</li>
  * </ul>
  */
 public final class OutcomeOfStoring {
 
   /** The error code MongoDB answers a write with which breaks the validation rules of the collection. */
   static final int DOCUMENT_VALIDATION_FAILURE = 121;
+
+  /**
+   * The error code MongoDB answers a write with when an index over several fields meets two fields
+   * which both hold a list.
+   */
+  static final int CANNOT_INDEX_PARALLEL_ARRAYS = 171;
 
   private static final OutcomeOfStoring UP_TO_DATE = new OutcomeOfStoring(null, null, false);
 
@@ -98,7 +108,21 @@ public final class OutcomeOfStoring {
       if ((cause instanceof BsonMaximumSizeExceededException) || (cause instanceof MappingException)) {
         return true;
       }
-      if ((cause instanceof MongoServerException server) && (server.getCode() == DOCUMENT_VALIDATION_FAILURE)) {
+      if ((cause instanceof MongoServerException server) && ((server
+          .getCode() == DOCUMENT_VALIDATION_FAILURE) || (server.getCode() == CANNOT_INDEX_PARALLEL_ARRAYS))) {
+        return true;
+      }
+    }
+    return false;
+
+  }
+
+  private static boolean hasCode(
+      final Throwable failure,
+      final int code) {
+
+    for (var cause = failure; cause != null; cause = cause.getCause()) {
+      if ((cause instanceof MongoServerException server) && (server.getCode() == code)) {
         return true;
       }
     }
@@ -167,6 +191,10 @@ public final class OutcomeOfStoring {
               + " "
               + hint)
           .orElse(reason);
+    }
+    if (hasCode(failure, CANNOT_INDEX_PARALLEL_ARRAYS)) {
+      return "The %s cannot be stored: an index of the collection covers two fields which both hold a list. Drop that index, its name starts with '_sort_'."
+          .formatted(record);
     }
     if (failsEveryTime) {
       return "The %s cannot be stored: MongoDB refuses it, because it breaks the validation rules of the collection."

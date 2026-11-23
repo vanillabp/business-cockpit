@@ -1376,6 +1376,11 @@ it holds in every browser, see [User settings](#user-settings).
 
 A new sort or a new search loads the list again, with a new start timestamp.
 
+The server can refuse a sort with 400, for example one which names two fields that each hold a
+list, see [gui-api.md](gui-api.md#sorting). The list then shows the text of the answer as it is,
+in a toast, because the server writes it for the user. The list falls back to its default order,
+and no column carries the sort mark.
+
 A wish of customers: sorting by value instead of by what is shown. The values are stored in MongoDB
 and sorted there. It would need a small structure with value and text, like `i18n`, and sorting by
 the value. Cells drawn by the module would make that easy, because then the path would always be the

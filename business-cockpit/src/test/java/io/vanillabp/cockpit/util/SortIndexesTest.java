@@ -152,6 +152,44 @@ class SortIndexesTest {
 
   }
 
+  private SortIndexes sortIndexesWithListFields() {
+
+    return new SortIndexes(COLLECTION, new ListPaths(Set.of("dueDate", "candidateUsers", "candidateGroups"), Optional
+        .empty()), Set.of("candidateUsers", "candidateGroups"), 30, LIMIT_PROPERTY, mongoTemplate, logger);
+
+  }
+
+  /**
+   * MongoDB cannot index two fields which both hold a list in one index. A sort which names both
+   * is refused with a message a user understands when the user interface shows it as it is.
+   */
+  @Test
+  void aSortOfTwoFieldsWhichHoldAListIsRefused() {
+
+    assertThatThrownBy(() -> sortIndexesWithListFields().checkSort("candidateUsers.sort,candidateGroups.id"))
+        .isInstanceOf(BcInvalidRequestException.class)
+        .hasMessage("'sort' may name only one of the fields 'candidateGroups' and 'candidateUsers' at a time, "
+            + "because each of them holds a list");
+
+  }
+
+  /** A column of persons sends two paths into the same list, and MongoDB indexes them fine. */
+  @Test
+  void aColumnOfPersonsOnOneFieldWhichHoldsAListIsSortedWithAnIndex() {
+
+    final var sortIndexes = sortIndexesWithListFields();
+    final var combination = "candidateUsers.sort,candidateUsers.id";
+
+    assertThatCode(() -> sortIndexes.checkSort(combination)).doesNotThrowAnyException();
+    sortIndexes.ensureIndex(combination, List.of("candidateUsers.sort", "candidateUsers.id", "dueDate", "createdAt",
+        "_id"));
+
+    assertThat(sortIndexNames()).containsExactly("_sort_"
+        + combination);
+    verify(logger, never()).error(anyString(), any(Object[].class));
+
+  }
+
   /**
    * With a replacement for the dot configured, a key like {@code order.id} is stored as
    * {@code order~id}, and a column has to name it like that.

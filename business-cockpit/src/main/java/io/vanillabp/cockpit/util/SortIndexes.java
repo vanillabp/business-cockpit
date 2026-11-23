@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.springframework.data.domain.Sort;
@@ -70,6 +71,8 @@ public class SortIndexes {
 
   private final ListPaths listPaths;
 
+  private final Set<String> listFields;
+
   private final int limit;
 
   private final String limitProperty;
@@ -119,8 +122,38 @@ public class SortIndexes {
       final MongoTemplate mongoTemplate,
       final Logger logger) {
 
+    this(collectionName, listPaths, Set.of(), limit, limitProperty, mongoTemplate, logger);
+
+  }
+
+  /**
+   * Creates the sort indexes of one collection whose list has fields which hold a list.
+   * <p>
+   * MongoDB takes at most one field which holds a list per document in an index over several
+   * fields. On an empty collection it creates such an index, and then refuses to store every
+   * document which holds both fields, even as empty lists, with code 171. So a sort may name at
+   * most one of these fields, with as many paths into it as it likes.
+   *
+   * @param collectionName The collection the list reads
+   * @param listPaths The paths the list may be sorted by
+   * @param listFields The top-level fields of the list which hold a list, like the candidate users
+   * @param limit How many sort indexes the collection may have at most
+   * @param limitProperty The configuration key of the limit, for the warning
+   * @param mongoTemplate Used to read and create the indexes
+   * @param logger Where the warnings go
+   */
+  public SortIndexes(
+      final String collectionName,
+      final ListPaths listPaths,
+      final Set<String> listFields,
+      final int limit,
+      final String limitProperty,
+      final MongoTemplate mongoTemplate,
+      final Logger logger) {
+
     this.collectionName = collectionName;
     this.listPaths = listPaths;
+    this.listFields = Set.copyOf(listFields);
     this.limit = limit;
     this.limitProperty = limitProperty;
     this.mongoTemplate = mongoTemplate;
@@ -141,11 +174,13 @@ public class SortIndexes {
   }
 
   /**
-   * Checks the size of the field {@code sort} as a whole, before its paths are looked at. The
-   * message does not repeat the field, because it can be long.
+   * Checks the size of the field {@code sort} as a whole, before its paths are looked at, and that
+   * it names at most one of the fields which hold a list. The message does not repeat the field,
+   * because it can be long.
    *
    * @param sort The field {@code sort} of a list request, or {@code null}
-   * @throws BcInvalidRequestException if the field holds too many characters or paths
+   * @throws BcInvalidRequestException if the field holds too many characters or paths, or names
+   *         more than one field which holds a list
    */
   public void checkSort(
       final String sort) {
@@ -160,6 +195,24 @@ public class SortIndexes {
     if (Arrays.stream(sort.split(",")).filter(StringUtils::hasText).count() > MOST_PATHS) {
       throw new BcInvalidRequestException(
           "'sort' names at most %d paths".formatted(MOST_PATHS));
+    }
+    final var namedListFields = Arrays
+        .stream(sort.split(","))
+        .filter(StringUtils::hasText)
+        .map(path -> path.contains(".") ? path.substring(0, path.indexOf('.')) : path)
+        .filter(listFields::contains)
+        .distinct()
+        .count();
+    if (namedListFields > 1) {
+      throw new BcInvalidRequestException(
+          "'sort' may name only one of the fields %s at a time, because each of them holds a list"
+              .formatted(listFields
+                  .stream()
+                  .sorted()
+                  .map(field -> "'"
+                      + field
+                      + "'")
+                  .collect(Collectors.joining(" and "))));
     }
 
   }

@@ -145,6 +145,27 @@ class SortPathsTest extends ItestBase {
 
   }
 
+  /**
+   * MongoDB cannot index two fields which both hold a list in one index. A sort which names two of
+   * them is refused with a text the user interface can show as it is. A column of persons sends
+   * two paths into one such field, and that is sorted by.
+   */
+  @Test
+  void aSortOfTwoFieldsWhichHoldAListIsRefused() {
+
+    final var answer = guiPost(cookie, "/usertask", """
+        { "pageNumber": 0, "pageSize": 1, "sort": "candidateUsers.sort,candidateGroups.id" }
+        """);
+
+    assertThat(answer.statusCode()).isEqualTo(400);
+    assertThat(answer.body()).isEqualTo("The request is not valid: 'sort' may name only one of the fields "
+        + "'candidateGroups' and 'candidateUsers' at a time, because each of them holds a list.");
+    assertThat(listSortedBy("workflow", "accessibleToUsers.sort,accessibleToGroups.id")).isEqualTo(400);
+    assertThat(listSortedBy("usertask", "candidateUsers.sort,candidateUsers.id")).isEqualTo(200);
+    assertThat(listSortedBy("workflow", "accessibleToUsers.sort,accessibleToUsers.id")).isEqualTo(200);
+
+  }
+
   /** The positive twin: five paths in 500 characters are sorted by. */
   @Test
   void aSortOfFivePathsIn500CharactersIsSortedBy() {

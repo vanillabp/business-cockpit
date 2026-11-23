@@ -400,13 +400,23 @@ of a path holds letters, digits and '_', and below 'details.' also '-'.` This ho
 for the update. `sort` also names at most five paths in at most 500 characters. A longer one is
 refused with 400 as well.
 
+Some fields of the list hold a list themselves: `candidateUsers` and `candidateGroups` of a user
+task, `accessibleToUsers` and `accessibleToGroups` of a case. The database cannot build one index
+over two such fields, so `sort` may name only one of them. Several paths into the same field are
+fine, so a `person` column on `candidateUsers` sends `candidateUsers.sort,candidateUsers.id` and is
+sorted. A sort which names two of these fields is refused with 400:
+`The request is not valid: 'sort' may name only one of the fields 'candidateGroups' and
+'candidateUsers' at a time, because each of them holds a list.` For cases the message names
+`'accessibleToGroups' and 'accessibleToUsers'`.
+
 For every new combination of paths the server creates an index in the database, but at most 30 per
 collection (`business-cockpit.mongodb.sort-indexes-per-collection`). After that it sorts without
 an index of its own and warns once per combination in the log. The result is the same, only slower
 on a large collection. So send paths that come from a column.
 
 The server adds its own order to what you send, so that paging stays stable. For user tasks this is
-`dueDate`, `createdAt`, `id`, for cases `createdAt`, `id`. A field you named yourself is left out of
+`dueDate`, `createdAt`, `id`, for cases `createdAt`, `id`. The index of a sort covers the paths you
+sent and these fields. A field you named yourself is left out of
 this addition. Because `id` is unique and comes last, the order is complete, and the same query
 returns the same order twice.
 
