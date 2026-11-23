@@ -27,9 +27,13 @@ to the page which answers it.
 Needs `gh` 2.90 or later.
 
 ```bash
-gh skill install vanillabp/business-cockpit business-cockpit-creator               # into the current project
-gh skill install vanillabp/business-cockpit business-cockpit-creator --scope user  # for every project
+gh skill install vanillabp/business-cockpit business-cockpit-creator@main               # into the current project
+gh skill install vanillabp/business-cockpit business-cockpit-creator@main --scope user  # for every project
 ```
+
+Name `@main` until the cockpit 1.0 is released. Without a version, `gh skill` takes the newest
+release tag of the repository, and the releases before 1.0 do not hold the skill. A skill installed
+with `@main` is pinned to that commit, so install it again with `--force` to get a newer one.
 
 `gh skill install` picks the directory your agent reads. Name it explicitly with `--agent`, for
 example `--agent claude-code`, `--agent github-copilot` or `--agent cursor`. Later,
