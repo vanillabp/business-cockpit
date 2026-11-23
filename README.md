@@ -37,10 +37,10 @@ does the runnable jar of `container`. The React application, the npm packages an
 which used to be here are in the Git history. Decision 63 in [DECISIONS.md](./DECISIONS.md) says
 why.
 
-The build reads the snapshots of the VanillaBP platform and of the MongoDB changeset library
-`com.phactum.mongodb:mongodb-changesets`. Both come from the snapshot repository of Maven Central,
+The build reads the snapshots of the VanillaBP platform from the snapshot repository of Maven Central,
 `https://central.sonatype.com/repository/maven-snapshots/`. The parent
-`io.vanillabp:release-parent` names that repository, and reading it needs no login.
+`io.vanillabp:release-parent` names that repository, and reading it needs no login. The MongoDB
+changeset library `com.phactum.mongodb:mongodb-changesets` is a release from Maven Central.
 
 Every push to `main` publishes the snapshot of this repository to the same snapshot repository of
 Maven Central. A snapshot carries no sources jar. Only the modules which an application or an
