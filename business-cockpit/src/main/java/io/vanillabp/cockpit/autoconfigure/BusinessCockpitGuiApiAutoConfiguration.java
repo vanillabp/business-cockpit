@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 import org.springframework.context.annotation.Import;
 
 import io.vanillabp.cockpit.config.MicroserviceProxyConfiguration;
+import io.vanillabp.cockpit.config.web.GuiApiContentSecurityPolicy;
 import io.vanillabp.cockpit.config.web.JsonConfiguration;
 import io.vanillabp.cockpit.config.web.SpaNoHandlerFoundExceptionHandler;
 import io.vanillabp.cockpit.exceptions.RestfulExceptionHandler;
@@ -28,7 +29,8 @@ import io.vanillabp.cockpit.workflowmodules.api.v1.WorkflowModulesGuiApiMapperIm
  * What the user interface talks to: the endpoints of the GUI API which are the same for every
  * cockpit, the JSON format they answer in, the fallback which answers a deep link with the
  * application shell, the proxy which forwards a request for a workflow module's own screens, and
- * the update streams which tell an open browser about the changes that concern its person.
+ * the update streams which tell an open browser about the changes that concern its person, and
+ * the Content Security Policy every answer of the GUI API carries.
  * <p>
  * The answers to the exceptions of a user task come from {@code support}, so a controller of the
  * application which throws one of them answers like a workflow module does.
@@ -40,7 +42,7 @@ import io.vanillabp.cockpit.workflowmodules.api.v1.WorkflowModulesGuiApiMapperIm
 @AutoConfiguration
 @ConditionalOnWebApplication(type = Type.SERVLET)
 @Import({
-    BcUserTaskExceptionHandler.class, CurrentUserApiController.class, JsonConfiguration.class, LoginApiController.class, MicroserviceProxyConfiguration.class, NotificationConfigGuiApiController.class, RestfulExceptionHandler.class, SpaNoHandlerFoundExceptionHandler.class, TasklistGuiApiMapperImpl.class, UpdateStreams.class, UserContextConfiguration.class, UserSettings.class, UserSettingsApiController.class, UserRightsApiController.class, UserTaskStreamAudience.class, WorkflowListGuiApiMapperImpl.class, WorkflowStreamAudience.class, WorkflowModulesGuiApiMapperImpl.class
+    BcUserTaskExceptionHandler.class, CurrentUserApiController.class, GuiApiContentSecurityPolicy.class, JsonConfiguration.class, LoginApiController.class, MicroserviceProxyConfiguration.class, NotificationConfigGuiApiController.class, RestfulExceptionHandler.class, SpaNoHandlerFoundExceptionHandler.class, TasklistGuiApiMapperImpl.class, UpdateStreams.class, UserContextConfiguration.class, UserSettings.class, UserSettingsApiController.class, UserRightsApiController.class, UserTaskStreamAudience.class, WorkflowListGuiApiMapperImpl.class, WorkflowStreamAudience.class, WorkflowModulesGuiApiMapperImpl.class
 })
 public class BusinessCockpitGuiApiAutoConfiguration {
 

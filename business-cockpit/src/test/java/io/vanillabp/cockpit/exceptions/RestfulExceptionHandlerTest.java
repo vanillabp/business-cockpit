@@ -1,18 +1,22 @@
 package io.vanillabp.cockpit.exceptions;
 
+import java.beans.PropertyChangeEvent;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Map;
 
 import org.assertj.core.api.Assertions;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
@@ -92,7 +96,8 @@ public class RestfulExceptionHandlerTest {
     Assertions
         .assertThat(recorded.list)
         .extracting(ILoggingEvent::getFormattedMessage)
-        .containsExactly("Unexpected exception");
+        .singleElement(Assertions.as(InstanceOfAssertFactories.STRING))
+        .startsWith("Unexpected exception, error id ");
 
   }
 
@@ -103,6 +108,7 @@ public class RestfulExceptionHandlerTest {
         new BcUserMessageException("this task was completed by somebody else"));
 
     Assertions.assertThat(response.getStatusCode().value()).isEqualTo(422);
+    Assertions.assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.TEXT_PLAIN);
     Assertions.assertThat(response.getBody()).isEqualTo("this task was completed by somebody else");
 
   }
@@ -118,6 +124,10 @@ public class RestfulExceptionHandlerTest {
         .assertThat(handler.handleForbiddenException(new AccessDeniedException("no")).getBody())
         .isEqualTo("no");
 
+    Assertions
+        .assertThat(handler.handleForbiddenException(new AccessDeniedException("no")).getHeaders().getContentType())
+        .isEqualTo(MediaType.TEXT_PLAIN);
+
   }
 
   @Test
@@ -132,6 +142,11 @@ public class RestfulExceptionHandlerTest {
         .assertThat(handler
             .handleUnauthorizedException(new AuthenticationCredentialsNotFoundException("who?")).getBody())
         .isEqualTo("who?");
+
+    Assertions
+        .assertThat(handler
+            .handleUnauthorizedException(new BcUnauthorizedException("who?")).getHeaders().getContentType())
+        .isEqualTo(MediaType.TEXT_PLAIN);
 
   }
 
@@ -193,13 +208,52 @@ public class RestfulExceptionHandlerTest {
 
   }
 
+  /**
+   * The message of an unexpected exception can name a host, an address or a value of the request.
+   * It stays in the log, and the answer carries only the id the log line names.
+   */
   @Test
-  public void testAnythingElseIsAnInternalServerError() {
+  public void testAnythingElseIsAnInternalServerErrorWhichKeepsItsMessageInTheLog() {
 
-    final var response = handler.handleUnexpectedException(new RuntimeException("boom"));
+    final var logger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(RestfulExceptionHandler.class);
+    final var recorded = new ListAppender<ILoggingEvent>();
+    recorded.start();
+    logger.addAppender(recorded);
+    final ResponseEntity<String> response;
+    try {
+      response = handler.handleUnexpectedException(new RuntimeException("mongodb://db-host:27017 refused"));
+    } finally {
+      logger.detachAppender(recorded);
+    }
 
     Assertions.assertThat(response.getStatusCode().value()).isEqualTo(500);
-    Assertions.assertThat(response.getBody()).isEqualTo("boom");
+    Assertions.assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.TEXT_PLAIN);
+    Assertions
+        .assertThat(response.getBody())
+        .startsWith("An unexpected error happened. The log of the cockpit names it with the error id ")
+        .doesNotContain("db-host");
+    final var errorId = response.getBody().replaceAll(".* ([^ ]+)\\.$", "$1");
+    Assertions
+        .assertThat(recorded.list)
+        .singleElement()
+        .satisfies(event -> {
+          Assertions.assertThat(event.getFormattedMessage()).endsWith(errorId);
+          Assertions.assertThat(event.getThrowableProxy().getMessage()).isEqualTo("mongodb://db-host:27017 refused");
+        });
+
+  }
+
+  /** A parameter Spring cannot convert is named, and its value is not repeated. */
+  @Test
+  public void testAParameterOfTheWrongTypeIsABadRequestWhichNamesOnlyTheParameter() {
+
+    final var response = handler.handleParameterOfTheWrongType(
+        new TypeMismatchException(
+            new PropertyChangeEvent(this, "markAsRead", null, "<b>"), Boolean.class));
+
+    Assertions.assertThat(response.getStatusCode().value()).isEqualTo(400);
+    Assertions.assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.TEXT_PLAIN);
+    Assertions.assertThat(response.getBody()).isEqualTo("The request is not valid: 'markAsRead' cannot be read.");
 
   }
 

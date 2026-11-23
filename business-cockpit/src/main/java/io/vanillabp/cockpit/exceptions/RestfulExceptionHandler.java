@@ -1,9 +1,11 @@
 package io.vanillabp.cockpit.exceptions;
 
 import java.util.Arrays;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import io.vanillabp.cockpit.support.security.BcUnauthorizedException;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +32,9 @@ import tools.jackson.databind.exc.ValueInstantiationException;
 /**
  * Turns the exceptions a REST controller throws into HTTP answers. Each kind of mistake gets its
  * own status code, so a client can tell a mistake of its own from one of the server.
+ * <p>
+ * Every answer with a text body says {@code text/plain}, so a browser which opens a path of an
+ * API shows the answer as text.
  */
 @ControllerAdvice
 @Slf4j
@@ -93,6 +99,7 @@ public class RestfulExceptionHandler {
 
     return ResponseEntity
         .unprocessableContent()
+        .contentType(MediaType.TEXT_PLAIN)
         .body(exception.getMessage());
 
   }
@@ -114,6 +121,7 @@ public class RestfulExceptionHandler {
 
     return ResponseEntity
         .status(HttpStatus.FORBIDDEN)
+        .contentType(MediaType.TEXT_PLAIN)
         .body(exception.getMessage());
 
   }
@@ -157,6 +165,7 @@ public class RestfulExceptionHandler {
 
     return ResponseEntity
         .status(HttpStatus.UNAUTHORIZED)
+        .contentType(MediaType.TEXT_PLAIN)
         .body(exception.getMessage());
 
   }
@@ -289,8 +298,34 @@ public class RestfulExceptionHandler {
   }
 
   /**
+   * A parameter of the request, like a query parameter or a path variable, which cannot be turned
+   * into the type the controller takes, for example {@code markAsRead=yes} for a boolean. It is a
+   * mistake of the client, so the answer is {@code 400 Bad Request} and names the parameter. It
+   * never repeats the value which was sent, because Spring's own message holds that value as it
+   * came in.
+   *
+   * @param exception What Spring found while it converted the parameter
+   * @return The answer
+   */
+  @ExceptionHandler(TypeMismatchException.class)
+  public ResponseEntity<String> handleParameterOfTheWrongType(
+      final TypeMismatchException exception) {
+
+    final var name = exception instanceof MethodArgumentTypeMismatchException argument
+        ? argument.getName()
+        : exception.getPropertyName();
+    return invalidRequest(Stream.of(name == null
+        ? "a parameter cannot be read"
+        : "'%s' cannot be read".formatted(name)));
+
+  }
+
+  /**
    * Answers every other exception with {@code 500 Internal Server Error} and logs it with its
-   * stack trace. The body is the message of the exception.
+   * stack trace. The message of the exception stays in the log. It can name hosts, addresses or
+   * values of the request, and none of that is for the client. The body is a fixed text with an
+   * id instead, and the log line carries the same id, so the answer a user reports leads to the
+   * right line in the log.
    * <p>
    * An exception of Spring which knows its own answer is the one exception to this. Spring marks
    * such an exception with {@link ErrorResponse}, for example a request with an HTTP method the
@@ -310,11 +345,14 @@ public class RestfulExceptionHandler {
       return answerOfSpring(exception, answer);
     }
 
-    log.warn("Unexpected exception", exception);
+    final var errorId = UUID.randomUUID().toString();
+    log.warn("Unexpected exception, error id {}", errorId, exception);
 
     return ResponseEntity
         .internalServerError()
-        .body(exception.getMessage());
+        .contentType(MediaType.TEXT_PLAIN)
+        .body("An unexpected error happened. The log of the cockpit names it with the error id %s."
+            .formatted(errorId));
 
   }
 
