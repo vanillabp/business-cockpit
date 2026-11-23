@@ -3,6 +3,7 @@ package io.vanillabp.cockpit.util.microserviceproxy;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
@@ -43,7 +44,11 @@ public class MicroserviceProxyRegistry implements RouterFunction<ServerResponse>
   /** Matches nothing. An empty gateway route builder would throw, so this is the initial state. */
   private static final RouterFunction<ServerResponse> NO_ROUTES = request -> Optional.empty();
 
+  /** The URI of each workflow module which has a route, by the module id. */
   private final Map<String, String> routes = new HashMap<>();
+
+  /** The route of each workflow module, by the module id, so a change builds one route only. */
+  private final Map<String, RouterFunction<ServerResponse>> builtRoutes = new HashMap<>();
 
   private final AtomicReference<RouterFunction<ServerResponse>> currentRoutes = new AtomicReference<>(NO_ROUTES);
 
@@ -71,53 +76,31 @@ public class MicroserviceProxyRegistry implements RouterFunction<ServerResponse>
   }
 
   /**
-   * Adds a route for a workflow module, or changes the URI of its route. The routes are only
-   * built again if the URI is new.
+   * Adds a route for a workflow module, or changes the URI of its route. The route of the module
+   * is built first, and only a route which could be built replaces the one before. So a URI which
+   * cannot become a route leaves every route as it was.
    *
    * @param id The id of the workflow module
    * @param uri The URI the workflow module is reached at
+   * @throws IllegalArgumentException if the id or the URI cannot become a route. Nothing is changed
+   *         then.
    */
   public synchronized void registerMicroservice(
       final String id,
       final String uri) {
 
-    final var previousUri = routes.put(id, uri);
-    if (uri.equals(previousUri)) {
+    if (Objects.equals(uri, routes.get(id))) {
       return;
     }
 
-    rebuildRoutes();
+    final var route = buildRoute(id, uri);
+    routes.put(id, uri);
+    builtRoutes.put(id, route);
+    logger.info("Register microservice proxy for workflow module: {}", id);
 
-  }
-
-  /**
-   * Adds routes for several workflow modules at once. A module which already has a route keeps
-   * its URI.
-   *
-   * @param microserviceUris The URIs of the workflow modules, by the module id
-   */
-  public synchronized void registerMicroservices(
-      final Map<String, String> microserviceUris) {
-
-    final var numberOfPreviousKnownMicroservices = routes.size();
-
-    microserviceUris.forEach(routes::putIfAbsent);
-
-    if (routes.size() != numberOfPreviousKnownMicroservices) {
-      rebuildRoutes();
-    }
-
-  }
-
-  private void rebuildRoutes() {
-
-    currentRoutes.set(routes
-        .entrySet()
+    currentRoutes.set(builtRoutes
+        .values()
         .stream()
-        .peek(entry -> logger.info(
-            "Register microservice proxy for workflow module: {}",
-            entry.getKey()))
-        .map(entry -> buildRoute(entry.getKey(), entry.getValue()))
         .reduce(RouterFunction::and)
         .orElse(NO_ROUTES));
 
@@ -130,6 +113,12 @@ public class MicroserviceProxyRegistry implements RouterFunction<ServerResponse>
     final var proxyPath = WORKFLOW_MODULES_PATH_PREFIX
         + id
         + "/";
+    if (uriAsString == null) {
+      throw new IllegalArgumentException("The workflow module '"
+          + id
+          + "' has no URI.");
+    }
+    // throws an IllegalArgumentException for a URI which cannot be parsed
     final var uri = URI.create(uriAsString);
     // the target URI contributes scheme, host and port only, so whatever path it carries has to
     // become part of the rewritten path

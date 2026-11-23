@@ -1,9 +1,5 @@
 package io.vanillabp.cockpit.bpms.api.v1_1;
 
-import java.util.Collection;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
@@ -17,6 +13,7 @@ import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.model.UserTaskEndReason;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowlist.model.WorkflowEndReason;
+import io.vanillabp.cockpit.workflowmodules.WhatARegistrationMustSay;
 import io.vanillabp.cockpit.workflowmodules.WorkflowModuleService;
 import jakarta.validation.Valid;
 
@@ -288,14 +285,10 @@ public class BpmsApiController implements BpmsApi {
         registerWorkflowModuleEvent.getTaskProviderApiUriPath(),
         registerWorkflowModuleEvent.getWorkflowProviderApiUriPath(),
         registerWorkflowModuleEvent.getAccessibleToGroups(),
-        Optional
-            .ofNullable(registerWorkflowModuleEvent.getGroupHierarchy())
-            .map(hierarchies -> hierarchies
-                .stream()
-                .collect(Collectors.toMap(
-                    GroupHierarchy::getGroup,
-                    hierarchy -> (Collection<String>) hierarchy.getTargets())))
-            .orElse(null));
+        WhatARegistrationMustSay.groupHierarchyOf(
+            registerWorkflowModuleEvent.getGroupHierarchy(),
+            GroupHierarchy::getGroup,
+            GroupHierarchy::getTargets));
 
     return ResponseEntity.ok().build();
 
