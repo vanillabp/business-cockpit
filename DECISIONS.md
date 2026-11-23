@@ -6001,3 +6001,163 @@ the application on the management side too.
 - The wiki page Security shows such a chain for operations.
 - The rule `BE-005` of the skill names the refusal of `/actuator/**`.
 
+### 124. The GUI API reads a body of at most 1 MB, a note of at most 10,000 characters and at most 1,000 ids per request
+
+Every request of the GUI API comes from a browser, and a browser sends small bodies: a list request,
+a note, a setting, a list of ids. A note is stored in every entry a request names, and every list
+answer carries it. So the cockpit ships limits, and an application can change the ones which are
+settings.
+
+#### Which limits
+
+- A request body to `/gui/api/*` holds at most 1 MB. The key
+  `business-cockpit.gui-api.max-request-body-size` changes it. A larger body answers 413 with a text
+  which names the limit. A body which says its length is refused before it is read. A body sent in
+  chunks is counted while it is read.
+- The text of a note holds at most 10,000 characters. A longer text answers 400.
+- A request which changes several entries at once, like the note of several cases or the claim of
+  several user tasks, names at most 1,000 of them. A longer list answers 400.
+- Jackson reads a string of at most 10,000,000 characters from any JSON body, the reports of the
+  BPMS API included. The cockpit sets Spring Boot's key
+  `spring.jackson.factory.constraints.read.max-string-length` to this value when the application does
+  not set it. Jackson's own default is ten times as long.
+
+The note and the list of ids are limited in the OpenAPI document of the GUI API (`maxLength`,
+`maxItems`), so a generated client and the bean validation of the server know the same numbers. They
+are no settings, because a user interface has to know them as well.
+
+The size of a page, `pageSize` and `size`, stays without a limit, see decision 55.
+
+#### Why the body limit is not a setting of the server
+
+Neither Tomcat nor Spring limits the body of a JSON request by itself. A limit of the server would
+hold for the BPMS API as well, and the reports of the workflow modules can carry more business data
+than 1 MB. So the limit is a servlet filter for the paths of the GUI API only.
+
+#### What this changes in decision 74
+
+Decision 74 says the settings of a user have no limit of the cockpit, only the 16 MB of MongoDB.
+That is no longer true: one setting holds at most what fits into a body of 1 MB, or whatever the
+application sets. The 16 MB of the whole document still hold as well, and a write which would make
+the document larger still answers 413.
+
+### 125. The field `sort` of a list request names at most five paths in 500 characters
+
+Decision 57 limits which paths a list may be sorted by and how many sort indexes a collection may
+have. It did not limit the field `sort` itself. The rule of a path checks its characters, not its
+length, and the server kept every new combination it saw in memory for as long as it ran. Now both
+the field and what the server remembers have a limit.
+
+#### What the cockpit does now
+
+- `sort` holds at most 500 characters and names at most five paths. A longer one answers 400 before
+  any of its paths is looked at. The answer does not repeat the field. The OpenAPI document of the
+  GUI API says the same (`maxLength: 500`).
+- `SortIndexes` remembers the combinations which have their index. They are no more than the
+  indexes MongoDB takes per collection. Of the combinations left without an index, because the
+  limit was reached or the index could not be created, it remembers the last 1,000 only.
+- A combination is remembered only once it was dealt with. A failure to read the indexes leaves it
+  for the next request.
+
+#### What this changes in decision 57
+
+Decision 57 says the server warns once per combination which is sorted without an index of its
+own. Now it warns once while the combination is among the last 1,000 of them. A combination which
+was forgotten and comes back is warned about again.
+
+### 126. A user may not write the key `_class` into the user document, and the poller reads each user on its own
+
+Spring Data writes the key `_class` into a stored document to say which Java type it holds, and it
+reads the key back to create that type. The settings of a user, the notification configuration and
+the recipient configurations are free JSON a user writes into the user document, so they must
+not hold that key. The notification poller now reads each user on its own, so a document which
+cannot be read concerns that one user only.
+
+#### What the cockpit does now
+
+- The key `_class` is refused with 400: as the name of a setting, at any depth inside the value of a
+  setting, as a key of the recipient configuration, and as a key of the maps of the notification
+  configuration.
+- The poller reads each user with the one field it needs, the notification configuration, and turns
+  each document into a user on its own. A document which cannot be read leaves out that one user,
+  and the poller logs a warning which names the user.
+- The poller sends what waits in the outbox even when planning the changes of a cycle failed.
+- A check at startup looks for documents which still hold the key in one of these fields, and logs a
+  warning which names each user and field. It changes nothing, so an operator decides how to remove
+  the key. A changeset was not chosen, because removing a key at any depth of free JSON cannot be
+  written as one update, and a changeset which guesses wrong changes data of users for good.
+
+#### What this changes in decision 74
+
+Decision 74 says a value of a setting is any JSON and the cockpit does not look into it. That is no
+longer quite true: the cockpit looks into the value for the key `_class` and refuses it.
+
+### 127. An assign in the GUI API names a user the directory knows, and a report still decides who sees a task which addressed nobody
+
+An assign now names a user the directory knows, and a later report that names somebody decides
+who sees a task which addressed nobody. An assign through the GUI API makes a person a candidate of
+a user task, and a candidate should be somebody who can see and work on the task.
+
+#### What the cockpit does now
+
+- An assign asks the user directory (`UserDirectoryService.getUser`) whether it knows the id. An id
+  it does not know, or no id at all, answers 400. The mapper of the application is not asked,
+  because both mappers the cockpit ships turn any id into a person. An unassign is not checked, so
+  a person who left the directory can still be removed.
+- A task which addressed nobody and got its only candidates from an assign in the cockpit is marked
+  (`UserTask.addressedByTheCockpitOnly`). Such a task still takes who sees it from the first later
+  report which names somebody, as a dangling task does. The candidates of the assign are dropped
+  then. A report which names nobody leaves the assign as it is. Removing the last candidate again
+  makes the task dangling and clears the mark.
+
+Ordinary assign and takeover stay as decision 54 describes them.
+
+#### No separate check for a task visible to nobody
+
+A task is visible to nobody only when the people it names are people nobody is. With the check of
+the directory an assign always adds a person the directory knows, and taking the last candidate away
+makes the task dangling again, which shows it to everybody. So the cockpit has no second check after
+the change.
+
+#### What this adds to decision 54
+
+Decision 54 says a dangling task takes who sees it from the first later report which names
+somebody. This now holds as well for a task whose only candidates came from an assign in the
+cockpit while it was dangling.
+
+### 128. A sort names at most one field which holds a list, and a write an index cannot take fails every time
+
+Decision 57 creates an index for each new combination of sort paths. Some fields of the lists hold
+a list themselves: `candidateUsers` and `candidateGroups` of a user task, `accessibleToUsers` and
+`accessibleToGroups` of a workflow. MongoDB indexes at most one field which holds a list per
+document in an index over several fields. Measured with MongoDB 8.2, the image the tests of this
+repository use:
+
+- On an empty collection MongoDB creates an index over `candidateUsers` and `candidateGroups`. After
+  that it refuses every document which holds both fields with code 171 (`CannotIndexParallelArrays`),
+  even when both lists are empty.
+- On a collection which holds such a document, MongoDB refuses the index with the same code. The
+  cockpit logs that and sorts without the index.
+- An index over two paths into the same list, like `candidateUsers.sort,candidateUsers.id`, works.
+
+So a sort names at most one of these fields, and a write MongoDB refuses with code 171 counts as
+one which fails every time.
+
+#### What the cockpit does now
+
+- A sort which names two different fields which hold a list is answered with 400, before any index
+  is built: `'sort' may name only one of the fields 'candidateGroups' and 'candidateUsers' at a time,
+  because each of them holds a list` (for workflows `'accessibleToGroups' and 'accessibleToUsers'`).
+  The text is written for a user, because the user interface shows it as it is. Several paths into
+  the same field stay allowed, which is what a column of persons sends. Keys below `details.` cannot
+  be known to hold a list, so for them the limit of five paths stays the only one.
+- A write which MongoDB refuses with code 171 counts as one which fails every time
+  (`OutcomeOfStoring`). REST answers 422 and Kafka skips the record, instead of repeating it
+  without end. The reason says to drop the index whose name starts with `_sort_`. Such an index can
+  still exist from before this change.
+
+#### What stays as it was
+
+Both lists add their default order behind the requested paths, so paging stays stable: user tasks
+`dueDate`, `createdAt`, `_id`, workflows `createdAt`, `_id`. A field the request named is left out of
+that addition. The index of a sort covers the requested paths and these fields, in this order.
