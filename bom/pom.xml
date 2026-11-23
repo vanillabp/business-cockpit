@@ -59,7 +59,7 @@
       request moves both. A change by hand has to change both too.
     -->
     <version.vanillabp>2.0.0-SNAPSHOT</version.vanillabp>
-    <version.mongodb-changesets>1.0.0-SNAPSHOT</version.mongodb-changesets>
+    <version.mongodb-changesets>1.0.0</version.mongodb-changesets>
     <!--
       The Spotless run of the root module formats this pom.xml, because it includes every
       pom.xml. This module does not inherit the plugin, so a Spotless goal started on it has
