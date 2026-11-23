@@ -162,9 +162,12 @@ public class EmailNotificationService extends AbstractTemplatingNotificationServ
 
     final var userDetails = toUserDetails(user);
     final var locale = resolveLocale(user);
+    final var contextOfTheRecipient = withThePathsOfTheLanguage(context, locale);
     // subject is always plain text; the body may be HTML when an .ftlh template is used
-    final var subject = render(TEMPLATE_HEADER, context, userDetails, notificationType, forced, locale);
-    final var body = renderContent(TEMPLATE_BODY, context, userDetails, notificationType, forced, locale);
+    final var subject = render(
+        TEMPLATE_HEADER, contextOfTheRecipient, userDetails, notificationType, forced, locale);
+    final var body = renderContent(
+        TEMPLATE_BODY, contextOfTheRecipient, userDetails, notificationType, forced, locale);
     if (subject == null || body == null) {
       throw new IllegalStateException("Missing e-mail template (header and/or body)");
     }
@@ -200,6 +203,21 @@ public class EmailNotificationService extends AbstractTemplatingNotificationServ
 
   }
 
+  /**
+   * The paths of the user interface differ per language, and so do the links of the mail. Each
+   * recipient reads the mail in their own language, so each gets the paths of it.
+   */
+  private Map<String, Object> withThePathsOfTheLanguage(
+      final Map<String, Object> context,
+      final Locale locale) {
+
+    final var result = new HashMap<>(context);
+    result.put("taskPath", notificationProperties.taskPathFor(locale.getLanguage()));
+    result.put("taskListPath", notificationProperties.taskListPathFor(locale.getLanguage()));
+    return result;
+
+  }
+
   private String resolveAddress(
       final User user) {
 
@@ -227,8 +245,7 @@ public class EmailNotificationService extends AbstractTemplatingNotificationServ
     context.put("taskDefinitionTitle", pickLanguage(userTask.getTaskDefinitionTitle()));
     context.put("businessId", userTask.getBusinessId());
     context.put("notificationTypeName", notificationType == null ? null : notificationType.name());
-    // only the application base URI is passed; the (localized) template builds the deep-link
-    // and task-list URLs itself, because the segments of a path differ per language
+    // the paths behind the base URI differ per language, so they are added per recipient
     context.put("baseUri", baseUri());
     return context;
 

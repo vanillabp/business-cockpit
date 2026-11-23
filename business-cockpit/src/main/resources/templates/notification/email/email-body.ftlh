@@ -1,13 +1,11 @@
 <#---
   Default body template for user task notification e-mails.
   Available model: taskTitle, workflowTitle, taskDefinitionTitle, businessId,
-  notificationTypeName, baseUri, userTask, userDetails, notificationType, forced.
-  The deep-link and task-list URLs are built here because their path segments are
-  language-specific (this template is resolved per recipient locale; ".lang" is the
-  language of that locale).
+  notificationTypeName, baseUri, taskPath, taskListPath, userTask, userDetails,
+  notificationType, forced.
+  taskPath and taskListPath are the paths of the user interface in the language of the
+  recipient, from business-cockpit.notification.task-path and .task-list-path.
 --->
-<#assign taskPath = (.lang == "de")?then("aufgabe", "task")>
-<#assign taskListPath = (.lang == "de")?then("aufgaben", "tasks")>
 <html>
 <body>
 <h1>Hello ${userDetails.display!userDetails.id!"there"},</h1>

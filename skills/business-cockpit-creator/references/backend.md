@@ -902,13 +902,27 @@ business-cockpit:
   `container/src/main/resources/config/application-mailpit.yaml` is the template. The interval is
   one minute by default. A test that waits for a mail sets it to `1s` in its own properties, so it
   does not wait a minute.
-- The mail of the library builds the link to the task itself, `/aufgabe/<id>` in German and
-  `/task/<id>` in every other language, whatever `Q-ROUTES` says. The user interface answers these
-  paths, see [behaviour.md](behaviour.md#notifications). An application that wants the paths of
-  `Q-ROUTES` in the mail brings templates of its own, `email-body.ftl` and `email-body.ftlh` with
-  the model of the library's templates, and names their folder in
-  `business-cockpit.notification.templates.email`, for example
-  `classpath:cockpit-mail/`, a folder the library does not use.
+- The mail of the library links the task and the task list with a path per language. Without a
+  configuration it is `/aufgabe/<id>` and `/aufgaben` in German, and `/task/<id>` and `/tasks` in
+  every other language. With `Q-ROUTES` the application names its own paths,
+  `business-cockpit.notification.task-path.<language>` for the page of a task and
+  `business-cockpit.notification.task-list-path.<language>` for the list. The key `default` holds
+  the path of every language without a key of its own, and a key adds to the library's defaults:
+
+  ```yaml
+  business-cockpit:
+    notification:
+      task-path:
+        default: tasks
+        de: aufgaben
+      task-list-path:
+        default: tasks
+        de: aufgaben
+  ```
+
+  The user interface still answers the library's paths as well, see
+  [behaviour.md](behaviour.md#notifications), because a mail sent before the change carries them.
+  Templates of its own are needed only for another wording of the mail.
 
 The application tells the rest while it starts. A value it cannot run without ends the start, and
 the message lists every missing key with an example. A feature that is not configured yet gives a

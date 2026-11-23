@@ -16,6 +16,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.context.properties.bind.Bindable;
+import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.boot.context.properties.source.MapConfigurationPropertySource;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 
 import com.icegreen.greenmail.util.GreenMail;
@@ -42,12 +45,16 @@ class EmailNotificationServiceTest {
 
   private UserRepository userRepository;
 
+  private NotificationProperties notificationProperties;
+
+  private JavaMailSenderImpl mailSender;
+
   @BeforeEach
   void setUp() {
     greenMail = new GreenMail(ServerSetupTest.SMTP);
     greenMail.start();
 
-    final var mailSender = new JavaMailSenderImpl();
+    mailSender = new JavaMailSenderImpl();
     mailSender.setHost("localhost");
     mailSender.setPort(greenMail.getSmtp().getPort());
 
@@ -61,7 +68,7 @@ class EmailNotificationServiceTest {
     applicationProperties = new ApplicationProperties();
     applicationProperties.setApplicationUri("http://cockpit.example.org/");
 
-    final var notificationProperties = new NotificationProperties();
+    notificationProperties = new NotificationProperties();
     notificationProperties.getSmtp().setFrom("cockpit@example.org");
 
     service = new EmailNotificationService(
@@ -134,6 +141,86 @@ class EmailNotificationServiceTest {
 
     verify(userRepository).writeRecipientConfiguration("u1", "email", Map.of("emailAddress", "u1@example.com"));
     verify(userRepository, never()).save(any());
+  }
+
+  /**
+   * Without a configuration the links have the paths the library always built: German for a
+   * German recipient, English for everybody else.
+   */
+  @Test
+  void theLinksHaveThePathsOfTheLanguageOfTheRecipient() throws Exception {
+    recipient("de-user", java.util.Locale.GERMAN);
+    recipient("fr-user", java.util.Locale.FRENCH);
+
+    service.sendNotification(List.of("de-user", "fr-user"), aTask());
+
+    assertTrue(greenMail.waitForIncomingEmail(5000, 2), "no e-mails received");
+    final var german = bodyOfTheMailTo("de-user@example.org");
+    assertTrue(german.contains("http://cockpit.example.org/aufgabe/task-1"), german);
+    assertTrue(german.contains("http://cockpit.example.org/aufgaben\""), german);
+    final var french = bodyOfTheMailTo("fr-user@example.org");
+    assertTrue(french.contains("http://cockpit.example.org/task/task-1"), french);
+    assertTrue(french.contains("http://cockpit.example.org/tasks\""), french);
+  }
+
+  /**
+   * A user interface with paths of its own names them in the configuration, and the links follow.
+   * A language without a path of its own takes the one of every other language.
+   */
+  @Test
+  void theLinksHaveTheConfiguredPaths() throws Exception {
+    final var configured = new Binder(new MapConfigurationPropertySource(Map.of(
+        "business-cockpit.notification.task-path.fr", "taches",
+        "business-cockpit.notification.task-path.default", "tasks",
+        "business-cockpit.notification.task-list-path.fr", "taches")))
+        .bind(NotificationProperties.PREFIX, Bindable.ofInstance(notificationProperties))
+        .get();
+    service = new EmailNotificationService(configured, userRepository, mailSender, applicationProperties);
+    recipient("de-user", java.util.Locale.GERMAN);
+    recipient("fr-user", java.util.Locale.FRENCH);
+
+    service.sendNotification(List.of("u1", "de-user", "fr-user"), aTask());
+
+    assertTrue(greenMail.waitForIncomingEmail(5000, 3), "no e-mails received");
+    final var french = bodyOfTheMailTo("fr-user@example.org");
+    assertTrue(french.contains("http://cockpit.example.org/taches/task-1"), french);
+    assertTrue(french.contains("http://cockpit.example.org/taches\""), french);
+    // a configured language adds to the defaults and does not replace them
+    final var german = bodyOfTheMailTo("de-user@example.org");
+    assertTrue(german.contains("http://cockpit.example.org/aufgabe/task-1"), german);
+    final var english = bodyOfTheMailTo("u1@example.org");
+    assertTrue(english.contains("http://cockpit.example.org/tasks/task-1"), english);
+    assertTrue(english.contains("http://cockpit.example.org/tasks\""), english);
+  }
+
+  private void recipient(
+      final String id,
+      final java.util.Locale locale) {
+    final var user = new User();
+    user.setId(id);
+    user.setEmail(id
+        + "@example.org");
+    user.setLocale(locale);
+    when(userRepository.findById(id)).thenReturn(java.util.Optional.of(user));
+  }
+
+  private static UserTask aTask() {
+    final var task = new UserTask();
+    task.setId("task-1");
+    task.setTitle(Map.of("en", "Approve invoice"));
+    task.setNotificationType(NotificationType.CREATED);
+    return task;
+  }
+
+  private String bodyOfTheMailTo(
+      final String address) throws Exception {
+    for (final var message : greenMail.getReceivedMessages()) {
+      if (message.getAllRecipients()[0].toString().equals(address)) {
+        return (String) message.getContent();
+      }
+    }
+    throw new AssertionError("no e-mail to "
+        + address);
   }
 
 }
