@@ -102,6 +102,16 @@ and they keep the request factory their keys build, see [Changing more](#changin
 application's other clients, the ones it builds itself, get the default of the gateway. The routes
 of the gateway pass a redirect on to the browser as it is.
 
+The client which sends the requests of the gateway comes from `support` as well, the bean
+`gatewayClientWhichChangesNothing` of `GatewayClientAutoConfiguration`. It is the client of every
+route of the gateway in the application, also of a route the application writes itself, and of the
+proxy of the workflow modules in a cockpit. It passes a compressed answer on as it is, with its
+`Content-Encoding`. Spring's own clients unpack such an answer and drop the header. It speaks
+HTTP/1.1, because the client of the JDK otherwise asks for an upgrade to HTTP/2 (`Upgrade: h2c`),
+and the development server of Vite does not answer that. The keys `spring.http.clients.*` hold for
+it as well. An application which needs another client writes a bean of the type `ProxyExchange`,
+and the one of `support` steps back.
+
 The start ends, with one message for all of them, if
 
 - an address is no address, has no `http` or `https`, holds a user, or has a path, a query or a

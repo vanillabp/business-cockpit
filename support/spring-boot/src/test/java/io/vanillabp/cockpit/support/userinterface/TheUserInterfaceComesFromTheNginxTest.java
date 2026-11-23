@@ -2,12 +2,17 @@ package io.vanillabp.cockpit.support.userinterface;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +39,7 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import mockwebserver3.MockResponse;
 import mockwebserver3.MockWebServer;
 import mockwebserver3.RecordedRequest;
+import okio.Buffer;
 
 /**
  * An application with the gateway and the address of the nginx. The workflow module
@@ -118,6 +124,45 @@ public class TheUserInterfaceComesFromTheNginxTest {
 
     assertThat(response.statusCode()).isEqualTo(HttpStatus.NOT_FOUND.value());
     assertThat(response.body()).isEqualTo("not here");
+
+  }
+
+  /**
+   * The nginx compresses what it serves, and the browser gets the compressed bytes with the header
+   * which says so. The gateway asks the nginx for no upgrade to HTTP/2, which the development
+   * server of Vite does not answer.
+   */
+  @Test
+  public void aCompressedFileIsPassedOnAsItIs() throws Exception {
+
+    final var manifest = "{\"entries\":[]}";
+    final var compressed = new ByteArrayOutputStream();
+    try (var gzip = new GZIPOutputStream(compressed)) {
+      gzip.write(manifest.getBytes(StandardCharsets.UTF_8));
+    }
+    nginx.enqueue(new MockResponse.Builder()
+        .code(HttpStatus.OK.value())
+        .addHeader("Content-Type", "application/json")
+        .addHeader("Content-Encoding", "gzip")
+        .body(new Buffer().write(compressed.toByteArray()))
+        .build());
+
+    final var response = client.send(
+        HttpRequest
+            .newBuilder(address("/loan-approval/bc-manifest.json"))
+            .header("Accept-Encoding", "gzip")
+            .GET()
+            .build(),
+        HttpResponse.BodyHandlers.ofByteArray());
+
+    assertThat(response.statusCode()).isEqualTo(HttpStatus.OK.value());
+    assertThat(response.headers().firstValue("Content-Encoding")).hasValue("gzip");
+    try (var unpacked = new GZIPInputStream(new ByteArrayInputStream(response.body()))) {
+      assertThat(new String(unpacked.readAllBytes(), StandardCharsets.UTF_8)).isEqualTo(manifest);
+    }
+    final RecordedRequest forwarded = nginx.takeRequest(5, TimeUnit.SECONDS);
+    assertThat(forwarded).isNotNull();
+    assertThat(forwarded.getHeaders().get("Upgrade")).isNull();
 
   }
 

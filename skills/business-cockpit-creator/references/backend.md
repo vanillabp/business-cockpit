@@ -763,12 +763,12 @@ tests below shows neither of them:
   `server.host: '127.0.0.1'`, see [project.md](project.md#developing-against-the-backend), and the
   backend names the same address.
 - The client of the route speaks HTTP/1.1. The JDK `HttpClient` asks a server for HTTP/2 over a
-  plain connection (`Upgrade: h2c`), and Vite does not answer that the way the client expects. So in
-  the profile `ui-dev-server` the application gives the gateway a client that speaks HTTP/1.1 only,
-  for example a `JdkClientHttpRequestFactory` on an `HttpClient` built with
-  `.version(HttpClient.Version.HTTP_1_1)`, or the setting
-  `spring.http.clients.imperative.factory: simple`. Check it once against the real dev server.
-  See [rough-edges.md](rough-edges.md#the-jdk-client-and-the-vite-dev-server).
+  plain connection (`Upgrade: h2c`), and Vite does not answer that the way the client expects. The
+  library brings the client of the gateway, and that client speaks HTTP/1.1 and passes a compressed
+  answer on as it is, with its `Content-Encoding`. It holds for this route and for the proxy of
+  the workflow modules below `/wm/` (`EXT-059`). So the application writes no client, no
+  `ClientHttpRequestFactory` and no `spring.http.clients.imperative.factory` for the gateway. See
+  [rough-edges.md](rough-edges.md#the-jdk-client-and-the-vite-dev-server).
 
 With `behind`, `application.yaml` sets `user-interface.uri` to the address of the nginx from the
 environment, and the profile `ui-dev-server` replaces it with the dev server. With `embedded`

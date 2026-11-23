@@ -280,12 +280,14 @@ It is a step of the plan, not a question for the user. Version `1.0.0` brings:
 - the user directories for Keycloak and LDAP in the library, switched on by
   `business-cockpit.user-directory.type`,
 - a token without groups: the cockpit asks `UserDirectoryService#getUser` on every request, and an
-  OIDC login gets a token.
+  OIDC login gets a token,
+- the client of the gateway: it speaks HTTP/1.1 and passes a compressed answer of a workflow module
+  or a dev server on as it is, with its `Content-Encoding` (`EXT-059`).
 
 Against an older cockpit the generated client lacks these endpoints and fields, and the build
 fails. That is on purpose: better a failed build than a user interface that guesses.
 
-The last three points matter for a backend the skill creates, not for the user interface. Since
+The last four points matter for a backend the skill creates, not for the user interface. Since
 `1.0.0` the library brings no login: the two security chains and the bean `userDetailsProvider` are
 the application's, and the generated backend writes all three itself, see
 [backend.md](backend.md#the-login). An older library has a BPMS API chain of its own under the same
@@ -306,14 +308,16 @@ backend repository is still the proof for the backend itself (`BE-007`).
 
 The backend passes the paths it does not know to the dev server of the user interface, in the
 profile `ui-dev-server`, see [backend.md](backend.md#the-route-to-the-user-interface). Against a
-real Vite dev server this fails twice, while a test with a small HTTP server passes.
+real Vite dev server this can fail, while a test with a small HTTP server passes.
 
 - Vite listens on `localhost`. Node.js may resolve that to the IPv6 address `::1` only, and Java
   tries `127.0.0.1` first, so the backend gets no connection. Set `server.host: '127.0.0.1'` in
   Vite, and name `http://127.0.0.1:<port>` in the backend.
 - The JDK `HttpClient` asks for HTTP/2 over a plain connection, with the header `Upgrade: h2c`.
   Vite does not answer that upgrade the way the client expects, and the request fails or hangs.
-  Give the route a client that speaks HTTP/1.1 only.
+  The client of the gateway which the library brings speaks HTTP/1.1 only, so this happens only
+  with a library before `1.0.0`, or with an application which replaces that client by a bean of
+  the type `ProxyExchange` of its own.
 
 ## An open update stream keeps Playwright waiting
 
