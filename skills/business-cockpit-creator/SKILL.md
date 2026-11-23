@@ -31,7 +31,8 @@ The skill lives in the repository `business-cockpit`, because it describes that 
 interfaces. If it lived somewhere else, it would get out of date apart from the code. Where it and
 the code disagree, the code is right and the text is the bug.
 
-Install it with `gh skill install vanillabp/business-cockpit business-cockpit-creator`. The skill
+Install it with `gh skill install vanillabp/business-cockpit business-cockpit-creator@main` (until the
+cockpit 1.0 is released, the newest release tag does not hold the skill). The skill
 `business-cockpit` in `vanillabp/skills` only says that the cockpit exists and where to read more;
 this skill is the one that builds a cockpit.
 
