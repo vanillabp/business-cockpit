@@ -8,6 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -40,6 +41,7 @@ import org.springframework.util.StringUtils;
 
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
+import com.mongodb.client.result.UpdateResult;
 
 import io.vanillabp.cockpit.bpms.OrderOfReports;
 import io.vanillabp.cockpit.bpms.OutcomeOfStoring;
@@ -727,20 +729,12 @@ public class UserTaskService {
     refuseIfSuspended(userTask);
     refuseIfClaimedByAnotherUser(userTask, personId);
 
-    final var query = new Query();
-    query.addCriteria(Criteria.where("id").is(userTaskId));
-    query.addCriteria(Criteria.where("assignee.id").is(personId));
-    // a task which ends or is suspended between the read above and this write stays as it is
-    query.addCriteria(Criteria.where("endedAt").exists(false));
-    query.addCriteria(Criteria.where("suspendedAt").is(null));
-
-    final var written = mongoTemplate.updateFirst(
-        query, LatestChange.recordIn(unsetAssignee(currentUser), initiatorFor(currentUser)), UserTask.class);
+    final var written = giveBack(Criteria.where("id").is(userTaskId), personId, currentUser, false);
 
     final var stored = getUserTask(userTaskId);
     // the task ended, was suspended or somebody else claimed it, between the read above and
     // this write
-    if ((written.getMatchedCount() == 0) && (stored != null)) {
+    if ((written == 0) && (stored != null)) {
       refuseIfEnded(stored);
       refuseIfSuspended(stored);
       refuseIfClaimedByAnotherUser(stored, personId);
@@ -785,14 +779,7 @@ public class UserTaskService {
       return List.of();
     }
 
-    final var query = new Query();
-    query.addCriteria(Criteria.where("id").in(unclaimable));
-    query.addCriteria(Criteria.where("assignee.id").is(personId));
-    query.addCriteria(Criteria.where("endedAt").exists(false));
-    query.addCriteria(Criteria.where("suspendedAt").is(null));
-
-    mongoTemplate.updateMulti(
-        query, LatestChange.recordIn(unsetAssignee(currentUser), initiatorFor(currentUser)), UserTask.class);
+    giveBack(Criteria.where("id").in(unclaimable), personId, currentUser, true);
 
     final var findQuery = new Query();
     findQuery.addCriteria(Criteria.where("id").in(unclaimable));
@@ -922,6 +909,63 @@ public class UserTaskService {
     if ((userTask.getAssignee() != null) && !userTask.getAssignee().getId().equals(personId)) {
       throw new UserTaskClaimedByAnotherUserException(userTask.getId());
     }
+
+  }
+
+  /**
+   * Removes the assignee from the tasks which the given criteria selects, where the person is
+   * still their assignee and the tasks are neither ended nor suspended.
+   * <p>
+   * The task stores whether it addresses nobody, because the lists ask for that value (see
+   * {@link UserTask#isDangling()}). A task without a candidate addresses nobody once it has no
+   * assignee, and every user has to see it again. So the update writes that value as well. A report
+   * can change the candidates between the read of the caller and this write, so the database
+   * decides at the time of the write: one update for the tasks with a candidate, one for those
+   * without. A task matches one of the two, and once it is given back it matches neither.
+   *
+   * @return how many tasks were given back
+   */
+  private long giveBack(
+      final Criteria whichTasks,
+      final String personId,
+      final String currentUser,
+      final boolean severalTasks) {
+
+    final BiFunction<Query, Update, UpdateResult> write = (
+        query,
+        update) -> severalTasks
+            ? mongoTemplate.updateMulti(query, update, UserTask.class)
+            : mongoTemplate.updateFirst(query, update, UserTask.class);
+    final var addressedToSomebody = write.apply(
+        whatCanBeGivenBack(whichTasks, personId).addCriteria(new Criteria().orOperator(aCandidate())),
+        LatestChange.recordIn(unsetAssignee(currentUser).set("dangling", false), initiatorFor(currentUser)));
+    final var addressedToNobody = write.apply(
+        whatCanBeGivenBack(whichTasks, personId).addCriteria(new Criteria().norOperator(aCandidate())),
+        LatestChange.recordIn(unsetAssignee(currentUser).set("dangling", true), initiatorFor(currentUser)));
+    return addressedToSomebody.getMatchedCount() + addressedToNobody.getMatchedCount();
+
+  }
+
+  private static Query whatCanBeGivenBack(
+      final Criteria whichTasks,
+      final String personId) {
+
+    final var query = new Query(whichTasks);
+    query.addCriteria(Criteria.where("assignee.id").is(personId));
+    // a task which ends or is suspended between the read of the caller and this write stays as
+    // it is
+    query.addCriteria(Criteria.where("endedAt").exists(false));
+    query.addCriteria(Criteria.where("suspendedAt").is(null));
+    return query;
+
+  }
+
+  /** A task has a candidate user or a candidate group, so it addresses somebody. */
+  private static Criteria[] aCandidate() {
+
+    return new Criteria[]{
+        Criteria.where("candidateUsers.0").exists(true), Criteria.where("candidateGroups.0").exists(true)
+    };
 
   }
 
