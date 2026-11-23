@@ -1695,7 +1695,9 @@ The screen of the settings has three parts, all from these endpoints:
   `GET /notifications/recipient-config` answers one entry per channel with its fields, each with a
   translated `title` and `description` and its `value`.
   `PUT /notifications/recipient-config/{mediumType}` stores the fields of one channel as a map from
-  the `type` of a field to its value.
+  the `type` of a field to its value. It answers 400 with one line of text for a value the channel
+  cannot use, like a mail address which is not one mailbox, and the screen shows that text at the
+  field.
 
 The names of the channels and of the processes are shown in the language of the user, as every
 `Translatable` is, see [Language and texts](#language-and-texts).

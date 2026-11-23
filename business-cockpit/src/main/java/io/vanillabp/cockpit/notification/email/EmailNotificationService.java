@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +14,7 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.util.StringUtils;
 
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
+import io.vanillabp.cockpit.exceptions.BcInvalidRequestException;
 import io.vanillabp.cockpit.notification.AbstractTemplatingNotificationService;
 import io.vanillabp.cockpit.notification.NotificationDeliveryException;
 import io.vanillabp.cockpit.notification.NotificationProperties;
@@ -22,6 +24,8 @@ import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.users.model.User;
 import io.vanillabp.cockpit.users.model.UserRepository;
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.InternetAddress;
 
 /**
  * The reference {@link io.vanillabp.cockpit.notification.NotificationService}, which sends e-mails
@@ -106,11 +110,23 @@ public class EmailNotificationService extends AbstractTemplatingNotificationServ
 
   }
 
+  /**
+   * Stores the address the user wants the mails at. An empty value means the address the login
+   * knew. Any other value has to be one mailbox, see {@link #oneMailbox(String)}, and is refused
+   * with 400 otherwise.
+   */
   @Override
   public void saveRecipientConfiguration(
       final String userId,
       final Map<String, String> configurationValues) {
 
+    final var address = configurationValues == null ? null : configurationValues.get(FIELD_EMAIL_ADDRESS);
+    if (StringUtils.hasText(address) && oneMailbox(address).isEmpty()) {
+      throw new BcInvalidRequestException("'"
+          + FIELD_EMAIL_ADDRESS
+          + "' has to be one mailbox, like 'jane@example.com' or 'Jane Doe <jane@example.com>', "
+          + "and not a list of addresses or a group");
+    }
     // one atomic update of this medium's entry, so a setting written at the same time is no
     // conflict
     userRepository.writeRecipientConfiguration(userId, TYPE, configurationValues);
@@ -154,9 +170,17 @@ public class EmailNotificationService extends AbstractTemplatingNotificationServ
       final Map<String, Object> context) throws Exception {
 
     final var user = userRepository.findById(userId).orElse(null);
-    final var address = resolveAddress(user);
-    if (!StringUtils.hasText(address)) {
+    final var configured = resolveAddress(user);
+    if (!StringUtils.hasText(configured)) {
       logger.info("Skipping notification e-mail: user '{}' has no e-mail address configured", userId);
+      return;
+    }
+    final var address = oneMailbox(configured).orElse(null);
+    if (address == null) {
+      // stored before addresses were checked. Sending again would not change it, so this is no
+      // failure the poller should repeat
+      logger.warn("Skipping notification e-mail: the address of user '{}' is not one mailbox. "
+          + "The user can set a new one in the notification settings.", userId);
       return;
     }
 
@@ -215,6 +239,30 @@ public class EmailNotificationService extends AbstractTemplatingNotificationServ
     result.put("taskPath", notificationProperties.taskPathFor(locale.getLanguage()));
     result.put("taskListPath", notificationProperties.taskListPathFor(locale.getLanguage()));
     return result;
+
+  }
+
+  /**
+   * Reads a value as one mailbox. A group like {@code team: a@example.com, b@example.com;} is
+   * one address to the mail library, but the mail server delivers it to each of its members. So
+   * it does not count, and neither does a list of addresses or an address without a domain.
+   *
+   * @param value an address as a user or the login gave it
+   * @return the mailbox, or empty if the value is not exactly one mailbox
+   */
+  static Optional<InternetAddress> oneMailbox(
+      final String value) {
+
+    try {
+      final var parsed = InternetAddress.parse(value, true);
+      if ((parsed.length != 1) || parsed[0].isGroup() || !parsed[0].getAddress().contains("@")) {
+        return Optional.empty();
+      }
+      parsed[0].validate();
+      return Optional.of(parsed[0]);
+    } catch (AddressException e) {
+      return Optional.empty();
+    }
 
   }
 

@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.notification.email;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -25,6 +26,7 @@ import com.icegreen.greenmail.util.GreenMail;
 import com.icegreen.greenmail.util.ServerSetupTest;
 
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
+import io.vanillabp.cockpit.exceptions.BcInvalidRequestException;
 import io.vanillabp.cockpit.notification.NotificationProperties;
 import io.vanillabp.cockpit.notification.NotificationType;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
@@ -141,6 +143,52 @@ class EmailNotificationServiceTest {
 
     verify(userRepository).writeRecipientConfiguration("u1", "email", Map.of("emailAddress", "u1@example.com"));
     verify(userRepository, never()).save(any());
+  }
+
+  /**
+   * The address a user sets is one mailbox. A group, which a mail server would deliver to each of
+   * its members, is refused, and so is a list of addresses.
+   */
+  @Test
+  void anAddressWhichIsNotOneMailboxIsRefused() {
+    for (final var notOneMailbox : List.of(
+        "team: a@example.org, b@example.org;",
+        "a@example.org, b@example.org",
+        "no address")) {
+      assertThrows(
+          BcInvalidRequestException.class,
+          () -> service.saveRecipientConfiguration("u1", Map.of("emailAddress", notOneMailbox)),
+          notOneMailbox);
+    }
+    verify(userRepository, never()).writeRecipientConfiguration(any(), any(), any());
+  }
+
+  /** One mailbox is stored, with or without a name, and so is an empty value, which means the address of the login. */
+  @Test
+  void oneMailboxIsStored() {
+    for (final var oneMailbox : List.of("u1@example.com", "Jane Doe <u1@example.com>", "")) {
+      service.saveRecipientConfiguration("u1", Map.of("emailAddress", oneMailbox));
+      verify(userRepository).writeRecipientConfiguration("u1", "email", Map.of("emailAddress", oneMailbox));
+    }
+  }
+
+  /**
+   * An address stored before the check is not mailed to when it is not one mailbox. The other
+   * recipients of the same notification get theirs.
+   */
+  @Test
+  void aStoredAddressWhichIsNotOneMailboxGetsNoMail() throws Exception {
+    final var team = new User();
+    team.setId("team");
+    team.setRecipientConfigurations(Map.of("email", Map.of("emailAddress", "team: a@example.org, b@example.org;")));
+    when(userRepository.findById("team")).thenReturn(java.util.Optional.of(team));
+
+    service.sendNotification(List.of("team", "u1"), aTask());
+
+    assertTrue(greenMail.waitForIncomingEmail(5000, 1), "no e-mail received");
+    final var received = greenMail.getReceivedMessages();
+    assertEquals(1, received.length);
+    assertEquals("u1@example.org", received[0].getAllRecipients()[0].toString());
   }
 
   /**

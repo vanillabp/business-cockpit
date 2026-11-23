@@ -86,7 +86,7 @@ public class NotificationScanner {
       final List<PlannedNotification> planned) {
 
     final var assignee = assigneeId(task);
-    if (assignee == null || !dir.isLoggedIn(assignee)) {
+    if (assignee == null || !dir.isRecipient(assignee)) {
       return;
     }
     if (task.getEndReason() == UserTaskEndReason.COMPLETED) {
@@ -121,7 +121,7 @@ public class NotificationScanner {
         continue;
       }
       // leave out the user who caused the change
-      if (dir.isLoggedIn(candidate) && !Objects.equals(candidate, task.getInitiator())) {
+      if (dir.isRecipient(candidate) && !Objects.equals(candidate, task.getInitiator())) {
         planForRecipient(task, caseProcess, candidate, NotificationType.CANDIDATE_USER, dir, planned);
       }
     }
@@ -138,7 +138,7 @@ public class NotificationScanner {
     final var excluded = excludedCandidateUserIds(task);
     final var assignee = assigneeId(task);
     final var targetGroups = task.getTargetGroups();
-    for (final var userId : dir.loggedInUserIds()) {
+    for (final var userId : dir.recipientIds()) {
       if (personalCandidates.contains(userId)) {
         continue; // already handled as CANDIDATE_USER
       }

@@ -50,13 +50,12 @@ import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.UserDocumentsWithATypeHintKey;
 import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.User;
-import io.vanillabp.cockpit.users.model.UserRepository;
 import io.vanillabp.cockpit.workflowmodules.GroupHierarchyService;
 import io.vanillabp.integration.test.utils.ContainerImages;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * The poller reads the documents of all users in each cycle. One document which Spring Data cannot
+ * The poller reads the documents of all recently active users in each cycle. One document which Spring Data cannot
  * read, like one which holds a key {@code _class} that names no type the cockpit stores, must not
  * stop the notifications of all other users. The poller leaves that one user out, plans the
  * notifications of the others, moves its cursor on and sends what waits in the outbox.
@@ -154,16 +153,14 @@ class OneUserDocumentWhichCannotBeReadStopsNoNotificationTest {
 
     final var alice = new User();
     alice.setId("alice");
+    alice.setLastLoggedIn(OffsetDateTime.now());
     alice.setNotificationConfiguration(new NotificationConfiguration(Map.of(EMAIL, true), Map.of()));
     mongoTemplate.save(alice);
 
     // written as it was stored by a setting before such a key was refused
     mongoTemplate.getCollection(User.COLLECTION_NAME).insertOne(new Document("_id", "mallory")
+        .append("lastLoggedIn", new java.util.Date())
         .append("customSettings", new Document("x", new Document("_class", "java.lang.Thread"))));
-
-    // how the poller read the users before: the repository maps every whole document
-    final var users = mock(UserRepository.class);
-    when(users.findAll()).thenAnswer(invocation -> mongoTemplate.findAll(User.class));
 
     directory = mock(UserDirectoryService.class);
     when(directory.getUser(any())).thenAnswer(invocation -> Optional.of(
@@ -173,8 +170,8 @@ class OneUserDocumentWhichCannotBeReadStopsNoNotificationTest {
     when(email.getType()).thenReturn(EMAIL);
 
     poller = new NotificationPoller(
-        mongoTemplate, users, userTasks, outbox, List.of(email), directory, new GroupHierarchyService(), 3, Duration
-            .ofHours(48));
+        mongoTemplate, userTasks, outbox, List.of(email), directory, new GroupHierarchyService(), 3, Duration
+            .ofHours(48), Duration.ofDays(90));
 
   }
 

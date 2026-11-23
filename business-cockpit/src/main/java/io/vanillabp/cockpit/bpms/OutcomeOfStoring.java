@@ -1,7 +1,10 @@
 package io.vanillabp.cockpit.bpms;
 
 import org.bson.BsonMaximumSizeExceededException;
+import org.bson.BsonSerializationException;
+import org.bson.codecs.configuration.CodecConfigurationException;
 import org.springframework.core.NestedExceptionUtils;
+import org.springframework.core.convert.ConversionFailedException;
 import org.springframework.data.mapping.MappingException;
 
 import com.mongodb.MongoServerException;
@@ -20,7 +23,7 @@ import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
  * however often it comes. REST answers {@code 422} with the reason, and Kafka skips the
  * record, so that the records behind it are not held up for good.</li>
  * </ul>
- * Only four failures are of the second kind. Each of them depends on nothing but the document,
+ * Only these failures are of the second kind. Each of them depends on nothing but the document,
  * so the same report fails the same way however often it comes. Everything else counts as a failure
  * for now. Repeating a report which could have gone through costs a few more attempts. Giving it up
  * loses it.
@@ -41,6 +44,13 @@ import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
  * which both hold a list in the document. MongoDB answers it with the error code
  * {@value #CANNOT_INDEX_PARALLEL_ARRAYS}, even when both lists are empty. The cockpit no longer
  * creates such an index, but one created before stays until an operator drops it.</li>
+ * <li>A value of the record which cannot be turned into what MongoDB stores. A
+ * {@link ConversionFailedException} is thrown when a converter refuses a value, like a decimal
+ * number with more than the 34 digits a {@code Decimal128} keeps, or with an exponent out of its
+ * range. A {@link CodecConfigurationException} is thrown for a type the driver has no codec for,
+ * like a {@code BigInteger}, which Jackson makes of a whole number beyond the range of a
+ * {@code long}. A {@link BsonSerializationException} is thrown when the driver cannot encode the
+ * document. Each of them is thrown before anything is sent.</li>
  * </ul>
  */
 public final class OutcomeOfStoring {
@@ -108,8 +118,30 @@ public final class OutcomeOfStoring {
       if ((cause instanceof BsonMaximumSizeExceededException) || (cause instanceof MappingException)) {
         return true;
       }
+      if (isAValueMongoDbCannotTake(cause)) {
+        return true;
+      }
       if ((cause instanceof MongoServerException server) && ((server
           .getCode() == DOCUMENT_VALIDATION_FAILURE) || (server.getCode() == CANNOT_INDEX_PARALLEL_ARRAYS))) {
+        return true;
+      }
+    }
+    return false;
+
+  }
+
+  private static boolean isAValueMongoDbCannotTake(
+      final Throwable failure) {
+
+    return (failure instanceof ConversionFailedException) || (failure instanceof CodecConfigurationException) || (failure instanceof BsonSerializationException);
+
+  }
+
+  private static boolean causedByAValueMongoDbCannotTake(
+      final Throwable failure) {
+
+    for (var cause = failure; cause != null; cause = cause.getCause()) {
+      if (isAValueMongoDbCannotTake(cause)) {
         return true;
       }
     }
@@ -191,6 +223,11 @@ public final class OutcomeOfStoring {
               + " "
               + hint)
           .orElse(reason);
+    }
+    if (causedByAValueMongoDbCannotTake(failure)) {
+      // the message of a converter repeats the value, so it is left out
+      return "The %s cannot be stored: it holds a value which MongoDB cannot store, like a decimal number with more than 34 digits or a whole number beyond the range of a long."
+          .formatted(record);
     }
     if (hasCode(failure, CANNOT_INDEX_PARALLEL_ARRAYS)) {
       return "The %s cannot be stored: an index of the collection covers two fields which both hold a list. Drop that index, its name starts with '_sort_'."

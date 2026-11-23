@@ -825,6 +825,10 @@ paths:
       responses:
         200:
           description: Stored
+        400:
+          description: >-
+            A value the medium cannot use, like an e-mail address which is not one mailbox. The body
+            is one line of text which says what is wrong.
   /notifications/workflows:
     get:
       tags:
