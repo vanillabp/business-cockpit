@@ -282,12 +282,14 @@ It is a step of the plan, not a question for the user. Version `1.0.0` brings:
 - a token without groups: the cockpit asks `UserDirectoryService#getUser` on every request, and an
   OIDC login gets a token,
 - the client of the gateway: it speaks HTTP/1.1 and passes a compressed answer of a workflow module
-  or a dev server on as it is, with its `Content-Encoding` (`EXT-059`).
+  or a dev server on as it is, with its `Content-Encoding` (`EXT-059`),
+- a browser that goes away is no error: the library logs `AsyncRequestNotUsableException` at
+  `DEBUG` (`BE-034`).
 
 Against an older cockpit the generated client lacks these endpoints and fields, and the build
 fails. That is on purpose: better a failed build than a user interface that guesses.
 
-The last four points matter for a backend the skill creates, not for the user interface. Since
+The last five points matter for a backend the skill creates, not for the user interface. Since
 `1.0.0` the library brings no login: the two security chains and the bean `userDetailsProvider` are
 the application's, and the generated backend writes all three itself, see
 [backend.md](backend.md#the-login). An older library has a BPMS API chain of its own under the same

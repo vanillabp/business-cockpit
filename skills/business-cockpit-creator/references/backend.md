@@ -262,8 +262,7 @@ template. Every chain keeps five things, whatever the login is:
    same cookie, `bc` by default.
 5. Every request of the dispatcher types `ASYNC` and `ERROR` is let through, with
    `dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()` as the first
-   rule. The template does not have this rule yet. The reason is in
-   [When a browser goes away](#when-a-browser-goes-away) (`BE-033`).
+   rule. The reason is in [When a browser goes away](#when-a-browser-goes-away) (`BE-033`).
 
 `anyRequest()` is `authenticated()`. CSRF and CORS stay off, as in `container`, because the browser
 sees one origin and the cookie is the only credential.
@@ -348,8 +347,9 @@ the login, see [gui-api.md](gui-api.md#staying-logged-in).
 
 The module `container` of the `business-cockpit` repository has this chain, in
 `GuiSecurityConfiguration`, and a test which logs in at a provider played by a test server,
-`ALoginAtAnOpenIdConnectProviderTest`. Its logout ends the login in the cockpit only, so take the
-logout from [Logging out at the provider](#logging-out-at-the-provider) instead. Write the
+`ALoginAtAnOpenIdConnectProviderTest`. Its logout ends the session at the provider as well, with
+the classes `KeepTheIdTokenForTheLogout` and `LogoutAtTheProvider`, the way
+[Logging out at the provider](#logging-out-at-the-provider) describes. Write the
 integration test of the login of the generated backend first anyway (`BE-007`), before anything
 builds on it. It is one of the
 [integration tests of the backend](#the-integration-tests-of-the-backend).
@@ -512,8 +512,11 @@ passed the chain on its first dispatch.
 The second thing is the write to a connection that is gone. The next event or ping of the stream
 fails with `java.io.IOException: Broken pipe`, and the log shows "Servlet container error
 notification for disconnected client". Spring turns such an error into an
-`AsyncRequestNotUsableException`. The application handles it in an advice of its own and logs it at
-`DEBUG` (`BE-034`). Then a developer who looks for it still finds it, and nobody else sees it:
+`AsyncRequestNotUsableException`. It is handled and logged at `DEBUG` (`BE-034`). Then a
+developer who looks for it still finds it, and nobody else sees it. Since `1.0.0` the library does
+this in its `RestfulExceptionHandler`, which answers for every controller of the application, so
+the application needs nothing for it. Only with an older library the application handles it in an
+advice of its own:
 
 ```java
 /** A browser that went away, for example a closed tab with an open update stream, is no error. */
