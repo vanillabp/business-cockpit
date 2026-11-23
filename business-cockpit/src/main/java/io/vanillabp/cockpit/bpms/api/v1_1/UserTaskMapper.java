@@ -99,6 +99,7 @@ public abstract class UserTaskMapper {
   @Mapping(target = "updatedBy", source = "initiator")
   @Mapping(target = "endedAt", ignore = true)
   @Mapping(target = "note", ignore = true)
+  @Mapping(target = "addressedByTheCockpitOnly", ignore = true)
   @Mapping(target = "readBy", ignore = true)
   @Mapping(target = "readAt", ignore = true)
   @Mapping(target = "targetGroups", ignore = true)
@@ -137,6 +138,7 @@ public abstract class UserTaskMapper {
   @Mapping(target = "updatedBy", source = "initiator")
   @Mapping(target = "endedAt", ignore = true)
   @Mapping(target = "note", ignore = true)
+  @Mapping(target = "addressedByTheCockpitOnly", ignore = true)
   @Mapping(target = "readBy", ignore = true)
   @Mapping(target = "readAt", ignore = true)
   @Mapping(target = "targetGroups", ignore = true)
@@ -177,6 +179,7 @@ public abstract class UserTaskMapper {
   @Mapping(target = "updatedBy", source = "initiator")
   @Mapping(target = "endedAt", ignore = true)
   @Mapping(target = "note", ignore = true)
+  @Mapping(target = "addressedByTheCockpitOnly", ignore = true)
   @Mapping(target = "readBy", ignore = true)
   @Mapping(target = "readAt", ignore = true)
   @Mapping(target = "targetGroups", ignore = true)
@@ -233,6 +236,7 @@ public abstract class UserTaskMapper {
   // event says:
   @Mapping(target = "endedAt", ignore = true)
   @Mapping(target = "note", ignore = true)
+  @Mapping(target = "addressedByTheCockpitOnly", ignore = true)
   @Mapping(target = "endReason", ignore = true)
   @Mapping(target = "initiator", ignore = true)
   // read from the assignee and the candidates whenever they are asked for:
@@ -293,6 +297,7 @@ public abstract class UserTaskMapper {
   // event says:
   @Mapping(target = "endedAt", ignore = true)
   @Mapping(target = "note", ignore = true)
+  @Mapping(target = "addressedByTheCockpitOnly", ignore = true)
   @Mapping(target = "endReason", ignore = true)
   @Mapping(target = "initiator", ignore = true)
   // read from the assignee and the candidates whenever they are asked for:

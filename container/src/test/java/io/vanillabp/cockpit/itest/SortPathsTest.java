@@ -118,6 +118,68 @@ class SortPathsTest extends ItestBase {
   }
 
   /**
+   * A sort names at most five paths in at most 500 characters. A longer one is refused before
+   * any of its paths is looked at, and the answer does not repeat it.
+   */
+  @Test
+  void aSortOfMoreThan500CharactersIsRefused() {
+
+    final var tooLong = "details.a"
+        + "a".repeat(492);
+
+    assertThat(listSortedBy("usertask", tooLong)).isEqualTo(400);
+    assertThat(listSortedBy("workflow", tooLong)).isEqualTo(400);
+    assertThat(guiPost(cookie, "/usertask", """
+        { "pageNumber": 0, "pageSize": 1, "sort": "%s" }
+        """.formatted(tooLong)).body()).doesNotContain(tooLong);
+
+  }
+
+  @Test
+  void aSortOfMoreThanFivePathsIsRefused() {
+
+    assertThat(listSortedBy("usertask", "details.a,details.b,details.c,details.d,details.e,details.f"))
+        .isEqualTo(400);
+    assertThat(listSortedBy("workflow", "details.a,details.b,details.c,details.d,details.e,details.f"))
+        .isEqualTo(400);
+
+  }
+
+  /**
+   * MongoDB cannot index two fields which both hold a list in one index. A sort which names two of
+   * them is refused with a text the user interface can show as it is. A column of persons sends
+   * two paths into one such field, and that is sorted by.
+   */
+  @Test
+  void aSortOfTwoFieldsWhichHoldAListIsRefused() {
+
+    final var answer = guiPost(cookie, "/usertask", """
+        { "pageNumber": 0, "pageSize": 1, "sort": "candidateUsers.sort,candidateGroups.id" }
+        """);
+
+    assertThat(answer.statusCode()).isEqualTo(400);
+    assertThat(answer.body()).isEqualTo("The request is not valid: 'sort' may name only one of the fields "
+        + "'candidateGroups' and 'candidateUsers' at a time, because each of them holds a list.");
+    assertThat(listSortedBy("workflow", "accessibleToUsers.sort,accessibleToGroups.id")).isEqualTo(400);
+    assertThat(listSortedBy("usertask", "candidateUsers.sort,candidateUsers.id")).isEqualTo(200);
+    assertThat(listSortedBy("workflow", "accessibleToUsers.sort,accessibleToUsers.id")).isEqualTo(200);
+
+  }
+
+  /** The positive twin: five paths in 500 characters are sorted by. */
+  @Test
+  void aSortOfFivePathsIn500CharactersIsSortedBy() {
+
+    final var fivePaths = "details.b,details.c,details.d,details.e,details.a"
+        + "a".repeat(451);
+    assertThat(fivePaths).hasSize(500);
+
+    assertThat(listSortedBy("usertask", fivePaths)).isEqualTo(200);
+    assertThat(listSortedBy("workflow", fivePaths)).isEqualTo(200);
+
+  }
+
+  /**
    * A hundred paths below {@code details} are a hundred allowed combinations, and the lists are
    * sorted by each of them. The collections get no more than 30 sort indexes all the same.
    */

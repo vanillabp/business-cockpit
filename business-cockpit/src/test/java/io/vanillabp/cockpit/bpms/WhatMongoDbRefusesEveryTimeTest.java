@@ -3,6 +3,7 @@ package io.vanillabp.cockpit.bpms;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mapping.MappingException;
 import org.springframework.data.mongodb.core.CollectionOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -23,6 +25,7 @@ import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory;
 import org.springframework.data.mongodb.core.convert.DefaultDbRefResolver;
 import org.springframework.data.mongodb.core.convert.MappingMongoConverter;
 import org.springframework.data.mongodb.core.convert.MongoCustomConversions;
+import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 import org.springframework.data.mongodb.core.validation.Validator;
 import org.springframework.data.mongodb.repository.support.MongoRepositoryFactory;
@@ -189,6 +192,36 @@ class WhatMongoDbRefusesEveryTimeTest {
     assertThat(outcome.reason())
         .isEqualTo(
             "The user task 'task-1' cannot be stored: MongoDB refuses it, because it breaks the validation rules of the collection.");
+
+  }
+
+  /**
+   * An index over two fields which both hold a list, created while the collection was empty.
+   * MongoDB then refuses every task which holds both fields, and it refuses it again however often
+   * it comes.
+   */
+  @Test
+  void aTaskWhichAnIndexOverTwoListsCannotTakeFailsEveryTime() {
+
+    final var mongoTemplate = cockpitLikeTemplate();
+    mongoTemplate.createCollection(UserTask.COLLECTION_NAME);
+    mongoTemplate
+        .indexOps(UserTask.COLLECTION_NAME)
+        .createIndex(new Index()
+            .on("candidateUsers.id", Sort.Direction.ASC)
+            .on("candidateGroups.id", Sort.Direction.ASC));
+    final var service = serviceOn(mongoTemplate);
+    final var task = reportedTask("task-1", null);
+    task.setCandidateUsers(new ArrayList<>());
+    task.setCandidateGroups(new ArrayList<>());
+
+    final var outcome = service.reportCreatedUserTask("task-1", CREATED_AT, () -> task);
+
+    assertThat(outcome.isUpToDate()).isFalse();
+    assertThat(outcome.failsEveryTime()).isTrue();
+    assertThat(outcome.reason()).isEqualTo(
+        "The user task 'task-1' cannot be stored: an index of the collection covers two fields which both hold a list. "
+            + "Drop that index, its name starts with '_sort_'.");
 
   }
 

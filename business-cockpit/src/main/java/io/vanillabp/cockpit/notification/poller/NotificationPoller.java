@@ -4,11 +4,13 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
@@ -49,6 +51,9 @@ public class NotificationPoller {
   private static final Logger logger = LoggerFactory.getLogger(NotificationPoller.class);
 
   private static final Duration LEASE_TTL = Duration.ofMinutes(5);
+
+  /** The field of the user document the planning reads. */
+  private static final String NOTIFICATION_CONFIGURATION = "notificationConfiguration";
 
   private final MongoTemplate mongoTemplate;
   private final UserRepository userRepository;
@@ -174,11 +179,12 @@ public class NotificationPoller {
         enqueueNotifications(cursor, now);
       }
       advanceCursorAndRelease(now);
-      drainOutbox(now);
     } catch (Exception e) {
       logger.warn("Notification poll cycle aborted", e);
       releaseLease(now);
     }
+    // what an earlier cycle planned is sent even when planning this cycle failed
+    drainOutbox(now);
 
   }
 
@@ -208,12 +214,7 @@ public class NotificationPoller {
 
   private RecipientDirectory buildDirectory() {
 
-    final var usersById = userRepository
-        .findAll()
-        .stream()
-        .collect(Collectors.toMap(User::getId, u -> u, (
-            a,
-            b) -> a));
+    final var usersById = readableUsers();
     final var mediaTypes = notificationServices.stream()
         .map(NotificationService::getType)
         .toList();
@@ -258,6 +259,29 @@ public class NotificationPoller {
         return user == null ? null : user.getNotificationConfiguration();
       }
     };
+
+  }
+
+  /**
+   * Reads every user with the one field the planning needs, the notification configuration. Each
+   * document is turned into a {@link User} on its own, so one which Spring Data cannot read leaves
+   * out that one user and not the notifications of all others.
+   */
+  private Map<String, User> readableUsers() {
+
+    final var query = new Query();
+    query.fields().include(NOTIFICATION_CONFIGURATION);
+    final var usersById = new HashMap<String, User>();
+    for (final var document : mongoTemplate.find(query, Document.class, User.COLLECTION_NAME)) {
+      final var userId = String.valueOf(document.get("_id"));
+      try {
+        usersById.put(userId, mongoTemplate.getConverter().read(User.class, document));
+      } catch (RuntimeException e) {
+        logger.warn("The document of user '{}' cannot be read, so this user gets no notifications: {}",
+            userId, e.getMessage());
+      }
+    }
+    return usersById;
 
   }
 

@@ -16,6 +16,7 @@ import com.mongodb.MongoException;
 
 import io.vanillabp.cockpit.exceptions.BcContentTooLargeException;
 import io.vanillabp.cockpit.exceptions.BcInvalidRequestException;
+import io.vanillabp.cockpit.users.model.TypeHintKey;
 import io.vanillabp.cockpit.users.model.User;
 
 /**
@@ -97,7 +98,7 @@ public class UserSettings {
    * @param value The value, which is the JSON the user interface sent, as Jackson read it
    * @throws BcInvalidRequestException If the key breaks the rule of {@link #KEY}, if the value
    *         is {@code null}, or if an object in the value has a key with a dot or a leading
-   *         {@code $}
+   *         {@code $}, or the key {@value TypeHintKey#KEY} at any depth
    * @throws BcContentTooLargeException If the user's document would get larger than MongoDB
    *         allows
    */
@@ -114,6 +115,7 @@ public class UserSettings {
           "the value of '%s' is null, use DELETE to remove a setting".formatted(key));
     }
 
+    TypeHintKey.refuseIn(key, value);
     final var badKey = aKeyMongoDbCannotTake(value);
     if (badKey.isPresent()) {
       throw new BcInvalidRequestException(
@@ -203,6 +205,7 @@ public class UserSettings {
       throw new BcInvalidRequestException(
           "'key' takes 1 to 200 letters, digits, '-', '_' and ':'");
     }
+    TypeHintKey.refuseAsName("key", key);
     return FIELD
         + "."
         + key;

@@ -133,6 +133,63 @@ class SortIndexesTest {
 
   }
 
+  @Test
+  void aSortOfMoreThan500CharactersOrMoreThanFivePathsIsRefusedWithoutRepeatingIt() {
+
+    final var sortIndexes = sortIndexes(30, Optional.empty());
+    final var tooLong = "details.a"
+        + "a".repeat(492);
+
+    assertThatThrownBy(() -> sortIndexes.checkSort(tooLong))
+        .isInstanceOf(BcInvalidRequestException.class)
+        .hasMessage("'sort' holds at most 500 characters");
+    assertThatThrownBy(() -> sortIndexes.checkSort("dueDate,title.de,details.a,details.b,details.c,details.d"))
+        .isInstanceOf(BcInvalidRequestException.class)
+        .hasMessage("'sort' names at most 5 paths");
+    assertThatCode(() -> sortIndexes.checkSort("dueDate,title.de,details.a,details.b,details.c,,"))
+        .doesNotThrowAnyException();
+    assertThatCode(() -> sortIndexes.checkSort(null)).doesNotThrowAnyException();
+
+  }
+
+  private SortIndexes sortIndexesWithListFields() {
+
+    return new SortIndexes(COLLECTION, new ListPaths(Set.of("dueDate", "candidateUsers", "candidateGroups"), Optional
+        .empty()), Set.of("candidateUsers", "candidateGroups"), 30, LIMIT_PROPERTY, mongoTemplate, logger);
+
+  }
+
+  /**
+   * MongoDB cannot index two fields which both hold a list in one index. A sort which names both
+   * is refused with a message a user understands when the user interface shows it as it is.
+   */
+  @Test
+  void aSortOfTwoFieldsWhichHoldAListIsRefused() {
+
+    assertThatThrownBy(() -> sortIndexesWithListFields().checkSort("candidateUsers.sort,candidateGroups.id"))
+        .isInstanceOf(BcInvalidRequestException.class)
+        .hasMessage("'sort' may name only one of the fields 'candidateGroups' and 'candidateUsers' at a time, "
+            + "because each of them holds a list");
+
+  }
+
+  /** A column of persons sends two paths into the same list, and MongoDB indexes them fine. */
+  @Test
+  void aColumnOfPersonsOnOneFieldWhichHoldsAListIsSortedWithAnIndex() {
+
+    final var sortIndexes = sortIndexesWithListFields();
+    final var combination = "candidateUsers.sort,candidateUsers.id";
+
+    assertThatCode(() -> sortIndexes.checkSort(combination)).doesNotThrowAnyException();
+    sortIndexes.ensureIndex(combination, List.of("candidateUsers.sort", "candidateUsers.id", "dueDate", "createdAt",
+        "_id"));
+
+    assertThat(sortIndexNames()).containsExactly("_sort_"
+        + combination);
+    verify(logger, never()).error(anyString(), any(Object[].class));
+
+  }
+
   /**
    * With a replacement for the dot configured, a key like {@code order.id} is stored as
    * {@code order~id}, and a column has to name it like that.
@@ -187,6 +244,31 @@ class SortIndexesTest {
 
     assertThat(sortIndexNames()).containsExactlyInAnyOrder("_sort_details.a", "_sort_details.b");
     verify(logger, times(2)).warn(anyString(), any(Object[].class));
+
+  }
+
+  /**
+   * Once the limit is reached, every new combination is sorted without an index, and the warning
+   * about it is written once. The combinations which got that warning are remembered, but only the
+   * last 1,000 of them, because each of them came from a request. The oldest one is forgotten and
+   * warned about again when it comes back.
+   */
+  @Test
+  void theCombinationsWithoutAnIndexWhichAreRememberedHaveALimit() {
+
+    final var sortIndexes = sortIndexes(0, Optional.empty());
+
+    for (int i = 0; i <= 1_000; ++i) {
+      sortIndexes.ensureIndex("details.a"
+          + i,
+          List.of("details.a"
+              + i, "_id"));
+    }
+    sortIndexes.ensureIndex("details.a1000", List.of("details.a1000", "_id"));
+    verify(logger, times(1_001)).warn(anyString(), any(Object[].class));
+
+    sortIndexes.ensureIndex("details.a0", List.of("details.a0", "_id"));
+    verify(logger, times(1_002)).warn(anyString(), any(Object[].class));
 
   }
 

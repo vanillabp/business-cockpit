@@ -1017,6 +1017,10 @@ components:
       properties:
         userTaskIds:
           type: array
+          description: >-
+            The user tasks to change. One request names at most 1,000 of them, a longer list is
+            answered with 400.
+          maxItems: 1000
           items:
             type: string
     FollowUpDateRequest:
@@ -1034,6 +1038,9 @@ components:
       properties:
         text:
           type: string
+          description: >-
+            The note, at most 10,000 characters. A longer text is answered with 400.
+          maxLength: 10000
           example: Customer calls back on Monday
     UserTasksNoteRequest:
       type: object
@@ -1045,10 +1052,17 @@ components:
       properties:
         userTaskIds:
           type: array
+          description: >-
+            The user tasks to change. One request names at most 1,000 of them, a longer list is
+            answered with 400.
+          maxItems: 1000
           items:
             type: string
         text:
           type: string
+          description: >-
+            The note, at most 10,000 characters. A longer text is answered with 400.
+          maxLength: 10000
     WorkflowsNoteRequest:
       type: object
       description: >-
@@ -1059,10 +1073,17 @@ components:
       properties:
         workflowIds:
           type: array
+          description: >-
+            The cases to change. One request names at most 1,000 of them, a longer list is
+            answered with 400.
+          maxItems: 1000
           items:
             type: string
         text:
           type: string
+          description: >-
+            The note, at most 10,000 characters. A longer text is answered with 400.
+          maxLength: 10000
     UserTask:
       type: object
       required:
@@ -1432,8 +1453,10 @@ components:
             Paths to sort by, separated by commas. A path names a field of the list, like 'dueDate'
             or 'title.de', or a key of the business data below 'details.'. Each part of a path holds
             letters, digits and '_', and below 'details.' also '-'. Any other path is answered with
-            400. Without it the server
+            400. The field names at most five paths in at most 500 characters, a longer one is
+            answered with 400 as well. Without it the server
             sorts user tasks by 'dueDate' and workflows by 'createdAt'.
+          maxLength: 500
         sortAscending:
           type: boolean
           default: true
@@ -1485,8 +1508,10 @@ components:
             Paths to sort by, separated by commas. A path names a field of the list, like 'dueDate'
             or 'title.de', or a key of the business data below 'details.'. Each part of a path holds
             letters, digits and '_', and below 'details.' also '-'. Any other path is answered with
-            400. Without it the server
+            400. The field names at most five paths in at most 500 characters, a longer one is
+            answered with 400 as well. Without it the server
             sorts user tasks by 'dueDate' and workflows by 'createdAt'.
+          maxLength: 500
         sortAscending:
           type: boolean
           default: true
@@ -1533,8 +1558,10 @@ components:
             Paths to sort by, separated by commas. A path names a field of the list, like 'dueDate'
             or 'title.de', or a key of the business data below 'details.'. Each part of a path holds
             letters, digits and '_', and below 'details.' also '-'. Any other path is answered with
-            400. Without it the server
+            400. The field names at most five paths in at most 500 characters, a longer one is
+            answered with 400 as well. Without it the server
             sorts user tasks by 'dueDate' and workflows by 'createdAt'.
+          maxLength: 500
         sortAscending:
           type: boolean
           default: true
@@ -1599,8 +1626,10 @@ components:
             Paths to sort by, separated by commas. A path names a field of the list, like 'dueDate'
             or 'title.de', or a key of the business data below 'details.'. Each part of a path holds
             letters, digits and '_', and below 'details.' also '-'. Any other path is answered with
-            400. Without it the server
+            400. The field names at most five paths in at most 500 characters, a longer one is
+            answered with 400 as well. Without it the server
             sorts user tasks by 'dueDate' and workflows by 'createdAt'.
+          maxLength: 500
         sortAscending:
           type: boolean
           default: true

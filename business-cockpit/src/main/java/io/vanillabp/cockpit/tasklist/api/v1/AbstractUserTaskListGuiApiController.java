@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
+import io.vanillabp.cockpit.exceptions.BcInvalidRequestException;
 import io.vanillabp.cockpit.gui.api.v1.Count;
 import io.vanillabp.cockpit.gui.api.v1.Counts;
 import io.vanillabp.cockpit.gui.api.v1.FollowUpDateRequest;
@@ -560,6 +561,27 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 
   }
 
+  /**
+   * An assign makes a person a candidate of the task, so the user directory is asked whether it
+   * knows the person. The mapper of the application is not asked,
+   * because it may turn any id into a person. Taking a person away is not checked, so a person
+   * who left the directory can still be removed.
+   *
+   * @param userId The id of the person to assign
+   * @throws BcInvalidRequestException if the id is missing or the directory does not know it
+   */
+  private void refuseAUserTheDirectoryDoesNotKnow(
+      final String userId) {
+
+    if (!StringUtils.hasText(userId)) {
+      throw new BcInvalidRequestException("'userId' is missing");
+    }
+    if (userDirectoryService.getUser(userId).isEmpty()) {
+      throw new BcInvalidRequestException("'userId' names no user the user directory knows");
+    }
+
+  }
+
   @Override
   public ResponseEntity<Void> assignTask(
       final String userTaskId,
@@ -567,6 +589,10 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
       final String userId) {
 
     final var visibility = userTasksVisibleTo(userContext.getUserLoggedInDetails());
+
+    if ((unassign == null) || !unassign) {
+      refuseAUserTheDirectoryDoesNotKnow(userId);
+    }
 
     final io.vanillabp.cockpit.tasklist.model.UserTask result;
     try {
@@ -591,6 +617,10 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
       final String userId) {
 
     final var visibility = userTasksVisibleTo(userContext.getUserLoggedInDetails());
+
+    if ((unassign == null) || !unassign) {
+      refuseAUserTheDirectoryDoesNotKnow(userId);
+    }
 
     try {
       if ((unassign != null) && unassign) {
