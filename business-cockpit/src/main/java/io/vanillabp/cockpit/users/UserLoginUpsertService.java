@@ -20,7 +20,8 @@ import io.vanillabp.cockpit.users.model.User;
 
 /**
  * Upserts the {@code users} document of an authenticated user at login, so the notification
- * feature can restrict the recipients to users who have logged in at least once.
+ * feature can restrict the recipients to users who used the cockpit recently. {@code lastLoggedIn}
+ * is refreshed by every request of a logged-in user, at most once per window and node.
  * <p>
  * An upsert which fails never fails the request. The write is one atomic MongoDB upsert without a
  * lock, and it touches only {@code lastLoggedIn} and {@code email}. It keeps whatever

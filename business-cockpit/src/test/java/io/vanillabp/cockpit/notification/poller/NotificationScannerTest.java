@@ -53,12 +53,12 @@ class NotificationScannerTest {
       return media;
     }
 
-    public boolean isLoggedIn(
+    public boolean isRecipient(
         String userId) {
       return authorities.containsKey(userId);
     }
 
-    public Collection<String> loggedInUserIds() {
+    public Collection<String> recipientIds() {
       return authorities.keySet();
     }
 

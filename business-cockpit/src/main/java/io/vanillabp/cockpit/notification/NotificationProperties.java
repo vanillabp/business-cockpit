@@ -59,6 +59,13 @@ public class NotificationProperties {
   private Duration cleanupSentOlderThan = Duration.ofHours(48);
 
   /**
+   * Only a user who used the cockpit within this time is notified (default 90 days). Each request
+   * of a logged-in user counts as a use. A user who was away longer is notified again after the
+   * next login.
+   */
+  private Duration recipientsActiveWithin = Duration.ofDays(90);
+
+  /**
    * Reference e-mail medium settings.
    */
   private Smtp smtp = new Smtp();
@@ -251,6 +258,25 @@ public class NotificationProperties {
   public void setCleanupSentOlderThan(
       Duration cleanupSentOlderThan) {
     this.cleanupSentOlderThan = cleanupSentOlderThan;
+  }
+
+  /**
+   * How recently a user has to have used the cockpit to be notified.
+   *
+   * @return The time since the last use within which a user is notified
+   */
+  public Duration getRecipientsActiveWithin() {
+    return recipientsActiveWithin;
+  }
+
+  /**
+   * How recently a user has to have used the cockpit to be notified.
+   *
+   * @param recipientsActiveWithin The time since the last use within which a user is notified
+   */
+  public void setRecipientsActiveWithin(
+      Duration recipientsActiveWithin) {
+    this.recipientsActiveWithin = recipientsActiveWithin;
   }
 
   /**

@@ -32,7 +32,6 @@ import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.model.User;
-import io.vanillabp.cockpit.users.model.UserRepository;
 import io.vanillabp.cockpit.workflowmodules.GroupHierarchyService;
 
 /**
@@ -55,8 +54,10 @@ public class NotificationPoller {
   /** The field of the user document the planning reads. */
   private static final String NOTIFICATION_CONFIGURATION = "notificationConfiguration";
 
+  /** The field of the user document which says when the user last used the cockpit. */
+  private static final String LAST_LOGGED_IN = "lastLoggedIn";
+
   private final MongoTemplate mongoTemplate;
-  private final UserRepository userRepository;
   private final UserTaskRepository userTaskRepository;
   private final NotificationOutboxRepository outboxRepository;
   private final List<NotificationService> notificationServices;
@@ -64,6 +65,7 @@ public class NotificationPoller {
   private final GroupHierarchyService groupHierarchy;
   private final int maxDeliveryAttempts;
   private final Duration cleanupSentOlderThan;
+  private final Duration recipientsActiveWithin;
   private final NotificationScanner scanner = new NotificationScanner();
 
   private final String nodeId = UUID.randomUUID().toString();
@@ -71,30 +73,31 @@ public class NotificationPoller {
   /**
    * Creates the poller. {@link NotificationPollerConfiguration} calls it.
    *
-   * @param mongoTemplate        the template the poller takes its lease and cursor with
-   * @param userRepository       the users, with their notification configuration
+   * @param mongoTemplate        the template the poller takes its lease and cursor with, and
+   *                             reads the users with
    * @param userTaskRepository   the user tasks, to find the ones which changed
    * @param outboxRepository     the outbox the notifications wait in until they are sent
    * @param notificationServices every medium the cockpit offers; none means the poller stays idle
-   * @param userDirectory        the user directory, to find the authorities of a user
+   * @param userDirectory        the user directory. Only a user it knows is notified, and it
+   *                             gives the authorities of a user
    * @param groupHierarchy       completes the authorities of a user with the groups they stand
    *                             for, the same way it does for a request of the browser
    * @param maxDeliveryAttempts  how often the delivery of one bulk is attempted
    * @param cleanupSentOlderThan how old a sent outbox entry has to be before it is deleted
+   * @param recipientsActiveWithin only a user who used the cockpit within this time is notified
    */
   public NotificationPoller(
       final MongoTemplate mongoTemplate,
-      final UserRepository userRepository,
       final UserTaskRepository userTaskRepository,
       final NotificationOutboxRepository outboxRepository,
       final List<NotificationService> notificationServices,
       final UserDirectoryService userDirectory,
       final GroupHierarchyService groupHierarchy,
       final int maxDeliveryAttempts,
-      final Duration cleanupSentOlderThan) {
+      final Duration cleanupSentOlderThan,
+      final Duration recipientsActiveWithin) {
 
     this.mongoTemplate = mongoTemplate;
-    this.userRepository = userRepository;
     this.userTaskRepository = userTaskRepository;
     this.outboxRepository = outboxRepository;
     this.notificationServices = notificationServices;
@@ -102,6 +105,7 @@ public class NotificationPoller {
     this.groupHierarchy = groupHierarchy;
     this.maxDeliveryAttempts = maxDeliveryAttempts;
     this.cleanupSentOlderThan = cleanupSentOlderThan;
+    this.recipientsActiveWithin = recipientsActiveWithin;
 
   }
 
@@ -200,7 +204,7 @@ public class NotificationPoller {
       return;
     }
 
-    final var directory = buildDirectory();
+    final var directory = buildDirectory(now);
     // a setting is chosen by the process of the case, which for a task of a called process
     // is not the process of the task. One query reads the cases of the whole cycle
     final var caseProcesses = CaseProcess.of(mongoTemplate, changed);
@@ -212,9 +216,10 @@ public class NotificationPoller {
 
   }
 
-  private RecipientDirectory buildDirectory() {
+  private RecipientDirectory buildDirectory(
+      final OffsetDateTime now) {
 
-    final var usersById = readableUsers();
+    final var usersById = recipients(now);
     final var mediaTypes = notificationServices.stream()
         .map(NotificationService::getType)
         .toList();
@@ -226,13 +231,13 @@ public class NotificationPoller {
       }
 
       @Override
-      public boolean isLoggedIn(
+      public boolean isRecipient(
           String userId) {
         return usersById.containsKey(userId);
       }
 
       @Override
-      public Collection<String> loggedInUserIds() {
+      public Collection<String> recipientIds() {
         return usersById.keySet();
       }
 
@@ -263,17 +268,27 @@ public class NotificationPoller {
   }
 
   /**
-   * Reads every user with the one field the planning needs, the notification configuration. Each
-   * document is turned into a {@link User} on its own, so one which Spring Data cannot read leaves
-   * out that one user and not the notifications of all others.
+   * The users who may get a notification in this cycle. A user qualifies who used the cockpit
+   * within {@link #recipientsActiveWithin} and whom the user directory still knows. A user who left
+   * may still have a document, and a document of a user is never deleted. So the document alone
+   * says nothing about whether the user may still read about the tasks.
+   * <p>
+   * MongoDB is asked for the recently active users only, and for the one field the planning needs,
+   * the notification configuration. Each document is turned into a {@link User} on its own, so one
+   * which Spring Data cannot read leaves out that one user and not the notifications of all others.
    */
-  private Map<String, User> readableUsers() {
+  private Map<String, User> recipients(
+      final OffsetDateTime now) {
 
-    final var query = new Query();
+    final var query = Query.query(Criteria.where(LAST_LOGGED_IN).gte(now.minus(recipientsActiveWithin)));
     query.fields().include(NOTIFICATION_CONFIGURATION);
     final var usersById = new HashMap<String, User>();
     for (final var document : mongoTemplate.find(query, Document.class, User.COLLECTION_NAME)) {
       final var userId = String.valueOf(document.get("_id"));
+      if (userDirectory.getUser(userId).isEmpty()) {
+        logger.debug("The user directory does not know user '{}', so this user gets no notifications", userId);
+        continue;
+      }
       try {
         usersById.put(userId, mongoTemplate.getConverter().read(User.class, document));
       } catch (RuntimeException e) {

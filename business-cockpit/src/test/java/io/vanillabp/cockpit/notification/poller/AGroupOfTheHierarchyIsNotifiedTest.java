@@ -41,7 +41,6 @@ import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.User;
-import io.vanillabp.cockpit.users.model.UserRepository;
 import io.vanillabp.cockpit.workflowmodules.GroupHierarchyService;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
@@ -97,7 +96,6 @@ class AGroupOfTheHierarchyIsNotifiedTest {
     final var lead = new User();
     lead.setId(LEAD);
     lead.setNotificationConfiguration(new NotificationConfiguration(Map.of(EMAIL, true), Map.of()));
-    final var users = mock(UserRepository.class);
     when(mongoTemplate.find(any(Query.class), eq(Document.class), eq(User.COLLECTION_NAME)))
         .thenReturn(List.of(new Document("_id", LEAD)));
     final var converter = mock(MongoConverter.class);
@@ -114,8 +112,8 @@ class AGroupOfTheHierarchyIsNotifiedTest {
 
     outbox = mock(NotificationOutboxRepository.class);
     poller = new NotificationPoller(
-        mongoTemplate, users, mock(UserTaskRepository.class), outbox, List
-            .of(email), directory, new GroupHierarchyService(), 120, Duration.ofHours(48));
+        mongoTemplate, mock(UserTaskRepository.class), outbox, List
+            .of(email), directory, new GroupHierarchyService(), 120, Duration.ofHours(48), Duration.ofDays(90));
 
   }
 

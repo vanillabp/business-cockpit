@@ -23,7 +23,6 @@ import io.vanillabp.cockpit.notification.model.NotificationOutboxEntry;
 import io.vanillabp.cockpit.notification.model.NotificationOutboxRepository;
 import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
-import io.vanillabp.cockpit.users.model.UserRepository;
 import io.vanillabp.cockpit.workflowmodules.GroupHierarchyService;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
@@ -39,10 +38,11 @@ class NotificationPollerCleanupTest {
         .thenReturn(deleteResult);
 
     final var poller = new NotificationPoller(
-        mongoTemplate, mock(UserRepository.class), mock(UserTaskRepository.class), mock(
+        mongoTemplate, mock(UserTaskRepository.class), mock(
             NotificationOutboxRepository.class), List
                 .of(mock(NotificationService.class)), mock(
-                    UserDirectoryService.class), new GroupHierarchyService(), 120, Duration.ofHours(48));
+                    UserDirectoryService.class), new GroupHierarchyService(), 120, Duration
+                        .ofHours(48), Duration.ofDays(90));
 
     poller.runCleanup();
 

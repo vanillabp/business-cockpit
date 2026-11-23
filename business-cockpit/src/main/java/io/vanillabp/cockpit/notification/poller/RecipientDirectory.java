@@ -20,20 +20,23 @@ public interface RecipientDirectory {
   Collection<String> mediaTypes();
 
   /**
-   * Whether the user has logged in at least once (exists in the {@code users} collection).
+   * Whether the user may get a notification at all. That is a user who used the cockpit recently
+   * and whom the user directory knows. Whether a notification about a certain task is due is
+   * decided by the scanner.
    *
    * @param userId the user
-   * @return {@code true} if the user has logged in before
+   * @return {@code true} if the user may be notified
    */
-  boolean isLoggedIn(
+  boolean isRecipient(
       String userId);
 
   /**
-   * Ids of all logged-in users (used to fan out CREATED notifications).
+   * The ids of every user who may get a notification, see {@link #isRecipient(String)}. A
+   * CREATED notification is planned for each of them who can see the task.
    *
-   * @return the ids of every user who has logged in before
+   * @return the ids of the users who may be notified
    */
-  Collection<String> loggedInUserIds();
+  Collection<String> recipientIds();
 
   /**
    * The authorities of a user, which are the roles, the group ids and {@code USER_<id>}. It is

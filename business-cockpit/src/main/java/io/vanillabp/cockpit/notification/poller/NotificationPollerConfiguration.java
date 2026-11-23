@@ -12,7 +12,6 @@ import io.vanillabp.cockpit.notification.NotificationService;
 import io.vanillabp.cockpit.notification.model.NotificationOutboxRepository;
 import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
-import io.vanillabp.cockpit.users.model.UserRepository;
 import io.vanillabp.cockpit.workflowmodules.GroupHierarchyService;
 
 /**
@@ -34,12 +33,12 @@ public class NotificationPollerConfiguration {
   /**
    * The poller, unless the application declares one of its own.
    *
-   * @param mongoTemplate          the template the poller takes its lease and cursor with
-   * @param userRepository         the users, with their notification configuration
+   * @param mongoTemplate          the template the poller takes its lease and cursor with, and
+   *                               reads the users with
    * @param userTaskRepository     the user tasks, to find the ones which changed
    * @param outboxRepository       the outbox the notifications wait in until they are sent
    * @param notificationServices   every medium the cockpit offers; none means the poller stays idle
-   * @param userDirectory          the user directory, to find the authorities of a user
+   * @param userDirectory          the user directory, which has to know a user who is notified
    * @param groupHierarchy         the group hierarchy the login uses as well, so a user is
    *                               notified about every task the task list shows them
    * @param notificationProperties the notification settings, with the delivery limits
@@ -49,7 +48,6 @@ public class NotificationPollerConfiguration {
   @ConditionalOnMissingBean
   public NotificationPoller notificationPoller(
       final MongoTemplate mongoTemplate,
-      final UserRepository userRepository,
       final UserTaskRepository userTaskRepository,
       final NotificationOutboxRepository outboxRepository,
       final List<NotificationService> notificationServices,
@@ -57,8 +55,16 @@ public class NotificationPollerConfiguration {
       final GroupHierarchyService groupHierarchy,
       final NotificationProperties notificationProperties) {
 
-    return new NotificationPoller(mongoTemplate, userRepository, userTaskRepository, outboxRepository, notificationServices, userDirectory, groupHierarchy, notificationProperties
-        .getMaxDeliveryAttempts(), notificationProperties.getCleanupSentOlderThan());
+    final var activeWithin = notificationProperties.getRecipientsActiveWithin();
+    if ((activeWithin == null) || activeWithin.isNegative() || activeWithin.isZero()) {
+      throw new IllegalStateException("'"
+          + NotificationProperties.PREFIX
+          + ".recipients-active-within' has to be a positive duration, like P90D for 90 days, but it is '"
+          + activeWithin
+          + "'. Only a user who used the cockpit within this time gets notifications.");
+    }
+    return new NotificationPoller(mongoTemplate, userTaskRepository, outboxRepository, notificationServices, userDirectory, groupHierarchy, notificationProperties
+        .getMaxDeliveryAttempts(), notificationProperties.getCleanupSentOlderThan(), activeWithin);
 
   }
 
