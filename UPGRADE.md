@@ -41,7 +41,7 @@ is, and the REST APIs keep their OpenAPI files. So a workflow module needs nothi
 The skill `business-cockpit-upgrade-to-blocking` in the
 [skills repository](https://github.com/vanillabp/skills) does this step with you. It looks at your
 application first and lists what it found, before it changes anything. The wiki page
-[Releases](https://github.com/vanillabp/business-cockpit/wiki/Releases#up-to-080) says what the
+[Releases](https://github.com/vanillabp/business-cockpit/wiki/Releases#the-blocking-backend) says what the
 step costs. The skill covers the move to Spring MVC only. The rest of this file still applies after
 it.
 
