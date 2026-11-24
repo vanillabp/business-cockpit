@@ -10,9 +10,8 @@ import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.util.StringUtils;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.support.security.usercontext.UserDetailsImpl;
@@ -33,7 +32,7 @@ public class LocalUserDirectoryServiceImpl implements UserDirectoryService {
 
   private final List<UserDetails> users = new LinkedList<>();
 
-  private final RestTemplate restTemplate;
+  private final RestClient simulator;
 
   private final String devShellSimulatorUsersUri;
 
@@ -48,8 +47,9 @@ public class LocalUserDirectoryServiceImpl implements UserDirectoryService {
       final String devShellSimulatorUsersUri) {
 
     this.devShellSimulatorUsersUri = devShellSimulatorUsersUri;
-    this.restTemplate = new RestTemplateBuilder()
-        .baseUri(devShellSimulatorUsersUri)
+    this.simulator = RestClient
+        .builder()
+        .baseUrl(devShellSimulatorUsersUri)
         .build();
 
   }
@@ -93,7 +93,11 @@ public class LocalUserDirectoryServiceImpl implements UserDirectoryService {
       Arrays
           .stream(
               Optional.ofNullable(
-                  this.restTemplate.getForEntity("/all", UserRepresentation[].class).getBody())
+                  simulator
+                      .get()
+                      .uri("/all")
+                      .retrieve()
+                      .body(UserRepresentation[].class))
                   .orElseThrow(() -> new RuntimeException("Got null-response when fetching users")))
           .map(this::toUser)
           .forEach(users::add);

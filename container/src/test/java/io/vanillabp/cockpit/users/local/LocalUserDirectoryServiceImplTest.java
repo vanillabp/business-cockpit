@@ -15,6 +15,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.http.HttpStatus;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
@@ -91,7 +92,7 @@ class LocalUserDirectoryServiceImplTest {
     requestedPath.set(exchange.getRequestURI().getPath());
     final var body = USERS.getBytes(StandardCharsets.UTF_8);
     exchange.getResponseHeaders().add("Content-Type", "application/json");
-    exchange.sendResponseHeaders(200, body.length);
+    exchange.sendResponseHeaders(HttpStatus.OK.value(), body.length);
     try (var response = exchange.getResponseBody()) {
       response.write(body);
     }
@@ -227,13 +228,31 @@ class LocalUserDirectoryServiceImplTest {
   }
 
   @Test
+  void aSimulatorWhichAnswersWithAnErrorIsReportedWithTheProperty() {
+
+    simulator.removeContext("/dev-shell/user/all");
+    simulator.createContext("/dev-shell/user/all", exchange -> {
+      exchange.sendResponseHeaders(HttpStatus.INTERNAL_SERVER_ERROR.value(), -1);
+      exchange.close();
+    });
+
+    final var failure = assertThrows(
+        RuntimeException.class,
+        () -> new LocalUserDirectoryServiceImpl(usersUri).loadAllUsersFromDevShellSimulator());
+
+    assertTrue(failure.getMessage().contains("Is it up and running at"));
+    assertTrue(failure.getMessage().contains("dev-shell-simulator.users-uri"));
+
+  }
+
+  @Test
   void anEmptySimulatorLeavesNoUsers() throws IOException {
 
     simulator.removeContext("/dev-shell/user/all");
     simulator.createContext("/dev-shell/user/all", exchange -> {
       final var body = "[]".getBytes(StandardCharsets.UTF_8);
       exchange.getResponseHeaders().add("Content-Type", "application/json");
-      exchange.sendResponseHeaders(200, body.length);
+      exchange.sendResponseHeaders(HttpStatus.OK.value(), body.length);
       try (var response = exchange.getResponseBody()) {
         response.write(body);
       }
