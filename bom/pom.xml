@@ -25,9 +25,9 @@
   <version>0.9.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>VanillaBP business cockpit BOM</name>
-  <description>The versions a derived cockpit application needs: the Spring Boot and Spring Cloud BOMs
-    the cockpit is built against, and the cockpit artifacts of the same release. Import it in the
-    dependencyManagement of the application.</description>
+  <description>The versions of the cockpit artifacts of one release, and the VanillaBP BOM they are
+    built against. It names no Spring Boot, Spring Cloud or Quarkus version, so it fits an application
+    on Spring Boot and one on Quarkus. Import it in the dependencyManagement of the application.</description>
 
   <licenses>
     <license>
@@ -72,24 +72,10 @@
   <dependencyManagement>
     <dependencies>
       <!--
-        The application pins spring-boot-maven-plugin to this version too. No
-        spring-boot-starter-parent gives the plugin a version.
+        No Spring Boot, Spring Cloud or Quarkus BOM is imported here. The application chooses the
+        BOM of its framework itself, so the same import fits Spring Boot and Quarkus. The library
+        brings the Spring Cloud gateway of its proxy in the version it is built with.
       -->
-      <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-dependencies</artifactId>
-        <version>4.1.3</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-      <!-- the cockpit proxies the workflow modules with the Spring Cloud gateway -->
-      <dependency>
-        <groupId>org.springframework.cloud</groupId>
-        <artifactId>spring-cloud-dependencies</artifactId>
-        <version>2025.1.5</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
       <dependency>
         <groupId>io.vanillabp</groupId>
         <artifactId>vanillabp-bom</artifactId>
@@ -129,10 +115,7 @@
         <artifactId>business-cockpit-support-core</artifactId>
         <version>${project.version}</version>
       </dependency>
-      <!--
-        Listed so the BOM names every artifact of a release. A Quarkus application does not import
-        this BOM, because of the Spring BOMs above. It names the version of this artifact itself.
-      -->
+      <!-- what a workflow module on Quarkus uses -->
       <dependency>
         <groupId>io.vanillabp.businesscockpit</groupId>
         <artifactId>business-cockpit-quarkus-support</artifactId>
@@ -162,6 +145,12 @@
         <!-- the client of the official GUI API, for a workflow module on Spring Boot -->
         <groupId>io.vanillabp.businesscockpit</groupId>
         <artifactId>official-gui-api-spring-boot-client</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <!-- the client of the official GUI API, for a workflow module on Quarkus -->
+        <groupId>io.vanillabp.businesscockpit</groupId>
+        <artifactId>official-gui-api-quarkus-client</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

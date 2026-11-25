@@ -152,9 +152,9 @@ In the order they build on each other:
    Kafka and error handling helpers only the cockpit needs. It builds no runnable jar.
 6. **[container](./container)**:<br>The runnable microservice, built from the library plus a main
    class, the concrete GUI API controllers and the defaults of a standalone deployment.
-7. **[bom](./bom)**:<br>The BOM of a derived cockpit application. It names the Spring Boot and
-   Spring Cloud BOMs the cockpit is built against, and the cockpit artifacts of the same release. An
-   application imports it and names no other version of the cockpit.
+7. **[bom](./bom)**:<br>The BOM of the cockpit. It names the cockpit artifacts of one release and
+   imports the VanillaBP BOM, and no BOM of Spring Boot, Spring Cloud or Quarkus. A derived cockpit
+   and a workflow module on Quarkus import it and name no other version of the cockpit.
 8. **[development](./development)**:<br>The local development environment, and the tools which support
    developing a workflow module: the dev shell simulator and the simulator. Next to them,
    `workflow-module-on-support-only` proves in every build that a workflow module compiles with
