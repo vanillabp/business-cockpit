@@ -56,7 +56,8 @@ application/
   pom.xml                       business-cockpit, the UI jar, the optional starters
   src/main/java/<package>/
     CockpitApplication.java     the main class
-    lists/                      one controller per list of Q-LIST-CONTROLLERS
+    lists/                      one controller per list of Q-LIST-CONTROLLERS, and the
+                                one of the workflow modules
     security/                   the two security chains, userDetailsProvider and, for
                                 Q-LOGIN-KIND oidc, the logout at the provider
     web/                        the advice for a client that went away
@@ -218,16 +219,18 @@ modules go into them. Three abstract classes hold the shape:
 visibility. That visibility then holds for the list, the search, the page of a single row and every
 action on it. Without a controller a list stays empty, because nothing answers it.
 
-The skill writes one controller per list of `Q-LIST-CONTROLLERS`. The default follows the screens
-of the interview:
+The skill writes one controller per list of `Q-LIST-CONTROLLERS`, and always the controller of the
+workflow modules. That one is no list on a screen and no answer of the interview: the module loader
+of the user interface asks it which modules the user may load, and without it no module part
+loads. The default of the lists follows the screens of the interview:
 
-|      Controller      |            Path            |              Abstract class               |                          Visibility                          |           Generated when            |
-|----------------------|----------------------------|-------------------------------------------|--------------------------------------------------------------|-------------------------------------|
-| task list            | `/gui/api/v1`              | `AbstractUserTaskListGuiApiController`    | `UserTaskVisibility.everythingTheUserMayWorkOn(currentUser)` | always, it serves `/tasks`          |
-| the user's own tasks | `/gui/api/v1/current-user` | `AbstractUserTaskListGuiApiController`    | `UserTaskVisibility.onlyWhatIsTheUsersOwn(currentUser)`      | always, it serves `/my-tasks`       |
-| tasks of the roles   | `/gui/api/v1/user-roles`   | `AbstractUserTaskListGuiApiController`    | `UserTaskVisibility.whatTheUsersGroupsMayTake(currentUser)`  | `Q-SUB-LISTS` has sub-lists by role |
-| case list            | `/gui/api/v1`              | `AbstractWorkflowListGuiApiController`    | `WorkflowVisibility.workflowsAddressedTo(currentUser)`       | always                              |
-| workflow modules     | `/gui/api/v1`              | `AbstractWorkflowModulesGuiApiController` | `WorkflowModuleVisibility.modulesAddressedTo(currentUser)`   | always, the loader needs it         |
+|      Controller      |            Path            |              Abstract class               |                          Visibility                          |             Generated when             |
+|----------------------|----------------------------|-------------------------------------------|--------------------------------------------------------------|----------------------------------------|
+| task list            | `/gui/api/v1`              | `AbstractUserTaskListGuiApiController`    | `UserTaskVisibility.everythingTheUserMayWorkOn(currentUser)` | always, it serves `/tasks`             |
+| the user's own tasks | `/gui/api/v1/current-user` | `AbstractUserTaskListGuiApiController`    | `UserTaskVisibility.onlyWhatIsTheUsersOwn(currentUser)`      | always, it serves `/my-tasks`          |
+| tasks of the roles   | `/gui/api/v1/user-roles`   | `AbstractUserTaskListGuiApiController`    | `UserTaskVisibility.whatTheUsersGroupsMayTake(currentUser)`  | `Q-SUB-LISTS` has sub-lists by role    |
+| case list            | `/gui/api/v1`              | `AbstractWorkflowListGuiApiController`    | `WorkflowVisibility.workflowsAddressedTo(currentUser)`       | always                                 |
+| workflow modules     | `/gui/api/v1`              | `AbstractWorkflowModulesGuiApiController` | `WorkflowModuleVisibility.modulesAddressedTo(currentUser)`   | always, not asked; the loader needs it |
 
 ```java
 @RestController
