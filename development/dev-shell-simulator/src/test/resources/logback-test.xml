@@ -1,0 +1,17 @@
+<configuration>
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- The file exists for the root level. Logback defaults to DEBUG when nothing configures it,
+         and the Docker client of the MySQL test logs every request to the daemon at that level.
+         Some of it comes before the output suppression of a test class can catch anything.
+
+         INFO and not WARN. What a level drops reaches no appender, so it reaches no capture
+         either, and then a failing test could no longer say what its container did. -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>
