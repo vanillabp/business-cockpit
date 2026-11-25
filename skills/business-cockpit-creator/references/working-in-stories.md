@@ -183,7 +183,7 @@ task-list|A clerk sees the tasks waiting for them|BE-004, NAV-001, NAV-002, TL-0
 status-line|A clerk switches between open and closed tasks and sees the counts|TL-001, TL-002, TL-003, TL-005, TL-006, TL-009, TL-010, TL-021, TL-026, TL-028
 row-looks|A clerk sees which tasks are unread, ended or suspended|TL-007, TL-023, TL-027
 actions|A clerk claims, proposes, marks and puts aside a task in the list|TL-014, TL-017, TL-025, ACT-001, ACT-003, ACT-004, ACT-005, ACT-006, ACT-007, ACT-008, ACT-009, ACT-010, ACT-012, ACT-013, ACT-014, ACT-015, ACT-016, ACT-017
-search|A clerk searches, filters and sorts a list|SRCH-001, SRCH-002, SRCH-003, SRCH-004, SRCH-005, SRCH-006, SRCH-007, SRCH-008, SRCH-009, SRCH-026, SRCH-027, SRCH-033
+search|A clerk searches, filters and sorts a list|SRCH-001, SRCH-002, SRCH-003, SRCH-004, SRCH-005, SRCH-006, SRCH-007, SRCH-008, SRCH-009, SRCH-026, SRCH-027, SRCH-033, SRCH-034
 paging|A clerk scrolls through very many tasks|I18N-007, SRCH-010, SRCH-011, SRCH-012, SRCH-013, SRCH-014, SRCH-015, SRCH-016, SRCH-017, SRCH-018, SRCH-019, SRCH-020, SRCH-021, SRCH-022, SRCH-023, SRCH-024, SRCH-025, SRCH-028, SRCH-029, SRCH-030, SRCH-031, SRCH-032
 tools|A clerk acts on several selected tasks at once|TL-011, TL-019, TL-029, TL-030, TL-031, ACT-018
 module-kit|A workflow module builds its parts against the module kit|PKG-006, PKG-009, PKG-017, PKG-020, PKG-033, PKG-039, PKG-040, PKG-041, PKG-042, PKG-043, PKG-048, PKG-049, PKG-050, PKG-051, PKG-053, PKG-056, PKG-057
