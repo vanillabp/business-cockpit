@@ -236,6 +236,15 @@ The components are imported directly, so the dev server swaps them while the dev
 name the function returns but for which no component was handed over shows a note with that name,
 so the developer sees the mistake in the shell and not first in the cockpit.
 
+The module hands the components over as one map from web component name to component, for example
+`src/visual/components-by-name.ts`. This map is for the dev shell only. No visual entry imports
+it: each visual entry imports and defines its own components, as before. If every visual entry
+imported the one map, the bundler would put all components into one shared chunk, and the cockpit
+would load every part of the module as soon as it needs one. A user without the group of a form
+would load the form, and a form would be loaded before it is shown. The map is a second list of
+the same names, and that is the price. The tests of the module's dev shell draw every part
+through the map, so a component missing from it fails there and not first in the cockpit.
+
 ## What it shows
 
 Three surfaces are enough:

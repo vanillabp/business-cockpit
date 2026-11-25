@@ -431,6 +431,30 @@ The browser keeps a loaded ES module for the life of the page. A module that is 
 while a tab is open is still loaded fresh, without a reload of the page, because the new manifest
 names new files, see [A new build of a module](#a-new-build-of-a-module).
 
+### Every group which works with a module may see it
+
+The registry holds only the modules the user may see, and the loader loads parts only of modules in
+the registry. A row of a module outside it makes the loader ask
+`GET /gui/api/v1/workflow-module/{id}`, and that answers 404 for a user who may not see the module.
+So a user who is a candidate of a task, but may not see the task's module, finds the task in the
+list and gets no form. Nothing in the cockpit is wrong then. The module named too few groups.
+
+The rule for a workflow module: every candidate group of one of its user tasks, and every group
+which sees one of its cases (`accessibleToGroups` of the case), is an access group of the module.
+The module names its access groups in `getAccessibleToGroups` of its `WorkflowModuleDetailsProvider`.
+A group which stands for an access group in the group hierarchy of the module counts as well.
+
+Do not confuse an access group with a feature role. The group whose members see the button which
+starts a process is a feature role: the button checks it, and the endpoint behind the button checks
+it again. If the module registers only this role, every other user loses its forms. The blueprint
+`cockpit-header-extension-backend` keeps the two apart: one access group in `getAccessibleToGroups`,
+and a group hierarchy in which the feature role stands for the access group.
+
+Prove it when you connect a module: for each candidate group and each group of a case, a test logs
+in a user who is only in that group, opens a user task or a case of the module and sees its form or
+page drawn. The dev shell shows the same before any cockpit runs: choose such a user, and the start
+page must list the module (`DS-024`).
+
 ## Ask, load, draw
 
 Every part of a module comes into a page in three steps. The steps do not depend on each other.
@@ -845,8 +869,9 @@ export const names = createElementNames(WORKFLOW_MODULE_ID, BUILD_ID);
 
 The visual entry registers its web components with the same functions, for example
 `defineBcElement(names.userTask('TaxiRide', 'assessRisk', 'form'), { mount, update, unmount })`.
-The dev shell gets its components by the same names, see
-[dev-shell.md](dev-shell.md#the-entry-point).
+The dev shell gets its components by the same names, through a map of its own, see
+[dev-shell.md](dev-shell.md#the-entry-point). A visual entry never imports that map. It defines its
+own components, so the bundler gives each visual entry its own chunk.
 
 The build script writes `bc-build.js` before it starts the bundler:
 
