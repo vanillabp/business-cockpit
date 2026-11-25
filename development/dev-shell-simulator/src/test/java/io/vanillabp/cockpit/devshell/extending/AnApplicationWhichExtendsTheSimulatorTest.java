@@ -14,7 +14,7 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * An application which extends the simulator has an {@code application.yaml} of its own, and Spring
  * Boot reads only the first file of that name on the class path. The simulator's defaults still have
  * to count: the data source, the schema update and the key of the login token. A value the
- * application sets itself wins over them.
+ * application sets itself wins over them, in its own file or through the builder.
  * <p>
  * The location of the configuration points at the application's file alone. That is what happens
  * when its {@code application.yaml} hides the one of the simulator.
@@ -40,6 +40,31 @@ class AnApplicationWhichExtendsTheSimulatorTest {
       assertThat(environment.getProperty("spring.jpa.show-sql"))
           .as("a value of the application wins over the default")
           .isEqualTo("true");
+
+    }
+
+  }
+
+  /**
+   * A value the application passes to the builder wins over the default as well. Spring Boot puts
+   * those values behind every other property source, so the defaults have to go behind them.
+   */
+  @Test
+  void aValueOfTheBuilderWinsOverTheDefault() {
+
+    try (var context = new SpringApplicationBuilder(ExtendingSimulator.class)
+        .properties(
+            "spring.config.location=classpath:/extending/",
+            "spring.jpa.hibernate.ddl-auto=create-drop")
+        .run()) {
+
+      final var environment = context.getEnvironment();
+      assertThat(environment.getProperty("spring.jpa.hibernate.ddl-auto"))
+          .as("the value of the builder wins over the default")
+          .isEqualTo("create-drop");
+      assertThat(environment.getProperty("spring.datasource.url"))
+          .as("a default the builder does not set still counts")
+          .isEqualTo("jdbc:h2:mem:devshellsimulator");
 
     }
 

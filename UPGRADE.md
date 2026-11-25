@@ -647,7 +647,8 @@ in the dev shell. The cockpit itself still takes version 1.
 The defaults of the dev-shell simulator are in `dev-shell-simulator-defaults.yaml` now, not in its
 `application.yaml`. In 0.4.x, an application which extends `DevShellSimulator` and has an
 `application.yaml` of its own hid the one of the simulator and got none of its values. Now it gets
-every default, with the lowest priority. A value the application sets itself still wins.
+every default, with the lowest priority. A value the application sets itself still wins, also one
+it passes to `SpringApplicationBuilder.properties(...)`.
 
 Read the file once and compare it with your configuration. Two values change how the application
 behaves:

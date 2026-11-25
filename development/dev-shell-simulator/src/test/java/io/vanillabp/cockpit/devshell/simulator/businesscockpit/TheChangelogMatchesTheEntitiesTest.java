@@ -81,7 +81,7 @@ class TheChangelogMatchesTheEntitiesTest {
           "org.hibernate.dialect.MySQLDialect",
           // MySQL on Linux tells table names apart by case. The changelog writes them in upper
           // case, like the entities, and Spring Boot's default naming looks for them in lower case.
-          "--spring.jpa.hibernate.naming.physical-strategy=%s".formatted(STANDARD_NAMING))) {
+          "spring.jpa.hibernate.naming.physical-strategy=%s".formatted(STANDARD_NAMING))) {
         storeAndReadEveryField(simulator);
       }
     }
@@ -108,20 +108,20 @@ class TheChangelogMatchesTheEntitiesTest {
       final String username,
       final String password,
       final String dialect,
-      final String... moreArguments) {
+      final String... moreProperties) {
 
-    // Arguments of the command line, because the defaults of the simulator win over the default
-    // properties of the builder: they would switch the validation back to an update.
-    final var arguments = Stream.concat(Stream.of(
-        "--server.port=0",
-        "--spring.datasource.url=%s".formatted(url),
-        "--spring.datasource.username=%s".formatted(username),
-        "--spring.datasource.password=%s".formatted(password),
-        "--spring.jpa.database-platform=%s".formatted(dialect),
-        "--spring.jpa.hibernate.ddl-auto=validate",
+    final var properties = Stream.concat(Stream.of(
+        "server.port=0",
+        "spring.datasource.url=%s".formatted(url),
+        "spring.datasource.username=%s".formatted(username),
+        "spring.datasource.password=%s".formatted(password),
+        "spring.jpa.database-platform=%s".formatted(dialect),
+        "spring.jpa.hibernate.ddl-auto=validate",
         // the simulator does not start without a user to log in as
-        "--dev-shell-simulator.users[0].id=john"), Stream.of(moreArguments));
-    return new SpringApplicationBuilder(DevShellSimulator.class).run(arguments.toArray(String[]::new));
+        "dev-shell-simulator.users[0].id=john"), Stream.of(moreProperties));
+    return new SpringApplicationBuilder(DevShellSimulator.class)
+        .properties(properties.toArray(String[]::new))
+        .run();
 
   }
 
