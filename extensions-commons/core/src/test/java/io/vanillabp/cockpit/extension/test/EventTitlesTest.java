@@ -22,6 +22,7 @@ import io.vanillabp.cockpit.extension.spi.WorkflowEventKind;
 import io.vanillabp.cockpit.extension.templating.EventTitles;
 import io.vanillabp.cockpit.extension.templating.FreemarkerTemplating;
 import io.vanillabp.cockpit.extension.templating.Templating;
+import io.vanillabp.integration.test.utils.CapturedOutput;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
@@ -205,6 +206,31 @@ public class EventTitlesTest {
     assertEquals(List.of("fr"), event.getI18nLanguages());
     assertEquals("Traitement des commandes", event.getWorkflowTitle().get("fr"));
     assertEquals("Approuver", event.getTitle().get("fr"));
+
+  }
+
+
+  @Test
+  @DisplayName("A value missing in the template context is logged with the template, the value and the task")
+  public void aMissingValueIsLoggedWithTheTemplateTheValueAndTheTask(
+      final CapturedOutput output) {
+
+    final var event = userTaskEvent();
+    event.setTemplateContext(Map.of("order", Map.of("amount", 250)));
+
+    EventTitles.fill(event, MODULE, templating(), "Approve", "Order handling");
+
+    // the text the template could not render falls back to the name in the BPMN
+    assertEquals("Approve", event.getTitle().get("en"));
+    final var logged = output.getAllOfThisTest();
+    assertTrue(
+        logged
+            .contains(
+                "The template 'test-module/TestProcess/approve/task-title.ftl' for the user task 'approve' of "
+                    + "the workflow 'TestProcess' in the workflow module 'test-module' reads 'order.number', "
+                    + "which its template context does not have."),
+        logged);
+    assertTrue(logged.contains("setTemplateContext, or write ${order.number!} in the template"), logged);
 
   }
 

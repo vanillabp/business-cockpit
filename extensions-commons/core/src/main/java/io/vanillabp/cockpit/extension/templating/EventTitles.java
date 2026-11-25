@@ -50,19 +50,22 @@ public final class EventTitles {
     event.setI18nLanguages(languages);
     final var lookupPaths = lookupPaths(
         module, event.getBpmnProcessId(), event.getTaskDefinition());
+    final var renderedFor = userTask(
+        module.workflowModuleId(), event.getBpmnProcessId(), event.getTaskDefinition());
 
     for (final var language : languages) {
       final var locale = Locale.forLanguageTag(language);
       render(
           event.getWorkflowTitle(), event::setWorkflowTitle, language, locale,
-          Templating.WORKFLOW_TITLE, lookupPaths, templating, event.getTemplateContext());
+          Templating.WORKFLOW_TITLE, lookupPaths, templating, event.getTemplateContext(),
+          renderedFor);
       render(
           event.getTitle(), event::setTitle, language, locale, Templating.TASK_TITLE,
-          lookupPaths, templating, event.getTemplateContext());
+          lookupPaths, templating, event.getTemplateContext(), renderedFor);
       render(
           event.getTaskDefinitionTitle(), event::setTaskDefinitionTitle, language, locale,
           Templating.TASK_DEFINITION_TITLE, lookupPaths, templating,
-          event.getTemplateContext());
+          event.getTemplateContext(), renderedFor);
     }
     final var bpmnLanguage = module.bpmnDescriptionLanguage(event.getBpmnProcessId());
     fallBackToTheBpmnName(
@@ -82,7 +85,8 @@ public final class EventTitles {
                       "taskDefinitionTitle", event.getTaskDefinitionTitle(),
                       "taskTitle", event.getTitle(),
                       "workflowTitle", event.getWorkflowTitle(),
-                      "taskLanguages", languages))
+                      "taskLanguages", languages),
+              renderedFor)
           .ifPresent(event::setDetailsFulltextSearch);
     }
 
@@ -106,11 +110,13 @@ public final class EventTitles {
         event.getI18nLanguages(), module, event.getBpmnProcessId());
     event.setI18nLanguages(languages);
     final var lookupPaths = lookupPaths(module, event.getBpmnProcessId(), null);
+    final var renderedFor = workflow(module.workflowModuleId(), event.getBpmnProcessId());
 
     for (final var language : languages) {
       render(
           event.getTitle(), event::setTitle, language, Locale.forLanguageTag(language),
-          Templating.WORKFLOW_TITLE, lookupPaths, templating, event.getTemplateContext());
+          Templating.WORKFLOW_TITLE, lookupPaths, templating, event.getTemplateContext(),
+          renderedFor);
     }
     fallBackToTheBpmnName(
         event.getTitle(), event::setTitle,
@@ -121,7 +127,8 @@ public final class EventTitles {
           .render(
               lookupPaths, Templating.WORKFLOW_FULLTEXT_SEARCH, firstLocale(languages),
               event.getTemplateContext(),
-              Map.of("workflowTitle", event.getTitle(), "workflowLanguages", languages))
+              Map.of("workflowTitle", event.getTitle(), "workflowLanguages", languages),
+              renderedFor)
           .ifPresent(event::setDetailsFulltextSearch);
     }
 
@@ -166,6 +173,39 @@ public final class EventTitles {
   }
 
   /**
+   * Names a user task in a message about one of its templates.
+   *
+   * @param workflowModuleId The workflow module
+   * @param bpmnProcessId The workflow the task belongs to
+   * @param taskDefinition The task
+   * @return The words a message names the task with
+   */
+  static String userTask(
+      final String workflowModuleId,
+      final String bpmnProcessId,
+      final String taskDefinition) {
+
+    return "the user task '%s' of the workflow '%s' in the workflow module '%s'"
+        .formatted(taskDefinition, bpmnProcessId, workflowModuleId);
+
+  }
+
+  /**
+   * Names a workflow in a message about one of its templates.
+   *
+   * @param workflowModuleId The workflow module
+   * @param bpmnProcessId The workflow
+   * @return The words a message names the workflow with
+   */
+  static String workflow(
+      final String workflowModuleId,
+      final String bpmnProcessId) {
+
+    return "the workflow '%s' in the workflow module '%s'".formatted(bpmnProcessId, workflowModuleId);
+
+  }
+
+  /**
    * Renders one text for one language. What the details provider already wrote is treated as
    * the name of a template, and it stays untouched where no such template exists.
    */
@@ -177,12 +217,13 @@ public final class EventTitles {
       final String defaultTemplateName,
       final List<String> lookupPaths,
       final Templating templating,
-      final Object templateContext) {
+      final Object templateContext,
+      final String renderedFor) {
 
     final var given = texts == null ? null : texts.get(language);
     final var templateName = given != null ? given : defaultTemplateName;
     templating
-        .render(lookupPaths, templateName, locale, templateContext, Map.of())
+        .render(lookupPaths, templateName, locale, templateContext, Map.of(), renderedFor)
         .ifPresent(text -> put(texts, replaceTexts, language, text));
 
   }
