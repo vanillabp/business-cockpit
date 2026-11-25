@@ -773,6 +773,35 @@ hand. The example modules of the VanillaBP kit show all three. Vue and Angular h
 traps, see [Vue in a shadow root](rough-edges.md#vue-in-a-shadow-root) and
 [Angular in a shadow root](rough-edges.md#angular-in-a-shadow-root).
 
+### A BPMN diagram is drawn with bpmn-js
+
+A part which shows a process, for example the page of a case with the diagram and the steps done so
+far, draws the BPMN file with [bpmn-js](https://bpmn.io/toolkit/bpmn-js/). Never draw it from the
+`BPMNDI` part of the file yourself: bpmn-js draws every element as the modeller shows it, and a
+drawing of your own is worse and gets old with every new element in a model.
+
+- Take the `Viewer`, or the `NavigatedViewer` when the user should move and zoom the diagram. A
+  part never needs the `Modeler`.
+- Show the current step and the steps done with markers (`canvas.addMarker`) and a few CSS rules,
+  and numbers or badges with overlays (`overlays.add`). The ids are the ids of the BPMN elements,
+  for example the task definition of a user task.
+- The styles of bpmn-js, `bpmn-js/dist/assets/diagram-js.css` and `bpmn-js.css`, go into the shadow
+  root together with the module's style. Selectors of the page do not reach the diagram, see
+  [What a web component does](#a-visual-part-is-a-web-component).
+- Import bpmn-js only in the visual entry of the part which shows the diagram, or load it there with
+  `import()`. Then the bundler gives it a chunk of its own, and the cockpit loads it only when the
+  diagram is about to be shown. No data entry and no other part imports it.
+- Take the package `bpmn-js` from npmjs. If the npm registry of the organisation (`Q-NPM-SCOPE`)
+  does not mirror it, point only the scope of the organisation at that registry in `.npmrc` and
+  leave the rest at `https://registry.npmjs.org`. Do not draw the diagram yourself because a
+  registry lacks the package.
+- Keep the bpmn.io logo in the corner of the diagram. bpmn-js is under the bpmn.io license, which
+  allows its use in a product but forbids removing or hiding that logo.
+
+A picture of a diagram which a build makes, for example for a README or a document, comes from the
+same renderer: [`bpmn-to-image`](https://github.com/bpmn-io/bpmn-to-image) draws a BPMN file into a
+PNG or an SVG.
+
 ## The names of the web components
 
 All modules define their web components in the one `customElements` registry of the page. Two
