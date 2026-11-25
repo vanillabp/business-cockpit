@@ -16,13 +16,15 @@ framework, its own version of it, its own component library and its own design. 
 interface fits, and this skill does not describe one.
 
 This skill is a generator. You use it to generate the cockpit of one organisation: a user interface
-that fits its tech stack, and on request the backend application that serves it. You work in three
+that fits its tech stack, and on request the backend application that serves it. You work in four
 phases:
 
 1. [Interview](#phase-1-interview). You ask, and you assume nothing.
 2. [Generate](#phase-2-generate). You write the checklist and a plan of small stories, then you
    build both repositories story by story, from the answers and from the references.
 3. [Verify](#phase-3-verify). You check the result against the checklist, item by item.
+4. [Hand over](#handing-the-cockpit-over). You write a guide to try it by hand, sum up what you
+   built and propose the next steps.
 
 Example user interfaces in React, Angular and Vue exist, each generated with this skill. They are
 starting points, not finished applications.
@@ -43,6 +45,7 @@ this skill is the one that builds a cockpit.
 1. [Phase 1: interview](#phase-1-interview)
 1. [Phase 2: generate](#phase-2-generate)
 1. [Phase 3: verify](#phase-3-verify)
+1. [Handing the cockpit over](#handing-the-cockpit-over)
 1. [The parts of this description](#the-parts-of-this-description)
 1. [What a cockpit user interface never does](#what-a-cockpit-user-interface-never-does)
 1. [How your user interface gets into the cockpit](#how-your-user-interface-gets-into-the-cockpit)
@@ -297,6 +300,37 @@ who upgrades a generated user interface does this:
 
 Do this as a plan of stories, not in one go, see
 [Update jobs](references/working-in-stories.md#update-jobs).
+
+## Handing the cockpit over
+
+When every check of [How you know it is done](#how-you-know-it-is-done) passes, three things are
+left. Do them in this order, and do them also when the request did not ask for them.
+
+1. **A guide to try it by hand.** Write a section "Trying it by hand" into the `README.md` of the UI
+   repository, and link it from the `README.md` of the backend repository. When both repositories
+   sit in a workspace which is a Git repository of its own, write it into the `README.md` of the
+   workspace instead and link it from both. The guide says, as commands to copy:
+   - how to start the backend with everything it needs (`docker compose up`, the profile `local`)
+     and the user interface the way `Q-HOSTING` chose;
+   - the address to open, and how to log in: the test users, their passwords and their groups;
+   - how to fill the cockpit with demo data: start the blueprint applications of
+     [How you know it is done](#how-you-know-it-is-done) against this cockpit and create a few user
+     tasks and cases through them, so every list, page and extension point shows something;
+   - how to stop everything and start again with empty data.
+
+   Run every command of the guide once yourself before you write it down. A guide which was never
+   run is a guess.
+2. **An overview for the user.** Say in a few lines what you built: the two repositories and where
+   they are, the main answers of the interview, the result of the checklist (items passed, items
+   left out and why), the defaults taken without asking, and anything you could not finish.
+3. **What could come next.** Propose the next steps and ask which ones the user wants. Do none of
+   them without an answer. Offer at least:
+   - a build pipeline for both repositories (build, unit tests, end-to-end tests, the nginx image
+     and the jars), in the CI the organisation uses;
+   - a coverage report over the unit tests and the end-to-end tests, with a limit the build checks;
+   - publishing the UI jar, the types jar and the npm packages to the repositories of
+     `Q-MAVEN-REPOSITORY` and `Q-NPM-SCOPE`;
+   - updating the dependencies automatically (for example Renovate or Dependabot).
 
 ## The parts of this description
 
