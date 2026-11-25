@@ -20,15 +20,14 @@ generated interfaces and models too.
 
 ## Using it
 
-A workflow module adds the dependency and the extension of Quarkus' REST client with JSON. There
-is no BOM for Quarkus, because `business-cockpit-bom` imports the Spring Boot BOM, so the module
-names the version itself:
+A workflow module adds the dependency and the extension of Quarkus' REST client with JSON. The
+version comes from `business-cockpit-bom`, which fits a Quarkus application because it imports no
+Spring BOM:
 
 ```xml
 <dependency>
   <groupId>io.vanillabp.businesscockpit</groupId>
   <artifactId>official-gui-api-quarkus-client</artifactId>
-  <version>${businesscockpit.version}</version>
 </dependency>
 <dependency>
   <groupId>io.quarkus</groupId>

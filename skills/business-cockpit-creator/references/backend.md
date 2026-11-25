@@ -83,13 +83,22 @@ The module `types` builds the types jar for the workflow modules, see
 
 ## The parent pom
 
-The library's own parent is `io.vanillabp:release-parent`, which carries no Spring. So the
-library pins its versions through BOMs, and the application has to use the same ones. The cockpit
-publishes them as one BOM, `io.vanillabp.businesscockpit:business-cockpit-bom`, in the version of
-the cockpit. The parent imports it in its `dependencyManagement`, with the version of
-`Q-COCKPIT-VERSION` in the property `business-cockpit.version`:
+The application chooses its Spring Boot itself, and the cockpit names the versions of its own
+artifacts. So the parent imports two BOMs in its `dependencyManagement`. The first is
+`org.springframework.boot:spring-boot-dependencies`, in the version the cockpit is built with: the
+version of `spring-boot-dependencies` in the root `pom.xml` of the `business-cockpit` repository at
+the tag of `Q-COCKPIT-VERSION`, in the property `spring-boot.version`. The second is the cockpit's
+BOM, `io.vanillabp.businesscockpit:business-cockpit-bom`, with the version of `Q-COCKPIT-VERSION`
+in the property `business-cockpit.version`:
 
 ```xml
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-dependencies</artifactId>
+  <version>${spring-boot.version}</version>
+  <type>pom</type>
+  <scope>import</scope>
+</dependency>
 <dependency>
   <groupId>io.vanillabp.businesscockpit</groupId>
   <artifactId>business-cockpit-bom</artifactId>
@@ -99,20 +108,19 @@ the cockpit. The parent imports it in its `dependencyManagement`, with the versi
 </dependency>
 ```
 
-The BOM brings `spring-boot-dependencies`, `spring-cloud-dependencies` (the library's proxy under
-`/wm/` is `spring-cloud-starter-gateway-server-webmvc`), `io.vanillabp:vanillabp-bom`,
-`mongodb-changesets`, and the cockpit's own artifacts, among them `business-cockpit` and
-`bpms-protobuf-api`. So the modules name all of them without a version. Neither the BOM nor the
-library brings OpenFeign or OkHttp. An application that uses them for clients of its own names them,
-with their versions, in its own POM. Do not import the Spring BOMs a second time, and do not import
-one before this BOM. The first import of a coordinate wins.
+The cockpit's BOM brings `io.vanillabp:vanillabp-bom`, `mongodb-changesets` and the cockpit's own
+artifacts, among them `business-cockpit` and `bpms-protobuf-api`. It imports no BOM of Spring. So
+the modules name all of them and the Spring Boot starters without a version. Do not import
+`spring-cloud-dependencies`: the library's proxy under `/wm/` is
+`spring-cloud-starter-gateway-server-webmvc`, and the library brings it in the version it is built
+with. Neither the BOM nor the library brings OpenFeign or OkHttp. An application that uses them for
+clients of its own names them, with their versions, in its own POM.
 
-Pin `spring-boot-maven-plugin` to the version of `spring-boot-dependencies` that the BOM imports,
-because a BOM gives no plugin a version and no `spring-boot-starter-parent` does either. Read it
-from `bom/pom.xml` of the `business-cockpit` repository at the tag of `Q-COCKPIT-VERSION`. The
-parent also sets the Java version of `Q-JAVA-VERSION` and the property `ui.version`, the version
-of the user interface. Both modules read `ui.version`: `types` downloads `<scope>/bc-types` of
-that version, and `application` takes the UI jar of that version.
+Pin `spring-boot-maven-plugin` to `${spring-boot.version}`, because a BOM gives no plugin a
+version and no `spring-boot-starter-parent` does either. The parent also sets the Java version of
+`Q-JAVA-VERSION` and the property `ui.version`, the version of the user interface. Both modules
+read `ui.version`: `types` downloads `<scope>/bc-types` of that version, and `application` takes
+the UI jar of that version.
 
 The library depends on `com.phactum.mongodb:mongodb-changesets`, and the BOM pins the version the
 cockpit is built with. Its releases and its snapshots both come from Maven Central, so neither asks
@@ -140,18 +148,19 @@ gradlew, gradle/wrapper/        the Gradle wrapper
 
 What [The parent pom](#the-parent-pom) says for Maven looks like this with Gradle:
 
-- The cockpit's BOM comes in as a platform, and the dependencies then name no version:
+- The Spring Boot BOM and the cockpit's BOM come in as platforms, and the dependencies then name no
+  version:
 
   ```kotlin
   val cockpitVersion = property("business-cockpit.version")
+  implementation(platform(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES))
   implementation(platform("io.vanillabp.businesscockpit:business-cockpit-bom:$cockpitVersion"))
   ```
-- Do not apply the plugin `io.spring.dependency-management`. Next to the Spring Boot plugin it
-  imports the Spring Boot BOM in the version of the plugin, which is a second import of the Spring
-  BOMs.
+- Do not apply the plugin `io.spring.dependency-management`. The platform above brings the Spring
+  Boot BOM already, and one way to the same versions is enough.
 - The plugin `org.springframework.boot` goes into `application` only. It gets the version of
-  `spring-boot-dependencies` that the cockpit's BOM imports, read from `bom/pom.xml` of the
-  `business-cockpit` repository at the tag of `Q-COCKPIT-VERSION`.
+  `spring-boot-dependencies` in the root `pom.xml` of the `business-cockpit` repository at the tag
+  of `Q-COCKPIT-VERSION`. `BOM_COORDINATES` names the BOM in the version of the plugin.
 - The Java version of `Q-JAVA-VERSION` is a toolchain:
   `java { toolchain { languageVersion = JavaLanguageVersion.of(25) } }`.
 - The snapshot repository of Maven Central is in `repositories` only for as long as

@@ -61,6 +61,21 @@ Your main class carries `@SpringBootApplication` and starts the application itse
 works, but the class goes away in a release after 1.0. So drop the `extends`, see
 [Setting the application up](https://github.com/vanillabp/business-cockpit/wiki/Building-a-custom-Business-Cockpit#setting-the-application-up).
 
+### Your application chooses Spring Boot, the cockpit's BOM names only the cockpit
+
+Import `io.vanillabp.businesscockpit:business-cockpit-bom` in the `dependencyManagement` of your
+application. It names the version of `business-cockpit` and of every other artifact of the cockpit,
+and it imports the VanillaBP BOM. It names no version of Spring Boot or Spring Cloud. So keep what
+gives your application its Spring Boot versions today, `spring-boot-starter-parent` as the parent or
+an import of `spring-boot-dependencies`, and take the Spring Boot 4.1 line the cockpit is built with.
+Without one of them, the Spring Boot starters of your POM have no version and the build stops.
+
+The cockpit's proxy under `/wm/` uses the Spring Cloud gateway, and the library brings it in the
+version the cockpit is built with. Import `spring-cloud-dependencies` yourself only if your
+application uses Spring Cloud for something of its own. The wiki page
+[Building a custom Business Cockpit](https://github.com/vanillabp/business-cockpit/wiki/Building-a-custom-Business-Cockpit#setting-the-application-up)
+shows the POM.
+
 ### The five list controllers are yours to write
 
 Up to 0.4.x, `container` brought five concrete controllers of the GUI API, the API the user

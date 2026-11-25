@@ -163,8 +163,8 @@ REST.
 
 The version of Quarkus this module is built and tested with is the property `version.quarkus` of
 the root `pom.xml`, the same one the Quarkus half of the extension uses.
-`business-cockpit-bom` does not fit a Quarkus application, because it imports the Spring Boot BOM.
-So a Quarkus application names the version of this module itself.
+A Quarkus application gets the version of this module from `business-cockpit-bom`. The BOM imports
+no BOM of Spring Boot, so it does not change the versions Quarkus brings.
 
 ## Tests
 

@@ -1,8 +1,9 @@
 # BOM
 
-The BOM (bill of materials) of a derived cockpit application. A derived cockpit is a Spring Boot
-application of its own which depends on the library `business-cockpit`. The application imports
-this BOM and gets every version it needs from it:
+The BOM (bill of materials) of the cockpit. It names the version of every artifact of a cockpit
+release, and it imports the VanillaBP BOM those artifacts are built against. It names no Spring
+Boot, Spring Cloud or Quarkus version. So a derived cockpit on Spring Boot imports it, and so does
+a workflow module on Quarkus:
 
 ```xml
 <dependencyManagement>
@@ -18,36 +19,30 @@ this BOM and gets every version it needs from it:
 </dependencyManagement>
 ```
 
-Then it names `io.vanillabp.businesscockpit:business-cockpit`, the Spring Boot starters and, for
-Kafka, `bpms-protobuf-api`, all without a version. Only `spring-boot-maven-plugin` still needs one,
-because a plugin is not managed by a BOM. It is the version of `spring-boot-dependencies` in this
-`pom.xml`.
+The application chooses the versions of its framework itself: `spring-boot-starter-parent` as its
+parent or an import of `spring-boot-dependencies`, or `quarkus-bom`. A derived cockpit takes the
+Spring Boot line the cockpit is built with, which is the version of `spring-boot-dependencies` in
+the root `pom.xml`. Then it names `io.vanillabp.businesscockpit:business-cockpit`, the Spring Boot
+starters and, for Kafka, `bpms-protobuf-api`, all without a version.
 
 ## What is in it
 
-- The BOMs of Spring Boot and Spring Cloud, and the VanillaBP BOM.
+- The VanillaBP BOM.
 - `mongodb-changesets`, in the version the cockpit is built with.
 - The artifacts of a derived cockpit: `business-cockpit` and `bpms-protobuf-api`, and the modules
   the library brings with it, `business-cockpit-spring-boot-support`, `business-cockpit-support-core`,
   `spi-for-java`, `bpms-api-server` and `official-gui-api-server`.
-- `business-cockpit-quarkus-support` and `business-cockpit-quarkus-support-test`, so the BOM names
-  every artifact of a release. See below for who uses them.
+- What a workflow module uses to talk to the cockpit: `business-cockpit-quarkus-support` and
+  `business-cockpit-quarkus-support-test`, the two clients of the official GUI API, and the API
+  of the dev shell simulator.
 
 The cockpit's adapters are not in it. A workflow module gets them for its BPMS, and each is released
 in a repository of its own.
 
-A workflow module on Quarkus does not import this BOM. The Spring BOMs in it would be wrong in a
-Quarkus application, because they would win over the versions Quarkus brings. So a Quarkus
-workflow module names the version of `business-cockpit-quarkus-support` itself, and of
-`business-cockpit-quarkus-support-test` for its tests, for example with a property:
-
-```xml
-<dependency>
-  <groupId>io.vanillabp.businesscockpit</groupId>
-  <artifactId>business-cockpit-quarkus-support</artifactId>
-  <version>${business-cockpit.version}</version>
-</dependency>
-```
+Spring Cloud is not in it either. The library uses the Spring Cloud gateway for its proxy under
+`/wm/`, and the library's POM brings the gateway in the version the cockpit is built with. An
+application which uses Spring Cloud for something of its own imports `spring-cloud-dependencies`
+itself, in the release train which fits its Spring Boot.
 
 Protobuf is not pinned. Protobuf 4 generated code calls
 `RuntimeVersion.validateProtobufGencodeVersion()` in every static initializer, and the class fails
