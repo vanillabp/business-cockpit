@@ -150,6 +150,11 @@ the order given there. Ask all of them. Where a question has a default, propose 
 decide. Never fill in an answer because it sounds likely. An organisation that uses the cockpit in
 one department wants different things from one that uses it company-wide.
 
+The interview always starts, also when the request is long or written as an order. What the request
+says about the cockpit answers the questions it concerns and takes the place of their default.
+Every other question is asked. See
+[What the request already says](references/interview.md#what-the-request-already-says).
+
 Every question shows its number and how many questions there are, for example `8/47`. The total
 counts only the questions that still apply with the answers so far, so it can go down during the
 interview.

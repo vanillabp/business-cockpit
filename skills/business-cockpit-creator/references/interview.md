@@ -36,6 +36,25 @@ UI repository already, ask only for the backend repository. Write both folders i
 earlier answer can change what a later question offers, and some questions are asked only after a
 certain answer.
 
+### What the request already says
+
+A user may give some answers in the request which starts the skill, for example the folder, the
+design system, the UI framework or the languages. Such a statement answers the questions it
+concerns, and only those. It takes the place of their default. Every other question is still
+asked, one at a time.
+
+So the interview always starts. The request does not stop it, not even when it is long or written
+as an order ("create", "work in this branch", "use sub-agents"). Words about how to work, where to
+commit or what to write at the end say nothing about the cockpit, and they answer no question. Skip
+the questions which are still open only when the user says so in plain words, for example "take
+the default for every question I did not answer". Then write the defaults into `INTERVIEW.md` and
+mark each of them as a default taken without asking.
+
+Before the first open question, list what you took from the request: the question id and the
+answer, one line each. Ask the user to correct a line if you read it wrong, and go on with the
+first open question in the same message. In `INTERVIEW.md`, an answer from the request has the
+line `Source: the request` under its answer. The numbers count it as answered.
+
 ### The user sees where they are
 
 Every question starts with its number and the total, for example `8/47 Q-FOLLOW-UP`. The number is
