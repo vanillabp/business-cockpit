@@ -93,7 +93,7 @@
       bin/check-the-chain.sh compares them every night. It is named here and not in a subtree,
       because the Quarkus half of the extension and the Quarkus module of support run in the same
       application and so have to agree on one version. -->
-    <version.quarkus>3.40.1.2</version.quarkus>
+    <version.quarkus>4.0.0</version.quarkus>
     <!--
       One property for the whole JUnit family, used by the BOM import below and by the Surefire
       plugin, which reads its dependencies outside of dependency management.
