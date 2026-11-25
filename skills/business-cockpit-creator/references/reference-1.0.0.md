@@ -15,6 +15,10 @@ items dropped before the list was released. From 1.0.0 on, a later version of th
 with new ids, changes the text of an item only when its meaning stays, and marks an item as removed
 instead of deleting it. So an upgrade is the diff between two versions of this file.
 
+A new item also gets a place in the fixed list of slices in
+[working-in-stories.md](working-in-stories.md#the-fixed-list-of-slices), in the same change. Every
+id of this list is in exactly one slice, otherwise no story builds it.
+
 | Prefix  |                   Area                   |
 |---------|------------------------------------------|
 | `PKG-`  | build outputs of the project             |
