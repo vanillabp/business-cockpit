@@ -642,6 +642,26 @@ The dev-shell simulator answers `/bpms/api/v1_1` only, and `/bpms/api/v1` answer
 workflow module whose adapter still reports through version 1 needs a current adapter to be tried
 in the dev shell. The cockpit itself still takes version 1.
 
+### An application which extends the dev-shell simulator gets its defaults
+
+The defaults of the dev-shell simulator are in `dev-shell-simulator-defaults.yaml` now, not in its
+`application.yaml`. In 0.4.x, an application which extends `DevShellSimulator` and has an
+`application.yaml` of its own hid the one of the simulator and got none of its values. Now it gets
+every default, with the lowest priority. A value the application sets itself still wins.
+
+Read the file once and compare it with your configuration. Two values change how the application
+behaves:
+
+- `spring.jpa.hibernate.ddl-auto: update`. If your tables come from the changelog
+  `db/changelog/dev-shell-simulator.yaml`, set `spring.jpa.hibernate.ddl-auto: none` or `validate`
+  yourself.
+- `spring.jpa.open-in-view: false`. The simulator stores a report in one transaction and repeats it
+  when another report about the same task or case came first. Each attempt needs an entity manager
+  of its own, so the request must not hold one open. If controllers of your own load lazy fields
+  after their transaction, you can set `spring.jpa.open-in-view: true` again. Then a repeated
+  attempt works with the entity manager of the first one, and two reports which arrive at the same
+  moment may not both be kept.
+
 ### Two values are the application's
 
 The library has no value for `application.spa-default-file` and `business-cockpit.default-locale`

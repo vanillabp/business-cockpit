@@ -85,6 +85,32 @@ public interface Templating {
       Map<String, Object> additionalValues);
 
   /**
+   * Renders one template for one report, which a message about the template names.
+   *
+   * @param lookupPaths The directories to look in, most specific first
+   * @param templateName The file name
+   * @param locale The language the text is rendered for, or <code>null</code> for the
+   *          engine's default
+   * @param templateContext What the template reads its values from
+   * @param additionalValues Values put next to the context under their own names
+   * @param renderedFor What the text is rendered for, for example the user task, in words a
+   *          message can name. A templating which writes no messages ignores it
+   * @return The text, or empty where no template of that name exists in any of the paths or
+   *         rendering failed
+   */
+  default Optional<String> render(
+      final List<String> lookupPaths,
+      final String templateName,
+      final Locale locale,
+      final Object templateContext,
+      final Map<String, Object> additionalValues,
+      final String renderedFor) {
+
+    return render(lookupPaths, templateName, locale, templateContext, additionalValues);
+
+  }
+
+  /**
    * The templating of an application without templates. Every call answers empty, so the cockpit
    * reports the BPMN names.
    *

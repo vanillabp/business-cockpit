@@ -199,7 +199,7 @@ extension-points|A module adds pages, dialogs, buttons and charts of its own|BE-
 language|A clerk works in their language, in every browser|NAV-014, NAV-015, NAV-016, NAV-028, SET-003, I18N-003, I18N-008
 rights-pictures|A clerk sees their rights and the pictures of persons|PKG-058, BE-021, BE-022, BE-023, BE-029, NAV-019, NAV-020, NAV-021, NAV-022, NAV-023, NAV-024, NAV-025, NAV-026, NAV-027, NAV-030
 notifications|A clerk sets up notifications and gets mails|BE-015, BE-016, TF-014, NOTI-001, NOTI-002, NOTI-003
-dev-shell|A module developer works on a form in the dev shell|PKG-034, DS-001, DS-002, DS-003, DS-004, DS-005, DS-006, DS-007, DS-008, DS-009, DS-010, DS-011, DS-012, DS-013, DS-014, DS-015, DS-016, DS-017, DS-018, DS-019, DS-020, DS-021, DS-022, DS-023, DS-024
+dev-shell|A module developer works on a form in the dev shell|PKG-034, DS-001, DS-002, DS-003, DS-004, DS-005, DS-006, DS-007, DS-008, DS-009, DS-010, DS-011, DS-012, DS-013, DS-014, DS-015, DS-016, DS-017, DS-018, DS-019, DS-020, DS-021, DS-022, DS-023, DS-024, DS-025, DS-026
 delivery|The cockpit is released and deployed|PKG-011, PKG-012, PKG-013, PKG-024, PKG-025, PKG-032, PKG-036, PKG-037, PKG-038, PKG-060, PKG-061, BE-018, BE-019, EXT-058
 customer|The wishes of the customer|CUST-*
 ```

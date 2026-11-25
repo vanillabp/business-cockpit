@@ -12,11 +12,17 @@ This page says where to put something new.
 | `config`     | The property keys, the typed settings and the validation which reports every gap in one boot |
 | `event`      | The two event classes and the registration of a workflow module                              |
 | `handler`    | The contracts telling VanillaBP how to find and invoke the details providers                 |
-| `templating` | The renderer of the titles, and the fallback to the names written in the BPMN                |
+| `templating` | The renderer of the titles, the fallback to the BPMN names, and `TemplateContextCheck`       |
 | `transport`  | The two ways to the cockpit server, and the mappers to what each of them sends               |
 | `outbox`     | The three operations and the keys they are deduplicated by                                   |
 | `service`    | The `BusinessCockpitService` a workflow service injects                                      |
 | `wiring`     | The extension's place in VanillaBP's deployment pipeline                                     |
+
+`TemplateContextCheck` is the one class a workflow module calls itself, in its tests. It renders
+the module's templates the way the extension does and names each value a template context misses.
+The extension cannot check that while the application starts, because a template context exists
+only once a details provider built it for a report. So the check is public API: change it the way
+a published contract is changed.
 
 The one class holding the pieces together is `BusinessCockpitExtension`. It is also the
 `BusinessCockpitEventPublisher` a BPMS half injects, so that there is one bean rather than two which

@@ -25,6 +25,8 @@ The generated project has one dev shell package per framework the modules use
 2. [What a dev shell must do](#what-a-dev-shell-must-do)
 3. [The entry point](#the-entry-point)
 4. [What it shows](#what-it-shows)
+   - [Pages of the dev shell](#pages-of-the-dev-shell)
+   - [The columns of the lists](#the-columns-of-the-lists)
 5. [Where the data comes from](#where-the-data-comes-from)
 6. [The dev shell simulator](#the-dev-shell-simulator)
    - [The simulators of a workflow module](#the-simulators-of-a-workflow-module)
@@ -174,6 +176,9 @@ For this it must:
    the task actions, the areas `body`, `information` and `actions` (`Q-TASK-PAGE-AREAS`,
    `Q-WORKFLOW-PAGE-AREAS`) and the scrolling are laid out as in the cockpit, with the same elements
    and the same styles.
+10. Show the pages a module hands over for development only, and a page of its own with the columns
+    of the lists, see [Pages of the dev shell](#pages-of-the-dev-shell) and
+    [The columns of the lists](#the-columns-of-the-lists).
 
 A dev shell for Angular runs zoneless, as an Angular module does in the cockpit, see
 [module-loading.md](module-loading.md#nothing-is-shared). A form that needs `zone.js` fails in the
@@ -181,7 +186,9 @@ dev shell, not first in the cockpit.
 
 It needs no lists, no live updates and no login. Those are the cockpit's business and not the
 workbench's. A view that copies a row of a list is only needed once modules can draw cells
-themselves, see [module-loading.md](module-loading.md#cells-drawn-by-a-workflow-module).
+themselves, see [module-loading.md](module-loading.md#cells-drawn-by-a-workflow-module). The
+columns a module returns for the lists still need a place to be looked at, because no part draws
+them. The page [The columns of the lists](#the-columns-of-the-lists) shows them as a plain table.
 
 ## The entry point
 
@@ -195,6 +202,7 @@ What is handed over is the real contract:
 | the components, by web component name | what the shell draws for each name the functions return; the module builds the names with the same `names` as its data entries                     |
 | the style of the components           | the stylesheet text the module's web components write into their shadow roots, so the shell writes the same, see [The rule](#the-rule)             |
 | the workflow module id                | for the frame, and for the requests of a form through `/wm/`                                                                                       |
+| `devShellPages`, optional             | pages only the dev shell shows, for example one which drives a process; see [Pages of the dev shell](#pages-of-the-dev-shell)                      |
 
 The form of the entry point follows the framework, and it does not have to be the same everywhere:
 
@@ -228,12 +236,22 @@ The components are imported directly, so the dev server swaps them while the dev
 name the function returns but for which no component was handed over shows a note with that name,
 so the developer sees the mistake in the shell and not first in the cockpit.
 
+The module hands the components over as one map from web component name to component, for example
+`src/visual/components-by-name.ts`. This map is for the dev shell only. No visual entry imports
+it: each visual entry imports and defines its own components, as before. If every visual entry
+imported the one map, the bundler would put all components into one shared chunk, and the cockpit
+would load every part of the module as soon as it needs one. A user without the group of a form
+would load the form, and a form would be loaded before it is shown. The map is a second list of
+the same names, and that is the price. The tests of the module's dev shell draw every part
+through the map, so a component missing from it fails there and not first in the cockpit.
+
 ## What it shows
 
 Three surfaces are enough:
 
-- A start page, with a way to each part and to each extension point, the choice of the user and
-  the choice of the workflow module. The list of workflow modules shows only the modules the chosen
+- A start page, with a way to each part and to each extension point, to each page of
+  `devShellPages` and to the page with the columns of the lists, the choice of the user and the
+  choice of the workflow module. The list of workflow modules shows only the modules the chosen
   user sees: a module that registered groups, `accessibleToGroups` in the body of
   `POST /bpms/api/v1_1/workflow-module/{id}`, only for a user in one of these groups, and a module
   without groups for everybody (`DS-024`). The page gets them with
@@ -253,6 +271,63 @@ other. It is only there to pick an entry while developing. The data comes from t
 there are few entries, and closed ones are worth trying too. This differs from the cockpit on
 purpose: there the default is `OpenTasksWithoutFollowUp` for user tasks and `InProgress` for cases, see
 [behaviour.md](behaviour.md#the-task-lists).
+
+### Pages of the dev shell
+
+A module often needs a page while it is developed which the cockpit never shows: one which starts
+a process and drives it to the next user task, one which shows the test data of a simulator, one
+which resets them. Such a page belongs to the module, so the module hands it to the dev shell. The
+developer must not change the dev shell package for it and publish it again.
+
+The option `devShellPages` takes a list. Each page has:
+
+|    Field    |                                                   What it is                                                   |
+|-------------|----------------------------------------------------------------------------------------------------------------|
+| `id`        | a short name, unique in the list; the page has the route `/dev-shell-pages/<id>`                               |
+| `title`     | a text per language of the cockpit (`Q-LANGUAGES`), the same `Translatable` as the title of a column           |
+| `component` | the framework component the page shows, imported from its source file, so the dev server swaps it while typing |
+
+The option is called `devShellPages` and not `pages`, because `pages` is already the function of the
+data entry `Pages`, the pages a module shows in the cockpit, see
+[module-loading.md](module-loading.md#the-other-extension-points). Those are tried under their
+cockpit route `/<workflowModuleId>/<pageId>`, like every other extension point.
+
+The start page lists the pages of `devShellPages` with their title in the language chosen, in the
+order of the list. A title without the chosen language falls back to the first language of the
+cockpit, and then to the id. The page is drawn by the dev shell itself, next to the header with its
+choices, and not inside a host element with a shadow root. It is a tool of the developer and not a
+part of the cockpit, so [The rule](#the-rule) does not hold for it. The component gets the user
+chosen and the language as properties, so it can call the simulators as that user.
+
+An `id` twice in the list, or an `id` which is not a short name of lower case letters, digits and
+`-`, stops the dev shell before it draws anything. The note names the `id` and says what is wrong
+with it.
+
+The tests of the dev shell package prove it with a component of the test: the start page lists the
+page with its title in each language, the route draws the component with the user and the
+language, and a list with an `id` twice is refused with a note naming that `id` (`DS-025`).
+
+### The columns of the lists
+
+The data entries `UserTaskList` and `WorkflowList` return the columns of a row, see
+[types.md](types.md#column). They return definitions and no web component, so nothing in the dev
+shell would show them, and a wrong `path` would first show up as an empty cell in the cockpit.
+
+So the dev shell has a page of its own for them, under `/columns`, linked from the start page. It
+loads the first block of user tasks and of cases of the workflow module chosen, with the same
+query as the drop-down. It calls `userTaskListColumns` for each user task and
+`workflowListColumns` for each case and shows one table for the user tasks and one for the cases.
+A row is one entry, named by its title. A column of the table is one column the module returned,
+with its `title` in the language chosen and its `path`. A cell shows the value at `path` the same
+way as the cockpit draws the `type`, see
+[behaviour.md](behaviour.md#the-columns-a-workflow-module-brings). A row for which the function
+returns `undefined` says that the module has no columns for it. A `path` that finds no value
+shows an empty cell marked as such, so the developer sees the typo.
+
+The page needs no option. A module whose manifest does not name `UserTaskList` or `WorkflowList`
+gets a note instead of the table. The tests of the dev shell package prove the table with the
+columns a test entry returns, both for a value which is there and for a `path` which finds none
+(`DS-026`).
 
 ## Where the data comes from
 

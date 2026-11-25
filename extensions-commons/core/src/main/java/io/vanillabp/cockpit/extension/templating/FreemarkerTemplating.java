@@ -17,9 +17,11 @@ import freemarker.cache.ClassTemplateLoader;
 import freemarker.cache.FileTemplateLoader;
 import freemarker.cache.TemplateLoader;
 import freemarker.cache.TemplateLookupStrategy;
+import freemarker.core.InvalidReferenceException;
 import freemarker.ext.beans.BeansWrapper;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
+import freemarker.template.TemplateExceptionHandler;
 import freemarker.template.TemplateNotFoundException;
 import freemarker.template.Version;
 import io.vanillabp.cockpit.extension.config.ConfigurationKeys;
@@ -41,6 +43,12 @@ public class FreemarkerTemplating implements Templating {
   private static final Version FREEMARKER_VERSION = Configuration.VERSION_2_3_34;
 
   private final Configuration configuration;
+
+  /**
+   * Where the templates of each workflow module are, by module id, to name the file of a template
+   * in a message. Empty where one directory serves every module.
+   */
+  private final Map<String, TemplateDirectory> directoryPerWorkflowModule = new LinkedHashMap<>();
 
   /**
    * Creates the templating for the configured template directory.
@@ -107,6 +115,7 @@ public class FreemarkerTemplating implements Templating {
           below.put(workflowModuleId, directory.below());
         });
     configuration.setTemplateLoader(new WorkflowModuleTemplateLoader(loaders, below));
+    this.directoryPerWorkflowModule.putAll(directoryPerWorkflowModule);
 
   }
 
@@ -253,6 +262,10 @@ public class FreemarkerTemplating implements Templating {
     configuration.setLocalizedLookup(true);
     configuration.setRecognizeStandardFileExtensions(true);
     configuration.setObjectWrapper(objectWrapper());
+    // a failing template is reported once, by render, naming what it was rendered for.
+    // Freemarker would otherwise log it as well, and write its stack trace into the text
+    configuration.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
+    configuration.setLogTemplateExceptions(false);
     return configuration;
 
   }
@@ -296,6 +309,19 @@ public class FreemarkerTemplating implements Templating {
       final Object templateContext,
       final Map<String, Object> additionalValues) {
 
+    return render(lookupPaths, templateName, locale, templateContext, additionalValues, null);
+
+  }
+
+  @Override
+  public Optional<String> render(
+      final List<String> lookupPaths,
+      final String templateName,
+      final Locale locale,
+      final Object templateContext,
+      final Map<String, Object> additionalValues,
+      final String renderedFor) {
+
     final var template = findTemplate(lookupPaths, templateName, locale);
     if (template == null) {
       return Optional.empty();
@@ -311,10 +337,119 @@ public class FreemarkerTemplating implements Templating {
       }
       environment.process();
       return Optional.of(writer.toString());
+    } catch (final InvalidReferenceException e) {
+      reportAMissingVariable(
+          whereIs(template.getSourceName()), e.getBlamedExpressionString(), renderedFor, e);
+      return Optional.empty();
     } catch (final Exception e) {
-      logger.error("Could not render the template '{}'", templateName, e);
+      reportAFailure(whereIs(template.getSourceName()), renderedFor, e);
       return Optional.empty();
     }
+
+  }
+
+  /**
+   * The file of a template as the developer finds it. Freemarker knows a template of a workflow
+   * module by the module id and the path below the module's directory, which is no file anybody
+   * can open.
+   *
+   * @param sourceName The source name Freemarker gives the template
+   * @return The directory of the module with the path below it, or the source name where one
+   *         directory serves every module
+   */
+  private String whereIs(
+      final String sourceName) {
+
+    final var slash = sourceName.indexOf('/');
+    final var directory = slash < 0 ? null : directoryPerWorkflowModule.get(sourceName.substring(0, slash));
+    if (directory == null) {
+      return sourceName;
+    }
+    final var below = directory.below().isEmpty()
+        ? sourceName.substring(slash + 1)
+        : directory.below() + sourceName.substring(slash);
+    final var loaderPath = directory.loaderPath();
+    // 'classpath:' needs no slash after it, 'file:/etc/templates' does
+    return loaderPath.endsWith(":") || loaderPath.endsWith("/")
+        ? loaderPath + below
+        : loaderPath
+            + "/"
+            + below;
+
+  }
+
+  /**
+   * Reports a template which reads a value its template context does not have. That is the
+   * usual mistake: the title of a workflow is rendered for each of its user tasks too, with the
+   * template context of that task, and one task forgot a value. The text stays as it was, and the
+   * report goes on.
+   * <p>
+   * The message names the template, the value and what the text was rendered for, so the
+   * developer can act on the log line alone. {@link TemplateContextCheck} reports the same in a
+   * test of the workflow module, before anything runs.
+   *
+   * @param template The source name of the template, its path below the template directory
+   * @param variable The expression the template could not read, e.g. <code>loan.number</code>,
+   *          or <code>null</code> where Freemarker does not say
+   * @param renderedFor What the text was rendered for, or <code>null</code> where the caller
+   *          did not say
+   * @param cause What Freemarker threw
+   */
+  protected void reportAMissingVariable(
+      final String template,
+      final String variable,
+      final String renderedFor,
+      final Exception cause) {
+
+    logger.error(missingVariable(template, variable, renderedFor));
+    logger.debug("What Freemarker reported", cause);
+
+  }
+
+  /**
+   * Reports a template which fails for another reason than a missing value, for example a
+   * <code>java.time</code> value without <code>freemarker-java8</code>. The text stays as it was,
+   * and the report goes on.
+   *
+   * @param template The template, as {@link #reportAMissingVariable} names it
+   * @param renderedFor What the text was rendered for, or <code>null</code>
+   * @param cause Why it failed
+   */
+  protected void reportAFailure(
+      final String template,
+      final String renderedFor,
+      final Exception cause) {
+
+    logger
+        .error(
+            "Could not render the template '{}'{}", template,
+            renderedFor == null ? "" : " for %s".formatted(renderedFor), cause);
+
+  }
+
+  /**
+   * The message about a template which reads a value its template context does not have.
+   *
+   * @param template The source name of the template
+   * @param variable The expression the template could not read, or <code>null</code>
+   * @param renderedFor What the text was rendered for, or <code>null</code>
+   * @return The message, which names the fix
+   */
+  static String missingVariable(
+      final String template,
+      final String variable,
+      final String renderedFor) {
+
+    final var value = variable == null ? "a value" : "'%s'".formatted(variable);
+    return """
+        The template '%s'%s reads %s, which its template context does not have. Put it into \
+        the template context the details provider sets with setTemplateContext, or write \
+        ${%s!} in the template where the value may be missing."""
+        .formatted(
+            template, renderedFor == null ? "" : " for "
+                + renderedFor,
+            value,
+            variable == null ? "value" : variable);
 
   }
 

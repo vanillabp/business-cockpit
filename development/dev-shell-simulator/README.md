@@ -17,6 +17,15 @@ Spring Boot application rather than a mock inside the dev shell: what it answers
 cockpit answers, or a form works here and not there. It holds everything in H2, in memory unless a
 file is configured.
 
+An application which extends the simulator may keep its tables in another database and create
+them with the Liquibase changelog `src/main/resources/db/changelog/dev-shell-simulator.yaml`. So a
+new field of an entity needs a new change set there. A change set which is out already is never
+changed, because Liquibase refuses a changelog whose applied change sets differ.
+`TheChangelogMatchesTheEntitiesTest` applies the changelog to an empty H2 and an empty MySQL and
+starts the simulator with `ddl-auto=validate`, so it goes red when a column is missing. The time
+columns of the entities name no SQL type, because `TIMESTAMP WITH TIME ZONE` does not exist in
+MySQL.
+
 Of the BPMS API it answers version 1.1 only, at `/bpms/api/v1_1`. A report to `/bpms/api/v1` gets a
 404, although the cockpit still takes it. Version 1.1 has existed for more than a year, and a
 workflow module which still reports through version 1 needs a current adapter for the dev shell.

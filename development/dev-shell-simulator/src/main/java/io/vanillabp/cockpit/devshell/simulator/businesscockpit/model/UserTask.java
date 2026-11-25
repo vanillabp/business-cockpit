@@ -23,6 +23,11 @@ import lombok.Setter;
 
 /**
  * A user task as the simulator stores it, built from the events of the BPMS API.
+ *
+ * <p>The columns match the changelog {@code db/changelog/dev-shell-simulator.yaml}, which an
+ * application applies when Hibernate does not create the tables itself. A new field needs a new
+ * change set there, see {@code TheChangelogMatchesTheEntitiesTest}. The time columns name no SQL
+ * type, so Hibernate picks the one of the database: MySQL has no {@code TIMESTAMP WITH TIME ZONE}.
  */
 @Getter
 @Setter
@@ -52,13 +57,13 @@ public class UserTask {
   @Column(name = "INITIATOR")
   private String initiator;
 
-  @Column(name = "CREATED_AT", columnDefinition = "TIMESTAMP WITH TIME ZONE")
+  @Column(name = "CREATED_AT")
   private OffsetDateTime createdAt;
 
-  @Column(name = "UPDATED_AT", columnDefinition = "TIMESTAMP WITH TIME ZONE")
+  @Column(name = "UPDATED_AT")
   private OffsetDateTime updatedAt;
 
-  @Column(name = "ENDED_AT", columnDefinition = "TIMESTAMP WITH TIME ZONE")
+  @Column(name = "ENDED_AT")
   private OffsetDateTime endedAt;
 
   /**
@@ -66,7 +71,7 @@ public class UserTask {
    * simulator takes the latest report as it comes and does not order the reports by their time
    * like the cockpit does.
    */
-  @Column(name = "SUSPENDED_AT", columnDefinition = "TIMESTAMP WITH TIME ZONE")
+  @Column(name = "SUSPENDED_AT")
   private OffsetDateTime suspendedAt;
 
   /**
@@ -142,10 +147,10 @@ public class UserTask {
   @Column(name = "CANDIDATE_GROUPS", columnDefinition = "JSON")
   private List<Group> candidateGroups = null;
 
-  @Column(name = "DUE_DATE", columnDefinition = "TIMESTAMP WITH TIME ZONE")
+  @Column(name = "DUE_DATE")
   private OffsetDateTime dueDate;
 
-  @Column(name = "FOLLOW_UP_DATE", columnDefinition = "TIMESTAMP WITH TIME ZONE")
+  @Column(name = "FOLLOW_UP_DATE")
   private OffsetDateTime followUpDate;
 
   @JdbcTypeCode(SqlTypes.JSON)
@@ -155,7 +160,7 @@ public class UserTask {
   @Column(name = "DETAILS_FULLTEXT_SEARCH")
   private String detailsFulltextSearch;
 
-  @Column(name = "READ_AT", columnDefinition = "TIMESTAMP WITH TIME ZONE")
+  @Column(name = "READ_AT")
   private OffsetDateTime read;
 
   /**

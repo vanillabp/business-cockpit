@@ -200,3 +200,37 @@ databaseChangeLog:
               - column:
                   name: LAST_REPORT
                   type: json
+  - changeSet:
+      id: add_suspension_end_reason_and_note
+      author: vanillabp
+      changes:
+        - addColumn:
+            tableName: SIMULATOR_WORKFLOW
+            columns:
+              - column:
+                  name: SUSPENDED_AT
+                  type: datetime
+              - column:
+                  name: SUSPENDED_BY
+                  type: varchar(255)
+              - column:
+                  name: END_REASON
+                  type: varchar(255)
+              - column:
+                  name: NOTE
+                  type: varchar(255)
+        - addColumn:
+            tableName: SIMULATOR_USERTASK
+            columns:
+              - column:
+                  name: SUSPENDED_AT
+                  type: datetime
+              - column:
+                  name: SUSPENDED_BY
+                  type: varchar(255)
+              - column:
+                  name: END_REASON
+                  type: varchar(255)
+              - column:
+                  name: NOTE
+                  type: varchar(255)

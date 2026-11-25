@@ -122,6 +122,30 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <!-- a test applies the changelog this module ships to an empty MySQL and lets Hibernate
+           validate the tables against the entities. Liquibase itself and not its Spring Boot
+           starter: the auto-configuration would look for a changelog in every other test of the
+           module. Versions come from the Spring Boot BOM and the testcontainers BOM it imports. -->
+      <groupId>org.liquibase</groupId>
+      <artifactId>liquibase-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.mysql</groupId>
+      <artifactId>mysql-connector-j</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-mysql</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <!-- the output suppression every test class of this module registers -->
       <groupId>io.vanillabp</groupId>
       <artifactId>test-utils</artifactId>
