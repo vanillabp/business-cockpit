@@ -816,7 +816,10 @@ because they need it.
 `<scope>/bc-theme` as dependencies. It takes `BcUserTask`, `BcWorkflow` and the other types from
 the module kit, the same as the module it runs. Its entry point is the framework's natural form: a
 `bootstrapDevShell` function for React, an application config plus bootstrap for Angular, a
-component or plugin for Vue. [dev-shell.md](dev-shell.md) describes what it must do.
+component or plugin for Vue. [dev-shell.md](dev-shell.md) describes what it must do. A module
+hands it pages it needs only while it is developed through the option `devShellPages`, see
+[dev-shell.md](dev-shell.md#pages-of-the-dev-shell), so nobody changes the package for a module and
+publishes it again.
 
 The theme of the cockpit (`Q-THEME`) comes from `<scope>/bc-theme` into the base pages of every dev
 shell. A user task or a case page must look exactly the same in the dev shell as in the cockpit,
