@@ -173,6 +173,9 @@ What [The parent pom](#the-parent-pom) says for Maven looks like this with Gradl
   `java { toolchain { languageVersion = JavaLanguageVersion.of(25) } }`.
 - The snapshot repository of Maven Central is in `repositories` only for as long as
   `Q-COCKPIT-VERSION` is a snapshot.
+- With `embedded`, `mavenLocal()` is in `repositories` of `application`, limited to the group of
+  `Q-UI-JAR`, only for as long as `ui.version` is a snapshot, see
+  [project.md](project.md#a-snapshot-of-the-ui-jar-goes-into-the-local-maven-repository).
 
 Where this page names the `pom.xml` of a module, take its `build.gradle.kts`. `./gradlew build`
 builds both modules, and `./gradlew :application:bootRun` starts the application.
@@ -183,7 +186,9 @@ The module `application` depends on:
 
 - `io.vanillabp.businesscockpit:business-cockpit`, without a version, from the BOM,
 - the UI jar of `Q-UI-JAR` in the version `ui.version`, with scope `runtime`, when `Q-HOSTING` is
-  `embedded`,
+  `embedded`. A snapshot version comes from the local Maven repository, where
+  `npm run publish:snapshot` of the UI repository installs it, see
+  [project.md](project.md#a-snapshot-of-the-ui-jar-goes-into-the-local-maven-repository),
 - `spring-boot-starter-security-oauth2-client` when `Q-LOGIN-KIND` is `oidc`. The older name
   `spring-boot-starter-oauth2-client` is deprecated,
 - `spring-kafka` and `io.vanillabp.businesscockpit:bpms-protobuf-api`, without a version, when
@@ -1198,6 +1203,8 @@ The `README.md` of the backend repository says:
   [project.md](project.md#where-the-types-build-finds-the-types-library): from the registry only,
   so first `docker compose up` here, which starts the local registry, and then
   `npm run publish:snapshot` in the UI repository,
+- with `embedded`, that `npm run publish:snapshot` also installs the UI jar of the snapshot into
+  the local Maven repository, where the module `application` finds it for a snapshot `ui.version`,
 - with the local npm registry: its address `http://localhost:4873`, that anybody may publish to it
   because it runs on the developer's machine only, and that `docker compose down -v` empties it,
 - how a new version of the user interface gets in: a new value of `ui.version`,

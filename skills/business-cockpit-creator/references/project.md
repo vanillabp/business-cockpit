@@ -74,7 +74,7 @@ scripts/
   publish-release.mjs         publishes a release version as it is
 jars/
   build-jars.mjs              builds the UI jar
-  publish-jars.mjs            uploads it into the Maven repository
+  publish-jars.mjs            uploads a release into the Maven repository, installs a snapshot locally
 docker/
   Dockerfile                  the nginx image for a separate deployment
   nginx.conf.template
@@ -319,6 +319,12 @@ registry is never published twice, so a snapshot gets a counter: `1.4.0-SNAPSHOT
 6. It writes the kept files back, also when a publish fails. Git stays clean, and `package.json`
    holds `1.4.0-SNAPSHOT` again.
 
+With `Q-HOSTING` `embedded`, the script then installs the UI jar of the same snapshot into the
+local Maven repository of the developer, with `node jars/publish-jars.mjs --local`, see
+[A snapshot of the UI jar goes into the local Maven repository](#a-snapshot-of-the-ui-jar-goes-into-the-local-maven-repository).
+So after `npm run publish:snapshot` the backend finds both: the types library in the registry and
+the UI jar in the local Maven repository.
+
 The script never unpublishes a version. A workflow module that wants the newest snapshot asks for
 `<scope>/bc-module-kit@snapshot`, or names the range `">=1.4.0-SNAPSHOT <1.4.1"`.
 
@@ -339,10 +345,12 @@ The flow on one machine, which the `README.md` of both repositories names:
 
 1. `docker compose up` in the backend repository. It starts Verdaccio with the rest.
 2. `npm ci` and `npm run publish:snapshot` in the UI repository. The packages are now in the local
-   registry.
-3. The backend repository builds, and its types build finds `<scope>/bc-types` in the registry. A
-   workflow module on the same machine installs the module kit and the theme from there, with the
-   same `.npmrc` line for the scope.
+   registry. With `Q-HOSTING` `embedded`, the UI jar of the same snapshot is now in the local Maven
+   repository.
+3. The backend repository builds. Its types build finds `<scope>/bc-types` in the registry, and its
+   module `application` finds the UI jar in the local Maven repository. A workflow module on the
+   same machine installs the module kit and the theme from the registry, with the same `.npmrc`
+   line for the scope.
 
 ### Renovate
 
@@ -457,7 +465,9 @@ So that a release of the backend works, with Maven or with Gradle:
 - The script uploads release versions only, like `1.4.0`. The Maven release plugin refuses a
   dependency with `-SNAPSHOT`. A Gradle release should not depend on one either, because a
   snapshot can change under the same version. A snapshot would also need time-stamped file names
-  and its own `maven-metadata.xml`, which the script would have to write.
+  and its own `maven-metadata.xml`, which the script would have to write. A snapshot goes into the
+  local Maven repository only, see
+  [A snapshot of the UI jar goes into the local Maven repository](#a-snapshot-of-the-ui-jar-goes-into-the-local-maven-repository).
 - A release version is uploaded once. Before the upload the script asks with `HEAD` for the jar.
   If it is there, the script stops with a message. It never overwrites a release.
 - A build for trying something out gets a version of its own, for example `1.4.0-snapshot.7`. Only
@@ -474,6 +484,52 @@ So that a release of the backend works, with Maven or with Gradle:
 The npm scripts call this: `npm run build:jars` and `npm run publish:jars`. `npm run publish:release`
 of the npm workspaces runs next to it, with the same version. The types library must be published
 before the types jar of a release is built, see [The types jar](#the-types-jar).
+
+### A snapshot of the UI jar goes into the local Maven repository
+
+With `Q-HOSTING` `embedded` and a `ui.version` such as `1.4.0-SNAPSHOT`, the module `application`
+of the backend needs the UI jar in that version. The remote Maven repository never gets a snapshot,
+so the jar comes from the local Maven repository of the developer, the folder
+`.m2/repository` in the home directory. Nothing is copied from the UI repository into the backend.
+
+`node jars/publish-jars.mjs --local` installs the UI jar there, and `npm run publish:snapshot` runs
+it after the npm packages are published. It writes the files a `mvn install` would write, so the UI
+repository needs no Maven:
+
+```
+~/.m2/repository/<group as path>/<artifactId>/maven-metadata-local.xml
+~/.m2/repository/<group as path>/<artifactId>/1.4.0-SNAPSHOT/<artifactId>-1.4.0-SNAPSHOT.jar
+~/.m2/repository/<group as path>/<artifactId>/1.4.0-SNAPSHOT/<artifactId>-1.4.0-SNAPSHOT.pom
+~/.m2/repository/<group as path>/<artifactId>/1.4.0-SNAPSHOT/maven-metadata-local.xml
+~/.m2/repository/<group as path>/<artifactId>/1.4.0-SNAPSHOT/_remote.repositories
+```
+
+- The version is the one of the root `package.json`, `1.4.0-SNAPSHOT`, without the counter of the
+  npm packages. The backend names exactly this version in `ui.version`.
+- The jar and the pom are the ones `npm run build:jars` built. A new install overwrites the files of
+  the same snapshot, as `mvn install` does.
+- The `maven-metadata-local.xml` in the folder of the version marks the snapshot as a local copy
+  (`<localCopy>true</localCopy>`), with the time of the install in `lastUpdated` and one
+  `snapshotVersion` each for the jar and the pom. The one in the folder of the artifact lists the
+  versions. The script adds the version there and keeps the versions that are there already.
+- `_remote.repositories` names the jar and the pom with an empty repository id
+  (`<artifactId>-1.4.0-SNAPSHOT.jar>=`). So Maven treats them as installed locally and never asks a
+  remote repository for them.
+- The option `--local` refuses a version that does not end in `-SNAPSHOT`. A release goes into the
+  Maven repository of `Q-MAVEN-REPOSITORY`, never into the local one.
+
+Maven reads the local Maven repository without any configuration. With Gradle, the build file of
+`application` adds it for the group of `Q-UI-JAR` only, and only for as long as `ui.version` is a
+snapshot:
+
+```kotlin
+repositories {
+    mavenLocal { content { includeGroup("<group of Q-UI-JAR>") } }
+}
+```
+
+With `Q-HOSTING` `behind` or `in-front`, the backend takes no UI jar, so the script installs
+nothing into the local Maven repository.
 
 ## The nginx image
 
@@ -1011,7 +1067,9 @@ with the same styles and the same elements around each part, see
 - `plan/`, the plan of the work in stories, with the questions that came up and the defaults taken,
   see [working-in-stories.md](working-in-stories.md#the-files-of-the-plan).
 - A `README.md` that says how to build, how to publish, with `npm run publish:snapshot` and
-  `npm run publish:release` and the registry they publish to, the flow on one machine with the
+  `npm run publish:release` and the registry they publish to, with `embedded` that
+  `npm run publish:snapshot` also installs the UI jar of the snapshot into the local Maven
+  repository, the flow on one machine with the
   local registry, see [The local registry](#the-local-registry), how to run against a cockpit, how to
   develop against the backend with the dev server, see
   [Developing against the backend](#developing-against-the-backend), how to run the nginx image and

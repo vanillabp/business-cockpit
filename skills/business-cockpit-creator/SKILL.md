@@ -156,6 +156,9 @@ Between two releases the npm packages are snapshots. `package.json` holds a vers
 [references/project.md](references/project.md#snapshot-versions). A plain `mvn verify` of the
 backend needs no property: its types build reads the types library from the registry, see
 [references/project.md](references/project.md#where-the-types-build-finds-the-types-library).
+When the backend serves the user interface (`embedded`), `npm run publish:snapshot` also installs
+the UI jar of the snapshot into the local Maven repository, so the backend finds it there, see
+[references/project.md](references/project.md#a-snapshot-of-the-ui-jar-goes-into-the-local-maven-repository).
 
 ## Phase 1: interview
 
