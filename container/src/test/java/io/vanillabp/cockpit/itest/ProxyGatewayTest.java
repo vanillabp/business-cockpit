@@ -17,6 +17,7 @@ import java.util.zip.GZIPOutputStream;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -29,7 +30,8 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * Registering a workflow module creates a gateway route forwarding {@code /wm/{moduleId}/**} to
  * the module's own HTTP server. The test runs such a server itself and checks both directions of
  * the proxying, the rewritten request which reaches the module and the module's response which
- * reaches the caller. The route is public (permitAll), so no authentication is involved.
+ * reaches the caller. The route needs the login of the cockpit, so every request carries the
+ * cookie of a login. A request without it does not reach the module.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
@@ -105,6 +107,15 @@ class ProxyGatewayTest extends ItestBase {
         + moduleStub.getAddress().getPort();
   }
 
+  private String cookie;
+
+  @BeforeEach
+  void logIn() {
+
+    cookie = loginToGui(USER_MARTIN);
+
+  }
+
   @Test
   void requestsAreForwardedToTheModuleAndResponsesPassedBack() {
 
@@ -118,6 +129,7 @@ class ProxyGatewayTest extends ItestBase {
           .newBuilder(URI.create(url("/wm/"
               + moduleId
               + "/some/path?q=1")))
+          .header("Cookie", cookie)
           .header("X-Test-Header", "test-value")
           .GET()
           .build());
@@ -146,6 +158,7 @@ class ProxyGatewayTest extends ItestBase {
           .newBuilder(URI.create(url("/wm/"
               + moduleId
               + "/sub/resource")))
+          .header("Cookie", cookie)
           .GET()
           .build());
       assertThat(response.statusCode()).isEqualTo(200);
@@ -166,6 +179,7 @@ class ProxyGatewayTest extends ItestBase {
           .newBuilder(URI.create(url("/wm/"
               + moduleId
               + "/api/action")))
+          .header("Cookie", cookie)
           .header("Content-Type", "application/json")
           .POST(HttpRequest.BodyPublishers.ofString("{ \"command\": \"go\" }"))
           .build());
@@ -194,6 +208,7 @@ class ProxyGatewayTest extends ItestBase {
         .newBuilder(URI.create(url("/wm/"
             + moduleId
             + "/manifest.json")))
+        .header("Cookie", cookie)
         .header("Accept-Encoding", "gzip")
         .GET()
         .build();
@@ -223,11 +238,42 @@ class ProxyGatewayTest extends ItestBase {
         .newBuilder(URI.create(url("/wm/"
             + moduleId
             + "/plain")))
+        .header("Cookie", cookie)
         .GET()
         .build()).statusCode()).isEqualTo(200));
 
     assertThat(lastRequest.get().path()).isEqualTo("/plain");
     assertThat(lastRequest.get().upgrade()).isNull();
+
+  }
+
+  /**
+   * The cockpit lets nobody through to a workflow module who is not logged in, although the module
+   * checks the login itself. The request gets 401 and never reaches the module.
+   */
+  @Test
+  void aRequestWithoutALoginDoesNotReachTheModule() {
+
+    final var moduleId = unique("proxied-module");
+    registerWorkflowModule(moduleId, moduleUri());
+    final var path = "/wm/"
+        + moduleId
+        + "/remoteEntry.js";
+    // the route is in place once a request with a login gets through
+    await().untilAsserted(() -> assertThat(send(HttpRequest
+        .newBuilder(URI.create(url(path)))
+        .header("Cookie", cookie)
+        .GET()
+        .build()).statusCode()).isEqualTo(200));
+    lastRequest.set(null);
+
+    final var response = send(HttpRequest
+        .newBuilder(URI.create(url(path)))
+        .GET()
+        .build());
+
+    assertThat(response.statusCode()).isEqualTo(401);
+    assertThat(lastRequest.get()).isNull();
 
   }
 
@@ -244,6 +290,7 @@ class ProxyGatewayTest extends ItestBase {
         .newBuilder(URI.create(url("/wm/"
             + unique("never-registered")
             + "/anything")))
+        .header("Cookie", cookie)
         .GET()
         .build());
     assertThat(lastRequest.get()).isNull();

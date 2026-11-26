@@ -161,7 +161,8 @@ nothing loads them. Do not close them in the chain: the matchers are the contrac
 
 The proxy to the workflow modules under `/wm/**` needs the login of the cockpit, in every variant
 of `Q-HOSTING`. A workflow module still protects its own endpoints too. The cockpit checks that
-somebody is logged in, and the module checks what this user may do (`EXT-061`).
+somebody is logged in, and the module checks what this user may do (`EXT-061`). Without a login a
+request below `/wm/` gets 401, not a redirect to the provider, like the GUI API.
 
 With `in-front` the single-page application loads without a login and logs in afterwards, when
 needed. So these stay open:

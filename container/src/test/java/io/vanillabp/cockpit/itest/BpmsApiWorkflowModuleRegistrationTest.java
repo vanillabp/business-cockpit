@@ -159,6 +159,7 @@ class BpmsApiWorkflowModuleRegistrationTest extends ItestBase {
         .newBuilder(URI.create(url("/wm/"
             + workflowModuleId
             + "/some/path")))
+        .header("Cookie", cookie)
         .GET()
         .build());
     return response.statusCode();
@@ -172,6 +173,7 @@ class BpmsApiWorkflowModuleRegistrationTest extends ItestBase {
         .newBuilder(URI.create(url("/wm/"
             + workflowModuleId
             + "/some/path")))
+        .header("Cookie", cookie)
         .GET()
         .build());
     assertThat(response.statusCode()).isEqualTo(200);

@@ -49,6 +49,8 @@ class ProxyAfterRestartTest {
 
   private static final String BPMS_API_USER = "abc";
   private static final String BPMS_API_PASSWORD = "123";
+  private static final String USER_MARTIN = "martin";
+  private static final String GUI_PASSWORD = "test";
 
   private static final MongoDBContainer MONGODB = new MongoDBContainer("mongo:7.0").withReplicaSet();
 
@@ -198,6 +200,14 @@ class ProxyAfterRestartTest {
                       + "/wm/"
                       + workflowModuleId
                       + "/some/path"))
+              // the proxy needs the login of the cockpit. The profile 'basic-auth' takes a user
+              // name and a password on any request
+              .header("Authorization", "Basic "
+                  + Base64
+                      .getEncoder()
+                      .encodeToString((USER_MARTIN
+                          + ":"
+                          + GUI_PASSWORD).getBytes(StandardCharsets.UTF_8)))
               .GET()
               .build());
           assertThat(response.statusCode()).isEqualTo(200);

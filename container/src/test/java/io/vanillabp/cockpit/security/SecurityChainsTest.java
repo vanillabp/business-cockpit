@@ -449,6 +449,54 @@ class SecurityChainsTest {
 
   }
 
+  /**
+   * The proxy to the workflow modules needs the login of the cockpit, although every module checks
+   * the login itself. A request without a login does not reach the proxy. It gets 401 from the
+   * login by OpenID Connect as well, and no redirect to the provider: the browser loads the files
+   * of a module with {@code fetch} and {@code import()}, and neither can use a redirect.
+   */
+  @Test
+  void theProxyToTheWorkflowModulesRefusesARequestWithoutALogin() throws Exception {
+
+    for (final var chain : bothGuiChains()) {
+      for (final var accept : List.of("text/javascript", "application/json", "text/html")) {
+        final var request = new MockHttpServletRequest("GET", "/wm/loan-approval/remoteEntry.js");
+        request.addHeader("Accept", accept);
+        final var response = new MockHttpServletResponse();
+        final var passedOn = new MockFilterChain();
+
+        new FilterChainProxy(chain).doFilter(request, response, passedOn);
+
+        assertThat(passedOn.getRequest())
+            .as("a request accepting %s does not reach the proxy", accept)
+            .isNull();
+        assertThat(response.getStatus())
+            .as("a request accepting %s", accept)
+            .isEqualTo(HttpStatus.UNAUTHORIZED.value());
+      }
+    }
+
+  }
+
+  @Test
+  void theProxyToTheWorkflowModulesForwardsARequestWithALogin() throws Exception {
+
+    for (final var chain : bothGuiChains()) {
+      final var request = new MockHttpServletRequest("GET", "/wm/loan-approval/remoteEntry.js");
+      request.setCookies(new Cookie("bc", loginToken()));
+      final var response = new MockHttpServletResponse();
+      final var passedOn = new MockFilterChain();
+
+      new FilterChainProxy(chain).doFilter(request, response, passedOn);
+
+      assertThat(passedOn.getRequest())
+          .as("the request reaches the proxy")
+          .isNotNull();
+      assertThat(response.getStatus()).isEqualTo(HttpStatus.OK.value());
+    }
+
+  }
+
   private String loginToken() {
 
     final var context = new SecurityContextImpl(new UsernamePasswordAuthenticationToken(

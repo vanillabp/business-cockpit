@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.gui.api.v1;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.HashSet;
@@ -156,15 +157,9 @@ public class UpdateStreams {
     sseEmitter.onTimeout(() -> updateEmitters.remove(id));
     sseEmitter.onError(error -> updateEmitters.remove(id));
 
-    // this ping makes the browser treat the text/event-stream request as closed. The lock
-    // fetchApi.ts created is then released, so the user interface does not hang after an
-    // error.
     taskScheduler.schedule(
-        () -> {
-          if (!pingUpdateEmitter(id, updateEmitter)) {
-            logger.warn("Could not SSE send confirmation, client might stuck");
-          }
-        }, Instant.now().plusMillis(300));
+        () -> sendTheFirstPing(id, updateEmitter),
+        Instant.now().plusMillis(300));
 
     signInExpiresAt.ifPresent(expiresAt -> taskScheduler.schedule(
         () -> {
@@ -351,6 +346,10 @@ public class UpdateStreams {
                     if (!updateEmitter.send(kind, events)) {
                       toBeRemoved.add(key);
                     }
+                  } catch (IOException e) {
+                    // the stream is still open, but it cannot be written to any more
+                    logger.warn("Could not send update event to stream '{}', so it is closed", key, e);
+                    toBeRemoved.add(key);
                   } catch (Exception e) {
                     logger.warn("Could not send update event", e);
                   }
@@ -406,12 +405,49 @@ public class UpdateStreams {
 
   }
 
+  /**
+   * The first ping makes the browser treat the text/event-stream request as answered. The lock
+   * fetchApi.ts created is then released, so the user interface does not hang after an error.
+   *
+   * <p>The browser may have closed the tab before the ping is due. Then the stream is over, and
+   * that is no reason for a warning. A warning is only for a stream which is still open and
+   * cannot be written to, because its browser keeps waiting.
+   */
+  private void sendTheFirstPing(
+      final String id,
+      final UpdateEmitter updateEmitter) {
+
+    if (updateEmitters.get(id) != updateEmitter) {
+      // the stream ended already: the browser went away, the sign-in expired or the cockpit
+      // shuts down
+      return;
+    }
+    try {
+      if (!updateEmitter.send("ping", pingEvent)) {
+        removeUpdateEmitter(id);
+      }
+    } catch (Exception e) {
+      logger.warn(
+          "Could not send the first ping to update stream '{}', so its browser may hang",
+          id,
+          e);
+    }
+
+  }
+
   private boolean pingUpdateEmitter(
       final String id,
       final UpdateEmitter updateEmitter) {
 
     try {
       return updateEmitter.send("ping", pingEvent);
+    } catch (IOException e) {
+      // the stream is still open, but it cannot be written to any more
+      logger.warn(
+          "Could not ping update stream '{}', so it is closed",
+          id,
+          e);
+      return false;
     } catch (Exception e) {
       logger.warn(
           "Could not ping SSE emitter '{}'!",
