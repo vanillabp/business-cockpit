@@ -32,7 +32,7 @@ commands in the folder of the UI repository. If you do not know that folder, ask
 1. Look which files are there:
 
    ```bash
-   ls INTERVIEW.md CHECKLIST.md plan/INDEX.md plan/QUESTIONS.md
+   ls INTERVIEW.md CHECKLIST.md plan/INDEX.md plan/QUESTIONS-DRAFT.md plan/QUESTIONS.md
    ```
 
    - No `INTERVIEW.md`: start the interview, see [interview.md](interview.md).
@@ -54,13 +54,13 @@ commands in the folder of the UI repository. If you do not know that folder, ask
    grep -nE '\| *in-progress *\|' plan/INDEX.md
    ```
 4. If there is one, run its check command from the column `Check command`:
-   - The check passes: the work is done and only the end of the story is missing. Do steps 6 to 9
+   - The check passes: the work is done and only the end of the story is missing. Do steps 6 to 10
      of [Working on one story](#working-on-one-story).
    - The check fails: open the story file `plan/<id>.md`. Read its section `Notes` and the steps
      that have no tick yet. Go on with the first step without a tick.
 5. If no story is in progress, but `git status` shows changes: these changes belong to no story.
    Do not throw them away. Run `git stash push -u -m "changes found when resuming"`, write a
-   question about them into `plan/QUESTIONS.md`, and go on.
+   question about them into `plan/QUESTIONS-DRAFT.md`, and go on.
 6. If no story is in progress, take the first line with the status `open`:
 
    ```bash
@@ -69,11 +69,13 @@ commands in the folder of the UI repository. If you do not know that folder, ask
 
    Then work on it as [Working on one story](#working-on-one-story) says.
 
-7. If there is no open story, the job is done. Tell the user, and name the questions in
+7. If there is no open story, the job is done. If `plan/QUESTIONS-DRAFT.md` is still there, move
+   its entries into `plan/QUESTIONS.md` first, see
+   [At the end of the plan](#at-the-end-of-the-plan). Then tell the user, and name the questions in
    `plan/QUESTIONS.md` that still wait for an answer:
 
    ```bash
-   grep -n '^Answer: open' plan/QUESTIONS.md
+   grep -n '^Answer: open' plan/QUESTIONS-DRAFT.md plan/QUESTIONS.md
    ```
 
 If two stories are in progress, take the first one and write a note about the second one into its
@@ -87,15 +89,16 @@ fails, I go on with step 3 of plan/S07.md."
 All files of the plan are in the folder `plan/` of the UI repository, next to `INTERVIEW.md` and
 `CHECKLIST.md`. They are committed like the code.
 
-|         File          |                            What it holds                             |
-|-----------------------|----------------------------------------------------------------------|
-| `plan/INDEX.md`       | one line per story: id, title, status, checklist ids, check command  |
-| `plan/ids.txt`        | the checklist ids the project has to prove                           |
-| `plan/slices.txt`     | the fixed list of slices, copied from this page                      |
-| `plan/stories.txt`    | the stories as the script cut them from the two files above          |
-| `plan/<id>.md`        | one file per story: goal, what to read, files, steps, notes          |
-| `plan/checks/<id>.sh` | the check command of a story, as a small script that fails or passes |
-| `plan/QUESTIONS.md`   | the questions that came up, each with the default you took           |
+|           File            |                                         What it holds                                          |
+|---------------------------|------------------------------------------------------------------------------------------------|
+| `plan/INDEX.md`           | one line per story: id, title, status, checklist ids, check command                            |
+| `plan/ids.txt`            | the checklist ids the project has to prove                                                     |
+| `plan/slices.txt`         | the fixed list of slices, copied from this page                                                |
+| `plan/stories.txt`        | the stories as the script cut them from the two files above                                    |
+| `plan/<id>.md`            | one file per story: goal, what to read, files, steps, notes                                    |
+| `plan/checks/<id>.sh`     | the check command of a story, as a small script that fails or passes                           |
+| `plan/QUESTIONS-DRAFT.md` | the questions that came up while the plan runs, each with the default you took                 |
+| `plan/QUESTIONS.md`       | the questions for the user: those that block, and at the end of the plan the rest of the draft |
 
 The status of a story is one of three words: `open`, `in-progress` or `done`. `plan/INDEX.md` is the
 only place that holds the status. Git holds the history: every story ends with one commit that
@@ -274,7 +277,9 @@ Plan after the interview and before the first line of code.
    - "Every checklist item has a passing test": runs the whole end-to-end suite and checks that
      every id of `plan/ids.txt` names a test, see the template of the check below.
    - "Run against a running cockpit": the steps of
-     [How you know it is done](../SKILL.md#how-you-know-it-is-done).
+     [How you know it is done](../SKILL.md#how-you-know-it-is-done). It ends with
+     [At the end of the plan](#at-the-end-of-the-plan): the questions left in the draft move to
+     `plan/QUESTIONS.md`.
 6. Write `plan/INDEX.md` with the lines of `plan/stories.txt` and the last two stories, one story
    file per line, and one check script per story. Use the [Templates](#templates).
 7. Keep each story small. A story has at most six checklist ids, and it changes at most about
@@ -341,9 +346,14 @@ These are the steps for one story. Do them in this order, and do not skip one.
 6. Read your own change once against [code-that-reads-like-prose.md](code-that-reads-like-prose.md)
    and run the checks there.
 
-7. In `plan/INDEX.md`, change the status from `in-progress` to `done`.
+7. Read `plan/QUESTIONS-DRAFT.md`. Delete each entry this story made obsolete, for example because
+   the story built what the question asked about, or because the skill answered it in a section
+   the story read. For each deleted entry, write one line into `Notes` of the story file: its id
+   and why it went, for example `ASK-007 deleted: the toolbar of this story answers it.`
 
-8. Commit the story, in one commit, with the story id and the checklist ids in the message:
+8. In `plan/INDEX.md`, change the status from `in-progress` to `done`.
+
+9. Commit the story, in one commit, with the story id and the checklist ids in the message:
 
    ```bash
    git add -A
@@ -354,8 +364,8 @@ These are the steps for one story. Do them in this order, and do not skip one.
    one in the backend repository, and one in the UI repository with the user interface and
    `plan/`.
 
-9. Take the next story: go back to step 6 of
-   [The first step of every start](#the-first-step-of-every-start-resume).
+10. Take the next story: go back to step 6 of
+    [The first step of every start](#the-first-step-of-every-start-resume).
 
 After each story you may stop. Stop also when the user asks you to, or when your context is nearly
 full. The files hold everything the next agent needs.
@@ -428,7 +438,7 @@ alone.
    - Start a new sub-agent on the same story with a hint when the obstacle is clear: the note, and
      one sentence about the way around, for example the section of the skill that answers it.
 4. A story that gets stuck again after a hint is split. A story with one id that gets stuck again
-   goes back to `open`, with a note. Write the obstacle into `plan/QUESTIONS.md`, as
+   goes back to `open`, with a note. Write the obstacle into `plan/QUESTIONS-DRAFT.md`, as
    [Questions never block](#questions-never-block) says, and go on with the next story.
 
 ### After a story
@@ -457,15 +467,22 @@ grep -rn -i -E 'ended|endedAt|bulk' <folder of this skill>
 
 Read every paragraph the search finds. Write a question only when none of them answers it.
 
-`plan/QUESTIONS.md` holds questions only, things you need the user to decide. A choice you made on
-purpose, for example another way than the skill shows, with your reason, is no question. Write it
-into `Notes` of the story file, and do not add it to `plan/QUESTIONS.md`.
+`plan/QUESTIONS-DRAFT.md` and `plan/QUESTIONS.md` hold questions only, things you need the user to
+decide. A choice you made on purpose, for example another way than the skill shows, with your
+reason, is no question. Write it into `Notes` of the story file, and add it to neither file.
+
+A new question goes into `plan/QUESTIONS-DRAFT.md` first. Many questions of a run are answered by
+a later story, and the draft keeps them from reaching the user. Step 7 of
+[Working on one story](#working-on-one-story) reads the draft after every story and deletes what
+the story made obsolete. Only a question that blocks the next story, or that the user must answer
+before the work can go on, goes into `plan/QUESTIONS.md` at once. Tell the user about it.
 
 1. Pick the default. Take the default the skill names, for example in
    [interview.md](interview.md). If the skill names none, take the choice that is easiest to change
    later and that commits the customer to nothing.
-2. Add an entry to `plan/QUESTIONS.md`, see the [template](#an-entry-of-planquestionsmd). Give it the
-   next free number, `ASK-001`, `ASK-002` and so on.
+2. Add an entry to `plan/QUESTIONS-DRAFT.md`, or to `plan/QUESTIONS.md` for a question that blocks,
+   see the [template](#a-question-entry). Give it the next free number over both files, `ASK-001`,
+   `ASK-002` and so on. The number stays the same when the entry moves.
 3. Write one sentence into `Notes` of the story file: which question, which default.
 4. Go on with the default.
 
@@ -475,6 +492,19 @@ the question, for example "Apply the answer to ASK-003".
 
 When the answer changes an interview answer, write it into `INTERVIEW.md` as well, as
 [interview.md](interview.md#going-on-later) says.
+
+### At the end of the plan
+
+After the last story, the story "Run against a running cockpit", move the entries still in
+`plan/QUESTIONS-DRAFT.md` into `plan/QUESTIONS.md`. Group them by topic: one heading `## <topic>`
+per topic, for example `## Live updates`, and the entries below it with `###`. Each entry keeps its
+id, its default taken and its line `Answer: open`. Then delete the draft and commit both files:
+
+```bash
+git rm plan/QUESTIONS-DRAFT.md
+git add plan/QUESTIONS.md
+git commit -m "Move the open questions of the plan to the user"
+```
 
 ## Update jobs
 
@@ -507,7 +537,8 @@ slice `customer`, six ids to a story.
 ### A finished plan
 
 When `plan/INDEX.md` has no open story and a new job starts, move the old plan
-away first. Then write the new one:
+away first. If `plan/QUESTIONS-DRAFT.md` is still there, do
+[At the end of the plan](#at-the-end-of-the-plan) before. Then write the new one:
 
 ```bash
 mkdir -p plan/archive/2026-11-19
@@ -658,7 +689,9 @@ Ids that only a build or the backend proves, such as most `PKG-` and `BE-` ids, 
 comment of their check script instead of in an end-to-end test. Then add `plan/checks/` to the
 `grep -r` of this loop.
 
-### An entry of plan/QUESTIONS.md
+### A question entry
+
+An entry of `plan/QUESTIONS-DRAFT.md` and of `plan/QUESTIONS.md` looks the same:
 
 ```markdown
 ## ASK-003 Does the case list show closed cases by default?
