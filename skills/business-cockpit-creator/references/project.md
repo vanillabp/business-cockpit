@@ -803,7 +803,16 @@ the lighter text of a suspended row. It ships them as a CSS file that sets the c
 the root, under the names the types library exports (`Q-THEME-TOKENS`), and as plain values for
 code that needs them. The same CSS file holds the base
 styles of the page: the font, the colour and the margins of `<html>` and `<body>`, and the
-`@font-face` rules of the fonts. It has no dependencies and no framework.
+`@font-face` rules of the fonts. It has no framework, and no dependencies apart from the design
+system of `Q-DESIGN-SYSTEM`.
+
+Where `Q-DESIGN-SYSTEM` names a package, for example design tokens on npm, a CSS file or a theme of
+the design library, `bc-theme` depends on that package in the version the user named. It maps the
+values of the package onto the names of the types library and takes the fonts from it as well. So
+the cockpit follows a new version of the design system when the dependency is raised, and nobody
+copies colours by hand. A value the design system does not have comes from `Q-THEME`. Where the
+design system is a style guide or a Figma library, the values are written into `bc-theme`, and a
+comment names the source and its version, so the next change knows where to look.
 
 The user interface and every dev shell depend on it. So a colour changes in one place, and the
 dev shells look like the cockpit without a copy of the theme. It is published with the dev shells,
