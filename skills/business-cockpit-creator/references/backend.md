@@ -126,8 +126,8 @@ Pin `spring-boot-maven-plugin` to `${spring-boot.version}`, because a BOM gives 
 version and no `spring-boot-starter-parent` does either. The parent also sets the Java version of
 `Q-JAVA-VERSION` and the property `ui.version`, the version of the user interface. Both modules
 read `ui.version`: `types` reads `<scope>/bc-types` of that version, and `application` takes the
-UI jar of that version. The module `types` has two properties more, `bc-types.registry` and
-`bc-types.local`, with defaults that need no change on a developer's machine, see
+UI jar of that version. The module `types` has one property more, `bc-types.registry`, with a
+default that needs no change on a developer's machine, see
 [project.md](project.md#where-the-types-build-finds-the-types-library).
 
 The library depends on `com.phactum.mongodb:mongodb-changesets`, and the BOM pins the version the
@@ -1195,10 +1195,9 @@ The `README.md` of the backend repository says:
 - the order of the builds, see [project.md](project.md#where-the-types-jar-is-built): the cockpit
   release, then the user interface, then this repository, the types jar and the application,
 - how the types build finds the types library on one machine, see
-  [project.md](project.md#where-the-types-build-finds-the-types-library): `docker compose up` here
-  and `npm run publish:snapshot` in the UI repository, or `npm run build` in the UI repository next
-  to this one; that `-Dbc-types.local` (with Gradle `-Pbc-types.local`) is only needed for a UI
-  repository in another folder; and that a release always takes the registry,
+  [project.md](project.md#where-the-types-build-finds-the-types-library): from the registry only,
+  so first `docker compose up` here, which starts the local registry, and then
+  `npm run publish:snapshot` in the UI repository,
 - with the local npm registry: its address `http://localhost:4873`, that anybody may publish to it
   because it runs on the developer's machine only, and that `docker compose down -v` empties it,
 - how a new version of the user interface gets in: a new value of `ui.version`,

@@ -690,9 +690,10 @@ It is built like this:
 
 1. The UI repository decides the list. The types library carries it as `ui-uri-types.json`, see
    [types.md](types.md#data-from-the-gui-api).
-2. A small Java program of the build, `src/build/WriteUiUriTypes.java`, finds that file. It looks
-   in the npm registry first and in a built checkout of the UI repository second, see
+2. A small Java program of the build, `src/build/WriteUiUriTypes.java`, reads that file from the
+   npm registry, see
    [Where the types build finds the types library](#where-the-types-build-finds-the-types-library).
+   Nothing is copied from the UI repository into the backend.
    In the backend repository it looks for the version in `ui.version`, the same version as the UI
    jar.
 3. The same program writes `UiUriTypes.java` from `ui-uri-types.json`, one constant per entry,
@@ -720,7 +721,6 @@ needs no build of its own. `build-helper-maven-plugin` adds the folder it writes
       <argument>--package=<scope>/bc-types</argument>
       <argument>--version=${ui.version}</argument>
       <argument>--registry=${bc-types.registry}</argument>
-      <argument>--local=${bc-types.local}</argument>
       <argument>--java-package=<package of Q-TYPES-JAR></argument>
       <argument>--target=${project.build.directory}/generated-sources/ui-uri-types</argument>
     </arguments>
@@ -730,8 +730,7 @@ needs no build of its own. `build-helper-maven-plugin` adds the folder it writes
 
 With Gradle, a task `writeUiUriTypes` of the type `Exec` runs the same program with the `java` of
 the toolchain, before `compileJava`, and the folder it writes is added to the main source set.
-The two properties are Gradle properties there, `-Pbc-types.registry=...` and
-`-Pbc-types.local=...`.
+The property is a Gradle property there, `-Pbc-types.registry=...`.
 
 The program uses the JDK only: `java.net.http.HttpClient` for the registry, `GZIPInputStream` and a
 few lines that read the headers of the tar file for the tarball. It reads the JSON of the registry
@@ -740,60 +739,42 @@ downloads files. Such a plugin knows only one fixed address, so it cannot find t
 
 ### Where the types build finds the types library
 
-A plain `mvn verify` or `./gradlew build` works without a property, as long as one of the two ways
-below has the types library. The program tries them in this order:
+The types build reads the types library from the npm registry, and from nowhere else. A plain
+`mvn verify` or `./gradlew build` needs no property, as long as the registry has the version.
 
-1. **The npm registry.** Its address is the property `bc-types.registry`. Its default is the
-   registry of `Q-NPM-SCOPE`, or `http://localhost:4873`, the local registry of the
-   `docker-compose.yaml`, when the interview names none or the scope is a placeholder, see
-   [The local registry](#the-local-registry). The program reads the package document, the same one
-   `npm view` reads: `GET <registry>/<package>`, with the `/` of the scope written as `%2f`.
+The address of the registry is the property `bc-types.registry`. Its default is the registry of
+`Q-NPM-SCOPE`, or `http://localhost:4873`, the local registry of the `docker-compose.yaml`, when the
+interview names none or the scope is a placeholder, see [The local registry](#the-local-registry).
+The program reads the package document, the same one `npm view` reads: `GET <registry>/<package>`,
+with the `/` of the scope written as `%2f`.
 
-   - For a `ui.version` that ends in `-SNAPSHOT`, it takes the version the dist-tag `snapshot`
-     names, as long as that is a snapshot of the same `X.Y.Z`. Otherwise it takes the highest
-     `X.Y.Z-SNAPSHOT.N` of the list of versions.
-   - For any other `ui.version`, it takes exactly that version.
+- For a `ui.version` that ends in `-SNAPSHOT`, it takes the version the dist-tag `snapshot` names,
+  as long as that is a snapshot of the same `X.Y.Z`. Otherwise it takes the highest
+  `X.Y.Z-SNAPSHOT.N` of the list of versions.
+- For any other `ui.version`, it takes exactly that version.
 
-   It downloads the tarball the document names for that version (`dist.tarball`) and reads
-   `package/ui-uri-types.json` from it. It waits a few seconds at most for an answer. When the
-   registry of the interview asks for a login to read, the program sends the token from the
-   environment variable `Q-NPM-SCOPE` names, and never writes it into the log.
+It downloads the tarball the document names for that version (`dist.tarball`) and reads
+`package/ui-uri-types.json` from it. It waits a few seconds at most for an answer. When the
+registry of the interview asks for a login to read, the program sends the token from the
+environment variable `Q-NPM-SCOPE` names, and never writes it into the log.
 
-2. **The built UI repository next to this one.** When the registry does not answer, answers 404 or
-   has no fitting version, the program looks into the folder of the property `bc-types.local`. Its
-   default is the folder of the types library in the UI repository next to the backend repository,
-   as the head of `INTERVIEW.md` names the two folders: for the module `types`,
-   `${project.basedir}/../../<UI repository>/packages/bc-types`. It reads `ui-uri-types.json`
-   there, as the package holds it, after `npm run build` of the UI repository. It takes the file
-   only when the version in the `package.json` of that folder fits `ui.version`: the same version,
-   or for a `-SNAPSHOT` version a snapshot of the same `X.Y.Z`.
+The program writes one line into the build log which names the registry and the version it took.
 
-The program writes one line into the build log which names the way it took, the registry with the
-version or the folder. `bc-types.local` is needed only for a UI repository in another folder:
-
-```bash
-mvn verify -Dbc-types.local=/path/to/<UI repository>/packages/bc-types
-./gradlew build -Pbc-types.local=/path/to/<UI repository>/packages/bc-types
-```
-
-When neither way has the types library, the build ends with a message which names what was asked
-and the two ways out, step by step, with the folders of this project. For example:
+When the registry does not answer, answers 404 or has no fitting version, the build ends with a
+message. It names what was asked and the way out, step by step, with the folders of this project.
+With the local registry, for example:
 
 ```
 The types library @example/bc-types 1.4.0-SNAPSHOT was not found.
   Registry http://localhost:4873: no answer (connection refused).
-  Folder ../cockpit-ui/packages/bc-types: no ui-uri-types.json.
-Do one of these, then build again:
-  1. Publish a snapshot into the local registry:
-       docker compose up -d                 (in this repository)
-       npm ci && npm run publish:snapshot   (in ../cockpit-ui)
-  2. Or build the UI repository next to this one:
-       cd ../cockpit-ui && npm ci && npm run build
-A UI repository in another folder: -Dbc-types.local=<its packages/bc-types folder>.
+Publish a snapshot into the local registry, then build again:
+  1. docker compose up -d                 (in this repository, starts the local registry)
+  2. npm ci && npm run publish:snapshot   (in ../cockpit-ui)
 ```
 
-A release of the backend always takes the types library from the registry, because only a
-published version stays the same. The `README.md` says that, and it names both ways.
+With a registry of its own, step 1 is left out, and the message names that registry and the
+environment variable of the token instead. A release of the backend takes a release version of the
+types library, which `npm run publish:release` put into the registry before.
 
 The types module of its own, when the skill creates no backend, has few files (`Q-TYPES-JAR`):
 
@@ -805,9 +786,6 @@ src/build/WriteUiUriTypes.java  finds ui-uri-types.json and writes UiUriTypes.ja
 docker-compose.yaml           only the local npm registry, when there is no registry of its own
 README.md                     the order of the builds and why
 ```
-
-Its default of `bc-types.local` is `${project.basedir}/../<UI repository>/packages/bc-types`,
-because the types module is a repository of its own next to the UI repository.
 
 The `README.md` of the backend repository, or of the types module, explains the order and why. It
 says, in the words of the project:
@@ -821,8 +799,8 @@ says, in the words of the project:
   application). With a backend of the organisation's own: the cockpit release, then the user
   interface, then the types module (Maven or Gradle, reads the npm tarball), then the backend.
 - The flow on one machine: `docker compose up`, `npm run publish:snapshot` in the UI repository,
-  then the build of this repository; or `npm run build` in the UI repository next to it. See
-  [The local registry](#the-local-registry).
+  then the build of this repository. The types build reads the types library from the registry
+  only. See [The local registry](#the-local-registry).
 
 ## Testing without Java
 

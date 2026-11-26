@@ -154,8 +154,7 @@ Between two releases the npm packages are snapshots. `package.json` holds a vers
 `1.0.0-SNAPSHOT`, and `npm run publish:snapshot` publishes `1.0.0-SNAPSHOT.0`, then
 `1.0.0-SNAPSHOT.1` and so on, see
 [references/project.md](references/project.md#snapshot-versions). A plain `mvn verify` of the
-backend needs no property: its types build reads the types library from the registry, or from the
-built UI repository next to it, see
+backend needs no property: its types build reads the types library from the registry, see
 [references/project.md](references/project.md#where-the-types-build-finds-the-types-library).
 
 ## Phase 1: interview
