@@ -35,9 +35,10 @@ of the library reaches it by the component scan, exactly like the application yo
 11. [The pictures of persons](#the-pictures-of-persons)
 12. [The configuration](#the-configuration)
 13. [The docker-compose.yaml](#the-docker-composeyaml)
-14. [The test that starts the application](#the-test-that-starts-the-application)
-15. [The integration tests of the backend](#the-integration-tests-of-the-backend)
-16. [The README](#the-readme)
+14. [Quiet test output](#quiet-test-output)
+15. [The test that starts the application](#the-test-that-starts-the-application)
+16. [The integration tests of the backend](#the-integration-tests-of-the-backend)
+17. [The README](#the-readme)
 
 ## Spring Boot only
 
@@ -182,7 +183,9 @@ The module `application` depends on:
 - `spring-kafka` and `io.vanillabp.businesscockpit:bpms-protobuf-api`, without a version, when
   `Q-KAFKA` is yes. The library marks both optional.
 - `spring-boot-starter-mail` when `Q-MAIL` is yes. The library marks it optional.
-- for the test, `spring-boot-starter-test` and the MongoDB module of Testcontainers.
+- for the test, `spring-boot-starter-test`, the MongoDB module of Testcontainers and
+  `io.vanillabp:test-utils` with scope `test` and without a version. The cockpit's BOM brings it
+  through `vanillabp-bom`. See [Quiet test output](#quiet-test-output).
 
 The main class says nothing about the cockpit. The library's auto-configurations do the rest,
 because the dependency is there:
@@ -1017,6 +1020,35 @@ visibilities out. The `README.md` tells the developer to add test users with dif
 Keycloak again with an empty volume, so the realm is imported again. These users and the secret are
 for a developer's machine only, and the `README.md` says that too.
 
+## Quiet test output
+
+Every test class of the backend uses the output suppression of `io.vanillabp:test-utils`, the
+test that starts the application and every integration test below:
+
+```java
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
+
+@ExtendWith(SuppressOutputExtension.class)
+@SuppressOutputExtension.SuppressBackgroundOutput
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+class ApplicationStartsTest {
+```
+
+Write the two annotations above `@SpringBootTest` and `@Testcontainers`. JUnit registers extensions
+in the order they are written, and both register one of their own. What starts before the
+suppression prints to the build output.
+
+A green test then prints nothing, and a red test replays what it printed. Without the extension,
+the logs of the cockpit, of MongoDB, of Keycloak and of Testcontainers fill the build output. A
+stack trace which a passing test logs on purpose, for example for a request without a login, then
+looks like an error. Judge a test by the result of Surefire and Failsafe, never by a stack trace in
+the log. `@SuppressBackgroundOutput` also drops what the threads of the containers and the
+database driver print after the class has finished.
+
+A test which checks the log takes a `CapturedOutput` parameter from the same package. Do not add
+Spring Boot's `OutputCaptureExtension` as well: both take over `System.out`. To prove that a
+sentence is missing, read `getAllOfThisTest()`, not `getAll()`, which holds the whole class.
+
 ## The test that starts the application
 
 One test starts the whole application against MongoDB of Testcontainers, as a replica set, the
@@ -1052,9 +1084,10 @@ They prove:
   `end_session_endpoint` of Keycloak with `id_token_hint`, and the next request asks for a new login
   (`BE-032`, `AUTH-007`),
 - a browser that goes away. The test opens `GET /gui/api/v1/updates` with a login, closes the
-  connection and waits for the next ping. The log, read with Spring Boot's `OutputCaptureExtension`,
-  then has no `AuthenticationCredentialsNotFoundException`, and no error or warning about the
-  closed connection (`BE-033`, `BE-034`),
+  connection and waits for the next ping. The log of this test, `getAllOfThisTest()` of the
+  `CapturedOutput` parameter (see [Quiet test output](#quiet-test-output)), then has no
+  `AuthenticationCredentialsNotFoundException`, and no error or warning about the closed connection
+  (`BE-033`, `BE-034`),
 - every list of `Q-LIST-CONTROLLERS`: it answers, and it shows each test user only the user tasks
   and cases that user may see (`BE-004`). The simulator reports the data through the BPMS API
   first, then the test reads the lists as different users,
