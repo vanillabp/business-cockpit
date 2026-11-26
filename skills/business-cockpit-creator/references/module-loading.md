@@ -1195,8 +1195,8 @@ is additive. An old cockpit answers `UNKNOWN_ACTION`, and the module decides wha
 
 ## Cells drawn by a workflow module
 
-This is an open question. It is not required and not generated until a solution exists
-(`Q-CELL-RENDERING`).
+This is an open question. It is not required and not generated until a solution exists. So the
+interview does not ask `Q-CELL-RENDERING` yet, and a wish for it gets no `CUST-` item.
 
 The wish: a module draws single cells of a list itself, for example a traffic light for a risk
 rating, buttons that complete a user task in place, or details loaded on mouse-over. It is a good

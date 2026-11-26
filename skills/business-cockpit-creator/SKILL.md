@@ -114,7 +114,9 @@ workspace of it, and one `package-lock.json` at the root pins the dependencies o
 - A dev shell for each framework the workflow modules use, as an npm package. It is the workbench on
   which somebody writes a user task form without starting a cockpit.
 - The UI jar, with the built files at the place where the backend framework serves them. A Node
-  script builds it and uploads it with HTTP `PUT` into the company's Maven repository.
+  script builds it and uploads it with HTTP `PUT` into the company's Maven repository. The backend
+  takes it only when it serves the user interface itself (`Q-HOSTING` is `embedded`), so its
+  checklist items apply only then.
 - A `Dockerfile` that serves the user interface with nginx, for an organisation that deploys it
   apart from the backend (`Q-HOSTING` is `behind` or `in-front`).
 
@@ -183,7 +185,9 @@ Write `CHECKLIST.md` into the project:
    "not chosen" with the question id in their column "Applies", instead of deleting them, so a
    diff stays readable.
 3. Add one item for every wish of the customer that the reference does not cover. Give these items
-   their own id prefix, `CUST-`, and number them from `CUST-001`.
+   their own id prefix, `CUST-`, and number them from `CUST-001`. A wish for a feature that the
+   skill marks as not available yet, such as cells drawn by a workflow module, gets no item. Name it
+   in the overview at the hand-over as a wish for later.
 
 Every end-to-end test names the id of the item it proves, for example in its title:
 `TL-003 each primary filter shows its count`. An item without a test is not done.
