@@ -317,6 +317,12 @@ scroll a long table and select a name to copy it. The overview looks like the de
 badge, aligned to the right edge of the name. It is at most about two thirds of the window high
 and scrolls inside when it is longer.
 
+The keyboard and touch open it as well (`NAV-035`). The name can take the focus. When it gets the
+focus, the overview opens, and the focus can move into the overview. `Escape` closes it and puts
+the focus back on the name. It also closes when the focus leaves both the name and the overview.
+On a touch screen there is no mouse-over: a tap on the name opens the overview, a second tap
+closes it, and so does a tap outside the name and the overview.
+
 The data is asked on the first mouse-over, not when the application starts. It is kept until the
 page is loaded again. While it loads, the overview shows "Loading …".
 
@@ -334,12 +340,13 @@ From top to bottom:
 
 The rows of the table of one module:
 
-- A group the identity provider gives the user directly: kind "Role", given by "Organisation".
+- A group the identity provider gives the user directly, when this module's hierarchy has an entry
+  for it: kind "Role", given by "Organisation".
 - For every group of the user with an entry in the hierarchy, one row per target of the entry: the
   name of the target, and the group of the entry as "Given by". The kind is "Role" if the target
   has an entry of its own in the hierarchy, so it stands for more. Otherwise the kind is "Right".
 - A target the identity provider also gives the user directly is not shown again as a target. It
-  has its one row with "Organisation".
+  has its row with "Organisation" instead, in the table named further below.
 - A target that comes from two groups has two rows, one for each group. This is wanted: the user
   sees every way a right comes to them.
 
@@ -361,6 +368,13 @@ and the kinds are translated.
 
 The overview shows only what the user has. Entries of groups the user does not have are left out.
 A module without a hierarchy is left out.
+
+Each group of `givenByOrganisation` has its row with "Organisation" in the table of every module
+whose hierarchy has an entry for it, that is, whose `entries` hold it as `group`. A group of the
+organisation that no module has an entry for stands in a first table, before the tables of the
+modules and without a module heading: the same table the overview shows when no module is left
+(`NAV-036`). So every role the organisation gives shows at least once, and the user always finds
+the row a "Given by" points at.
 
 The roles of the organisation are shown even when no module is left, for example while no
 workflow module with a group hierarchy has registered yet. Then `modules` is empty, but
@@ -812,6 +826,18 @@ claim, unclaim, remove candidate and the note also sit in the cells of a row.
 Claiming a task that already has another assignee takes it away from a colleague, see
 [rough-edges.md](rough-edges.md#claiming-overwrites). So the user interface always asks first, every
 time. The question has no checkbox "don't ask again", and no user setting turns it off.
+
+A bulk claim asks once for all selected tasks that colleagues hold, with their number, for example:
+
+- English: "3 of the selected tasks are held by colleagues. Claim them as well and take them away
+  from your colleagues?"
+- German: "3 der ausgewählten Aufgaben sind Kolleginnen oder Kollegen zugewiesen. Auch diese
+  übernehmen und ihnen wegnehmen?"
+
+On yes, the claim goes out for all selected tasks. On no, nothing is sent, and the user can take
+the rows of the colleagues out of the selection. When the selection also holds ended or suspended
+tasks, the question of
+[Ended and suspended tasks in a selection](#ended-and-suspended-tasks-in-a-selection) comes first.
 
 To propose a task, the user searches for persons in a field, and the user interface calls
 `POST /user` with a maximum number of hits for that.
@@ -1400,6 +1426,11 @@ A column of a module with `resizeable` can be made wider or narrower: the user d
 of its header. So can every fixed column, except the two that are as wide as an icon, the checkbox
 of `id` and `candidateUsers`. The list keeps the width as a user setting, per list and per path, so
 it holds in every browser, see [User settings](#user-settings).
+
+A cell never grows wider than its column. A value longer than the width is cut at the width and
+ends with an ellipsis, in CSS with `overflow: hidden`, `white-space: nowrap` and
+`text-overflow: ellipsis`. On mouse-over the cell shows the full value, with the `title` attribute
+or with the details the cell shows on mouse-over anyway (`COL-023`).
 
 A new sort or a new search loads the list again, with a new start timestamp.
 
