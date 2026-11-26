@@ -1494,6 +1494,12 @@ and filters instead.
   that loads must not take it for an error and throw the list away.
 - A new sort shows other entries, the first ones of the new order. That is correct, and the notice
   says so.
+- The test of `SRCH-025` runs in Chromium and in Firefox. So `playwright.config.ts` has a project
+  for each browser from the first story of the UI repository on, and both browsers are installed
+  with `npx playwright install chromium firefox`. The Firefox project may run only the tests that
+  need it, with `grep: /SRCH-025/`. With another tool of `Q-E2E-TOOL`, set up its Firefox runner in
+  the same way. Chromium has a stop of its own at the end of a long wheel scroll, see
+  [rough-edges.md](rough-edges.md#the-scroll-bar-stops-short-of-the-end-in-chromium).
 
 The cap lives in the browser only, and the server still counts every row. A cap on the server would
 make counting cheaper, but then the real total is unknown. That is for later, if counting in the

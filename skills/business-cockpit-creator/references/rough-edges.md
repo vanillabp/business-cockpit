@@ -28,6 +28,7 @@ before the first screen, not when something does not work.
 20. [An open update stream keeps Playwright waiting](#an-open-update-stream-keeps-playwright-waiting)
 21. [A MUI Snackbar closes on a click elsewhere](#a-mui-snackbar-closes-on-a-click-elsewhere)
 22. [A toast outside a modal dialog cannot be clicked](#a-toast-outside-a-modal-dialog-cannot-be-clicked)
+23. [The scroll bar stops short of the end in Chromium](#the-scroll-bar-stops-short-of-the-end-in-chromium)
 
 ## Assigning makes a candidate
 
@@ -352,3 +353,17 @@ inside the open dialog while it is open, or open the dialog with `show()` and a 
 own. With a dialog of a design library, use the library's own way to put an element above its
 dialogs, or draw the toasts inside the open dialog as well. A test opens a dialog, shows a sticky
 toast and clicks it away.
+
+## The scroll bar stops short of the end in Chromium
+
+In one generated cockpit, a long scroll with the mouse wheel through a list of 100,000 rows, each
+46 pixels high, stopped in Chromium about 350 pixels before the end. The notice row at the end
+stayed out of reach. The cause is not known. The row height and the `scrollHeight` of the list
+were right, so they are ruled out. A list that was just loaded and then scrolled to the end did
+reach the notice row.
+
+So the test of `SRCH-025` opens the list fresh and then scrolls to its end, for example with the
+`End` key or by setting `scrollTop` to the end, and then checks that the notice row is visible. Run
+it in Firefox as well, see
+[behaviour.md](behaviour.md#the-longest-list-q-max-list-entries). If you find the cause, write it
+into `Notes` of the story file and tell the user.
