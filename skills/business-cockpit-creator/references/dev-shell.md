@@ -168,7 +168,9 @@ For this it must:
    a case. A header button shows in a header like the cockpit's, a page of a module under its route
    `/<workflowModuleId>/<pageId>` with its menu entry, and a dialog opens modally.
 7. Show a toast when a part calls `showNotification`, in the look of its `level`, and keep a
-   `sticky` one until it is clicked away.
+   `sticky` one until it is clicked away. Toasts and dialogs are components of `Q-DESIGN-LIBRARY`,
+   as in the cockpit, never plain elements of your own, see
+   [behaviour.md](behaviour.md#controls-from-the-design-library) (`DS-027`).
 8. Let the developer choose the language from the languages of the cockpit (`Q-LANGUAGES`).
 9. Look exactly like the cockpit, see [The rule](#the-rule). The theme from the interview
    (`Q-THEME`) comes from the theme library `<scope>/bc-theme`, the workspace the user interface
@@ -185,7 +187,9 @@ A dev shell for Angular runs zoneless, as an Angular module does in the cockpit,
 dev shell, not first in the cockpit.
 
 It needs no lists, no live updates and no login. Those are the cockpit's business and not the
-workbench's. A view that copies a row of a list is only needed once modules can draw cells
+workbench's. No login means no login form and no redirect to a login. The dev shell still knows
+the user: after each choice of a user it calls `GET /official-api/gui/api/v1/app/current-user` of
+the simulator and hands the answer, with the groups, to every part as `currentUser` (`DS-011`). A view that copies a row of a list is only needed once modules can draw cells
 themselves, see [module-loading.md](module-loading.md#cells-drawn-by-a-workflow-module). The
 columns a module returns for the lists still need a place to be looked at, because no part draws
 them. The page [The columns of the lists](#the-columns-of-the-lists) shows them as a plain table.
@@ -332,8 +336,10 @@ columns a test entry returns, both for a value which is there and for a `path` w
 ## Where the data comes from
 
 From the GUI API, through a client generated the same way as the cockpit's, see
-[gui-api.md](gui-api.md#generating-the-client). The shell only gets the base address. There is no file
-with sample data.
+[gui-api.md](gui-api.md#generating-the-client). The client of the dev shell is generated from the
+OpenAPI file of the official GUI API, and the calls of `/dev-shell/user` from the file of the dev
+shell simulator. Never write these calls by hand with `fetch` (`DS-028`). The shell only gets the
+base address. There is no file with sample data.
 
 That is why a dev shell shows nothing without the simulator. It is also why it is worth anything: a
 form that runs here runs against the same shape of data as in the cockpit.
@@ -348,7 +354,8 @@ the dev shell, because the components are not wrapped. What each function does:
 | `getUserTasks`                           | call `POST /workflow/{id}/usertasks` and wrap the tasks again                                                                                            |
 | `sendTo`, `receiveMessage`               | carry the message to the subscribed component of the other area, as the cockpit does; keep messages until the area subscribes, and stop on `unsubscribe` |
 | `showNotification`                       | show the toast, as the cockpit does                                                                                                                      |
-| `openDialog`                             | show the component handed over for its `element` in a modal layer, as the cockpit does                                                                   |
+| `openDialog`                             | show the component handed over for its `element` in a modal dialog of `Q-DESIGN-LIBRARY`, as the cockpit does; resolve with the result of `closeDialog`  |
+| `closeDialog`                            | resolve the promise of `closeDialog` first, then close the dialog and resolve the promise of `openDialog` with the result                                |
 
 Doing nothing is allowed, as long as the developer notices. A function that silently does nothing is
 the worst choice, because the developer then looks for the bug in their form.

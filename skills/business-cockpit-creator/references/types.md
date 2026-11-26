@@ -311,7 +311,9 @@ decide it, see [behaviour.md](behaviour.md#the-barrier).
 `workflowModule` has the fields `GET /workflow-module` returns: `id`, `version`, `uri`.
 
 `language` is the language the user interface shows, for example `en`. A part follows it when it
-changes. `currentUser` is the user from `GET /app/current-user`, with the groups.
+changes. `currentUser` is the user from `GET /app/current-user`, with the groups. In a dev shell it
+is the user chosen in the simulator, from `GET /official-api/gui/api/v1/app/current-user`, see
+[dev-shell.md](dev-shell.md#what-a-dev-shell-must-do).
 
 ## The module kit
 
