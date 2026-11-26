@@ -725,6 +725,11 @@ its tests need all three. Each module takes the newest release of its framework,
 `latest` (`npm view react dist-tags`), not the version of `Q-FRAMEWORK` or `Q-MODULE-FRAMEWORKS`.
 The conformance test of the kit does not use them; it uses the kit's own modules.
 
+The Angular test module is built ahead of time with the Angular CLI (`ng build`), as
+[module-loading.md](module-loading.md#angular-entries-with-the-angular-cli) describes. Real Angular
+modules are built that way, so the test module is too: not compiled in the browser at runtime
+(JIT), and not with an esbuild build of your own (`PKG-065`).
+
 They differ in what they bring, for example in their columns, so a list shows mixed rows. Together
 they cover every extension point the interview chose: `Header`, `Pages`, the areas of
 `Q-TASK-PAGE-AREAS` and `Q-WORKFLOW-PAGE-AREAS` and every other one of `Q-EXTENSION-POINTS`. These
@@ -830,6 +835,10 @@ component or plugin for Vue. [dev-shell.md](dev-shell.md) describes what it must
 hands it pages it needs only while it is developed through the option `devShellPages`, see
 [dev-shell.md](dev-shell.md#pages-of-the-dev-shell), so nobody changes the package for a module and
 publishes it again.
+
+The tests of the Angular dev shell start a small Angular application with the dev shell in it. Build
+that application ahead of time with the Angular CLI (`ng build`) as well, like the Angular test
+module, not JIT and not with esbuild (`PKG-065`).
 
 The theme of the cockpit (`Q-THEME`) comes from `<scope>/bc-theme` into the base pages of every dev
 shell. A user task or a case page must look exactly the same in the dev shell as in the cockpit,
