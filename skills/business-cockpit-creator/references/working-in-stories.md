@@ -192,7 +192,7 @@ module-columns|The lists show the columns of the modules|COL-001, COL-003, COL-0
 task-page|A clerk opens a task and works on it in the form of the module|TL-022, ACT-019, TF-001, TF-004, TF-005, TF-006, TF-008, TF-016, TF-019, TF-020, TF-022, TF-023, TF-025, TF-026, TF-027, TF-029, TF-039, TF-040, TF-041, TF-042
 task-tab|A clerk works on a task in a tab of its own and goes back to the list|TF-007, TF-017, TF-018, TF-024, TF-045
 barrier|A clerk claims a task before working on it, and a suspended task waits|TF-030, TF-031, TF-035, TF-036, TF-038, TF-043, TF-044
-case-list|A clerk looks up a case in the case list|NAV-003, WL-001, WL-002, WL-003, WL-004, WL-005, WL-006, WL-007, WL-008, WL-009, WL-010, WL-011, WL-012, WL-013
+case-list|A clerk looks up a case in the case list|NAV-003, WL-001, WL-002, WL-003, WL-004, WL-005, WL-006, WL-007, WL-008, WL-009, WL-010, WL-011, WL-012, WL-013, WL-014
 case-page|A clerk opens the page of a case|NAV-004, TF-013, WP-001, WP-003, WP-007, WP-008, WP-009, WP-010, WP-011, WP-012, WP-014, WP-015
 live|A clerk sees changes without a reload|TF-011, TF-037, LIVE-001, LIVE-002, LIVE-003, LIVE-004, LIVE-005, LIVE-006, LIVE-007, LIVE-008, LIVE-009, LIVE-010, LIVE-011, LIVE-012, LIVE-013, LIVE-014, LIVE-015, LIVE-016, LIVE-017, LIVE-018, LIVE-019, LIVE-020, LIVE-021, LIVE-022, LIVE-023, LIVE-024, LIVE-025
 extension-points|A module adds pages, dialogs, buttons and charts of its own|BE-030, NAV-005, NAV-033, NAV-007, NAV-008, NAV-017, NAV-018, EXT-012, EXT-013, EXT-014, EXT-017, EXT-018, EXT-023, EXT-060, EXT-024, EXT-039, EXT-040, EXT-042
