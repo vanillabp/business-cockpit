@@ -271,7 +271,9 @@ template. Every chain keeps five things, whatever the login is:
    `currentUserRequestMatcher` as it is, and do not open `/gui/api/v1/app/current-user/**`: the
    user settings below it need a login. The proxy to the workflow modules under `/wm/**` is not
    open. It needs the login of the cockpit, and a workflow module still protects its own endpoints
-   too (`EXT-061`).
+   too (`EXT-061`). Without a login it answers 401, never a redirect to the provider, because the
+   user interface loads the files of a module with `fetch` and `import()`, and neither can follow
+   that redirect.
 2. `PassiveJwtSecurityFilter` reads the token from the cookie on every later request.
 3. `JwtRenewalFilter` comes right behind it, with `updatesRequestMatcher`, so a login does not end
    after `business-cockpit.jwt.cookie.expires-duration` while somebody works.
@@ -329,7 +331,9 @@ http
     .exceptionHandling(exceptions -> exceptions
         .defaultAuthenticationEntryPointFor(
             new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
-            PathPatternRequestMatcher.withDefaults().matcher("/gui/api/**")))
+            new OrRequestMatcher(
+                PathPatternRequestMatcher.withDefaults().matcher("/gui/api/**"),
+                workflowModulesProxyRequestMatcher)))
     .oauth2Login(login -> login
         .authorizationEndpoint(endpoint -> endpoint
             .authorizationRequestResolver(authorizationRequests))
