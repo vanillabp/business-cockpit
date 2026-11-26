@@ -1244,8 +1244,17 @@ The same holds for the open page of a case, see [The page of a case](#the-page-o
 Users find cases, get a first idea of their state from the columns, and open the
 details page when needed.
 
-Technically the case list works like the task lists. These rules of the task lists hold for it
-unchanged, and they are written down once, in the sections named:
+Technically the case list works like the task lists. It is the same code, not a copy: one list
+component draws the task lists and the case list. It gets the kind of its rows, user tasks or
+cases, and the kind names only what differs, see below: the endpoints of the GUI API, the fixed
+columns, the primary filters, the actions of a row and the type of the update events. Paging, the
+window of loaded rows, the search, the filters, the sorting, the toolbar, the selection, the status
+line and the live updates exist once and serve both kinds. So the case list has every feature of
+the task lists from its first story on, and a fix in one list reaches the other (`WL-014`). Never
+build the case list as a component of its own, not even as a first step with simple paging.
+
+These rules of the task lists hold for it unchanged, and they are written down once, in the
+sections named:
 
 - the status line as the footer below the rows, with its buttons of the primary filters, their
   labels and counts, and the legend, see [The status line](#the-status-line) and [Counts](#counts),
