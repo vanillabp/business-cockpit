@@ -623,7 +623,7 @@ mvn verify -Dbc-types.local=../<UI repository>/packages/bc-types
 ```
 
 Build the UI repository first, so the folder holds `ui-uri-types.json`. The check scripts of the
-plan do the same, see [working-in-stories.md](working-in-stories.md#a-check-script-planchecks18sh).
+plan do the same, see [working-in-stories.md](working-in-stories.md#a-check-script-plancheckss18sh).
 
 The types module of its own, when the skill creates no backend, has few files (`Q-TYPES-JAR`):
 
