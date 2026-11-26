@@ -507,7 +507,8 @@ area of work limits the kinds of tasks. And predefined lists sometimes show only
 or similar columns.
 
 A row whose task the user has not read yet is bold, the whole row. The user can mark tasks as read or
-unread, in the list and on the task page. Opening a task marks it as read.
+unread, in the list with the tool of the toolbar and on the task page. Opening a task marks it as
+read.
 
 ### How the state of a row looks
 
@@ -794,7 +795,9 @@ types out of the box, for example a currency, are a wish for later.
 
 ## The actions on a user task
 
-For one row or for several selected rows:
+For one row or for several selected rows. In a list, each action is a tool of the toolbar and acts on
+the selected rows, see [The tools and the look of a list](#the-tools-and-the-look-of-a-list). Only
+claim, unclaim, remove candidate and the note also sit in the cells of a row.
 
 |      Action      |                      What it means                      |
 |------------------|---------------------------------------------------------|

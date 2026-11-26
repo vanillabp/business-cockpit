@@ -182,10 +182,10 @@ settings|The settings of a user are kept on the server|SET-001, SET-002, SET-004
 task-list|A clerk sees the tasks waiting for them|BE-004, NAV-001, NAV-002, TL-008, TL-012, TL-013, TL-015, TL-016, TL-018, TL-024, TL-032, COL-015, COL-017, COL-018, COL-019, COL-021, BE-020, TL-033
 status-line|A clerk switches between open and closed tasks and sees the counts|TL-001, TL-002, TL-003, TL-005, TL-006, TL-009, TL-010, TL-021, TL-026, TL-028
 row-looks|A clerk sees which tasks are unread, ended or suspended|TL-007, TL-023, TL-027
-actions|A clerk claims, proposes, marks and puts aside a task in the list|TL-014, TL-017, TL-025, ACT-001, ACT-003, ACT-004, ACT-005, ACT-006, ACT-007, ACT-008, ACT-009, ACT-010, ACT-012, ACT-013, ACT-014, ACT-015, ACT-016, ACT-017
+actions|A clerk claims, proposes, marks and puts aside a task in the list|TL-029, TL-011, TL-030, TL-014, TL-017, TL-025, ACT-001, ACT-003, ACT-004, ACT-005, ACT-006, ACT-007, ACT-008, ACT-009, ACT-010, ACT-012, ACT-013, ACT-014, ACT-015, ACT-016, ACT-017
 search|A clerk searches, filters and sorts a list|SRCH-001, SRCH-002, SRCH-003, SRCH-004, SRCH-005, SRCH-006, SRCH-007, SRCH-008, SRCH-009, SRCH-026, SRCH-027, SRCH-033, SRCH-034
 paging|A clerk scrolls through very many tasks|I18N-007, SRCH-010, SRCH-011, SRCH-012, SRCH-013, SRCH-014, SRCH-015, SRCH-016, SRCH-017, SRCH-018, SRCH-019, SRCH-020, SRCH-021, SRCH-022, SRCH-023, SRCH-024, SRCH-025, SRCH-028, SRCH-029, SRCH-030, SRCH-031, SRCH-032
-tools|A clerk acts on several selected tasks at once|TL-011, TL-019, TL-029, TL-030, TL-031, ACT-018
+tools|A clerk acts on several selected tasks at once|TL-019, TL-031, ACT-018
 module-kit|A workflow module builds its parts against the module kit|PKG-006, PKG-009, PKG-017, PKG-020, PKG-033, PKG-039, PKG-040, PKG-041, PKG-042, PKG-043, PKG-048, PKG-049, PKG-050, PKG-051, PKG-053, PKG-056, PKG-057
 module-loading|The cockpit loads the parts of the modules|EXT-005, EXT-007, EXT-008, EXT-009, EXT-010, EXT-011, EXT-016, EXT-019, EXT-021, EXT-026, EXT-027, EXT-029, EXT-031, EXT-033, EXT-034, EXT-035, EXT-036, EXT-037, EXT-041, EXT-043, EXT-044, EXT-045, EXT-046, EXT-047, EXT-048, EXT-049, EXT-050, EXT-051, EXT-052, EXT-053, EXT-054, EXT-055, EXT-056, EXT-057, EXT-059
 module-columns|The lists show the columns of the modules|COL-001, COL-003, COL-004, COL-005, COL-006, COL-007, COL-008, COL-009, COL-010, COL-011, COL-012, COL-013, COL-014, COL-016, COL-020, COL-022
@@ -206,6 +206,13 @@ customer|The wishes of the customer|CUST-*
 
 Every id of [reference-1.0.0.md](reference-1.0.0.md) is in exactly one line. A later version of the
 reference brings its own list, with a line for each new id.
+
+The slice `actions` starts with the toolbar of `TL-029` and the selection of rows. Every action it
+builds is a tool of this toolbar and acts on the selected rows, also when only one row is selected.
+Mark as read or unread, follow-up and propose never become buttons or menus in a row. Only claim
+and give back, removing a candidate and the note sit in the cells of a row, see
+[behaviour.md](behaviour.md#the-tools-and-the-look-of-a-list). A row tool built early would have
+to go again in a later story.
 
 ## Planning: from the checklist to stories
 
