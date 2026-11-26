@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.web.util.DisconnectedClientHelper;
 
 import io.vanillabp.cockpit.support.security.usercontext.UserDetails;
 
@@ -295,15 +296,22 @@ public class UpdateEmitter {
   /**
    * Writes one named event to the browser.
    *
+   * <p>A browser goes away all the time: the user closes a tab or reloads the page. That is no
+   * error, so it is answered with {@code false} and the caller drops the stream without a word.
+   * Everything else which stops the event is a real failure and is thrown, so the caller can say
+   * so in the log.
+   *
    * @param name The name of the event, which a list in the browser listens to
    * @param payload The data of the event
    *
    * @return Whether the client is still there. A client which closed the stream cannot be told
    *         anything any more, and its emitter has to be dropped
+   * @throws IOException The stream is still open, but the event could not be written to it
+   * @throws IllegalStateException The event could not be turned into text, for example
    */
   public boolean send(
       final String name,
-      final Object payload) {
+      final Object payload) throws IOException {
 
     // SseEmitter is not safe for concurrent writes, and both the collecting tick and the ping
     // tick may want to write at the same moment
@@ -316,9 +324,29 @@ public class UpdateEmitter {
             .data(payload));
         return true;
       } catch (IOException | IllegalStateException e) {
-        return false;
+        if (theStreamHasEnded(e)) {
+          return false;
+        }
+        throw e;
       }
     }
+
+  }
+
+  /**
+   * Whether a failed write only says that the stream is over. Spring refuses every write to an
+   * emitter which has completed, with an {@link IllegalStateException} which has no cause. A write
+   * which failed on its way carries the reason as its cause. When that reason is a lost
+   * connection, the client went away. Spring's own {@link DisconnectedClientHelper} tells that
+   * from other failures, the same way Spring MVC does when it decides what to log.
+   */
+  private static boolean theStreamHasEnded(
+      final Exception failure) {
+
+    if ((failure instanceof IllegalStateException) && (failure.getCause() == null)) {
+      return true;
+    }
+    return DisconnectedClientHelper.isClientDisconnectedException(failure);
 
   }
 
