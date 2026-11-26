@@ -95,6 +95,14 @@ shared and bookmarked, and that a link into the middle works. With more than one
 are translated by default, see [Translated paths](#translated-paths). The pages of a workflow module
 always have `/<workflowModuleId>/<pageId>`, see [Extension points](#extension-points).
 
+The cockpit changes its screen inside the running application. A menu entry, a link, the back and
+forward buttons of the browser and every action that leads to another screen use the router of the
+framework, which works with the history API of the browser (`history.pushState`). None of them
+loads a page. Only a link that opens a new tab, such as the task tab or "open in new tab", loads
+the application. Build this with the frame, from its first story on. A menu that reloads the page
+hides leaks: the measurement of `SRCH-018` then never sees the list unmounted, because the
+browser throws the whole page away (`NAV-034`).
+
 Often there is more:
 
 - A dashboard as the start page (`Q-DASHBOARD`). What it shows is up to the organisation. An example:
@@ -309,6 +317,12 @@ scroll a long table and select a name to copy it. The overview looks like the de
 badge, aligned to the right edge of the name. It is at most about two thirds of the window high
 and scrolls inside when it is longer.
 
+The keyboard and touch open it as well (`NAV-035`). The name can take the focus. When it gets the
+focus, the overview opens, and the focus can move into the overview. `Escape` closes it and puts
+the focus back on the name. It also closes when the focus leaves both the name and the overview.
+On a touch screen there is no mouse-over: a tap on the name opens the overview, a second tap
+closes it, and so does a tap outside the name and the overview.
+
 The data is asked on the first mouse-over, not when the application starts. It is kept until the
 page is loaded again. While it loads, the overview shows "Loading …".
 
@@ -326,12 +340,13 @@ From top to bottom:
 
 The rows of the table of one module:
 
-- A group the identity provider gives the user directly: kind "Role", given by "Organisation".
+- A group the identity provider gives the user directly, when this module's hierarchy has an entry
+  for it: kind "Role", given by "Organisation".
 - For every group of the user with an entry in the hierarchy, one row per target of the entry: the
   name of the target, and the group of the entry as "Given by". The kind is "Role" if the target
   has an entry of its own in the hierarchy, so it stands for more. Otherwise the kind is "Right".
 - A target the identity provider also gives the user directly is not shown again as a target. It
-  has its one row with "Organisation".
+  has its row with "Organisation" instead, in the table named further below.
 - A target that comes from two groups has two rows, one for each group. This is wanted: the user
   sees every way a right comes to them.
 
@@ -353,6 +368,13 @@ and the kinds are translated.
 
 The overview shows only what the user has. Entries of groups the user does not have are left out.
 A module without a hierarchy is left out.
+
+Each group of `givenByOrganisation` has its row with "Organisation" in the table of every module
+whose hierarchy has an entry for it, that is, whose `entries` hold it as `group`. A group of the
+organisation that no module has an entry for stands in a first table, before the tables of the
+modules and without a module heading: the same table the overview shows when no module is left
+(`NAV-036`). So every role the organisation gives shows at least once, and the user always finds
+the row a "Given by" points at.
 
 The roles of the organisation are shown even when no module is left, for example while no
 workflow module with a group hierarchy has registered yet. Then `modules` is empty, but
@@ -499,7 +521,8 @@ area of work limits the kinds of tasks. And predefined lists sometimes show only
 or similar columns.
 
 A row whose task the user has not read yet is bold, the whole row. The user can mark tasks as read or
-unread, in the list and on the task page. Opening a task marks it as read.
+unread, in the list with the tool of the toolbar and on the task page. Opening a task marks it as
+read.
 
 ### How the state of a row looks
 
@@ -786,7 +809,9 @@ types out of the box, for example a currency, are a wish for later.
 
 ## The actions on a user task
 
-For one row or for several selected rows:
+For one row or for several selected rows. In a list, each action is a tool of the toolbar and acts on
+the selected rows, see [The tools and the look of a list](#the-tools-and-the-look-of-a-list). Only
+claim, unclaim, remove candidate and the note also sit in the cells of a row.
 
 |      Action      |                      What it means                      |
 |------------------|---------------------------------------------------------|
@@ -801,6 +826,18 @@ For one row or for several selected rows:
 Claiming a task that already has another assignee takes it away from a colleague, see
 [rough-edges.md](rough-edges.md#claiming-overwrites). So the user interface always asks first, every
 time. The question has no checkbox "don't ask again", and no user setting turns it off.
+
+A bulk claim asks once for all selected tasks that colleagues hold, with their number, for example:
+
+- English: "3 of the selected tasks are held by colleagues. Claim them as well and take them away
+  from your colleagues?"
+- German: "3 der ausgewählten Aufgaben sind Kolleginnen oder Kollegen zugewiesen. Auch diese
+  übernehmen und ihnen wegnehmen?"
+
+On yes, the claim goes out for all selected tasks. On no, nothing is sent, and the user can take
+the rows of the colleagues out of the selection. When the selection also holds ended or suspended
+tasks, the question of
+[Ended and suspended tasks in a selection](#ended-and-suspended-tasks-in-a-selection) comes first.
 
 To propose a task, the user searches for persons in a field, and the user interface calls
 `POST /user` with a maximum number of hits for that.
@@ -1390,6 +1427,11 @@ of its header. So can every fixed column, except the two that are as wide as an 
 of `id` and `candidateUsers`. The list keeps the width as a user setting, per list and per path, so
 it holds in every browser, see [User settings](#user-settings).
 
+A cell never grows wider than its column. A value longer than the width is cut at the width and
+ends with an ellipsis, in CSS with `overflow: hidden`, `white-space: nowrap` and
+`text-overflow: ellipsis`. On mouse-over the cell shows the full value, with the `title` attribute
+or with the details the cell shows on mouse-over anyway (`COL-023`).
+
 A new sort or a new search loads the list again, with a new start timestamp.
 
 The server can refuse a sort with 400, for example one which names two fields that each hold a
@@ -1483,6 +1525,12 @@ and filters instead.
   that loads must not take it for an error and throw the list away.
 - A new sort shows other entries, the first ones of the new order. That is correct, and the notice
   says so.
+- The test of `SRCH-025` runs in Chromium and in Firefox. So `playwright.config.ts` has a project
+  for each browser from the first story of the UI repository on, and both browsers are installed
+  with `npx playwright install chromium firefox`. The Firefox project may run only the tests that
+  need it, with `grep: /SRCH-025/`. With another tool of `Q-E2E-TOOL`, set up its Firefox runner in
+  the same way. Chromium has a stop of its own at the end of a long wheel scroll, see
+  [rough-edges.md](rough-edges.md#the-scroll-bar-stops-short-of-the-end-in-chromium).
 
 The cap lives in the browser only, and the server still counts every row. A cap on the server would
 make counting cheaper, but then the real total is unknown. That is for later, if counting in the
@@ -1514,9 +1562,11 @@ memory test below reads the heap once, at the end, and that does not catch it. S
 - Leaving the list frees what it held. A service or store that lives longer than the list empties
   its rows and its load options when the list closes. Opening the list again adds no second
   subscription on top of the first. The base of this check is the memory after the user has left
-  the list once, not before the list first opened. The first visit loads code that stays on
-  purpose: the parts of the modules, the generated client, the texts. So open and leave the list
-  once, measure, then open and leave it again and measure once more (`SRCH-018`).
+  the list once, not before the list first opened. The user leaves the list inside the page, by a
+  menu entry or a link, never by a reload, see [The screens](#the-screens). The first visit loads
+  code that stays on purpose: the parts of the modules, the generated client, the texts. So open
+  and leave the list once, measure, then open and leave it again and measure once more
+  (`SRCH-018`).
 - A row draws as few components as it can. Each component in a row is created and destroyed
   thousands of times while the user scrolls. A tooltip, a checkbox or a skeleton is cheap once and
   expensive ten thousand times. Create such a component when it is needed, for example on

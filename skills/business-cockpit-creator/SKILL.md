@@ -114,7 +114,9 @@ workspace of it, and one `package-lock.json` at the root pins the dependencies o
 - A dev shell for each framework the workflow modules use, as an npm package. It is the workbench on
   which somebody writes a user task form without starting a cockpit.
 - The UI jar, with the built files at the place where the backend framework serves them. A Node
-  script builds it and uploads it with HTTP `PUT` into the company's Maven repository.
+  script builds it and uploads it with HTTP `PUT` into the company's Maven repository. The backend
+  takes it only when it serves the user interface itself (`Q-HOSTING` is `embedded`), so its
+  checklist items apply only then.
 - A `Dockerfile` that serves the user interface with nginx, for an organisation that deploys it
   apart from the backend (`Q-HOSTING` is `behind` or `in-front`).
 
@@ -183,7 +185,9 @@ Write `CHECKLIST.md` into the project:
    "not chosen" with the question id in their column "Applies", instead of deleting them, so a
    diff stays readable.
 3. Add one item for every wish of the customer that the reference does not cover. Give these items
-   their own id prefix, `CUST-`, and number them from `CUST-001`.
+   their own id prefix, `CUST-`, and number them from `CUST-001`. A wish for a feature that the
+   skill marks as not available yet, such as cells drawn by a workflow module, gets no item. Name it
+   in the overview at the hand-over as a wish for later.
 
 Every end-to-end test names the id of the item it proves, for example in its title:
 `TL-003 each primary filter shows its count`. An item without a test is not done.
@@ -216,8 +220,10 @@ The VanillaBP kit `@vanillabp/bc-module-kit` is the minimum every cockpit keeps,
 [references/types.md](references/types.md#the-vanillabp-kit-is-the-minimum). Its repository
 `vanillabp/business-cockpit-module-kit` has three conformance modules, one in React, one in Vue and
 one in Angular, and a browser test for them. The kit made these modules for this test, so they
-check exactly the criteria of its contract. Run that test as an end-to-end test of the UI
-repository, against the TypeScript simulator, see
+check exactly the criteria of its contract. The slice `conformance` of the plan builds them and
+runs this test in a story of its own, see
+[The fixed list of slices](references/working-in-stories.md#the-fixed-list-of-slices). Run that
+test as an end-to-end test of the UI repository, against the TypeScript simulator, see
 [references/project.md](references/project.md#the-simulators) (`EXT-040`). It passes for a cockpit
 with areas and for one without, because the conformance modules offer both.
 
@@ -266,7 +272,8 @@ with areas and for one without, because the conformance modules offer both.
    ```
 
    `BC_STORAGE_STATE` names a file with a logged-in session, as Playwright's `storageState` writes
-   it. Leave it out if the simulator needs no login for the test.
+   it. The test always needs it, because the modules below `/wm/` load only with the login of the
+   cockpit (`EXT-061`).
 
 The same steps work against a running cockpit backend, with the credentials it asks for on the BPMS
 API and `serve.mjs` as the server of the modules. Do that once more in
@@ -405,7 +412,8 @@ module for that. The cockpit learns that the task is done the same way it learns
 as a report.
 
 It never calls a workflow module itself. Only the module's own parts talk to their module, and they
-do it through the cockpit's proxy under `/wm/<workflowModuleId>/`. The frame around a form never
+do it through the cockpit's proxy under `/wm/<workflowModuleId>/`. The proxy needs the login of the
+cockpit, and the module still protects its own endpoints too. The frame around a form never
 does.
 
 It has no login of its own. There is no login form, no user management and no rights check in the
@@ -545,7 +553,17 @@ reports to a cockpit. Its README says, under "Running it", which jars to install
 start it with a cockpit. Instead of the cockpit of its `docker-compose.yaml`, point it at your
 backend: the address of your cockpit and the user of `Q-BPMS-API-USER` go below
 `vanillabp.cockpit.rest` in its `application.yaml`, and the address of your cockpit into
-`<module>.cockpit.base-url`. Where a blueprint draws the title of a user task, it takes the text
+`<module>.cockpit.base-url`.
+
+Until their versions are released, the blueprints depend on snapshots: of VanillaBP, today
+`2.0.0-SNAPSHOT`, and of the Business Cockpit, today `1.0.0-SNAPSHOT`, the same snapshot as
+[What needs a newer cockpit](references/rough-edges.md#what-needs-a-newer-cockpit) names. Both are
+in the snapshot repository of Maven Central, `https://central.sonatype.com/repository/maven-snapshots/`,
+which needs no token. When the build of a blueprint does not find them, add this repository with
+snapshots enabled, for example in the `settings.xml` of Maven, and build again. Missing jars are no
+reason to leave `EXT-058` out.
+
+Where a blueprint draws the title of a user task, it takes the text
 of the user's language, so the blueprints load in your cockpit with any kit version. They are built against the VanillaBP kit `@vanillabp/bc-module-kit`, a
 small npm package in plain JavaScript from its own repository
 (`vanillabp/business-cockpit-module-kit`). It holds the minimum of the contract: the four data

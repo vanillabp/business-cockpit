@@ -155,18 +155,23 @@ Which paths stay open depends on where the user interface runs (`Q-HOSTING`, see
 With `embedded` and `behind` the login comes first. `index.html` and every deep link ask for a
 login, so a browser without a login goes straight to the login of the backend, and the user
 interface starts after it. The open matchers of the library stay open, as
-[backend.md](backend.md#the-login) says: the proxy to the workflow modules under `/wm/**`, because
-a module protects itself, and the files below `/assets/` and `/static/`. These files are the
-bundle, with hashed names and without data of the organisation, and without `index.html` nothing
-loads them. Do not close them in the chain: the matchers are the contract with the library.
+[backend.md](backend.md#the-login) says: the files below `/assets/` and `/static/`. These files are
+the bundle, with hashed names and without data of the organisation, and without `index.html`
+nothing loads them. Do not close them in the chain: the matchers are the contract with the library.
+
+The proxy to the workflow modules under `/wm/**` needs the login of the cockpit, in every variant
+of `Q-HOSTING`. A workflow module still protects its own endpoints too. The cockpit checks that
+somebody is logged in, and the module checks what this user may do (`EXT-061`).
 
 With `in-front` the single-page application loads without a login and logs in afterwards, when
 needed. So these stay open:
 
 - the static files of the user interface,
 - the shell, `index.html`, also as the answer to an unknown path,
-- `GET /gui/api/v1/app/info` and `GET /gui/api/v1/app/current-user`,
-- the proxy to the workflow modules under `/wm/**`. A module protects itself.
+- `GET /gui/api/v1/app/info` and `GET /gui/api/v1/app/current-user`.
+
+The proxy to the workflow modules under `/wm/**` is not among them. It needs the login of the
+cockpit here as well, and the user interface loads the parts of the modules only after the login.
 
 Everything else asks for a login. Login is the job of the backend application, not of the user
 interface, see [`../SKILL.md`](../SKILL.md#how-your-user-interface-gets-into-the-cockpit). The

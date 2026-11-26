@@ -623,7 +623,7 @@ mvn verify -Dbc-types.local=../<UI repository>/packages/bc-types
 ```
 
 Build the UI repository first, so the folder holds `ui-uri-types.json`. The check scripts of the
-plan do the same, see [working-in-stories.md](working-in-stories.md#a-check-script-planchecks18sh).
+plan do the same, see [working-in-stories.md](working-in-stories.md#a-check-script-plancheckss18sh).
 
 The types module of its own, when the skill creates no backend, has few files (`Q-TYPES-JAR`):
 
@@ -699,7 +699,8 @@ shell simulator:
   (`DS-024`). Each simulated system has a prefix of its
   own, and below it is the path of the original.
 - The built parts of the three test modules, below `/wm/react-module/`, `/wm/vue-module/` and
-  `/wm/angular-module/`, the way the cockpit forwards to a module.
+  `/wm/angular-module/`, the way the cockpit forwards to a module. Like the cockpit, it serves
+  them only to a request with the login cookie (`EXT-061`).
 - The built modules of the conformance test of the VanillaBP kit, see
   [A module built against the kit loads in your cockpit](../SKILL.md#a-module-built-against-the-kit-loads-in-your-cockpit).
   The kit made them for that test, so they check exactly the contract of the kit. They have the
@@ -723,6 +724,11 @@ fixed, whatever `Q-MODULE-FRAMEWORKS` says: the cockpit has to load modules of e
 its tests need all three. Each module takes the newest release of its framework, the one npm tags
 `latest` (`npm view react dist-tags`), not the version of `Q-FRAMEWORK` or `Q-MODULE-FRAMEWORKS`.
 The conformance test of the kit does not use them; it uses the kit's own modules.
+
+The Angular test module is built ahead of time with the Angular CLI (`ng build`), as
+[module-loading.md](module-loading.md#angular-entries-with-the-angular-cli) describes. Real Angular
+modules are built that way, so the test module is too: not compiled in the browser at runtime
+(JIT), and not with an esbuild build of your own (`PKG-065`).
 
 They differ in what they bring, for example in their columns, so a list shows mixed rows. Together
 they cover every extension point the interview chose: `Header`, `Pages`, the areas of
@@ -829,6 +835,10 @@ component or plugin for Vue. [dev-shell.md](dev-shell.md) describes what it must
 hands it pages it needs only while it is developed through the option `devShellPages`, see
 [dev-shell.md](dev-shell.md#pages-of-the-dev-shell), so nobody changes the package for a module and
 publishes it again.
+
+The tests of the Angular dev shell start a small Angular application with the dev shell in it. Build
+that application ahead of time with the Angular CLI (`ng build`) as well, like the Angular test
+module, not JIT and not with esbuild (`PKG-065`).
 
 The theme of the cockpit (`Q-THEME`) comes from `<scope>/bc-theme` into the base pages of every dev
 shell. A user task or a case page must look exactly the same in the dev shell as in the cockpit,

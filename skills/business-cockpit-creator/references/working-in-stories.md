@@ -32,7 +32,7 @@ commands in the folder of the UI repository. If you do not know that folder, ask
 1. Look which files are there:
 
    ```bash
-   ls INTERVIEW.md CHECKLIST.md plan/INDEX.md plan/QUESTIONS.md
+   ls INTERVIEW.md CHECKLIST.md plan/INDEX.md plan/QUESTIONS-DRAFT.md plan/QUESTIONS.md
    ```
 
    - No `INTERVIEW.md`: start the interview, see [interview.md](interview.md).
@@ -54,13 +54,13 @@ commands in the folder of the UI repository. If you do not know that folder, ask
    grep -nE '\| *in-progress *\|' plan/INDEX.md
    ```
 4. If there is one, run its check command from the column `Check command`:
-   - The check passes: the work is done and only the end of the story is missing. Do steps 6 to 9
+   - The check passes: the work is done and only the end of the story is missing. Do steps 6 to 10
      of [Working on one story](#working-on-one-story).
    - The check fails: open the story file `plan/<id>.md`. Read its section `Notes` and the steps
      that have no tick yet. Go on with the first step without a tick.
 5. If no story is in progress, but `git status` shows changes: these changes belong to no story.
    Do not throw them away. Run `git stash push -u -m "changes found when resuming"`, write a
-   question about them into `plan/QUESTIONS.md`, and go on.
+   question about them into `plan/QUESTIONS-DRAFT.md`, and go on.
 6. If no story is in progress, take the first line with the status `open`:
 
    ```bash
@@ -69,11 +69,13 @@ commands in the folder of the UI repository. If you do not know that folder, ask
 
    Then work on it as [Working on one story](#working-on-one-story) says.
 
-7. If there is no open story, the job is done. Tell the user, and name the questions in
+7. If there is no open story, the job is done. If `plan/QUESTIONS-DRAFT.md` is still there, move
+   its entries into `plan/QUESTIONS.md` first, see
+   [At the end of the plan](#at-the-end-of-the-plan). Then tell the user, and name the questions in
    `plan/QUESTIONS.md` that still wait for an answer:
 
    ```bash
-   grep -n '^Answer: open' plan/QUESTIONS.md
+   grep -n '^Answer: open' plan/QUESTIONS-DRAFT.md plan/QUESTIONS.md
    ```
 
 If two stories are in progress, take the first one and write a note about the second one into its
@@ -87,15 +89,16 @@ fails, I go on with step 3 of plan/S07.md."
 All files of the plan are in the folder `plan/` of the UI repository, next to `INTERVIEW.md` and
 `CHECKLIST.md`. They are committed like the code.
 
-|         File          |                            What it holds                             |
-|-----------------------|----------------------------------------------------------------------|
-| `plan/INDEX.md`       | one line per story: id, title, status, checklist ids, check command  |
-| `plan/ids.txt`        | the checklist ids the project has to prove                           |
-| `plan/slices.txt`     | the fixed list of slices, copied from this page                      |
-| `plan/stories.txt`    | the stories as the script cut them from the two files above          |
-| `plan/<id>.md`        | one file per story: goal, what to read, files, steps, notes          |
-| `plan/checks/<id>.sh` | the check command of a story, as a small script that fails or passes |
-| `plan/QUESTIONS.md`   | the questions that came up, each with the default you took           |
+|           File            |                                         What it holds                                          |
+|---------------------------|------------------------------------------------------------------------------------------------|
+| `plan/INDEX.md`           | one line per story: id, title, status, checklist ids, check command                            |
+| `plan/ids.txt`            | the checklist ids the project has to prove                                                     |
+| `plan/slices.txt`         | the fixed list of slices, copied from this page                                                |
+| `plan/stories.txt`        | the stories as the script cut them from the two files above                                    |
+| `plan/<id>.md`            | one file per story: goal, what to read, files, steps, notes                                    |
+| `plan/checks/<id>.sh`     | the check command of a story, as a small script that fails or passes                           |
+| `plan/QUESTIONS-DRAFT.md` | the questions that came up while the plan runs, each with the default you took                 |
+| `plan/QUESTIONS.md`       | the questions for the user: those that block, and at the end of the plan the rest of the draft |
 
 The status of a story is one of three words: `open`, `in-progress` or `done`. `plan/INDEX.md` is the
 only place that holds the status. Git holds the history: every story ends with one commit that
@@ -125,7 +128,7 @@ checklist, or from a part of it, and the list orders them from the inside out:
 3. Then one more thing per slice: search, very many tasks, the parts of the modules, the page of a
    task, the case list, the page of a case, live updates.
 4. Cross-cutting things last: extension points, language, the rights, notifications, the dev
-   shells and the delivery.
+   shells, the conformance test of the VanillaBP kit and the delivery.
 
 A slice is often too big for one story. So each slice becomes one story or several, each with at
 most six checklist ids. The plan takes the ids in the order the list gives them, so the same job
@@ -177,35 +180,49 @@ see [Planning](#planning-from-the-checklist-to-stories). The ids of the customer
 project|The UI repository builds and tests itself|PKG-044, PKG-035, PKG-045, PKG-019, PKG-002, PKG-062, PKG-055, PKG-047, PKG-046, PKG-014, PKG-008, PKG-052, PKG-063, PKG-064, PKG-054
 backend|The backend starts and serves the user interface|BE-001, BE-024, BE-025, BE-002, BE-003, BE-014, BE-028, BE-012, BE-006, PKG-003, PKG-004, PKG-005, PKG-059, BE-031
 login|A user logs in and out|BE-005, BE-010, BE-011, BE-007, BE-008, BE-013, BE-017, BE-026, BE-027, BE-009, AUTH-002, AUTH-003, AUTH-004, AUTH-005, AUTH-006, AUTH-008, AUTH-001, AUTH-009, AUTH-010, AUTH-007, BE-032, BE-033, BE-034
-frame|The user sees the header and the menu|NAV-006, NAV-009, NAV-010, NAV-011, NAV-013, NAV-029, NAV-031, NAV-032, I18N-001, I18N-002, I18N-004, I18N-005, I18N-006
+frame|The user sees the header and the menu|NAV-006, NAV-009, NAV-010, NAV-011, NAV-013, NAV-029, NAV-031, NAV-032, NAV-034, I18N-001, I18N-002, I18N-004, I18N-005, I18N-006
 settings|The settings of a user are kept on the server|SET-001, SET-002, SET-004, SET-005, SET-006
 task-list|A clerk sees the tasks waiting for them|BE-004, NAV-001, NAV-002, TL-008, TL-012, TL-013, TL-015, TL-016, TL-018, TL-024, TL-032, COL-015, COL-017, COL-018, COL-019, COL-021, BE-020, TL-033
 status-line|A clerk switches between open and closed tasks and sees the counts|TL-001, TL-002, TL-003, TL-005, TL-006, TL-009, TL-010, TL-021, TL-026, TL-028
 row-looks|A clerk sees which tasks are unread, ended or suspended|TL-007, TL-023, TL-027
-actions|A clerk claims, proposes, marks and puts aside a task in the list|TL-014, TL-017, TL-025, ACT-001, ACT-003, ACT-004, ACT-005, ACT-006, ACT-007, ACT-008, ACT-009, ACT-010, ACT-012, ACT-013, ACT-014, ACT-015, ACT-016, ACT-017
+actions|A clerk claims, proposes, marks and puts aside a task in the list|TL-029, TL-011, TL-030, TL-014, TL-017, TL-025, ACT-001, ACT-003, ACT-004, ACT-005, ACT-006, ACT-007, ACT-008, ACT-009, ACT-010, ACT-012, ACT-013, ACT-014, ACT-015, ACT-016, ACT-017
 search|A clerk searches, filters and sorts a list|SRCH-001, SRCH-002, SRCH-003, SRCH-004, SRCH-005, SRCH-006, SRCH-007, SRCH-008, SRCH-009, SRCH-026, SRCH-027, SRCH-033, SRCH-034
 paging|A clerk scrolls through very many tasks|I18N-007, SRCH-010, SRCH-011, SRCH-012, SRCH-013, SRCH-014, SRCH-015, SRCH-016, SRCH-017, SRCH-018, SRCH-019, SRCH-020, SRCH-021, SRCH-022, SRCH-023, SRCH-024, SRCH-025, SRCH-028, SRCH-029, SRCH-030, SRCH-031, SRCH-032
-tools|A clerk acts on several selected tasks at once|TL-011, TL-019, TL-029, TL-030, TL-031, ACT-018
-module-kit|A workflow module builds its parts against the module kit|PKG-006, PKG-009, PKG-017, PKG-020, PKG-033, PKG-039, PKG-040, PKG-041, PKG-042, PKG-043, PKG-048, PKG-049, PKG-050, PKG-051, PKG-053, PKG-056, PKG-057
-module-loading|The cockpit loads the parts of the modules|EXT-005, EXT-007, EXT-008, EXT-009, EXT-010, EXT-011, EXT-016, EXT-019, EXT-021, EXT-026, EXT-027, EXT-029, EXT-031, EXT-033, EXT-034, EXT-035, EXT-036, EXT-037, EXT-041, EXT-043, EXT-044, EXT-045, EXT-046, EXT-047, EXT-048, EXT-049, EXT-050, EXT-051, EXT-052, EXT-053, EXT-054, EXT-055, EXT-056, EXT-057, EXT-059
-module-columns|The lists show the columns of the modules|COL-001, COL-003, COL-004, COL-005, COL-006, COL-007, COL-008, COL-009, COL-010, COL-011, COL-012, COL-013, COL-014, COL-016, COL-020, COL-022
+tools|A clerk acts on several selected tasks at once|TL-019, TL-031, ACT-018
+module-kit|A workflow module builds its parts against the module kit|PKG-006, PKG-009, PKG-017, PKG-020, PKG-033, PKG-039, PKG-040, PKG-041, PKG-042, PKG-043, PKG-048, PKG-049, PKG-050, PKG-051, PKG-053, PKG-056, PKG-065, PKG-057
+module-loading|The cockpit loads the parts of the modules|EXT-005, EXT-007, EXT-008, EXT-009, EXT-010, EXT-011, EXT-016, EXT-019, EXT-021, EXT-026, EXT-027, EXT-029, EXT-031, EXT-033, EXT-034, EXT-035, EXT-036, EXT-037, EXT-041, EXT-043, EXT-044, EXT-045, EXT-046, EXT-047, EXT-048, EXT-049, EXT-050, EXT-051, EXT-052, EXT-053, EXT-054, EXT-055, EXT-056, EXT-057, EXT-059, EXT-061
+module-columns|The lists show the columns of the modules|COL-001, COL-003, COL-004, COL-005, COL-006, COL-007, COL-008, COL-009, COL-010, COL-011, COL-012, COL-013, COL-014, COL-016, COL-020, COL-022, COL-023
 task-page|A clerk opens a task and works on it in the form of the module|TL-022, ACT-019, TF-001, TF-004, TF-005, TF-006, TF-008, TF-016, TF-019, TF-020, TF-022, TF-023, TF-025, TF-026, TF-027, TF-029, TF-039, TF-040, TF-041, TF-042
 task-tab|A clerk works on a task in a tab of its own and goes back to the list|TF-007, TF-017, TF-018, TF-024, TF-045
 barrier|A clerk claims a task before working on it, and a suspended task waits|TF-030, TF-031, TF-035, TF-036, TF-038, TF-043, TF-044
 case-list|A clerk looks up a case in the case list|NAV-003, WL-001, WL-002, WL-003, WL-004, WL-005, WL-006, WL-007, WL-008, WL-009, WL-010, WL-011, WL-012, WL-013, WL-014
 case-page|A clerk opens the page of a case|NAV-004, TF-013, WP-001, WP-003, WP-007, WP-008, WP-009, WP-010, WP-011, WP-012, WP-014, WP-015
 live|A clerk sees changes without a reload|TF-011, TF-037, LIVE-001, LIVE-002, LIVE-003, LIVE-004, LIVE-005, LIVE-006, LIVE-007, LIVE-008, LIVE-009, LIVE-010, LIVE-011, LIVE-012, LIVE-013, LIVE-014, LIVE-015, LIVE-016, LIVE-017, LIVE-018, LIVE-019, LIVE-020, LIVE-021, LIVE-022, LIVE-023, LIVE-024, LIVE-025
-extension-points|A module adds pages, dialogs, buttons and charts of its own|BE-030, NAV-005, NAV-033, NAV-007, NAV-008, NAV-017, NAV-018, EXT-012, EXT-013, EXT-014, EXT-017, EXT-018, EXT-023, EXT-060, EXT-024, EXT-039, EXT-040, EXT-042
+extension-points|A module adds pages, dialogs, buttons and charts of its own|BE-030, NAV-005, NAV-033, NAV-007, NAV-008, NAV-017, NAV-018, EXT-012, EXT-013, EXT-014, EXT-017, EXT-018, EXT-023, EXT-060, EXT-024, EXT-039, EXT-042
 language|A clerk works in their language, in every browser|NAV-014, NAV-015, NAV-016, NAV-028, SET-003, I18N-003, I18N-008
-rights-pictures|A clerk sees their rights and the pictures of persons|PKG-058, BE-021, BE-022, BE-023, BE-029, NAV-019, NAV-020, NAV-021, NAV-022, NAV-023, NAV-024, NAV-025, NAV-026, NAV-027, NAV-030
+rights-pictures|A clerk sees their rights and the pictures of persons|PKG-058, BE-021, BE-022, BE-023, BE-029, NAV-019, NAV-020, NAV-021, NAV-022, NAV-023, NAV-024, NAV-025, NAV-026, NAV-027, NAV-030, NAV-035, NAV-036
 notifications|A clerk sets up notifications and gets mails|BE-015, BE-016, TF-014, NOTI-001, NOTI-002, NOTI-003
-dev-shell|A module developer works on a form in the dev shell|PKG-034, DS-001, DS-002, DS-003, DS-004, DS-005, DS-006, DS-007, DS-008, DS-009, DS-010, DS-011, DS-012, DS-013, DS-014, DS-015, DS-016, DS-017, DS-018, DS-019, DS-020, DS-021, DS-022, DS-023, DS-024, DS-025, DS-026
+dev-shell|A module developer works on a form in the dev shell|PKG-034, DS-001, DS-002, DS-003, DS-028, DS-004, DS-005, DS-006, DS-027, DS-007, DS-008, DS-009, DS-010, DS-011, DS-012, DS-013, DS-014, DS-015, DS-016, DS-017, DS-018, DS-019, DS-020, DS-021, DS-022, DS-023, DS-024, DS-025, DS-026
+conformance|A module built against the VanillaBP kit loads in the cockpit|EXT-040
 delivery|The cockpit is released and deployed|PKG-011, PKG-012, PKG-013, PKG-024, PKG-025, PKG-032, PKG-036, PKG-037, PKG-038, PKG-060, PKG-061, BE-018, BE-019, EXT-058
 customer|The wishes of the customer|CUST-*
 ```
 
 Every id of [reference-1.0.0.md](reference-1.0.0.md) is in exactly one line. A later version of the
 reference brings its own list, with a line for each new id.
+
+The slice `conformance` has one id, but it is a large story: it builds the conformance modules of
+the VanillaBP kit into `dist/conformance` and runs their test, see
+[A module built against the kit loads in your cockpit](../SKILL.md#a-module-built-against-the-kit-loads-in-your-cockpit).
+Give it a time budget of its own, and never fold it into another story. It comes before the
+delivery, because `EXT-058` runs the same test once more against a running cockpit.
+
+The slice `actions` starts with the toolbar of `TL-029` and the selection of rows. Every action it
+builds is a tool of this toolbar and acts on the selected rows, also when only one row is selected.
+Mark as read or unread, follow-up and propose never become buttons or menus in a row. Only claim
+and give back, removing a candidate and the note sit in the cells of a row, see
+[behaviour.md](behaviour.md#the-tools-and-the-look-of-a-list). A row tool built early would have
+to go again in a later story.
 
 ## Planning: from the checklist to stories
 
@@ -260,7 +277,9 @@ Plan after the interview and before the first line of code.
    - "Every checklist item has a passing test": runs the whole end-to-end suite and checks that
      every id of `plan/ids.txt` names a test, see the template of the check below.
    - "Run against a running cockpit": the steps of
-     [How you know it is done](../SKILL.md#how-you-know-it-is-done).
+     [How you know it is done](../SKILL.md#how-you-know-it-is-done). It ends with
+     [At the end of the plan](#at-the-end-of-the-plan): the questions left in the draft move to
+     `plan/QUESTIONS.md`.
 6. Write `plan/INDEX.md` with the lines of `plan/stories.txt` and the last two stories, one story
    file per line, and one check script per story. Use the [Templates](#templates).
 7. Keep each story small. A story has at most six checklist ids, and it changes at most about
@@ -327,9 +346,14 @@ These are the steps for one story. Do them in this order, and do not skip one.
 6. Read your own change once against [code-that-reads-like-prose.md](code-that-reads-like-prose.md)
    and run the checks there.
 
-7. In `plan/INDEX.md`, change the status from `in-progress` to `done`.
+7. Read `plan/QUESTIONS-DRAFT.md`. Delete each entry this story made obsolete, for example because
+   the story built what the question asked about, or because the skill answered it in a section
+   the story read. For each deleted entry, write one line into `Notes` of the story file: its id
+   and why it went, for example `ASK-007 deleted: the toolbar of this story answers it.`
 
-8. Commit the story, in one commit, with the story id and the checklist ids in the message:
+8. In `plan/INDEX.md`, change the status from `in-progress` to `done`.
+
+9. Commit the story, in one commit, with the story id and the checklist ids in the message:
 
    ```bash
    git add -A
@@ -340,8 +364,8 @@ These are the steps for one story. Do them in this order, and do not skip one.
    one in the backend repository, and one in the UI repository with the user interface and
    `plan/`.
 
-9. Take the next story: go back to step 6 of
-   [The first step of every start](#the-first-step-of-every-start-resume).
+10. Take the next story: go back to step 6 of
+    [The first step of every start](#the-first-step-of-every-start-resume).
 
 After each story you may stop. Stop also when the user asks you to, or when your context is nearly
 full. The files hold everything the next agent needs.
@@ -414,7 +438,7 @@ alone.
    - Start a new sub-agent on the same story with a hint when the obstacle is clear: the note, and
      one sentence about the way around, for example the section of the skill that answers it.
 4. A story that gets stuck again after a hint is split. A story with one id that gets stuck again
-   goes back to `open`, with a note. Write the obstacle into `plan/QUESTIONS.md`, as
+   goes back to `open`, with a note. Write the obstacle into `plan/QUESTIONS-DRAFT.md`, as
    [Questions never block](#questions-never-block) says, and go on with the next story.
 
 ### After a story
@@ -443,15 +467,22 @@ grep -rn -i -E 'ended|endedAt|bulk' <folder of this skill>
 
 Read every paragraph the search finds. Write a question only when none of them answers it.
 
-`plan/QUESTIONS.md` holds questions only, things you need the user to decide. A choice you made on
-purpose, for example another way than the skill shows, with your reason, is no question. Write it
-into `Notes` of the story file, and do not add it to `plan/QUESTIONS.md`.
+`plan/QUESTIONS-DRAFT.md` and `plan/QUESTIONS.md` hold questions only, things you need the user to
+decide. A choice you made on purpose, for example another way than the skill shows, with your
+reason, is no question. Write it into `Notes` of the story file, and add it to neither file.
+
+A new question goes into `plan/QUESTIONS-DRAFT.md` first. Many questions of a run are answered by
+a later story, and the draft keeps them from reaching the user. Step 7 of
+[Working on one story](#working-on-one-story) reads the draft after every story and deletes what
+the story made obsolete. Only a question that blocks the next story, or that the user must answer
+before the work can go on, goes into `plan/QUESTIONS.md` at once. Tell the user about it.
 
 1. Pick the default. Take the default the skill names, for example in
    [interview.md](interview.md). If the skill names none, take the choice that is easiest to change
    later and that commits the customer to nothing.
-2. Add an entry to `plan/QUESTIONS.md`, see the [template](#an-entry-of-planquestionsmd). Give it the
-   next free number, `ASK-001`, `ASK-002` and so on.
+2. Add an entry to `plan/QUESTIONS-DRAFT.md`, or to `plan/QUESTIONS.md` for a question that blocks,
+   see the [template](#a-question-entry). Give it the next free number over both files, `ASK-001`,
+   `ASK-002` and so on. The number stays the same when the entry moves.
 3. Write one sentence into `Notes` of the story file: which question, which default.
 4. Go on with the default.
 
@@ -461,6 +492,19 @@ the question, for example "Apply the answer to ASK-003".
 
 When the answer changes an interview answer, write it into `INTERVIEW.md` as well, as
 [interview.md](interview.md#going-on-later) says.
+
+### At the end of the plan
+
+After the last story, the story "Run against a running cockpit", move the entries still in
+`plan/QUESTIONS-DRAFT.md` into `plan/QUESTIONS.md`. Group them by topic: one heading `## <topic>`
+per topic, for example `## Live updates`, and the entries below it with `###`. Each entry keeps its
+id, its default taken and its line `Answer: open`. Then delete the draft and commit both files:
+
+```bash
+git rm plan/QUESTIONS-DRAFT.md
+git add plan/QUESTIONS.md
+git commit -m "Move the open questions of the plan to the user"
+```
 
 ## Update jobs
 
@@ -493,7 +537,8 @@ slice `customer`, six ids to a story.
 ### A finished plan
 
 When `plan/INDEX.md` has no open story and a new job starts, move the old plan
-away first. Then write the new one:
+away first. If `plan/QUESTIONS-DRAFT.md` is still there, do
+[At the end of the plan](#at-the-end-of-the-plan) before. Then write the new one:
 
 ```bash
 mkdir -p plan/archive/2026-11-19
@@ -644,7 +689,9 @@ Ids that only a build or the backend proves, such as most `PKG-` and `BE-` ids, 
 comment of their check script instead of in an end-to-end test. Then add `plan/checks/` to the
 `grep -r` of this loop.
 
-### An entry of plan/QUESTIONS.md
+### A question entry
+
+An entry of `plan/QUESTIONS-DRAFT.md` and of `plan/QUESTIONS.md` looks the same:
 
 ```markdown
 ## ASK-003 Does the case list show closed cases by default?
