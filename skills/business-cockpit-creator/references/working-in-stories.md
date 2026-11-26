@@ -665,13 +665,16 @@ A check of a story that changes the backend repository as well:
 #!/bin/sh
 set -e
 ui="$(pwd)"
-cd ../<backend repository>
-docker compose up -d verdaccio
-timeout 60 sh -c 'until curl -sf http://localhost:4873/-/ping >/dev/null; do sleep 2; done'
-cd "$ui"
+backend="$(cd ../<backend repository> && pwd)"
+# start the local registry only if it does not run yet, and stop only what this script started
+if ! curl -sf http://localhost:4873/-/ping >/dev/null; then
+  (cd "$backend" && docker compose up -d verdaccio)
+  trap '(cd "$backend" && docker compose stop verdaccio)' EXIT
+  timeout 60 sh -c 'until curl -sf http://localhost:4873/-/ping >/dev/null; do sleep 2; done'
+fi
 npm ci
 npm run publish:snapshot
-cd ../<backend repository>
+cd "$backend"
 test -f application/src/test/java/<package path>/LoginIT.java
 mvn -B verify
 ```
@@ -682,16 +685,19 @@ library from the registry only, see
 the registry runs and has a snapshot of this state of the UI repository, every time, before the
 backend builds. A precondition that an earlier story set up once would be gone after a restart of
 the machine or `docker compose down -v`. The script starts in the folder of the UI repository. It
-starts the local registry of the backend repository and waits until it answers, at most a minute.
+asks the local registry first. When it answers, somebody runs it already, and the script leaves it
+alone. When it does not answer, the script starts it from the backend repository, waits until it
+answers, at most a minute, and stops it again when the check ends, also when the check fails. So a
+registry the developer runs stays up, and one the check started does not stay behind. Stopping
+keeps its storage volume, so the published snapshots are still there the next time.
 Then `npm run publish:snapshot` builds the UI repository and publishes it. With `Q-HOSTING`
 `embedded` it also installs the UI jar of the snapshot into the local Maven repository, where the
 module `application` finds it, see
-[project.md](project.md#a-snapshot-of-the-ui-jar-goes-into-the-local-maven-repository). Starting the registry
-again does nothing when it runs already, and every run publishes a new snapshot counter, so the
-script can run any number of times.
+[project.md](project.md#a-snapshot-of-the-ui-jar-goes-into-the-local-maven-repository). Every run
+publishes a new snapshot counter, so the script can run any number of times.
 
-With a registry of its own (`Q-NPM-SCOPE`), the script leaves out the `docker compose` line and the
-wait, and the token of the registry has to be in the environment. The slice `backend` puts `BE-035`,
+With a registry of its own (`Q-NPM-SCOPE`), the script leaves out the block that asks for and
+starts the local registry, and the token of the registry has to be in the environment. The slice `backend` puts `BE-035`,
 the local registry in the `docker-compose.yaml`, right before `PKG-068`, the types build. So the
 first story that builds the backend brings the registry its check needs.
 
