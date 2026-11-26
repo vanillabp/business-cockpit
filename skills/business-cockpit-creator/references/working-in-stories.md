@@ -125,7 +125,7 @@ checklist, or from a part of it, and the list orders them from the inside out:
 3. Then one more thing per slice: search, very many tasks, the parts of the modules, the page of a
    task, the case list, the page of a case, live updates.
 4. Cross-cutting things last: extension points, language, the rights, notifications, the dev
-   shells and the delivery.
+   shells, the conformance test of the VanillaBP kit and the delivery.
 
 A slice is often too big for one story. So each slice becomes one story or several, each with at
 most six checklist ids. The plan takes the ids in the order the list gives them, so the same job
@@ -195,17 +195,24 @@ barrier|A clerk claims a task before working on it, and a suspended task waits|T
 case-list|A clerk looks up a case in the case list|NAV-003, WL-001, WL-002, WL-003, WL-004, WL-005, WL-006, WL-007, WL-008, WL-009, WL-010, WL-011, WL-012, WL-013, WL-014
 case-page|A clerk opens the page of a case|NAV-004, TF-013, WP-001, WP-003, WP-007, WP-008, WP-009, WP-010, WP-011, WP-012, WP-014, WP-015
 live|A clerk sees changes without a reload|TF-011, TF-037, LIVE-001, LIVE-002, LIVE-003, LIVE-004, LIVE-005, LIVE-006, LIVE-007, LIVE-008, LIVE-009, LIVE-010, LIVE-011, LIVE-012, LIVE-013, LIVE-014, LIVE-015, LIVE-016, LIVE-017, LIVE-018, LIVE-019, LIVE-020, LIVE-021, LIVE-022, LIVE-023, LIVE-024, LIVE-025
-extension-points|A module adds pages, dialogs, buttons and charts of its own|BE-030, NAV-005, NAV-033, NAV-007, NAV-008, NAV-017, NAV-018, EXT-012, EXT-013, EXT-014, EXT-017, EXT-018, EXT-023, EXT-060, EXT-024, EXT-039, EXT-040, EXT-042
+extension-points|A module adds pages, dialogs, buttons and charts of its own|BE-030, NAV-005, NAV-033, NAV-007, NAV-008, NAV-017, NAV-018, EXT-012, EXT-013, EXT-014, EXT-017, EXT-018, EXT-023, EXT-060, EXT-024, EXT-039, EXT-042
 language|A clerk works in their language, in every browser|NAV-014, NAV-015, NAV-016, NAV-028, SET-003, I18N-003, I18N-008
 rights-pictures|A clerk sees their rights and the pictures of persons|PKG-058, BE-021, BE-022, BE-023, BE-029, NAV-019, NAV-020, NAV-021, NAV-022, NAV-023, NAV-024, NAV-025, NAV-026, NAV-027, NAV-030
 notifications|A clerk sets up notifications and gets mails|BE-015, BE-016, TF-014, NOTI-001, NOTI-002, NOTI-003
 dev-shell|A module developer works on a form in the dev shell|PKG-034, DS-001, DS-002, DS-003, DS-028, DS-004, DS-005, DS-006, DS-027, DS-007, DS-008, DS-009, DS-010, DS-011, DS-012, DS-013, DS-014, DS-015, DS-016, DS-017, DS-018, DS-019, DS-020, DS-021, DS-022, DS-023, DS-024, DS-025, DS-026
+conformance|A module built against the VanillaBP kit loads in the cockpit|EXT-040
 delivery|The cockpit is released and deployed|PKG-011, PKG-012, PKG-013, PKG-024, PKG-025, PKG-032, PKG-036, PKG-037, PKG-038, PKG-060, PKG-061, BE-018, BE-019, EXT-058
 customer|The wishes of the customer|CUST-*
 ```
 
 Every id of [reference-1.0.0.md](reference-1.0.0.md) is in exactly one line. A later version of the
 reference brings its own list, with a line for each new id.
+
+The slice `conformance` has one id, but it is a large story: it builds the conformance modules of
+the VanillaBP kit into `dist/conformance` and runs their test, see
+[A module built against the kit loads in your cockpit](../SKILL.md#a-module-built-against-the-kit-loads-in-your-cockpit).
+Give it a time budget of its own, and never fold it into another story. It comes before the
+delivery, because `EXT-058` runs the same test once more against a running cockpit.
 
 The slice `actions` starts with the toolbar of `TL-029` and the selection of rows. Every action it
 builds is a tool of this toolbar and acts on the selected rows, also when only one row is selected.

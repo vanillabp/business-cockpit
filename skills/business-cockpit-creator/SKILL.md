@@ -220,8 +220,10 @@ The VanillaBP kit `@vanillabp/bc-module-kit` is the minimum every cockpit keeps,
 [references/types.md](references/types.md#the-vanillabp-kit-is-the-minimum). Its repository
 `vanillabp/business-cockpit-module-kit` has three conformance modules, one in React, one in Vue and
 one in Angular, and a browser test for them. The kit made these modules for this test, so they
-check exactly the criteria of its contract. Run that test as an end-to-end test of the UI
-repository, against the TypeScript simulator, see
+check exactly the criteria of its contract. The slice `conformance` of the plan builds them and
+runs this test in a story of its own, see
+[The fixed list of slices](references/working-in-stories.md#the-fixed-list-of-slices). Run that
+test as an end-to-end test of the UI repository, against the TypeScript simulator, see
 [references/project.md](references/project.md#the-simulators) (`EXT-040`). It passes for a cockpit
 with areas and for one without, because the conformance modules offer both.
 
@@ -549,7 +551,17 @@ reports to a cockpit. Its README says, under "Running it", which jars to install
 start it with a cockpit. Instead of the cockpit of its `docker-compose.yaml`, point it at your
 backend: the address of your cockpit and the user of `Q-BPMS-API-USER` go below
 `vanillabp.cockpit.rest` in its `application.yaml`, and the address of your cockpit into
-`<module>.cockpit.base-url`. Where a blueprint draws the title of a user task, it takes the text
+`<module>.cockpit.base-url`.
+
+Until their versions are released, the blueprints depend on snapshots: of VanillaBP, today
+`2.0.0-SNAPSHOT`, and of the Business Cockpit, today `1.0.0-SNAPSHOT`, the same snapshot as
+[What needs a newer cockpit](references/rough-edges.md#what-needs-a-newer-cockpit) names. Both are
+in the snapshot repository of Maven Central, `https://central.sonatype.com/repository/maven-snapshots/`,
+which needs no token. When the build of a blueprint does not find them, add this repository with
+snapshots enabled, for example in the `settings.xml` of Maven, and build again. Missing jars are no
+reason to leave `EXT-058` out.
+
+Where a blueprint draws the title of a user task, it takes the text
 of the user's language, so the blueprints load in your cockpit with any kit version. They are built against the VanillaBP kit `@vanillabp/bc-module-kit`, a
 small npm package in plain JavaScript from its own repository
 (`vanillabp/business-cockpit-module-kit`). It holds the minimum of the contract: the four data
