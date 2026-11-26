@@ -132,7 +132,9 @@ The backend repository is built with Maven or Gradle, as the user chooses in the
   `ui-uri-type` value, generated from the types library, so a workflow module reports the same
   values the user interface understands.
 - A `docker-compose.yaml` that starts what the application needs on a developer's machine:
-  MongoDB, Mailpit, Keycloak for an OIDC login, and Kafka with `Q-KAFKA`.
+  MongoDB, Mailpit, Keycloak for an OIDC login, and Kafka with `Q-KAFKA`. When the organisation
+  has no npm registry of its own yet (`Q-NPM-SCOPE`), it also starts a local Verdaccio registry for
+  the npm packages of the UI repository.
 
 When the organisation keeps a backend of its own, the skill does not create one. It tells the user
 which dependency to add, and the types jar comes from a small Maven or Gradle project of its own
@@ -147,6 +149,14 @@ The types jar reads the npm package of the types library, and the user interface
 files of the cockpit jars first. Inside the cockpit build that would be a circle. So the order of a
 release is: the cockpit release, the user interface, then the backend repository, see
 [references/project.md](references/project.md#where-the-types-jar-is-built).
+
+Between two releases the npm packages are snapshots. `package.json` holds a version like
+`1.0.0-SNAPSHOT`, and `npm run publish:snapshot` publishes `1.0.0-SNAPSHOT.0`, then
+`1.0.0-SNAPSHOT.1` and so on, see
+[references/project.md](references/project.md#snapshot-versions). A plain `mvn verify` of the
+backend needs no property: its types build reads the types library from the registry, or from the
+built UI repository next to it, see
+[references/project.md](references/project.md#where-the-types-build-finds-the-types-library).
 
 ## Phase 1: interview
 

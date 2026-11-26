@@ -67,8 +67,11 @@ the tests of a module. The generated user interface has its own copy of it as we
 your cockpit with the example modules of the VanillaBP kit, see
 [`../SKILL.md`](../SKILL.md#a-module-built-against-the-kit-loads-in-your-cockpit).
 
-The two VanillaBP packages are not on npmjs.com yet. Until they are, the blueprints install them
-from a local Verdaccio registry which passes every other package through from npmjs.com.
+The two VanillaBP packages are on npmjs.com, as pre-release versions until version 1.0 is
+published. The packages of the generated user interface go to the registry of `Q-NPM-SCOPE`. When
+the organisation has no registry of its own yet, they go to a local Verdaccio registry of the
+backend repository, which keeps the organisation's scope and passes every other package through
+from npmjs.com, see [project.md](project.md#the-local-registry).
 
 ## Data from the GUI API
 
@@ -318,7 +321,9 @@ is the user chosen in the simulator, from `GET /official-api/gui/api/v1/app/curr
 ## The module kit
 
 The module kit `<scope>/bc-module-kit` is the package a workflow module installs. It depends on the
-types library with the exact version of the workspace, and on nothing else. It holds:
+types library with the version of the workspace, and on nothing else: the range over its snapshots,
+or the exact version in a release, see
+[project.md](project.md#how-the-workspaces-depend-on-each-other). It holds:
 
 - every type and constant of the types library, exported again, so that a module imports from the
   kit only,

@@ -177,8 +177,8 @@ see [Planning](#planning-from-the-checklist-to-stories). The ids of the customer
 `CUST-001` and on, go into the last slice, `customer`.
 
 ```text
-project|The UI repository builds and tests itself|PKG-044, PKG-035, PKG-045, PKG-019, PKG-002, PKG-062, PKG-055, PKG-047, PKG-046, PKG-014, PKG-008, PKG-052, PKG-063, PKG-064, PKG-054
-backend|The backend starts and serves the user interface|BE-001, BE-024, BE-025, BE-002, BE-003, BE-014, BE-028, BE-012, BE-006, PKG-003, PKG-004, PKG-005, PKG-059, BE-031
+project|The UI repository builds and tests itself|PKG-044, PKG-035, PKG-045, PKG-019, PKG-002, PKG-062, PKG-055, PKG-047, PKG-046, PKG-066, PKG-067, PKG-014, PKG-008, PKG-052, PKG-063, PKG-064, PKG-054
+backend|The backend starts and serves the user interface|BE-001, PKG-068, BE-024, BE-025, BE-002, BE-003, BE-014, BE-028, BE-012, BE-035, BE-006, PKG-003, PKG-004, PKG-005, PKG-059, BE-031
 login|A user logs in and out|BE-005, BE-010, BE-011, BE-007, BE-008, BE-013, BE-017, BE-026, BE-027, BE-009, AUTH-002, AUTH-003, AUTH-004, AUTH-005, AUTH-006, AUTH-008, AUTH-001, AUTH-009, AUTH-010, AUTH-007, BE-032, BE-033, BE-034
 frame|The user sees the header and the menu|NAV-006, NAV-009, NAV-010, NAV-011, NAV-013, NAV-029, NAV-031, NAV-032, NAV-034, I18N-001, I18N-002, I18N-004, I18N-005, I18N-006
 settings|The settings of a user are kept on the server|SET-001, SET-002, SET-004, SET-005, SET-006
@@ -564,7 +564,7 @@ Started: 2026-11-19
 | Id  | Title | Status | Checklist ids | Check command |
 |-----|-------|--------|---------------|---------------|
 | S01 | The UI repository builds and tests itself (1 of 3) | done | PKG-044, PKG-035, PKG-045, PKG-019, PKG-002, PKG-062 | `sh plan/checks/S01.sh` |
-| S02 | The UI repository builds and tests itself (2 of 3) | done | PKG-055, PKG-047, PKG-046, PKG-014, PKG-008, PKG-052 | `sh plan/checks/S02.sh` |
+| S02 | The UI repository builds and tests itself (2 of 3) | done | PKG-055, PKG-047, PKG-046, PKG-066, PKG-067, PKG-014 | `sh plan/checks/S02.sh` |
 | S17 | A clerk sees the tasks waiting for them (3 of 3) | done | COL-017, COL-018, COL-019, COL-021, BE-020, TL-033 | `sh plan/checks/S17.sh` |
 | S18 | A clerk switches between open and closed tasks and sees the counts (1 of 2) | in-progress | TL-001, TL-002, TL-003, TL-005, TL-006, TL-009 | `sh plan/checks/S18.sh` |
 | S19 | A clerk switches between open and closed tasks and sees the counts (2 of 2) | open | TL-010, TL-021, TL-026, TL-028 | `sh plan/checks/S19.sh` |
@@ -664,15 +664,17 @@ A check of a story that changes the backend repository as well:
 ```sh
 #!/bin/sh
 set -e
+npm run build
 cd ../<backend repository>
 test -f application/src/test/java/<package path>/LoginIT.java
-mvn -B verify -Dbc-types.local=../<UI repository>/packages/bc-types
+mvn -B verify
 ```
 
-With Gradle (`Q-BUILD-TOOL`), the last line is
-`./gradlew build -Pbc-types.local=../<UI repository>/packages/bc-types`. The property is needed as
-long as the types library of this version is not in the npm registry, see
-[project.md](project.md#where-the-types-jar-is-built). Build the UI repository first.
+With Gradle (`Q-BUILD-TOOL`), the last line is `./gradlew build`. The script starts in the folder
+of the UI repository and builds it first. The types build then finds the types library in the UI
+repository next to the backend repository, without a property, see
+[project.md](project.md#where-the-types-build-finds-the-types-library). Only a UI repository in
+another folder needs `-Dbc-types.local=<its packages/bc-types folder>`.
 
 The check of the story "Every checklist item has a passing test":
 
