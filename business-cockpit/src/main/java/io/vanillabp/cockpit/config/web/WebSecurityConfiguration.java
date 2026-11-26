@@ -18,8 +18,8 @@ import io.vanillabp.cockpit.support.security.usercontext.UserDirectoryService;
 import io.vanillabp.cockpit.workflowmodules.GroupHierarchyService;
 
 /**
- * The parts of the login which belong to the library: the paths every security chain leaves open,
- * and the JWT (JSON Web Token) cookie a login is carried in.
+ * The parts of the login which belong to the library: the paths a security chain treats in a
+ * special way, and the JWT (JSON Web Token) cookie a login is carried in.
  * <p>
  * The library brings no security chain and no users. How a person or a BPMS adapter logs in is
  * the application's choice, so the application writes the chains. The module {@code container}
@@ -64,8 +64,14 @@ public class WebSecurityConfiguration {
       "/static/**");
 
   /**
-   * The requests the cockpit forwards to the user interfaces of the workflow modules. They are
-   * open to everybody, so the cockpit itself does not ask for a login here.
+   * The requests the cockpit forwards to the workflow modules: the files of their user interfaces
+   * and the calls of these user interfaces. They need the login of the cockpit, like the GUI API,
+   * although each workflow module checks the login once more. So nobody who is not logged in
+   * reaches a workflow module through the cockpit.
+   *
+   * <p>A chain does not open these paths. It names them where it answers a request without a
+   * login with 401 instead of a redirect to the login page. The browser loads a module's files
+   * with {@code fetch} and {@code import()}, and neither can do anything useful with a redirect.
    */
   public static final RequestMatcher workflowModulesProxyRequestMatcher = pathPattern(
       "/wm/**");

@@ -65,7 +65,7 @@ import jakarta.servlet.DispatcherType;
  * Both chains end in the same cookie, so the rest of the cockpit does not know which one logged
  * the user in. The logout of {@link LoginByOpenIdConnect} ends the session at the provider as
  * well, see {@link LogoutAtTheProvider}. The wiki page "Security" says what every chain has to
- * keep: the five open paths, the rule for a request dispatched again, the two JWT filters and the
+ * keep: the four open paths, the rule for a request dispatched again, the two JWT filters and the
  * {@link JwtSecurityContextRepository}. Neither chain is meant for
  * production as it is. The provider of the profile {@code local} and the password are for a
  * developer's machine.
@@ -81,10 +81,12 @@ public class GuiSecurityConfiguration {
   /**
    * The paths a program asks for and no person opens in the browser. A request without a login
    * gets 401 there. A redirect to the login page would not help a program: a {@code fetch} of the
-   * user interface or a BPMS adapter would follow it and fail at the provider.
+   * user interface or a BPMS adapter would follow it and fail at the provider. The proxy to the
+   * workflow modules is one of them, because the user interface loads a module's files with
+   * {@code fetch} and {@code import()}.
    */
   static final RequestMatcher API_REQUEST_MATCHER = new OrRequestMatcher(
-      pathPattern("/gui/api/**"), pathPattern("/bpms/api/**"));
+      pathPattern("/gui/api/**"), pathPattern("/bpms/api/**"), workflowModulesProxyRequestMatcher);
 
   /**
    * Creates the configuration. Spring creates it, because the component scan of the application
@@ -319,8 +321,10 @@ public class GuiSecurityConfiguration {
             // dispatch there is no login, and the check would only log an error
             .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR)
             .permitAll()
+            // open to everybody. The proxy to the workflow modules is not: each module checks the
+            // login itself, but the cockpit lets nobody through to a module who is not logged in
             .requestMatchers(appInfoRequestMatcher, currentUserRequestMatcher, assetsRequestMatcher,
-                staticRequestMatcher, workflowModulesProxyRequestMatcher)
+                staticRequestMatcher)
             .permitAll()
             // the actuator is for operations, not for the users of the cockpit. An application
             // which exposes an endpoint writes a chain of its own for it, with a lower order

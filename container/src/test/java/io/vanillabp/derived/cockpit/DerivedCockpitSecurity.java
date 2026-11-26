@@ -5,7 +5,6 @@ import static io.vanillabp.cockpit.config.web.WebSecurityConfiguration.assetsReq
 import static io.vanillabp.cockpit.config.web.WebSecurityConfiguration.currentUserRequestMatcher;
 import static io.vanillabp.cockpit.config.web.WebSecurityConfiguration.staticRequestMatcher;
 import static io.vanillabp.cockpit.config.web.WebSecurityConfiguration.updatesRequestMatcher;
-import static io.vanillabp.cockpit.config.web.WebSecurityConfiguration.workflowModulesProxyRequestMatcher;
 import static org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher.pathPattern;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -95,7 +94,7 @@ public class DerivedCockpitSecurity {
         .anonymous(AbstractHttpConfigurer::disable)
         .authorizeHttpRequests(requests -> requests
             .requestMatchers(appInfoRequestMatcher, currentUserRequestMatcher, assetsRequestMatcher,
-                staticRequestMatcher, workflowModulesProxyRequestMatcher)
+                staticRequestMatcher)
             .permitAll()
             .requestMatchers(pathPattern("/actuator/**"))
             .denyAll()
