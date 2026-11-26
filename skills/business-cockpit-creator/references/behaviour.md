@@ -95,6 +95,14 @@ shared and bookmarked, and that a link into the middle works. With more than one
 are translated by default, see [Translated paths](#translated-paths). The pages of a workflow module
 always have `/<workflowModuleId>/<pageId>`, see [Extension points](#extension-points).
 
+The cockpit changes its screen inside the running application. A menu entry, a link, the back and
+forward buttons of the browser and every action that leads to another screen use the router of the
+framework, which works with the history API of the browser (`history.pushState`). None of them
+loads a page. Only a link that opens a new tab, such as the task tab or "open in new tab", loads
+the application. Build this with the frame, from its first story on. A menu that reloads the page
+hides leaks: the measurement of `SRCH-018` then never sees the list unmounted, because the
+browser throws the whole page away (`NAV-034`).
+
 Often there is more:
 
 - A dashboard as the start page (`Q-DASHBOARD`). What it shows is up to the organisation. An example:
@@ -1514,9 +1522,11 @@ memory test below reads the heap once, at the end, and that does not catch it. S
 - Leaving the list frees what it held. A service or store that lives longer than the list empties
   its rows and its load options when the list closes. Opening the list again adds no second
   subscription on top of the first. The base of this check is the memory after the user has left
-  the list once, not before the list first opened. The first visit loads code that stays on
-  purpose: the parts of the modules, the generated client, the texts. So open and leave the list
-  once, measure, then open and leave it again and measure once more (`SRCH-018`).
+  the list once, not before the list first opened. The user leaves the list inside the page, by a
+  menu entry or a link, never by a reload, see [The screens](#the-screens). The first visit loads
+  code that stays on purpose: the parts of the modules, the generated client, the texts. So open
+  and leave the list once, measure, then open and leave it again and measure once more
+  (`SRCH-018`).
 - A row draws as few components as it can. Each component in a row is created and destroyed
   thousands of times while the user scrolls. A tooltip, a checkbox or a skeleton is cheap once and
   expensive ten thousand times. Create such a component when it is needed, for example on

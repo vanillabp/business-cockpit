@@ -177,7 +177,7 @@ see [Planning](#planning-from-the-checklist-to-stories). The ids of the customer
 project|The UI repository builds and tests itself|PKG-044, PKG-035, PKG-045, PKG-019, PKG-002, PKG-062, PKG-055, PKG-047, PKG-046, PKG-014, PKG-008, PKG-052, PKG-063, PKG-064, PKG-054
 backend|The backend starts and serves the user interface|BE-001, BE-024, BE-025, BE-002, BE-003, BE-014, BE-028, BE-012, BE-006, PKG-003, PKG-004, PKG-005, PKG-059, BE-031
 login|A user logs in and out|BE-005, BE-010, BE-011, BE-007, BE-008, BE-013, BE-017, BE-026, BE-027, BE-009, AUTH-002, AUTH-003, AUTH-004, AUTH-005, AUTH-006, AUTH-008, AUTH-001, AUTH-009, AUTH-010, AUTH-007, BE-032, BE-033, BE-034
-frame|The user sees the header and the menu|NAV-006, NAV-009, NAV-010, NAV-011, NAV-013, NAV-029, NAV-031, NAV-032, I18N-001, I18N-002, I18N-004, I18N-005, I18N-006
+frame|The user sees the header and the menu|NAV-006, NAV-009, NAV-010, NAV-011, NAV-013, NAV-029, NAV-031, NAV-032, NAV-034, I18N-001, I18N-002, I18N-004, I18N-005, I18N-006
 settings|The settings of a user are kept on the server|SET-001, SET-002, SET-004, SET-005, SET-006
 task-list|A clerk sees the tasks waiting for them|BE-004, NAV-001, NAV-002, TL-008, TL-012, TL-013, TL-015, TL-016, TL-018, TL-024, TL-032, COL-015, COL-017, COL-018, COL-019, COL-021, BE-020, TL-033
 status-line|A clerk switches between open and closed tasks and sees the counts|TL-001, TL-002, TL-003, TL-005, TL-006, TL-009, TL-010, TL-021, TL-026, TL-028
