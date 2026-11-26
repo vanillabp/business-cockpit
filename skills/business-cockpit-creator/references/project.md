@@ -51,6 +51,7 @@ answers of `Q-BUILD-TOOL`.
 package.json                  the workspace root: the list of workspaces, the scripts
                               that build everything, no dependencies of the code
 package-lock.json             the one lock file of all workspaces
+.npmrc                        points the organisation's scope to its npm registry
 renovate.json                 groups the updates of a framework across the workspaces
 INTERVIEW.md                  the answers of the interview
 CHECKLIST.md                  the checklist, see ../SKILL.md
@@ -69,9 +70,11 @@ scripts/
   fetch-openapi.mjs           loads the OpenAPI files from the jars of the cockpit
   check-texts.mjs             fails the build when a language file misses a key
   set-version.mjs             writes one version into every workspace
+  publish-snapshot.mjs        publishes a snapshot with the next counter
+  publish-release.mjs         publishes a release version as it is
 jars/
   build-jars.mjs              builds the UI jar
-  publish-jars.mjs            uploads it into the Maven repository
+  publish-jars.mjs            uploads a release into the Maven repository, installs a snapshot locally
 docker/
   Dockerfile                  the nginx image for a separate deployment
   nginx.conf.template
@@ -183,17 +186,22 @@ its own dependencies, so a dev shell for Vue never pulls React into the user int
 
 ### How the workspaces depend on each other
 
-A workspace names another workspace as an ordinary dependency, with the exact version of that
-workspace. The module kit names the types library, the host names the kit, and the user interface
-names the host, the kit and the theme:
+A workspace names another workspace as an ordinary dependency. The module kit names the types
+library, the host names the kit, and the user interface names the host, the kit and the theme.
+Between two releases the version is a snapshot such as `1.4.0-SNAPSHOT`, and a workspace names the
+others with a range over the snapshots of that version:
 
 ```json
 "dependencies": {
-  "<scope>/bc-module-host": "1.4.0",
-  "<scope>/bc-module-kit": "1.4.0",
-  "<scope>/bc-theme": "1.4.0"
+  "<scope>/bc-module-host": ">=1.4.0-SNAPSHOT <1.4.1",
+  "<scope>/bc-module-kit": ">=1.4.0-SNAPSHOT <1.4.1",
+  "<scope>/bc-theme": ">=1.4.0-SNAPSHOT <1.4.1"
 }
 ```
+
+In a release, the same dependencies name the exact version, `"1.4.0"`. `scripts/set-version.mjs`
+writes the one or the other, see
+[One version, each package published on its own](#one-version-each-package-published-on-its-own).
 
 |         Workspace          |            Names these workspaces             |
 |----------------------------|-----------------------------------------------|
@@ -204,11 +212,19 @@ names the host, the kit and the theme:
 | `ui`                       | `bc-module-host`, `bc-module-kit`, `bc-theme` |
 | `bc-dev-shell-<framework>` | `bc-module-kit`, `bc-theme`                   |
 
-npm sees that a workspace has this name and version, and links it instead of downloading it. So
-every workspace builds against the others of the same commit. npm has no `workspace:` protocol like
-pnpm or Yarn. The version must match exactly, or npm downloads the package from the registry. When
-a workflow module installs the published kit, npm takes the published `bc-types` of the same
-version along with it.
+npm sees that a workspace has this name and a version that matches, and links it instead of
+downloading it. So every workspace builds against the others of the same commit. npm has no
+`workspace:` protocol like pnpm or Yarn. The version of the workspace must match the dependency, or
+npm downloads the package from the registry.
+
+The range matches the snapshots because of a rule of semver, the versioning rules npm follows. A
+pre-release version, one with a `-` after `X.Y.Z`, matches a range only when a comparator of the
+range names the same `X.Y.Z` with a pre-release tag. `>=1.4.0-SNAPSHOT` does that. So
+`1.4.0-SNAPSHOT`, `1.4.0-SNAPSHOT.0` and `1.4.0-SNAPSHOT.7` all match, and `1.4.0` does as well.
+A pre-release of another version, such as `1.4.1-SNAPSHOT.0`, does not. When a workflow module
+installs a published snapshot of the kit, npm takes the newest published snapshot of `bc-types` of
+the same `X.Y.Z` along with it. With a release of the kit, it takes `bc-types` of exactly that
+version.
 
 ### The order of the build
 
@@ -229,20 +245,112 @@ order, and the root script `build` calls it:
 
 ### One version, each package published on its own
 
-All workspaces have the same version, the one in the root `package.json`. `scripts/set-version.mjs`
-writes the new version into every `package.json` and into the dependencies between the
-workspaces, then runs `npm install` so that the lock file follows. The Git tag is made from that
-version.
+All workspaces have the same version, the one in the root `package.json`. Between two releases it
+is a snapshot, for example `1.4.0-SNAPSHOT`. `scripts/set-version.mjs` writes a new version into
+every `package.json` and into the dependencies between the workspaces, then runs `npm install` so
+that the lock file follows. For a version that ends in `-SNAPSHOT` it writes the range
+`">=1.4.0-SNAPSHOT <1.4.1"` into the dependencies, for a release version the exact version
+`"1.4.0"`, see [How the workspaces depend on each other](#how-the-workspaces-depend-on-each-other).
+A release is made like this: `set-version.mjs 1.4.0`, commit, Git tag `1.4.0`,
+`npm run publish:release`, then `set-version.mjs 1.4.1-SNAPSHOT` and commit again.
 
-Each package is published on its own, `npm publish --workspace packages/bc-types` and so on, or all
-at once with `npm publish --workspaces`. Publish in the order of the build: the types library, the
-module kit, the module host, the theme, then the dev shells. Each one needs the packages before it
-in the registry. `packages/ui`, `e2e/compare` and the root have `"private": true`, so npm never
-publishes them.
-The user interface leaves the repository as the UI jar and the nginx image, not as an npm package.
+Each package is published on its own, in the order of the build: the types library, the module
+kit, the module host, the theme, then the dev shells. Each one needs the packages before it in the
+registry. `packages/ui`, `e2e/compare` and the root have `"private": true`, so npm never publishes
+them. The user interface leaves the repository as the UI jar and the nginx image, not as an npm
+package. Two root scripts publish:
+
+- `npm run publish:snapshot` builds and publishes a snapshot, see
+  [Snapshot versions](#snapshot-versions).
+- `npm run publish:release` builds and publishes a release version as it is, with the dist-tag
+  `latest`. It stops with a message when the version ends in `-SNAPSHOT`, and npm itself refuses a
+  version that is in the registry already. A version for trying something out, such as
+  `1.4.0-snapshot.7` (see
+  [Uploading the UI jar into the Maven repository](#uploading-the-ui-jar-into-the-maven-repository)),
+  is published as it is too, but with the dist-tag `next`, so `latest` stays on the newest
+  release.
 
 The packages go to the npm registry of the interview (`Q-NPM-SCOPE`), under the organisation's
-scope. So they never clash with the VanillaBP packages on npmjs.com.
+scope. So they never clash with the VanillaBP packages on npmjs.com. The `.npmrc` at the root of
+the UI repository points only this scope to that registry. Every other package still comes from
+`https://registry.npmjs.org`:
+
+```ini
+<scope>:registry=https://npm.example.com/
+```
+
+When the interview names no registry of its own, or the scope is still a placeholder, the scope
+points to the local registry of the backend repository instead, see
+[The local registry](#the-local-registry):
+
+```ini
+<scope>:registry=http://localhost:4873/
+//localhost:4873/:_authToken=local-only
+```
+
+The local registry takes any token. The second line is there only because `npm publish` refuses to
+run without one. It is no secret, and it works only on the developer's machine.
+
+### Snapshot versions
+
+`package.json` holds a version like `1.4.0-SNAPSHOT` between two releases. A version in the
+registry is never published twice, so a snapshot gets a counter: `1.4.0-SNAPSHOT.0`,
+`1.4.0-SNAPSHOT.1` and so on. `npm run publish:snapshot` runs `npm run build` and then
+`scripts/publish-snapshot.mjs`. The script does this:
+
+1. It reads the version of the root `package.json`. When the version does not end in `-SNAPSHOT`,
+   it stops and names `npm run publish:release`. Only a version that ends in `-SNAPSHOT` gets a
+   counter.
+2. It asks the registry for the versions of every package it publishes, with
+   `npm view <package> versions --json`. When the registry answers 404 (`E404`), the package is
+   not there yet, and the package has no versions.
+3. It picks the highest `1.4.0-SNAPSHOT.N` of these versions, with the package `semver`, over all
+   packages together. Release versions and snapshots of another `X.Y.Z` do not count. The new
+   version is `1.4.0-SNAPSHOT.<N+1>`. When there is no such version, because the registry does not
+   know the package, knows only release versions, or this is the first snapshot of `1.4.0`, the
+   counter is `0`. So the first snapshot is `1.4.0-SNAPSHOT.0`. Taking the highest counter over
+   all packages keeps them on one version, also after a run that stopped half way.
+4. It keeps the content of every `package.json` and of `package-lock.json`, then sets the new
+   version with `npm version 1.4.0-SNAPSHOT.<N> --no-git-tag-version --workspaces`. The ranges
+   between the workspaces stay as they are, because they match the new version.
+5. It publishes each package in the order of the build, with
+   `npm publish --workspace <folder> --tag snapshot`. The dist-tag `snapshot` keeps `latest` on
+   the newest release, so nobody gets a snapshot without asking for it.
+6. It writes the kept files back, also when a publish fails. Git stays clean, and `package.json`
+   holds `1.4.0-SNAPSHOT` again.
+
+With `Q-HOSTING` `embedded`, the script then installs the UI jar of the same snapshot into the
+local Maven repository of the developer, with `node jars/publish-jars.mjs --local`, see
+[A snapshot of the UI jar goes into the local Maven repository](#a-snapshot-of-the-ui-jar-goes-into-the-local-maven-repository).
+So after `npm run publish:snapshot` the backend finds both: the types library in the registry and
+the UI jar in the local Maven repository.
+
+The script never unpublishes a version. A workflow module that wants the newest snapshot asks for
+`<scope>/bc-module-kit@snapshot`, or names the range `">=1.4.0-SNAPSHOT <1.4.1"`.
+
+### The local registry
+
+A workflow module installs `<scope>/bc-module-kit`, `<scope>/bc-theme` and a dev shell from the
+registry, and the types build of the backend reads `<scope>/bc-types` from it. Before the
+organisation has a registry of its own, or while `Q-NPM-SCOPE` is a placeholder, nothing would be
+there. So the backend repository brings a local npm registry: a Verdaccio service in its
+`docker-compose.yaml` on port 4873, see
+[backend.md](backend.md#the-local-npm-registry). It keeps the packages of the organisation's scope
+and passes every other package through from npmjs.com. With a backend of the organisation's own,
+the types module brings the same service in a `docker-compose.yaml` of its own, see
+[The types jar](#the-types-jar). With a registry of its own, there is no such service, and
+everything below goes to that registry instead.
+
+The flow on one machine, which the `README.md` of both repositories names:
+
+1. `docker compose up` in the backend repository. It starts Verdaccio with the rest.
+2. `npm ci` and `npm run publish:snapshot` in the UI repository. The packages are now in the local
+   registry. With `Q-HOSTING` `embedded`, the UI jar of the same snapshot is now in the local Maven
+   repository.
+3. The backend repository builds. Its types build finds `<scope>/bc-types` in the registry, and its
+   module `application` finds the UI jar in the local Maven repository. A workflow module on the
+   same machine installs the module kit and the theme from the registry, with the same `.npmrc`
+   line for the scope.
 
 ### Renovate
 
@@ -357,7 +465,9 @@ So that a release of the backend works, with Maven or with Gradle:
 - The script uploads release versions only, like `1.4.0`. The Maven release plugin refuses a
   dependency with `-SNAPSHOT`. A Gradle release should not depend on one either, because a
   snapshot can change under the same version. A snapshot would also need time-stamped file names
-  and its own `maven-metadata.xml`, which the script would have to write.
+  and its own `maven-metadata.xml`, which the script would have to write. A snapshot goes into the
+  local Maven repository only, see
+  [A snapshot of the UI jar goes into the local Maven repository](#a-snapshot-of-the-ui-jar-goes-into-the-local-maven-repository).
 - A release version is uploaded once. Before the upload the script asks with `HEAD` for the jar.
   If it is there, the script stops with a message. It never overwrites a release.
 - A build for trying something out gets a version of its own, for example `1.4.0-snapshot.7`. Only
@@ -371,9 +481,55 @@ So that a release of the backend works, with Maven or with Gradle:
   A plain WebDAV server does not; there the script also writes that file. Check this with your
   repository once, before the first release.
 
-The npm scripts call this: `npm run build:jars` and `npm run publish:jars`. `npm publish` of the npm
-workspaces runs next to it, with the same version. The types library must be published before the
-types jar is built, see [The types jar](#the-types-jar).
+The npm scripts call this: `npm run build:jars` and `npm run publish:jars`. `npm run publish:release`
+of the npm workspaces runs next to it, with the same version. The types library must be published
+before the types jar of a release is built, see [The types jar](#the-types-jar).
+
+### A snapshot of the UI jar goes into the local Maven repository
+
+With `Q-HOSTING` `embedded` and a `ui.version` such as `1.4.0-SNAPSHOT`, the module `application`
+of the backend needs the UI jar in that version. The remote Maven repository never gets a snapshot,
+so the jar comes from the local Maven repository of the developer, the folder
+`.m2/repository` in the home directory. Nothing is copied from the UI repository into the backend.
+
+`node jars/publish-jars.mjs --local` installs the UI jar there, and `npm run publish:snapshot` runs
+it after the npm packages are published. It writes the files a `mvn install` would write, so the UI
+repository needs no Maven:
+
+```
+~/.m2/repository/<group as path>/<artifactId>/maven-metadata-local.xml
+~/.m2/repository/<group as path>/<artifactId>/1.4.0-SNAPSHOT/<artifactId>-1.4.0-SNAPSHOT.jar
+~/.m2/repository/<group as path>/<artifactId>/1.4.0-SNAPSHOT/<artifactId>-1.4.0-SNAPSHOT.pom
+~/.m2/repository/<group as path>/<artifactId>/1.4.0-SNAPSHOT/maven-metadata-local.xml
+~/.m2/repository/<group as path>/<artifactId>/1.4.0-SNAPSHOT/_remote.repositories
+```
+
+- The version is the one of the root `package.json`, `1.4.0-SNAPSHOT`, without the counter of the
+  npm packages. The backend names exactly this version in `ui.version`.
+- The jar and the pom are the ones `npm run build:jars` built. A new install overwrites the files of
+  the same snapshot, as `mvn install` does.
+- The `maven-metadata-local.xml` in the folder of the version marks the snapshot as a local copy
+  (`<localCopy>true</localCopy>`), with the time of the install in `lastUpdated` and one
+  `snapshotVersion` each for the jar and the pom. The one in the folder of the artifact lists the
+  versions. The script adds the version there and keeps the versions that are there already.
+- `_remote.repositories` names the jar and the pom with an empty repository id
+  (`<artifactId>-1.4.0-SNAPSHOT.jar>=`). So Maven treats them as installed locally and never asks a
+  remote repository for them.
+- The option `--local` refuses a version that does not end in `-SNAPSHOT`. A release goes into the
+  Maven repository of `Q-MAVEN-REPOSITORY`, never into the local one.
+
+Maven reads the local Maven repository without any configuration. With Gradle, the build file of
+`application` adds it for the group of `Q-UI-JAR` only, and only for as long as `ui.version` is a
+snapshot:
+
+```kotlin
+repositories {
+    mavenLocal { content { includeGroup("<group of Q-UI-JAR>") } }
+}
+```
+
+With `Q-HOSTING` `behind` or `in-front`, the backend takes no UI jar, so the script installs
+nothing into the local Maven repository.
 
 ## The nginx image
 
@@ -590,47 +746,100 @@ It is built like this:
 
 1. The UI repository decides the list. The types library carries it as `ui-uri-types.json`, see
    [types.md](types.md#data-from-the-gui-api).
-2. The build downloads the npm package `<scope>/bc-types` from the npm registry. In the backend
-   repository it takes the version in `ui.version`, the same version as the UI jar. A tarball is a
-   plain file, so a plain download needs no npm. With Maven, use for example
-   `download-maven-plugin`. With Gradle, use for example the plugin `de.undercouch.download`.
-3. A short build step writes `UiUriTypes.java` from `ui-uri-types.json`, one constant per entry,
+2. A small Java program of the build, `src/build/WriteUiUriTypes.java`, reads that file from the
+   npm registry, see
+   [Where the types build finds the types library](#where-the-types-build-finds-the-types-library).
+   Nothing is copied from the UI repository into the backend.
+   In the backend repository it looks for the version in `ui.version`, the same version as the UI
+   jar.
+3. The same program writes `UiUriTypes.java` from `ui-uri-types.json`, one constant per entry,
    with the description as Javadoc. The build compiles it as usual.
 4. In the backend repository the types jar has the version of the backend. It holds the values of
    the user interface that this backend serves, so a workflow module takes the types jar of the
    cockpit it reports to. The types module of its own has the version of the types library
    instead: `1.4.0` of the jar holds the values of `1.4.0` of the user interface.
 
-The download works only once the types library of that version is in the npm registry. Before
-that, for example while `Q-NPM-SCOPE` is a placeholder or before the first release, the registry
-answers 404. `download-maven-plugin` logs a warning first, `Invalid cookie header:
-"set-cookie: __cf_bm=..."`. That warning is harmless: the registry sends this cookie with every
-answer, a 404 too, and the plugin cannot read its date. The error that counts is the next line.
+With Maven, `exec-maven-plugin`, pinned to a version, runs the program in the phase
+`generate-sources`. Java starts a single source file without compiling it first, so the program
+needs no build of its own. `build-helper-maven-plugin` adds the folder it writes to the sources:
 
-So the types build has a second way, for builds on one machine: a property `bc-types.local` names
-the folder of the types library in a built checkout of the UI repository, the folder that holds
-`ui-uri-types.json` as the package does. A profile that the property switches on skips the download
-(`<skip>true</skip>` of `download-maven-plugin`; with Gradle, a condition on the download task) and
-lets the step that writes `UiUriTypes.java` read the file from that folder. The `README.md` names
-both ways, and says that a release always takes the registry.
-
-As long as the types library of the version in `ui.version` is not in the registry, every build of
-the backend repository needs the property, `mvn verify` included:
-
-```bash
-mvn verify -Dbc-types.local=../<UI repository>/packages/bc-types
-./gradlew build -Pbc-types.local=../<UI repository>/packages/bc-types
+```xml
+<execution>
+  <id>write-ui-uri-types</id>
+  <phase>generate-sources</phase>
+  <goals>
+    <goal>exec</goal>
+  </goals>
+  <configuration>
+    <executable>${java.home}/bin/java</executable>
+    <arguments>
+      <argument>${project.basedir}/src/build/WriteUiUriTypes.java</argument>
+      <argument>--package=<scope>/bc-types</argument>
+      <argument>--version=${ui.version}</argument>
+      <argument>--registry=${bc-types.registry}</argument>
+      <argument>--java-package=<package of Q-TYPES-JAR></argument>
+      <argument>--target=${project.build.directory}/generated-sources/ui-uri-types</argument>
+    </arguments>
+  </configuration>
+</execution>
 ```
 
-Build the UI repository first, so the folder holds `ui-uri-types.json`. The check scripts of the
-plan do the same, see [working-in-stories.md](working-in-stories.md#a-check-script-plancheckss18sh).
+With Gradle, a task `writeUiUriTypes` of the type `Exec` runs the same program with the `java` of
+the toolchain, before `compileJava`, and the folder it writes is added to the main source set.
+The property is a Gradle property there, `-Pbc-types.registry=...`.
+
+The program uses the JDK only: `java.net.http.HttpClient` for the registry, `GZIPInputStream` and a
+few lines that read the headers of the tar file for the tarball. It reads the JSON of the registry
+the same way it reads `ui-uri-types.json`. It does not need npm, and it needs no plugin that
+downloads files. Such a plugin knows only one fixed address, so it cannot find the newest snapshot.
+
+### Where the types build finds the types library
+
+The types build reads the types library from the npm registry, and from nowhere else. A plain
+`mvn verify` or `./gradlew build` needs no property, as long as the registry has the version.
+
+The address of the registry is the property `bc-types.registry`. Its default is the registry of
+`Q-NPM-SCOPE`, or `http://localhost:4873`, the local registry of the `docker-compose.yaml`, when the
+interview names none or the scope is a placeholder, see [The local registry](#the-local-registry).
+The program reads the package document, the same one `npm view` reads: `GET <registry>/<package>`,
+with the `/` of the scope written as `%2f`.
+
+- For a `ui.version` that ends in `-SNAPSHOT`, it takes the version the dist-tag `snapshot` names,
+  as long as that is a snapshot of the same `X.Y.Z`. Otherwise it takes the highest
+  `X.Y.Z-SNAPSHOT.N` of the list of versions.
+- For any other `ui.version`, it takes exactly that version.
+
+It downloads the tarball the document names for that version (`dist.tarball`) and reads
+`package/ui-uri-types.json` from it. It waits a few seconds at most for an answer. When the
+registry of the interview asks for a login to read, the program sends the token from the
+environment variable `Q-NPM-SCOPE` names, and never writes it into the log.
+
+The program writes one line into the build log which names the registry and the version it took.
+
+When the registry does not answer, answers 404 or has no fitting version, the build ends with a
+message. It names what was asked and the way out, step by step, with the folders of this project.
+With the local registry, for example:
+
+```
+The types library @example/bc-types 1.4.0-SNAPSHOT was not found.
+  Registry http://localhost:4873: no answer (connection refused).
+Publish a snapshot into the local registry, then build again:
+  1. docker compose up -d                 (in this repository, starts the local registry)
+  2. npm ci && npm run publish:snapshot   (in ../cockpit-ui)
+```
+
+With a registry of its own, step 1 is left out, and the message names that registry and the
+environment variable of the token instead. A release of the backend takes a release version of the
+types library, which `npm run publish:release` put into the registry before.
 
 The types module of its own, when the skill creates no backend, has few files (`Q-TYPES-JAR`):
 
 ```
-pom.xml                       with Maven: downloads the tarball, writes and compiles UiUriTypes.java
+pom.xml                       with Maven: runs WriteUiUriTypes.java and compiles UiUriTypes.java
 settings.gradle.kts           with Gradle, instead of pom.xml: the name of the project
-build.gradle.kts              with Gradle: downloads the tarball, writes and compiles UiUriTypes.java
+build.gradle.kts              with Gradle: runs WriteUiUriTypes.java and compiles UiUriTypes.java
+src/build/WriteUiUriTypes.java  finds ui-uri-types.json and writes UiUriTypes.java
+docker-compose.yaml           only the local npm registry, when there is no registry of its own
 README.md                     the order of the builds and why
 ```
 
@@ -645,6 +854,9 @@ says, in the words of the project:
   interface (npm), then the backend repository (Maven or Gradle, the types jar and the
   application). With a backend of the organisation's own: the cockpit release, then the user
   interface, then the types module (Maven or Gradle, reads the npm tarball), then the backend.
+- The flow on one machine: `docker compose up`, `npm run publish:snapshot` in the UI repository,
+  then the build of this repository. The types build reads the types library from the registry
+  only. See [The local registry](#the-local-registry).
 
 ## Testing without Java
 
@@ -767,7 +979,9 @@ version of the user interface, because both sides of a contract change together.
 `<scope>/bc-module-kit` is what a workflow module installs to build its parts. It is the cockpit's
 own copy of the VanillaBP kit `@vanillabp/bc-module-kit`, see
 [Why the cockpit has its own module kit and host](#why-the-cockpit-has-its-own-module-kit-and-host).
-Its one dependency is `<scope>/bc-types`, with the exact version of the workspace. It has no peer
+Its one dependency is `<scope>/bc-types`, with the version of the workspace: the range over its
+snapshots, or the exact version in a release, see
+[How the workspaces depend on each other](#how-the-workspaces-depend-on-each-other). It has no peer
 dependencies, and it depends on no loading library.
 
 It holds the runtime code a module needs: `defineBcElement`, `elementPrefix` and
@@ -852,7 +1066,11 @@ with the same styles and the same elements around each part, see
   [`../SKILL.md`](../SKILL.md#phase-2-generate).
 - `plan/`, the plan of the work in stories, with the questions that came up and the defaults taken,
   see [working-in-stories.md](working-in-stories.md#the-files-of-the-plan).
-- A `README.md` that says how to build, how to publish, how to run against a cockpit, how to
+- A `README.md` that says how to build, how to publish, with `npm run publish:snapshot` and
+  `npm run publish:release` and the registry they publish to, with `embedded` that
+  `npm run publish:snapshot` also installs the UI jar of the snapshot into the local Maven
+  repository, the flow on one machine with the
+  local registry, see [The local registry](#the-local-registry), how to run against a cockpit, how to
   develop against the backend with the dev server, see
   [Developing against the backend](#developing-against-the-backend), how to run the nginx image and
   how to run the end-to-end tests.

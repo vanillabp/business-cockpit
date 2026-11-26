@@ -52,7 +52,8 @@ about the framework. `Q-BACKEND-FRAMEWORK` is Spring Boot whenever the skill cre
 ```
 pom.xml                         the parent: versions, the cockpit's BOM, the two modules
 types/
-  pom.xml                       downloads <scope>/bc-types, writes and compiles UiUriTypes.java
+  pom.xml                       runs WriteUiUriTypes.java, compiles UiUriTypes.java
+  src/build/WriteUiUriTypes.java  finds <scope>/bc-types and writes UiUriTypes.java
 application/
   pom.xml                       business-cockpit, the UI jar, the optional starters
   src/main/java/<package>/
@@ -70,9 +71,12 @@ application/
     application-ui-dev-server.yaml  the address of the dev server of the user interface
   src/test/java/<package>/      the test that starts the application, the integration tests
                                 and the simulator they use
-docker-compose.yaml             MongoDB, Mailpit, Keycloak for Q-LOGIN-KIND oidc, Kafka for Q-KAFKA
+docker-compose.yaml             MongoDB, Mailpit, Keycloak for Q-LOGIN-KIND oidc, Kafka for Q-KAFKA,
+                                Verdaccio without an npm registry of its own
 keycloak/
   realm.json                    the realm Keycloak imports at the start, for Q-LOGIN-KIND oidc
+verdaccio/
+  config.yaml                   the local npm registry, when it runs
 README.md                       how to start it, and the order of the builds
 ```
 
@@ -121,8 +125,10 @@ clients of its own names them, with their versions, in its own POM.
 Pin `spring-boot-maven-plugin` to `${spring-boot.version}`, because a BOM gives no plugin a
 version and no `spring-boot-starter-parent` does either. The parent also sets the Java version of
 `Q-JAVA-VERSION` and the property `ui.version`, the version of the user interface. Both modules
-read `ui.version`: `types` downloads `<scope>/bc-types` of that version, and `application` takes
-the UI jar of that version.
+read `ui.version`: `types` reads `<scope>/bc-types` of that version, and `application` takes the
+UI jar of that version. The module `types` has one property more, `bc-types.registry`, with a
+default that needs no change on a developer's machine, see
+[project.md](project.md#where-the-types-build-finds-the-types-library).
 
 The library depends on `com.phactum.mongodb:mongodb-changesets`, and the BOM pins the version the
 cockpit is built with. Its releases and its snapshots both come from Maven Central, so neither asks
@@ -143,7 +149,7 @@ so a build agent needs a JDK and nothing else:
 settings.gradle.kts             the two modules: include("types", "application")
 build.gradle.kts                what both modules share: the group, the version, the Java version
 gradle.properties               business-cockpit.version and ui.version
-types/build.gradle.kts          downloads <scope>/bc-types, writes and compiles UiUriTypes.java
+types/build.gradle.kts          runs WriteUiUriTypes.java, compiles UiUriTypes.java
 application/build.gradle.kts    business-cockpit, the UI jar, the optional starters
 gradlew, gradle/wrapper/        the Gradle wrapper
 ```
@@ -167,6 +173,9 @@ What [The parent pom](#the-parent-pom) says for Maven looks like this with Gradl
   `java { toolchain { languageVersion = JavaLanguageVersion.of(25) } }`.
 - The snapshot repository of Maven Central is in `repositories` only for as long as
   `Q-COCKPIT-VERSION` is a snapshot.
+- With `embedded`, `mavenLocal()` is in `repositories` of `application`, limited to the group of
+  `Q-UI-JAR`, only for as long as `ui.version` is a snapshot, see
+  [project.md](project.md#a-snapshot-of-the-ui-jar-goes-into-the-local-maven-repository).
 
 Where this page names the `pom.xml` of a module, take its `build.gradle.kts`. `./gradlew build`
 builds both modules, and `./gradlew :application:bootRun` starts the application.
@@ -177,7 +186,9 @@ The module `application` depends on:
 
 - `io.vanillabp.businesscockpit:business-cockpit`, without a version, from the BOM,
 - the UI jar of `Q-UI-JAR` in the version `ui.version`, with scope `runtime`, when `Q-HOSTING` is
-  `embedded`,
+  `embedded`. A snapshot version comes from the local Maven repository, where
+  `npm run publish:snapshot` of the UI repository installs it, see
+  [project.md](project.md#a-snapshot-of-the-ui-jar-goes-into-the-local-maven-repository),
 - `spring-boot-starter-security-oauth2-client` when `Q-LOGIN-KIND` is `oidc`. The older name
   `spring-boot-starter-oauth2-client` is deprecated,
 - `spring-kafka` and `io.vanillabp.businesscockpit:bpms-protobuf-api`, without a version, when
@@ -984,12 +995,13 @@ One `docker compose up` starts everything the application needs on a developer's
 `development/docker-compose.yaml` of the `business-cockpit` repository is the template for the
 first three:
 
-| Service  |                Image                 |                                      Why                                       |                    When                     |
-|----------|--------------------------------------|--------------------------------------------------------------------------------|---------------------------------------------|
-| MongoDB  | `mongo`, the version of the template | the storage; a replica set, because change streams and the changesets need one | always                                      |
-| Kafka    | `apache/kafka`, in KRaft mode        | the reports of the workflow modules, when they come through Kafka              | only with `Q-KAFKA`                         |
-| Mailpit  | `axllent/mailpit`                    | catches the notification e-mails, web interface on port 8025                   | always; the application sends with `Q-MAIL` |
-| Keycloak | `quay.io/keycloak/keycloak`          | the OIDC provider, with the realm of `keycloak/` imported at the start         | `Q-LOGIN-KIND` is `oidc`                    |
+|  Service  |                Image                 |                                                         Why                                                         |                                   When                                    |
+|-----------|--------------------------------------|---------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| MongoDB   | `mongo`, the version of the template | the storage; a replica set, because change streams and the changesets need one                                      | always                                                                    |
+| Kafka     | `apache/kafka`, in KRaft mode        | the reports of the workflow modules, when they come through Kafka                                                   | only with `Q-KAFKA`                                                       |
+| Mailpit   | `axllent/mailpit`                    | catches the notification e-mails, web interface on port 8025                                                        | always; the application sends with `Q-MAIL`                               |
+| Keycloak  | `quay.io/keycloak/keycloak`          | the OIDC provider, with the realm of `keycloak/` imported at the start                                              | `Q-LOGIN-KIND` is `oidc`                                                  |
+| Verdaccio | `verdaccio/verdaccio`                | the local npm registry for the packages of the UI repository, see [The local npm registry](#the-local-npm-registry) | `Q-NPM-SCOPE` names no registry of its own, or its scope is a placeholder |
 
 Pin every image to a version. MongoDB runs as a single-node replica set. Start it with
 `--replSet` and initiate the set in a health check or a setup container, so nobody has to type
@@ -1025,6 +1037,60 @@ visibilities out. The `README.md` tells the developer to add test users with dif
 `realm.json`, for example one per group of `Q-VISIBLE-GROUPS` and `Q-SUB-LISTS`, and to start
 Keycloak again with an empty volume, so the realm is imported again. These users and the secret are
 for a developer's machine only, and the `README.md` says that too.
+
+### The local npm registry
+
+The packages of the UI repository, the types library, the module kit, the module host, the theme
+and the dev shells, go to the npm registry of `Q-NPM-SCOPE`. The types build of this repository
+reads `<scope>/bc-types` from there, and a workflow module installs the module kit, the theme and a
+dev shell from there. When the interview names no registry of its own, or the scope is still a
+placeholder, there is no such registry. Then the `docker-compose.yaml` starts one: Verdaccio, a
+small npm registry. See [project.md](project.md#the-local-registry) for how the UI repository
+publishes to it.
+
+```yaml
+verdaccio:
+  image: verdaccio/verdaccio:6.11.3
+  ports:
+    - "4873:4873"
+  volumes:
+    - ./verdaccio/config.yaml:/verdaccio/conf/config.yaml:ro
+    - verdaccio-storage:/verdaccio/storage
+```
+
+Pin the image to a version, like every other image, and let the tool that updates the dependencies,
+for example Renovate, keep it current. `verdaccio-storage` is a named volume of the compose file, so
+the published packages stay when the container starts again. `docker compose down -v` empties it.
+
+`verdaccio/config.yaml` keeps the organisation's scope in the registry itself and passes every
+other package through from npmjs.com:
+
+```yaml
+storage: /verdaccio/storage
+uplinks:
+  npmjs:
+    url: https://registry.npmjs.org/
+packages:
+  '<scope>/*':
+    access: $all
+    publish: $all
+  '**':
+    access: $all
+    proxy: npmjs
+log:
+  type: stdout
+  format: pretty
+  level: warn
+```
+
+- The own scope has no `proxy`. A placeholder scope such as `@example` may exist on npmjs.com, and
+  its packages must never mix with the organisation's.
+- Anybody may publish to the own scope, without a login. The registry runs on the developer's
+  machine only, so this is safe there and nowhere else. The `README.md` says so.
+- There is no `unpublish`. A published snapshot stays, and the next one gets a higher counter.
+
+The service is left out when `Q-NPM-SCOPE` names a registry of its own and a real scope. Then the
+UI repository publishes there, and the types build reads from there.
 
 ## Quiet test output
 
@@ -1133,6 +1199,14 @@ The `README.md` of the backend repository says:
   API user, the client secret of the provider, the mail server,
 - the order of the builds, see [project.md](project.md#where-the-types-jar-is-built): the cockpit
   release, then the user interface, then this repository, the types jar and the application,
+- how the types build finds the types library on one machine, see
+  [project.md](project.md#where-the-types-build-finds-the-types-library): from the registry only,
+  so first `docker compose up` here, which starts the local registry, and then
+  `npm run publish:snapshot` in the UI repository,
+- with `embedded`, that `npm run publish:snapshot` also installs the UI jar of the snapshot into
+  the local Maven repository, where the module `application` finds it for a snapshot `ui.version`,
+- with the local npm registry: its address `http://localhost:4873`, that anybody may publish to it
+  because it runs on the developer's machine only, and that `docker compose down -v` empties it,
 - how a new version of the user interface gets in: a new value of `ui.version`,
 - with `embedded` and `behind`, a section "Developing the user interface": start the application
   with the profiles `local,ui-dev-server`, for example
