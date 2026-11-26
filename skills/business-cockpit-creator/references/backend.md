@@ -265,11 +265,13 @@ bean named `guiHttpSecurity`, with `@Order(99)`. The class
 `container/src/main/java/io/vanillabp/cockpit/security/GuiSecurityConfiguration.java` is the
 template. Every chain keeps five things, whatever the login is:
 
-1. The five matchers of `io.vanillabp.cockpit.config.web.WebSecurityConfiguration` stay
-   `permitAll`: `appInfoRequestMatcher`, `currentUserRequestMatcher`, `assetsRequestMatcher`,
-   `staticRequestMatcher` and `workflowModulesProxyRequestMatcher`. They are asked for before
-   anybody is logged in. Keep `currentUserRequestMatcher` as it is, and do not open
-   `/gui/api/v1/app/current-user/**`: the user settings below it need a login.
+1. Four matchers of `io.vanillabp.cockpit.config.web.WebSecurityConfiguration` stay
+   `permitAll`: `appInfoRequestMatcher`, `currentUserRequestMatcher`, `assetsRequestMatcher` and
+   `staticRequestMatcher`. They are asked for before anybody is logged in. Keep
+   `currentUserRequestMatcher` as it is, and do not open `/gui/api/v1/app/current-user/**`: the
+   user settings below it need a login. The proxy to the workflow modules under `/wm/**` is not
+   open. It needs the login of the cockpit, and a workflow module still protects its own endpoints
+   too (`EXT-061`).
 2. `PassiveJwtSecurityFilter` reads the token from the cookie on every later request.
 3. `JwtRenewalFilter` comes right behind it, with `updatesRequestMatcher`, so a login does not end
    after `business-cockpit.jwt.cookie.expires-duration` while somebody works.
@@ -313,7 +315,7 @@ http
         .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR)
         .permitAll()
         .requestMatchers(appInfoRequestMatcher, currentUserRequestMatcher, assetsRequestMatcher,
-            staticRequestMatcher, workflowModulesProxyRequestMatcher)
+            staticRequestMatcher)
         .permitAll()
         // the actuator is for operations: an application which exposes an endpoint writes a
         // chain of its own for /actuator/** with an order below 99

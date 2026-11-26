@@ -272,7 +272,8 @@ with areas and for one without, because the conformance modules offer both.
    ```
 
    `BC_STORAGE_STATE` names a file with a logged-in session, as Playwright's `storageState` writes
-   it. Leave it out if the simulator needs no login for the test.
+   it. The test always needs it, because the modules below `/wm/` load only with the login of the
+   cockpit (`EXT-061`).
 
 The same steps work against a running cockpit backend, with the credentials it asks for on the BPMS
 API and `serve.mjs` as the server of the modules. Do that once more in
@@ -411,7 +412,8 @@ module for that. The cockpit learns that the task is done the same way it learns
 as a report.
 
 It never calls a workflow module itself. Only the module's own parts talk to their module, and they
-do it through the cockpit's proxy under `/wm/<workflowModuleId>/`. The frame around a form never
+do it through the cockpit's proxy under `/wm/<workflowModuleId>/`. The proxy needs the login of the
+cockpit, and the module still protects its own endpoints too. The frame around a form never
 does.
 
 It has no login of its own. There is no login form, no user management and no rights check in the

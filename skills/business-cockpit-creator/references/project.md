@@ -699,7 +699,8 @@ shell simulator:
   (`DS-024`). Each simulated system has a prefix of its
   own, and below it is the path of the original.
 - The built parts of the three test modules, below `/wm/react-module/`, `/wm/vue-module/` and
-  `/wm/angular-module/`, the way the cockpit forwards to a module.
+  `/wm/angular-module/`, the way the cockpit forwards to a module. Like the cockpit, it serves
+  them only to a request with the login cookie (`EXT-061`).
 - The built modules of the conformance test of the VanillaBP kit, see
   [A module built against the kit loads in your cockpit](../SKILL.md#a-module-built-against-the-kit-loads-in-your-cockpit).
   The kit made them for that test, so they check exactly the contract of the kit. They have the
