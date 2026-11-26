@@ -352,9 +352,16 @@ names are ids and are shown as they are, not translated. The title, the sentence
 and the kinds are translated.
 
 The overview shows only what the user has. Entries of groups the user does not have are left out.
-A module without a hierarchy is left out. The data of all modules comes in one answer, so if the
-request fails, no module is left. If no module is left, the overview shows one sentence: "No roles
-or rights are known."
+A module without a hierarchy is left out.
+
+The roles of the organisation are shown even when no module is left, for example while no
+workflow module with a group hierarchy has registered yet. Then `modules` is empty, but
+`givenByOrganisation` still lists the groups of the user. The overview shows them in one table
+with no module heading, each with kind "Role" and given by "Organisation", in alphabetical order.
+The overview does not say "No roles or rights are known" while it knows a role.
+
+The overview shows the one sentence "No roles or rights are known." in two cases only: the request
+fails, or the answer has neither a module nor a group in `givenByOrganisation`.
 
 The cockpit merges the hierarchies of all modules, so a group that one module's hierarchy gives
 counts in every module. Such a group has its own row only in the table of the module that gives
