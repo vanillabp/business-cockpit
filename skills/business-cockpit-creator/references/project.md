@@ -279,7 +279,7 @@ the UI repository points only this scope to that registry. Every other package s
 <scope>:registry=https://npm.example.com/
 ```
 
-When the interview names no registry of its own, or the scope is still a placeholder, the scope
+When the interview names no registry of its own, the scope
 points to the local registry of the backend repository instead, see
 [The local registry](#the-local-registry):
 
@@ -332,7 +332,7 @@ The script never unpublishes a version. A workflow module that wants the newest 
 
 A workflow module installs `<scope>/bc-module-kit`, `<scope>/bc-theme` and a dev shell from the
 registry, and the types build of the backend reads `<scope>/bc-types` from it. Before the
-organisation has a registry of its own, or while `Q-NPM-SCOPE` is a placeholder, nothing would be
+organisation has a registry of its own, nothing would be
 there. So the backend repository brings a local npm registry: a Verdaccio service in its
 `docker-compose.yaml` on port 4873, see
 [backend.md](backend.md#the-local-npm-registry). It keeps the packages of the organisation's scope
@@ -800,7 +800,7 @@ The types build reads the types library from the npm registry, and from nowhere 
 
 The address of the registry is the property `bc-types.registry`. Its default is the registry of
 `Q-NPM-SCOPE`, or `http://localhost:4873`, the local registry of the `docker-compose.yaml`, when the
-interview names none or the scope is a placeholder, see [The local registry](#the-local-registry).
+interview names none, see [The local registry](#the-local-registry).
 The program reads the package document, the same one `npm view` reads: `GET <registry>/<package>`,
 with the `/` of the scope written as `%2f`.
 
@@ -899,8 +899,16 @@ shell simulator:
   configuration, see [gui-api.md](gui-api.md#the-base-path-is-configuration), so it runs against
   this path as well as against any other.
 - The BPMS API under `/bpms/api/v1_1`, so a test can set up its data the way a workflow module
-  does: register a module, report a case or a user task, then read the list. Nothing else is
-  checked there.
+  does: register a module, report a case or a user task, then read the list. Every test, also a
+  test of a dev shell, sets up its data through these calls over HTTP, never through a function of
+  the simulator in the same process. The simulator checks each request the way the cockpit does,
+  against `apis/bpms-api/openapi/v1_1.yaml` of `business-cockpit` at `Q-COCKPIT-VERSION`: it keeps
+  a user task by its `userTaskId` and a case by its `workflowId`, it takes `id` as the id of the
+  event, and it answers 400 to a report that misses a required field, for example `userTaskId`,
+  `id` or `title`. A simulator that accepts more than the cockpit lets a wrong setup script pass,
+  and the same script fails against the backend. A contract test of the simulator proves it: for
+  every operation of the BPMS API file it sends one valid request and one without a required
+  field, and expects the status codes the file names (`PKG-070`).
 - For the dev shells, the official GUI API below `/official-api/gui/api/v1` and the choice of a
   user below `/dev-shell/user/**`, the same calls the dev shell simulator of VanillaBP answers, see
   [dev-shell.md](dev-shell.md#the-dev-shell-simulator). This includes
@@ -910,6 +918,18 @@ shell simulator:
   of them, and a module without groups for everybody. The start page of the dev shell needs it
   (`DS-024`). Each simulated system has a prefix of its
   own, and below it is the path of the original.
+- Every path of the GUI API that the user interface, the module host, the three test modules and
+  the blueprints call, below `/gui/api/v1` and below `/official-api/gui/api/v1`. The blueprints
+  ask, for example, `GET /workflow-module/{id}`. Read their frontends to find these calls, see
+  [where-to-look.md](where-to-look.md). A call the simulator does not answer shows up first
+  against the running cockpit, at the end of the plan (`PKG-070`).
+- The test users. One user per group of `Q-VISIBLE-GROUPS` and `Q-SUB-LISTS`, one user in no
+  group, who sees no module that names groups, and the users of each blueprint application of
+  [How you know it is done](../SKILL.md#how-you-know-it-is-done), with the ids and groups of its
+  `docker/dev-shell-simulator.yaml`. The header button of a blueprint, for example, answers only
+  to a member of the group named there. The end-to-end tests, the dev shells and
+  `keycloak/realm.json` of the backend use the same users, see
+  [backend.md](backend.md#the-docker-composeyaml) (`PKG-071`, `BE-036`).
 - The built parts of the three test modules, below `/wm/react-module/`, `/wm/vue-module/` and
   `/wm/angular-module/`, the way the cockpit forwards to a module. Like the cockpit, it serves
   them only to a request with the login cookie (`EXT-061`).
@@ -935,6 +955,12 @@ one in Vue and one in Angular, against the module kit of the repository. These t
 fixed, whatever `Q-MODULE-FRAMEWORKS` says: the cockpit has to load modules of every framework, so
 its tests need all three. Each module takes the newest release of its framework, the one npm tags
 `latest` (`npm view react dist-tags`), not the version of `Q-FRAMEWORK` or `Q-MODULE-FRAMEWORKS`.
+This holds for the test module in the framework of the cockpit as well. With Angular 20 as
+`Q-FRAMEWORK`, the cockpit stays on Angular 20, and the Angular test module takes the newest
+Angular release. The two answers do not contradict each other: `Q-FRAMEWORK` sets the version of
+the cockpit, and the test module proves that a module on the newest release loads in it. Each test
+module is a workspace with exact versions of its own, so npm installs both releases side by side,
+the other one in the `node_modules` of the test module.
 The conformance test of the kit does not use them; it uses the kit's own modules.
 
 The Angular test module is built ahead of time with the Angular CLI (`ng build`), as
@@ -977,7 +1003,8 @@ version of the user interface, because both sides of a contract change together.
 ## The module kit
 
 `<scope>/bc-module-kit` is what a workflow module installs to build its parts. It is the cockpit's
-own copy of the VanillaBP kit `@vanillabp/bc-module-kit`, see
+own copy of the VanillaBP kit `@vanillabp/bc-module-kit`: the same names and the same behaviour,
+written from this description and not taken from the source of the VanillaBP kit, see
 [Why the cockpit has its own module kit and host](#why-the-cockpit-has-its-own-module-kit-and-host).
 Its one dependency is `<scope>/bc-types`, with the version of the workspace: the range over its
 snapshots, or the exact version in a release, see
@@ -1053,6 +1080,16 @@ publishes it again.
 The tests of the Angular dev shell start a small Angular application with the dev shell in it. Build
 that application ahead of time with the Angular CLI (`ng build`) as well, like the Angular test
 module, not JIT and not with esbuild (`PKG-065`).
+
+Two choices of the dev shells are fixed, so they are no question:
+
+- A module developer starts an Angular dev shell with the dev server of the Angular CLI,
+  `ng serve`. Its application builder brings the dev server and the hot reload of templates and
+  styles. Do not add a Vite plugin for Angular or a dev server of your own.
+- A dev shell package is published as built JavaScript with its type declarations. The Vue dev
+  shell ships no `.vue` file, so a module does not have to compile the files of the package. Its
+  own source may use single-file components, compiled when the package is built, or render
+  functions with `h()`. Both are fine.
 
 The theme of the cockpit (`Q-THEME`) comes from `<scope>/bc-theme` into the base pages of every dev
 shell. A user task or a case page must look exactly the same in the dev shell as in the cockpit,

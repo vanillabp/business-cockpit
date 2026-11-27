@@ -170,7 +170,9 @@ For this it must:
 7. Show a toast when a part calls `showNotification`, in the look of its `level`, and keep a
    `sticky` one until it is clicked away. Toasts and dialogs are components of `Q-DESIGN-LIBRARY`,
    as in the cockpit, never plain elements of your own, see
-   [behaviour.md](behaviour.md#controls-from-the-design-library) (`DS-027`).
+   [behaviour.md](behaviour.md#controls-from-the-design-library). A dev shell of another framework
+   than the cockpit's takes them from the library `Q-DEV-SHELL-DESIGN-LIBRARIES` names for it
+   (`DS-027`).
 8. Let the developer choose the language from the languages of the cockpit (`Q-LANGUAGES`).
 9. Look exactly like the cockpit, see [The rule](#the-rule). The theme from the interview
    (`Q-THEME`) comes from the theme library `<scope>/bc-theme`, the workspace the user interface
@@ -462,9 +464,12 @@ TypeScript simulator of the UI repository, see
 [project.md](project.md#the-simulator-of-the-ui-repository). For the dev shells it answers the same
 paths as the Java simulator, and it does the same with the user:
 
-- `/dev-shell/user/**` offers the users of its own test data, the same users the end-to-end tests
-  of the cockpit use, each with its groups. There is no `users.yaml` and no `john`, `jane` and
-  `joe`, unless the tests make them.
+- `/dev-shell/user/**` offers the test users of the simulator, the same users the end-to-end tests
+  of the cockpit and `keycloak/realm.json` of the backend use, each with its groups, see
+  [project.md](project.md#the-simulator-of-the-ui-repository) (`PKG-071`). There is no
+  `users.yaml` and no `john`, `jane` and `joe`, unless a blueprint names them. The calls, their
+  answers and their status codes are those of the dev shell simulator's OpenAPI file, see
+  [where-to-look.md](where-to-look.md).
 - `POST /dev-shell/user/{userId}` writes a JWT into the cookie the cockpit uses, `bc` by default,
   with the path `/` and `HttpOnly`. `---` deletes the cookie. The simulator signs the token with a
   fixed key of its own; the shape matters, not the security.
