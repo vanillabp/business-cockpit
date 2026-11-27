@@ -995,15 +995,17 @@ One `docker compose up` starts everything the application needs on a developer's
 `development/docker-compose.yaml` of the `business-cockpit` repository is the template for the
 first three:
 
-|  Service  |                Image                 |                                                         Why                                                         |                                   When                                    |
-|-----------|--------------------------------------|---------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
-| MongoDB   | `mongo`, the version of the template | the storage; a replica set, because change streams and the changesets need one                                      | always                                                                    |
-| Kafka     | `apache/kafka`, in KRaft mode        | the reports of the workflow modules, when they come through Kafka                                                   | only with `Q-KAFKA`                                                       |
-| Mailpit   | `axllent/mailpit`                    | catches the notification e-mails, web interface on port 8025                                                        | always; the application sends with `Q-MAIL`                               |
-| Keycloak  | `quay.io/keycloak/keycloak`          | the OIDC provider, with the realm of `keycloak/` imported at the start                                              | `Q-LOGIN-KIND` is `oidc`                                                  |
-| Verdaccio | `verdaccio/verdaccio`                | the local npm registry for the packages of the UI repository, see [The local npm registry](#the-local-npm-registry) | `Q-NPM-SCOPE` names no registry of its own, or its scope is a placeholder |
+|  Service  |                      Image                      |                                                         Why                                                         |                    When                     |
+|-----------|-------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|---------------------------------------------|
+| MongoDB   | `mongo`, the version of the template            | the storage; a replica set, because change streams and the changesets need one                                      | always                                      |
+| Kafka     | `apache/kafka`, in KRaft mode                   | the reports of the workflow modules, when they come through Kafka                                                   | only with `Q-KAFKA`                         |
+| Mailpit   | `axllent/mailpit`                               | catches the notification e-mails, web interface on port 8025                                                        | always; the application sends with `Q-MAIL` |
+| Keycloak  | `quay.io/keycloak/keycloak`, the newest release | the OIDC provider, with the realm of `keycloak/` imported at the start                                              | `Q-LOGIN-KIND` is `oidc`                    |
+| Verdaccio | `verdaccio/verdaccio`                           | the local npm registry for the packages of the UI repository, see [The local npm registry](#the-local-npm-registry) | `Q-NPM-SCOPE` names no registry of its own  |
 
-Pin every image to a version. MongoDB runs as a single-node replica set. Start it with
+Pin every image to a version. Where the template names no version, take the newest release tag
+of the image on the day you write the file, for example the newest `quay.io/keycloak/keycloak`,
+never `latest` or a nightly tag. The tool that updates the dependencies raises it later. MongoDB runs as a single-node replica set. Start it with
 `--replSet` and initiate the set in a health check or a setup container, so nobody has to type
 `rs.initiate()`. The same setup creates the database `business-cockpit` and a user
 `business-cockpit` with the password `business-cockpit` and the role `dbOwner` on that database,
@@ -1026,16 +1028,20 @@ writes that file for local development:
   `realm-management`, the client scope `kc-admin-api` among its `defaultClientScopes`, and its
   secret named in `application-local.yaml`. Without that client scope a newer Keycloak refuses the
   token of the client at its admin REST API,
-- exactly one group and one user with a password, and the user is a member of the group. They are
-  a template, not a set of test users.
+- the test users, each with a password and the groups they are a member of: the same users as the
+  simulator of the UI repository, see
+  [project.md](project.md#the-simulator-of-the-ui-repository). These are one user per group of
+  `Q-VISIBLE-GROUPS` and `Q-SUB-LISTS`, one user in no group, and the users of each blueprint
+  application of the last check, with the ids and groups of its `docker/dev-shell-simulator.yaml`
+  (`BE-036`). So the guide to try the cockpit by hand and the blueprints work without editing the
+  realm.
 
 There is no mapper for a claim `groups`. The cockpit takes the groups of a user from the user
 directory, not from the token, see [The user directory](#the-user-directory).
 
-The groups decide which user tasks and cases a user sees. So the template is not enough to try the
-visibilities out. The `README.md` tells the developer to add test users with different groups to
-`realm.json`, for example one per group of `Q-VISIBLE-GROUPS` and `Q-SUB-LISTS`, and to start
-Keycloak again with an empty volume, so the realm is imported again. These users and the secret are
+The groups decide which user tasks and cases a user sees. The `README.md` names the test users with
+their groups, tells the developer to add further test users with other groups to `realm.json`, and
+to start Keycloak again with an empty volume, so the realm is imported again. These users and the secret are
 for a developer's machine only, and the `README.md` says that too.
 
 ### The local npm registry
@@ -1043,8 +1049,8 @@ for a developer's machine only, and the `README.md` says that too.
 The packages of the UI repository, the types library, the module kit, the module host, the theme
 and the dev shells, go to the npm registry of `Q-NPM-SCOPE`. The types build of this repository
 reads `<scope>/bc-types` from there, and a workflow module installs the module kit, the theme and a
-dev shell from there. When the interview names no registry of its own, or the scope is still a
-placeholder, there is no such registry. Then the `docker-compose.yaml` starts one: Verdaccio, a
+dev shell from there. When the interview names no registry of its own, there is no such
+registry. Then the `docker-compose.yaml` starts one: Verdaccio, a
 small npm registry. See [project.md](project.md#the-local-registry) for how the UI repository
 publishes to it.
 
@@ -1083,13 +1089,13 @@ log:
   level: warn
 ```
 
-- The own scope has no `proxy`. A placeholder scope such as `@example` may exist on npmjs.com, and
-  its packages must never mix with the organisation's.
+- The own scope has no `proxy`. A scope such as `@acme` may exist on npmjs.com as well, and its
+  packages there must never mix with the organisation's.
 - Anybody may publish to the own scope, without a login. The registry runs on the developer's
   machine only, so this is safe there and nowhere else. The `README.md` says so.
 - There is no `unpublish`. A published snapshot stays, and the next one gets a higher counter.
 
-The service is left out when `Q-NPM-SCOPE` names a registry of its own and a real scope. Then the
+The service is left out when `Q-NPM-SCOPE` names a registry of its own. Then the
 UI repository publishes there, and the types build reads from there.
 
 ## Quiet test output
@@ -1192,8 +1198,8 @@ The `README.md` of the backend repository says:
 - how to start it: `docker compose up`, then the application with the profile `local`, and the
   system property `workerId` when Kafka is read,
 - which users exist locally and with which password, and that they are for local use only,
-- with `Q-LOGIN-KIND` `oidc`: that `keycloak/realm.json` has one group and one user as a template,
-  that the developer adds test users with different groups there, because the groups decide which
+- with `Q-LOGIN-KIND` `oidc`: the test users of `keycloak/realm.json` with their groups, that the
+  developer adds further test users with other groups there, because the groups decide which
   user tasks and cases a user sees, and how to import the realm again,
 - which environment variables a real deployment sets: the MongoDB address, the JWT key, the BPMS
   API user, the client secret of the provider, the mail server,

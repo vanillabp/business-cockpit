@@ -147,6 +147,12 @@ Read the value once at start and set it on both generated clients, with `setConf
 of their `client`. The update stream takes the same base path. No other code of the user interface
 names `/gui/api/v1`.
 
+The value is set at build time, as an environment variable of the bundler, for example
+`VITE_BC_GUI_API_BASE_PATH` with Vite, and it falls back to `/gui/api/v1`. It is not read at
+runtime from a file or from an endpoint. The cockpit always answers the GUI API on the origin of
+the user interface, and the simulator of the UI repository answers the same path, so the built
+bundle needs no other value. Only a test or a dev shell sets it.
+
 ## Protection and login
 
 Which paths stay open depends on where the user interface runs (`Q-HOSTING`, see
@@ -244,8 +250,17 @@ each of them shows is decided by a controller of the application and not by the 
 | `/gui/api/v1/user-roles`   | what the user's groups may claim and nobody is assigned to yet |
 
 Do not take these three paths as given. They are a choice of the runnable cockpit. An application of
-the organisation's own may offer other lists, and then the paths have other names. `/tasks` uses
-the first base path, and `/my-tasks` the second one, or the first with a filter on `assignee.id`.
+the organisation's own may offer other lists, and then the paths have other names.
+
+A backend the skill creates has the controllers of these lists, see
+[backend.md](backend.md#the-controllers-of-the-lists). Then `/tasks` and its count use the base
+path `/gui/api/v1`, and `/my-tasks` and the count of `My tasks` use `/gui/api/v1/current-user`:
+`POST /gui/api/v1/current-user/usertask` for the rows and
+`POST /gui/api/v1/current-user/usertask/count` for the count. Never build `My tasks` from the first
+base path with a filter on `assignee.id`. The base path `current-user` returns what is the user's
+own: the tasks assigned to the user and the tasks that name the user as a candidate. A filter on
+the assignee would drop the second kind, and the list and its count would no longer agree with
+the server (`NAV-037`).
 
 The endpoints, all relative to the base path:
 

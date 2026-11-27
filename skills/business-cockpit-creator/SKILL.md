@@ -221,6 +221,10 @@ modules as [references/module-loading.md](references/module-loading.md) describe
 [references/rough-edges.md](references/rough-edges.md) before the first screen, not afterwards.
 Each story file names the sections of these pages it needs, so you read only those.
 
+The skill does not copy the API files, the README of the VanillaBP kit, the blueprints or the wiki.
+[references/where-to-look.md](references/where-to-look.md) says which public source answers which
+kind of question. Look there before you write a question down.
+
 ## Phase 3: verify
 
 The last two stories of the plan are this phase. Go through `CHECKLIST.md`, item by item. For each
@@ -266,9 +270,10 @@ with areas and for one without, because the conformance modules offer both.
 4. Create one user task per module with `POST /bpms/api/v1_1/usertask/created`: the module's id as
    `workflowModuleId`, `bpmnProcessId` `TaxiRide`, `taskDefinition` `confirmRide`, the ES module
    value of `Q-UI-URI-TYPE` (by default `ES_MODULES`) as `uiUriType` and `/bc-manifest.json` as
-   `uiUriPath`, plus the other fields `UserTaskCreatedEvent` requires, such as `id`,
-   `workflowId` and `timestamp`, and a `title`, a text per language such as
-   `{ "en": "Confirm ride" }`. The cockpit's BPMS API refuses a user task without a title. Make the
+   `uiUriPath`, plus the other fields `UserTaskCreatedEvent` requires: `id`, the id of this event,
+   `userTaskId`, the id of the user task, `timestamp`, and a `title`, a text per language such as
+   `{ "en": "Confirm ride" }`. The cockpit's BPMS API answers 400 to a report without one of them,
+   and so does the simulator (`PKG-070`). Make the
    test user a candidate. When claiming is hard (`Q-CLAIM`), make the test user the assignee as
    well: the test fills in the form before it claims, and the barrier over the page of an unclaimed
    task would take every click. Write both steps into a setup
@@ -341,7 +346,9 @@ left. Do them in this order, and do them also when the request did not ask for t
    run is a guess.
 2. **An overview for the user.** Say in a few lines what you built: the two repositories and where
    they are, the main answers of the interview, the result of the checklist (items passed, items
-   left out and why), the defaults taken without asking, and anything you could not finish.
+   left out and why), the defaults taken without asking, and anything you could not finish. Name
+   a placeholder only where the interview left a value open. Never ask an answer of the interview
+   again, see [references/interview.md](references/interview.md#how-the-interview-runs).
 3. **What could come next.** Propose the next steps and ask which ones the user wants. Do none of
    them without an answer. Offer at least:
    - a build pipeline for both repositories (build, unit tests, end-to-end tests, the nginx image
@@ -349,7 +356,9 @@ left. Do them in this order, and do them also when the request did not ask for t
    - a coverage report over the unit tests and the end-to-end tests, with a limit the build checks;
    - publishing the UI jar, the types jar and the npm packages to the repositories of
      `Q-MAVEN-REPOSITORY` and `Q-NPM-SCOPE`;
-   - updating the dependencies automatically (for example Renovate or Dependabot).
+   - updating the dependencies automatically (for example Renovate or Dependabot);
+   - while `Q-COCKPIT-VERSION` is a snapshot: moving both repositories to the release of the
+     cockpit as soon as it is out. This is a next step, not a question.
 
 ## The parts of this description
 
@@ -395,6 +404,9 @@ Read them in this order. Each one builds on the one before.
 12. [references/code-that-reads-like-prose.md](references/code-that-reads-like-prose.md)<br>
     How the generated code explains itself: names, comments, plain English, and the checks before
     each commit.
+13. [references/where-to-look.md](references/where-to-look.md)<br>
+    Which public source answers which kind of question: the API files, the README of the VanillaBP
+    kit, the blueprints and the wiki. Read it before you write a question down.
 
 The wiki of the repository describes the same things for a reader who does not build a user
 interface:
@@ -567,7 +579,8 @@ backend: the address of your cockpit and the user of `Q-BPMS-API-USER` go below
 `vanillabp.cockpit.rest` in its `application.yaml`, and the address of your cockpit into
 `<module>.cockpit.base-url`.
 
-Until their versions are released, the blueprints depend on snapshots: of VanillaBP, today
+Until their versions are released, the blueprints depend on snapshots, and running them as
+snapshots is right, not a question: of VanillaBP, today
 `2.0.0-SNAPSHOT`, and of the Business Cockpit, today `1.0.0-SNAPSHOT`, the same snapshot as
 [What needs a newer cockpit](references/rough-edges.md#what-needs-a-newer-cockpit) names. Both are
 in the snapshot repository of Maven Central, `https://central.sonatype.com/repository/maven-snapshots/`,

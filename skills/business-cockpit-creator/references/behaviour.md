@@ -67,7 +67,9 @@ Tailwind, the cockpit builds these controls in one style from its classes, the s
 
 The cockpit has a light look only, unless `Q-THEME` asks for a dark mode. Without a dark mode it
 stays light also when the operating system of the user is set to dark. With a dark mode it follows
-that setting, and the colours of the rows, the legend and the charts have a dark form each.
+that setting, and the colours of the rows, the legend and the charts have a dark form each. When
+the user may also choose the look in the menu, the choice is a user setting like any other, under
+the key `bc:theme`, see [User settings](#user-settings).
 
 ### Toasts
 
@@ -82,13 +84,13 @@ in the language of the user, see [Language and texts](#language-and-texts).
 
 Which screens exist is decided per organisation (`Q-SCREENS`). The minimum is:
 
-|   Screen    |       Path        |                         What it shows                          |
-|-------------|-------------------|----------------------------------------------------------------|
-| all tasks   | `/tasks`          | all user tasks the user may see                                |
-| my tasks    | `/my-tasks`       | the user tasks where the user is the assignee                  |
-| case list   | `/workflows`      | the cases; there is exactly one case list                      |
-| a case      | `/workflows/<id>` | the page from the workflow module                              |
-| a user task | `/tasks/<id>`     | the page from the workflow module, in the frame of the cockpit |
+|   Screen    |       Path        |                                                 What it shows                                                 |
+|-------------|-------------------|---------------------------------------------------------------------------------------------------------------|
+| all tasks   | `/tasks`          | all user tasks the user may see                                                                               |
+| my tasks    | `/my-tasks`       | the user tasks assigned to the user or naming them as a candidate, see [gui-api.md](gui-api.md#the-endpoints) |
+| case list   | `/workflows`      | the cases; there is exactly one case list                                                                     |
+| a case      | `/workflows/<id>` | the page from the workflow module                                                                             |
+| a user task | `/tasks/<id>`     | the page from the workflow module, in the frame of the cockpit                                                |
 
 The paths are a proposal (`Q-ROUTES`). What matters is that every screen has an address that can be
 shared and bookmarked, and that a link into the middle works. With more than one language the paths
@@ -505,7 +507,9 @@ labels (`Q-PRIMARY-FILTERS`). Propose these, and for another language words of t
 | `ClosedTasksOnly`          | Closed    | Erledigt      |
 
 The primary filter last chosen is a user setting and is used again next time, in every browser, see
-[User settings](#user-settings). The counts in the toggle of the header do not follow it, see
+[User settings](#user-settings). Each list keeps its own, under a key of its own, for example
+`bc:tasks:primaryFilter`, `bc:my-tasks:primaryFilter` and `bc:workflows:primaryFilter`. A choice
+in `All tasks` does not change `My tasks`. The counts in the toggle of the header do not follow it, see
 [Counts](#counts). On its right, the status line shows a colour legend for the states
 of a row, for example new, changed and removed, and the looks of a completed, a cancelled and a
 suspended row, see [How the state of a row looks](#how-the-state-of-a-row-looks).

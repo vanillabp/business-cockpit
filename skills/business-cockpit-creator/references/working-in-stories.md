@@ -177,10 +177,10 @@ see [Planning](#planning-from-the-checklist-to-stories). The ids of the customer
 `CUST-001` and on, go into the last slice, `customer`.
 
 ```text
-project|The UI repository builds and tests itself|PKG-044, PKG-035, PKG-045, PKG-019, PKG-002, PKG-062, PKG-055, PKG-047, PKG-046, PKG-066, PKG-069, PKG-067, PKG-014, PKG-008, PKG-052, PKG-063, PKG-064, PKG-054
+project|The UI repository builds and tests itself|PKG-044, PKG-035, PKG-045, PKG-019, PKG-002, PKG-062, PKG-055, PKG-047, PKG-046, PKG-066, PKG-069, PKG-067, PKG-014, PKG-008, PKG-052, PKG-063, PKG-064, PKG-054, PKG-070, PKG-071
 backend|The backend starts and serves the user interface|BE-001, BE-035, PKG-068, BE-024, BE-025, BE-002, BE-003, BE-014, BE-028, BE-012, BE-006, PKG-003, PKG-004, PKG-005, PKG-059, BE-031
-login|A user logs in and out|BE-005, BE-010, BE-011, BE-007, BE-008, BE-013, BE-017, BE-026, BE-027, BE-009, AUTH-002, AUTH-003, AUTH-004, AUTH-005, AUTH-006, AUTH-008, AUTH-001, AUTH-009, AUTH-010, AUTH-007, BE-032, BE-033, BE-034
-frame|The user sees the header and the menu|NAV-006, NAV-009, NAV-010, NAV-011, NAV-013, NAV-029, NAV-031, NAV-032, NAV-034, I18N-001, I18N-002, I18N-004, I18N-005, I18N-006
+login|A user logs in and out|BE-005, BE-010, BE-011, BE-007, BE-008, BE-013, BE-036, BE-017, BE-026, BE-027, BE-009, AUTH-002, AUTH-003, AUTH-004, AUTH-005, AUTH-006, AUTH-008, AUTH-001, AUTH-009, AUTH-010, AUTH-007, BE-032, BE-033, BE-034
+frame|The user sees the header and the menu|NAV-006, NAV-037, NAV-009, NAV-010, NAV-011, NAV-013, NAV-029, NAV-031, NAV-032, NAV-034, I18N-001, I18N-002, I18N-004, I18N-005, I18N-006
 settings|The settings of a user are kept on the server|SET-001, SET-002, SET-004, SET-005, SET-006
 task-list|A clerk sees the tasks waiting for them|BE-004, NAV-001, NAV-002, TL-008, TL-012, TL-013, TL-015, TL-016, TL-018, TL-024, TL-032, COL-015, COL-017, COL-018, COL-019, COL-021, BE-020, TL-033
 status-line|A clerk switches between open and closed tasks and sees the counts|TL-001, TL-002, TL-003, TL-005, TL-006, TL-009, TL-010, TL-021, TL-026, TL-028
@@ -465,7 +465,22 @@ every page of `references/`, for the key words of the question, in more than one
 grep -rn -i -E 'ended|endedAt|bulk' <folder of this skill>
 ```
 
-Read every paragraph the search finds. Write a question only when none of them answers it.
+Read every paragraph the search finds. Then look the question up in the public sources that
+[where-to-look.md](where-to-look.md) lists: the API files, the README of the VanillaBP kit, the
+blueprints and the wiki. Write a question only when neither the skill nor these sources answer it.
+
+What may become a question:
+
+- Only a decision the sources leave open, and one that needs knowledge of the project. A question
+  with one sensible answer that needs no project knowledge is no question. Take that answer, and
+  write it into `Notes` of the story file.
+- Never an answer of the interview again. An answer in `INTERVIEW.md` is final, whatever value it
+  holds. `com.acme` or `@acme` given in the interview is the answer, not a placeholder to replace.
+  Do not ask it again in `plan/QUESTIONS.md`, in the hand-over or at the end of the work.
+- A project decision the interview should have asked, but did not, is still a question. Name the
+  interview question it belongs to, so a later version of the skill can ask it there.
+
+Every entry names the sources you checked, in its line `Checked:`.
 
 `plan/QUESTIONS-DRAFT.md` and `plan/QUESTIONS.md` hold questions only, things you need the user to
 decide. A choice you made on purpose, for example another way than the skill shows, with your
@@ -728,6 +743,7 @@ Date: 2026-11-19
 Default taken: no, the case list starts with the primary filter `InProgress`.
 Why this default: it is the default of Q-WORKFLOW-FILTERS in the interview, and it is one setting
 to change later.
+Checked: behaviour.md and interview.md of the skill; the GUI API file; the wiki page Security.
 Answer: open
 ```
 
