@@ -177,7 +177,7 @@
           in common. There is no train targeting 4.1 yet; the combination is verified by the gateway proxy
           test recipe rather than by Spring Cloud's own compatibility matrix.
         -->
-        <version>2025.1.5</version>
+        <version>2026.0.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
