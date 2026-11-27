@@ -1,6 +1,6 @@
 {
   "name": "@vanillabp/bc-dev-shell-vue",
-  "version": "0.4.4-SNAPSHOT.0",
+  "version": "0.4.5",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -16,8 +16,8 @@
     "publish:release": "npm publish --access public"
   },
   "peerDependencies": {
-    "@vanillabp/bc-official-gui-client": ">=0.4.4-SNAPSHOT <0.4.5",
-    "@vanillabp/bc-types": ">=0.4.4-SNAPSHOT <0.4.5",
+    "@vanillabp/bc-official-gui-client": "0.4.5",
+    "@vanillabp/bc-types": "0.4.5",
     "primevue": "^4.3.0",
     "@primevue/themes": "^4.3.0",
     "vue": "^3.5.0",
