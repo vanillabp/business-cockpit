@@ -4,8 +4,11 @@
 # subsequent `npm install`/`npm update` calls of dependent packages in the same
 # Maven build.
 #
-# Invoked from each published @vanillabp/* package.json — see its `postpublish`
-# (or for Angular, the end of `publish:release` / `publish:snapshot`). npm runs
+# Invoked from each @vanillabp/* package.json whose package is consumed again
+# later in the same Maven build — see its `postpublish` (or for Angular, the end
+# of `publish:release` / `publish:snapshot`). Packages nobody in the build
+# depends on (e.g. bc-dev-shell-vue) have no hook and are only checked by the
+# final "Wait for all @vanillabp/* npm packages" step in release.yml. npm runs
 # lifecycle hooks with the package directory as CWD, so package.json here is
 # always the one that was just published.
 #
@@ -32,7 +35,7 @@ if [ -z "$name" ] || [ -z "$version" ]; then
 fi
 
 echo ">>> Waiting for ${name}@${version} to be queryable on the npm registry..."
-for i in $(seq 1 60); do
+for i in $(seq 1 84); do
   if npm view "${name}@${version}" version >/dev/null 2>&1; then
     echo ">>> ${name}@${version} available after attempt ${i}"
     exit 0
@@ -40,5 +43,5 @@ for i in $(seq 1 60); do
   sleep 5
 done
 
-echo "::error::${name}@${version} did not appear on the registry within 5 minutes — subsequent installs will fail"
+echo "::error::${name}@${version} did not appear on the registry within 7 minutes — subsequent installs will fail"
 exit 1
